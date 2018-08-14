@@ -149,7 +149,6 @@ sub accept ( $self, $req ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomo
 }
 
 # TODO store connection args for reconnect???
-# TODO use Pcore::AE::Handle qw[];
 sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my $protocol = do {
         no strict qw[refs];
@@ -176,134 +175,122 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
         $self->{_connect} = $uri;
     }
 
-    my $on_connect_error = sub ($status) {
-        $self->_on_disconnect($status);
-
-        return;
-    };
-
-    use Pcore::AE::Handle qw[];
-    Pcore::AE::Handle->new(
-        connect         => $self->{_connect},
+    my $h = P->handle(
+        $self->{_connect},
+        timeout         => undef,
         connect_timeout => $args{connect_timeout},
         tls_ctx         => $args{tls_ctx},
         bind_ip         => $args{bind_ip},
-        on_error => sub ( $h, $fatal, $reason ) {
-            $on_connect_error->( res [ 596, $reason ] );
+    );
 
-            return;
-        },
-        on_connect => sub ( $h, $host, $port, $retry ) {
+    if ( !$h ) {
+        $self->_on_disconnect( res [ $h->{status}, $h->{reason} ] );
 
-            # start TLS, only if TLS is required and TLS is not established yet
-            $h->starttls('connect') if $uri->is_secure && !exists $h->{tls};
+        return;
+    }
 
-            # generate websocket key
-            my $sec_websocket_key = to_b64 rand 100_000, q[];
+    # start TLS, only if TLS is required and TLS is not established yet
+    $h->starttls if $uri->is_secure && !exists $h->{tls};
 
-            my $request_path = $uri->path->to_uri . ( $uri->query ? q[?] . $uri->query : q[] );
+    # generate websocket key
+    my $sec_websocket_key = to_b64 rand 100_000, q[];
 
-            my @headers = (    #
-                "GET $request_path HTTP/1.1",
-                'Host:' . $uri->host,
-                "User-Agent:Pcore-HTTP/$Pcore::VERSION",
-                'Upgrade:websocket',
-                'Connection:upgrade',
-                "Sec-WebSocket-Version:$Pcore::WebSocket::Handle::WEBSOCKET_VERSION",
-                "Sec-WebSocket-Key:$sec_websocket_key",
-                ( $protocol            ? "Sec-WebSocket-Protocol:$protocol"            : () ),
-                ( $self->{compression} ? 'Sec-WebSocket-Extensions:permessage-deflate' : () ),
-            );
+    my $request_path = $uri->path->to_uri . ( $uri->query ? q[?] . $uri->query : q[] );
 
-            # client always send masked frames
-            $self->{_send_masked} = 1;
+    my @headers = (    #
+        "GET $request_path HTTP/1.1",
+        'Host:' . $uri->host,
+        "User-Agent:Pcore-HTTP/$Pcore::VERSION",
+        'Upgrade:websocket',
+        'Connection:upgrade',
+        "Sec-WebSocket-Version:$Pcore::WebSocket::Handle::WEBSOCKET_VERSION",
+        "Sec-WebSocket-Key:$sec_websocket_key",
+        ( $protocol            ? "Sec-WebSocket-Protocol:$protocol"            : () ),
+        ( $self->{compression} ? 'Sec-WebSocket-Extensions:permessage-deflate' : () ),
+    );
 
-            # write headers
-            $h->push_write( join( $CRLF, @headers ) . $CRLF . $CRLF );
+    # client always send masked frames
+    $self->{_send_masked} = 1;
 
-            # read response headers
-            $h->unshift_read(
-                http_headers => sub ( $h1, @ ) {
-                    my $headers;
+    # write headers
+    $h->write( join( $CRLF, @headers ) . $CRLF . $CRLF );
 
-                    if ( !$_[1] ) {
-                        $on_connect_error->( res [ 596, 'HTTP headers error' ] );
+    if ( !$h ) {
+        $self->_on_disconnect( res [ $h->{status}, $h->{reason} ] );
 
-                        return;
-                    }
-                    else {
-                        use Pcore::Handle;
+        return;
+    }
 
-                        $headers = Pcore::Handle->_parse_http_headers( $_[1] );
+    # read response headers
+    my $headers = $h->read_http_res_headers;
 
-                        if ( $headers->{len} <= 0 ) {
-                            $on_connect_error->( res [ 596, 'HTTP headers error' ] );
+    if ( !$h ) {
+        $self->_on_disconnect( res [ $h->{status}, $h->{reason} ] );
 
-                            return;
-                        }
-                    }
+        return;
+    }
 
-                    my $res_headers = $headers->{headers};
+    my $res_headers = $headers->{headers};
 
-                    # check response status
-                    if ( $headers->{status} != 101 ) {
-                        $on_connect_error->( res [ $headers->{status}, $headers->{reason} ] );
+    # check response status
+    if ( $headers->{status} != 101 ) {
 
-                        return;
-                    }
+        # TODO protocol error
+        $self->_on_disconnect( res [ $headers->{status}, $headers->{reason} ] );
 
-                    # check response connection headers
-                    if ( !$res_headers->{CONNECTION} || !$res_headers->{UPGRADE} || $res_headers->{CONNECTION} !~ /\bupgrade\b/smi || $res_headers->{UPGRADE} !~ /\bwebsocket\b/smi ) {
-                        $on_connect_error->( res [ 596, q[WebSocket handshake error] ] );
+        return;
+    }
 
-                        return;
-                    }
+    # check response connection headers
+    if ( !$res_headers->{CONNECTION} || !$res_headers->{UPGRADE} || $res_headers->{CONNECTION} !~ /\bupgrade\b/smi || $res_headers->{UPGRADE} !~ /\bwebsocket\b/smi ) {
 
-                    # validate SEC_WEBSOCKET_ACCEPT
-                    if ( !$res_headers->{SEC_WEBSOCKET_ACCEPT} || $res_headers->{SEC_WEBSOCKET_ACCEPT} ne $self->_get_challenge($sec_websocket_key) ) {
-                        $on_connect_error->( res [ 596, q[Invalid SEC_WEBSOCKET_ACCEPT header] ] );
+        # TODO protocol error
+        $self->_on_disconnect( res [ 596, q[WebSocket handshake error] ] );
 
-                        return;
-                    }
+        return;
+    }
 
-                    # check protocol
-                    if ( $res_headers->{SEC_WEBSOCKET_PROTOCOL} ) {
-                        if ( !$protocol || $res_headers->{SEC_WEBSOCKET_PROTOCOL} !~ /\b$protocol\b/smi ) {
-                            $on_connect_error->( res [ 596, qq[WebSocket server returned unsupported protocol "$res_headers->{SEC_WEBSOCKET_PROTOCOL}"] ] );
+    # validate SEC_WEBSOCKET_ACCEPT
+    if ( !$res_headers->{SEC_WEBSOCKET_ACCEPT} || $res_headers->{SEC_WEBSOCKET_ACCEPT} ne $self->_get_challenge($sec_websocket_key) ) {
 
-                            return;
-                        }
-                    }
-                    elsif ($protocol) {
-                        $on_connect_error->( res [ 596, q[WebSocket server returned no protocol] ] );
+        # TODO protocol error
+        $self->_on_disconnect( res [ 596, q[Invalid SEC_WEBSOCKET_ACCEPT header] ] );
 
-                        return;
-                    }
+        return;
+    }
 
-                    # drop compression
-                    $self->{_compression} = 0;
+    # check protocol
+    if ( $res_headers->{SEC_WEBSOCKET_PROTOCOL} ) {
+        if ( !$protocol || $res_headers->{SEC_WEBSOCKET_PROTOCOL} !~ /\b$protocol\b/smi ) {
 
-                    # check compression support
-                    if ( $res_headers->{SEC_WEBSOCKET_EXTENSIONS} ) {
-
-                        # use compression, if server and client support compression
-                        if ( $self->{compression} && $res_headers->{SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi ) {
-                            $self->{_compression} = 1;
-                        }
-                    }
-
-                    # call protocol on_connect
-                    $self->__on_connect( P->handle( $h->{fh} ) );
-
-                    delete $h->{fh};
-
-                    return;
-                }
-            );
+            # TODO protocol error
+            $self->_on_disconnect( res [ 596, qq[WebSocket server returned unsupported protocol "$res_headers->{SEC_WEBSOCKET_PROTOCOL}"] ] );
 
             return;
         }
-    );
+    }
+    elsif ($protocol) {
+
+        # TODO protocol error
+        $self->_on_disconnect( res [ 596, q[WebSocket server returned no protocol] ] );
+
+        return;
+    }
+
+    # drop compression
+    $self->{_compression} = 0;
+
+    # check compression support
+    if ( $res_headers->{SEC_WEBSOCKET_EXTENSIONS} ) {
+
+        # use compression, if server and client support compression
+        if ( $self->{compression} && $res_headers->{SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi ) {
+            $self->{_compression} = 1;
+        }
+    }
+
+    # call protocol on_connect
+    $self->__on_connect($h);
 
     return;
 }
@@ -697,19 +684,15 @@ sub _parse_frame_header ( $h ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 153                  | * Subroutine "connect" with high complexity score (28)                                                         |
-## |      | 368                  | * Subroutine "__on_connect" with high complexity score (23)                                                    |
-## |      | 483                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
+## |      | 152                  | * Subroutine "connect" with high complexity score (28)                                                         |
+## |      | 355                  | * Subroutine "__on_connect" with high complexity score (23)                                                    |
+## |      | 470                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 235                  | Modules::ProhibitConditionalUseStatements - Conditional "use" statement                                        |
+## |    3 | 310, 316, 556        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 237                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 623, 625, 627        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 323, 329, 569        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 636, 638, 640        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 40, 499              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 40, 486              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
