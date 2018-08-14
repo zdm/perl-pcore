@@ -394,7 +394,7 @@ sub _build_frame ( $self, $fin, $rsv1, $rsv2, $rsv3, $op, $payload_ref ) {
 
     # mask payload
     if ($masked) {
-        my $mask = pack 'N', int( rand 9 x 7 );
+        my $mask = pack 'N', int rand 4_294_967_295;
 
         $payload_ref = \( $mask . to_xor( $payload_ref->$*, $mask ) );
     }
