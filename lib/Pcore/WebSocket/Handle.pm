@@ -6,7 +6,6 @@ use Pcore::Util::Text qw[decode_utf8 encode_utf8];
 use Pcore::Util::UUID qw[uuid_v1mc_str];
 use Pcore::Util::Data qw[to_b64 to_xor];
 use Pcore::Util::Digest qw[sha1];
-use Pcore::AE::Handle qw[];
 use Compress::Raw::Zlib;
 
 # Websocket v13 spec. https://tools.ietf.org/html/rfc6455
@@ -140,16 +139,6 @@ sub accept ( $self, $req ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomo
     # accept websocket connection
     my $h = $req->accept_websocket( \@headers );
 
-    # convert to Pcore::AE::Handle
-    Pcore::AE::Handle->new(
-        fh         => delete $h->{fh},
-        on_connect => sub ( $h1, @ ) {
-            $h = $h1;
-
-            return;
-        }
-    );
-
     # store connestion
     $SERVER_CONN->{ $self->{id} } = $self;
 
@@ -160,6 +149,7 @@ sub accept ( $self, $req ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomo
 }
 
 # TODO store connection args for reconnect???
+# TODO use Pcore::AE::Handle qw[];
 sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my $protocol = do {
         no strict qw[refs];
@@ -192,6 +182,7 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
         return;
     };
 
+    use Pcore::AE::Handle qw[];
     Pcore::AE::Handle->new(
         connect         => $self->{_connect},
         connect_timeout => $args{connect_timeout},
@@ -302,7 +293,9 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
                     }
 
                     # call protocol on_connect
-                    $self->__on_connect($h);
+                    $self->__on_connect( P->handle( $h->{fh} ) );
+
+                    delete $h->{fh};
 
                     return;
                 }
@@ -316,29 +309,30 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
 }
 
 sub send_text ( $self, $data_ref ) {
-    $self->{_h}->push_write( $self->_build_frame( 1, $self->{_compression}, 0, 0, $WEBSOCKET_OP_TEXT, $data_ref ) );
+    $self->{_h}->write( $self->_build_frame( 1, $self->{_compression}, 0, 0, $WEBSOCKET_OP_TEXT, $data_ref ) );
 
     return;
 }
 
 sub send_binary ( $self, $data_ref ) {
-    $self->{_h}->push_write( $self->_build_frame( 1, $self->{_compression}, 0, 0, $WEBSOCKET_OP_BINARY, $data_ref ) );
+    $self->{_h}->write( $self->_build_frame( 1, $self->{_compression}, 0, 0, $WEBSOCKET_OP_BINARY, $data_ref ) );
 
     return;
 }
 
 sub send_ping ( $self, $payload = $WEBSOCKET_PING_PONG_PAYLOAD ) {
-    $self->{_h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PING, \$payload ) );
+    $self->{_h}->write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PING, \$payload ) );
 
     return;
 }
 
 sub send_pong ( $self, $payload = $WEBSOCKET_PING_PONG_PAYLOAD ) {
-    $self->{_h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PONG, \$payload ) );
+    $self->{_h}->write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PONG, \$payload ) );
 
     return;
 }
 
+# TODO
 sub disconnect ( $self, $status = undef ) {
     return if !$self->{is_connected};
 
@@ -351,10 +345,10 @@ sub disconnect ( $self, $status = undef ) {
     undef $self->{_msg};
 
     # send close message
-    $self->{_h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_CLOSE, \( pack( 'n', $status->{status} ) . encode_utf8 $status->{reason} ) ) );
+    $self->{_h}->write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_CLOSE, \( pack( 'n', $status->{status} ) . encode_utf8 $status->{reason} ) ) );
 
     # destroy handle
-    $self->{_h}->destroy;
+    $self->{_h}->shutdown;
 
     # remove from conn, on server only
     delete $SERVER_CONN->{ $self->{id} } if !$self->{_is_client};
@@ -370,6 +364,7 @@ sub _get_challenge ( $self, $key ) {
     return to_b64( sha1( ($key) . $WEBSOCKET_GUID ), q[] );
 }
 
+# TODO $self is undef, on_error, pong_timeout
 sub __on_connect ( $self, $h ) {
     return if $self->{is_connected};
 
@@ -380,17 +375,21 @@ sub __on_connect ( $self, $h ) {
     weaken $self;
 
     # set on_error handler
-    $self->{_h}->on_error(
-        sub ( $h, @ ) {
-            $self->disconnect( res [ 1001, $WEBSOCKET_STATUS_REASON ] ) if $self;    # 1001 - Going Away
+    # $self->{_h}->on_error(
+    #     sub ( $h, @ ) {
+    #         $self->disconnect( res [ 1001, $WEBSOCKET_STATUS_REASON ] ) if $self;    # 1001 - Going Away
 
-            return;
-        }
-    );
+    #         return;
+    #     }
+    # );
 
     # start listen
-    $self->{_h}->on_read( sub ($h) {
-        if ( my $header = $self->_parse_frame_header( \$h->{rbuf} ) ) {
+    Coro::async_pool {
+        while () {
+            my $header = _parse_frame_header($h);
+
+            last if !$header;
+            last if !$self;
 
             # check protocol errors
             if ( $header->{fin} ) {
@@ -448,33 +447,33 @@ sub __on_connect ( $self, $h ) {
                     $self->_on_frame( $header, \substr $h->{rbuf}, 0, $header->{len}, q[] );
                 }
                 else {
-                    $h->unshift_read(
-                        chunk => $header->{len},
-                        sub ( $h, $payload ) {
-                            $self->_on_frame( $header, \$payload );
+                    my $payload = $h->read_chunk( $header->{len}, timeout => undef );
 
-                            return;
-                        }
-                    );
+                    last if !$payload;
+
+                    $self->_on_frame( $header, $payload );
                 }
             }
         }
 
+        # TODO
+        say '--- listen coro finished';
+
         return;
-    } );
+    };
 
     # auto-pong on timeout
-    if ( $self->{pong_timeout} ) {
-        $self->{_h}->on_timeout( sub ($h) {
-            return if !$self;
+    # if ( $self->{pong_timeout} ) {
+    #     $self->{_h}->on_timeout( sub ($h) {
+    #         return if !$self;
 
-            $self->send_pong;
+    #         $self->send_pong;
 
-            return;
-        } );
+    #         return;
+    #     } );
 
-        $self->{_h}->timeout( $self->{pong_timeout} );
-    }
+    #     $self->{_h}->timeout( $self->{pong_timeout} );
+    # }
 
     $self->_on_connect;
 
@@ -625,67 +624,67 @@ sub _build_frame ( $self, $fin, $rsv1, $rsv2, $rsv3, $op, $payload_ref ) {
     return $frame . $payload_ref->$*;
 }
 
-sub _parse_frame_header ( $self, $buf_ref ) {
-    return if length $buf_ref->$* < 2;
+# TODO $self is undef
+sub _parse_frame_header ( $h ) {
+
+    # read header
+    my $buf_ref = $h->read_chunk( 2, timeout => undef );
+
+    # header read error
+    return if !$buf_ref;
 
     my ( $first, $second ) = unpack 'C*', substr $buf_ref->$*, 0, 2;
 
     my $masked = $second & 0b10000000;
 
-    my $header;
+    my $header = {
+        len => $second & 0b01111111,
 
-    ( my $hlen, $header->{len} ) = ( 2, $second & 0b01111111 );
+        # FIN
+        fin => $first & 0b10000000 == 0b10000000 ? 1 : 0,
+
+        # RSV1-3
+        rsv1 => $first & 0b01000000 == 0b01000000 ? 1 : 0,
+        rsv2 => $first & 0b00100000 == 0b00100000 ? 1 : 0,
+        rsv3 => $first & 0b00010000 == 0b00010000 ? 1 : 0,
+
+        # opcode
+        op => $first & 0b00001111,
+    };
 
     # small payload
     if ( $header->{len} < 126 ) {
-        $hlen += 4 if $masked;
 
-        return if length $buf_ref->$* < $hlen;
+        # read mask
+        if ($masked) {
+            my $mask = $h->read_chunk( 4, timeout => undef );
 
-        # cut header
-        my $full_header = substr $buf_ref->$*, 0, $hlen, q[];
+            # mask read error
+            return if !$mask;
 
-        $header->{mask} = substr $full_header, 2, 4, q[] if $masked;
+            $header->{mask} = $mask->$*;
+        }
     }
 
     # extended payload (16-bit)
     elsif ( $header->{len} == 126 ) {
-        $hlen = $masked ? 8 : 4;
+        my $buf = $h->read_chunk( $masked ? 6 : 2, timeout => undef );
 
-        return if length $buf_ref->$* < $hlen;
+        return if !$buf;
 
-        # cut header
-        my $full_header = substr $buf_ref->$*, 0, $hlen, q[];
-
-        $header->{mask} = substr $full_header, 4, 4, q[] if $masked;
-
-        $header->{len} = unpack 'n', substr $full_header, 2, 2, q[];
+        $header->{len} = unpack 'n', substr $buf->$*, 0, 2;
+        $header->{mask} = substr $buf->$*, 2, 4 if $masked;
     }
 
     # extended payload (64-bit with 32-bit fallback)
     elsif ( $header->{len} == 127 ) {
-        $hlen = $masked ? 14 : 10;
+        my $buf = $h->read_chunk( $masked ? 12 : 8, timeout => undef );
 
-        return if length $buf_ref->$* < $hlen;
+        return if !$buf;
 
-        # cut header
-        my $full_header = substr $buf_ref->$*, 0, $hlen, q[];
-
-        $header->{mask} = substr $full_header, 10, 4, q[] if $masked;
-
-        $header->{len} = unpack 'Q>', substr $full_header, 2, 8, q[];
+        $header->{len} = unpack 'Q>', substr $buf->$*, 0, 8;
+        $header->{mask} = substr $buf->$*, 8, 4 if $masked;
     }
-
-    # FIN
-    $header->{fin} = ( $first & 0b10000000 ) == 0b10000000 ? 1 : 0;
-
-    # RSV1-3
-    $header->{rsv1} = ( $first & 0b01000000 ) == 0b01000000 ? 1 : 0;
-    $header->{rsv2} = ( $first & 0b00100000 ) == 0b00100000 ? 1 : 0;
-    $header->{rsv3} = ( $first & 0b00010000 ) == 0b00010000 ? 1 : 0;
-
-    # opcode
-    $header->{op} = $first & 0b00001111;
 
     return $header;
 }
@@ -698,19 +697,19 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 163                  | * Subroutine "connect" with high complexity score (28)                                                         |
-## |      | 373                  | * Subroutine "__on_connect" with high complexity score (23)                                                    |
-## |      | 484                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
+## |      | 153                  | * Subroutine "connect" with high complexity score (28)                                                         |
+## |      | 368                  | * Subroutine "__on_connect" with high complexity score (23)                                                    |
+## |      | 483                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 244                  | Modules::ProhibitConditionalUseStatements - Conditional "use" statement                                        |
+## |    3 | 235                  | Modules::ProhibitConditionalUseStatements - Conditional "use" statement                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 246                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 237                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 330, 336, 570        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 323, 329, 569        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 631, 633             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 636, 638, 640        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 41, 500              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 40, 499              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
