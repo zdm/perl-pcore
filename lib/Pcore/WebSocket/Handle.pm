@@ -490,9 +490,6 @@ sub __on_connect ( $self, $h ) {
 
                 $self->_on_frame( $header, \$msg, $payload );
             }
-
-            # cleanup msg structure
-            undef $msg if $header->{fin};
         }
 
         # TODO
@@ -621,6 +618,9 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
     else {
         $payload_ref = \( $msg->$*->[0] . $payload_ref->$* ) if $payload_ref && $msg->$* && defined $msg->$*->[0];
 
+        # cleanup msg structure
+        undef $msg->$*;
+
         # TEXT message
         if ( $header->{op} == $WEBSOCKET_OP_TEXT ) {
             $self->_on_text($payload_ref) if $payload_ref;
@@ -674,14 +674,14 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 151                  | * Subroutine "connect" with high complexity score (29)                                                         |
-## |      | 406                  | * Subroutine "__on_connect" with high complexity score (22)                                                    |
-## |      | 587                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
+## |      | 406                  | * Subroutine "__on_connect" with high complexity score (21)                                                    |
+## |      | 584                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 306, 312, 347        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 531, 533, 535        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 528, 530, 532        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 39, 603              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 39, 600              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
