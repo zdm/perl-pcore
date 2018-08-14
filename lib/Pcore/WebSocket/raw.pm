@@ -9,8 +9,8 @@ has on_disconnect => ();    # Maybe [CodeRef], ($self, $status)
 has on_text       => ();    # Maybe [CodeRef], ($self, \$payload)
 has on_binary     => ();    # Maybe [CodeRef], ($self, \$payload)
 
-sub _on_connect ( $self, $status ) {
-    $self->{on_connect}->( $self, $status ) if $self->{on_connect};
+sub _on_connect ( $self ) {
+    $self->{on_connect}->($self) if $self->{on_connect};
 
     return;
 }
