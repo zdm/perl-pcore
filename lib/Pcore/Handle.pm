@@ -9,7 +9,7 @@ use Errno qw[];
 use IO::Socket::SSL qw[$SSL_ERROR SSL_WANT_READ SSL_WANT_WRITE SSL_VERIFY_NONE SSL_VERIFY_PEER];
 use Coro::EV qw[];
 use overload    #
-  q[bool]  => sub { return substr( $_[0]->{status}, 0, 1 ) == 2 },
+  q[bool]  => sub { return $_[0]->{is_connected} },
   q[0+]    => sub { return $_[0]->{status} },
   q[""]    => sub { return $_[0]->{status} . q[ ] . $_[0]->{reason} },
   fallback => 1;
@@ -75,8 +75,9 @@ has so_no_delay      => 1;
 has so_keepalive     => 1;
 has so_oobinline     => 1;
 
-has rbuf => ();
-has tls  => ();
+has is_connected => 1;
+has rbuf         => ();
+has tls          => ();
 
 # TODO handle persistent
 sub DESTROY ($self) {
@@ -229,7 +230,7 @@ sub _read ( $self, $read_size = undef, $timeout = undef ) {
     my $bytes;
 
     while () {
-        return if !$self;
+        return if !$self->{is_connected};
 
         $bytes = sysread $self->{fh}, $self->{rbuf}, $read_size || $self->{read_size}, length $self->{rbuf} // 0;
 
@@ -261,7 +262,7 @@ sub _read ( $self, $read_size = undef, $timeout = undef ) {
 # $args{timeout}
 # $args{read_size}
 sub read ( $self, %args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    return if !$self;
+    return if !$self->{is_connected};
 
     return \delete( $self->{rbuf} ) if length $self->{rbuf};
 
@@ -309,7 +310,7 @@ sub read_line ( $self, $eol, %args ) {
 
         # pattern not found
         else {
-            return if !$self;
+            return if !$self->{is_connected};
 
             $self->_read( $args{read_size}, $args{timeout} ) || last;
         }
@@ -341,7 +342,7 @@ sub read_chunk ( $self, $length, %args ) {
                 return $total_bytes if !$length;
             }
 
-            return if !$self;
+            return if !$self->{is_connected};
 
             $self->_read( $args{read_size}, $args{timeout} ) || last;
         }
@@ -359,7 +360,7 @@ sub read_chunk ( $self, $length, %args ) {
                 }
             }
 
-            return if !$self;
+            return if !$self->{is_connected};
 
             $self->_read( $args{read_size}, $args{timeout} ) || last;
         }
@@ -404,7 +405,7 @@ sub write ( $self, $buf, %args ) {    ## no critic qw[Subroutines::ProhibitBuilt
     my $size = length $buf_ref->$*;
 
     while () {
-        return if !$self;
+        return if !$self->{is_connected};
 
         my $bytes = syswrite $self->{fh}, $buf_ref->$*, $size, $ofs;
 
@@ -485,21 +486,29 @@ sub starttls ( $self, %args ) {
 }
 
 sub close ( $self ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+    return if !$self->{is_connected};
+
+    $self->{is_connected} = 0;
+
     CORE::close $self->{fh};
 
-    undef $self->{fh};
+    $self->{status} = $HANDLE_STATUS_SOCKET_ERROR;
 
-    $self->_set_status( $HANDLE_STATUS_SOCKET_ERROR, 'Disconnected' );
+    $self->{reason} = 'Disconnected';
 
     return;
 }
 
 sub shutdown ( $self, $type = 2 ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+    return if !$self->{is_connected};
+
+    $self->{is_connected} = 0;
+
     CORE::shutdown $self->{fh}, $type;
 
-    undef $self->{fh};
+    $self->{status} = $HANDLE_STATUS_SOCKET_ERROR;
 
-    $self->_set_status( $HANDLE_STATUS_SOCKET_ERROR, 'Disconnected' );
+    $self->{reason} = 'Disconnected';
 
     return;
 }
@@ -513,17 +522,17 @@ sub is_eof ($self)            { return $self->{status} == $HANDLE_STATUS_EOF }
 sub is_timeout ($self)        { return $self->{status} == $HANDLE_STATUS_TIMEOUT || $self->{status} == $HANDLE_STATUS_TIMEOUT_ERROR }
 
 sub _set_status ( $self, $status, $reason = undef ) {
-    return if $self->{status} && substr( $self->{status}, 0, 1 ) != 2;
+    return if !$self->{is_connected};
 
     $self->{status} = $status;
 
     $self->{reason} = $reason // $STATUS_REASON->{$status};
 
     # fatal error
-    if ( $self->{fh} && substr( $status, 0, 1 ) != 2 ) {
-        CORE::shutdown $self->{fh}, 2;
+    if ( substr( $status, 0, 1 ) != 2 ) {
+        $self->{is_connected} = 0;
 
-        undef $self->{fh};
+        CORE::shutdown $self->{fh}, 2;
     }
 
     return;
@@ -767,13 +776,13 @@ sub read_http_chunked_data ( $self, %args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 487                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
+## |    3 | 488                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 663                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
+## |    3 | 672                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 724                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 733                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 358                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 359                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
