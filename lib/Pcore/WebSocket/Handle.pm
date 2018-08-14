@@ -30,7 +30,6 @@ has _is_client   => ();
 has _h           => ();                         # InstanceOf ['Pcore::AE::Handle']
 has _compression => ();                         # Bool, use compression, set after connected
 has _send_masked => ();                         # Bool, mask data on send, for websocket client only
-has _msg         => ();                         # ArrayRef, fragmentated message data, [$payload, $op, $rsv1]
 has _deflate     => ();
 has _inflate     => ();
 
@@ -157,7 +156,7 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
     };
 
     $self->{_is_client}   = 1;
-    $self->{_send_masked} = 1;
+    $self->{_send_masked} = 0;          # TODO 1
 
     if ( $uri =~ m[\Awss?://unix:(.+)?/]sm ) {
         $self->{_connect} = [ 'unix/', $1 ];
@@ -208,9 +207,6 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
         ( $protocol            ? "Sec-WebSocket-Protocol:$protocol"            : () ),
         ( $self->{compression} ? 'Sec-WebSocket-Extensions:permessage-deflate' : () ),
     );
-
-    # client always send masked frames
-    $self->{_send_masked} = 1;
 
     # write headers
     $h->write( join( $CRLF, @headers ) . $CRLF . $CRLF );
@@ -328,9 +324,6 @@ sub disconnect ( $self, $status = undef ) {
 
     $status = res [ 1000, $WEBSOCKET_STATUS_REASON ] if !defined $status;
 
-    # cleanup message data
-    undef $self->{_msg};
-
     # send close message
     $self->{_h}->write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_CLOSE, \( pack( 'n', $status->{status} ) . encode_utf8 $status->{reason} ) ) );
 
@@ -349,208 +342,6 @@ sub disconnect ( $self, $status = undef ) {
 # UTILS
 sub _get_challenge ( $self, $key ) {
     return to_b64( sha1( ($key) . $WEBSOCKET_GUID ), q[] );
-}
-
-# TODO $self is undef, on_error, pong_timeout
-sub __on_connect ( $self, $h ) {
-    return if $self->{is_connected};
-
-    $self->{is_connected} = 1;
-
-    $self->{_h} = $h;
-
-    weaken $self;
-
-    # set on_error handler
-    # $self->{_h}->on_error(
-    #     sub ( $h, @ ) {
-    #         $self->disconnect( res [ 1001, $WEBSOCKET_STATUS_REASON ] ) if $self;    # 1001 - Going Away
-
-    #         return;
-    #     }
-    # );
-
-    # start listen
-    Coro::async_pool {
-        while () {
-            my $header = _parse_frame_header($h);
-
-            last if !$header;
-            last if !$self;
-
-            # check protocol errors
-            if ( $header->{fin} ) {
-
-                # this is the last frame of the fragmented message
-                if ( $header->{op} == $WEBSOCKET_OP_CONTINUATION ) {
-
-                    # message was not started, return 1002 - protocol error
-                    return $self->disconnect( res [ 1002, $WEBSOCKET_STATUS_REASON ] ) if !$self->{_msg};
-
-                    # restore message "op", "rsv1"
-                    ( $header->{op}, $header->{rsv1} ) = ( $self->{_msg}->[1], $self->{_msg}->[2] );
-                }
-            }
-            else {
-
-                # this is the next frame of the fragmented message
-                if ( $header->{op} == $WEBSOCKET_OP_CONTINUATION ) {
-
-                    # message was not started, return 1002 - protocol error
-                    return $self->disconnect( res [ 1002, $WEBSOCKET_STATUS_REASON ] ) if !$self->{_msg};
-
-                    # restore "rsv1" flag
-                    $header->{rsv1} = $self->{_msg}->[2];
-                }
-
-                # this is the first frame of the fragmented message
-                else {
-
-                    # store message "op"
-                    $self->{_msg}->[1] = $header->{op};
-
-                    # store "rsv1" flag
-                    $self->{_msg}->[2] = $header->{rsv1};
-                }
-            }
-
-            # empty frame
-            if ( !$header->{len} ) {
-                $self->_on_frame( $header, undef );
-            }
-            else {
-
-                # check max. message size, return 1009 - message too big
-                if ( $self->{max_message_size} ) {
-                    if ( $self->{_msg} && $self->{_msg}->[0] ) {
-                        return $self->disconnect( res [ 1009, $WEBSOCKET_STATUS_REASON ] ) if $header->{len} + length $self->{_msg}->[0] > $self->{max_message_size};
-                    }
-                    else {
-                        return $self->disconnect( res [ 1009, $WEBSOCKET_STATUS_REASON ] ) if $header->{len} > $self->{max_message_size};
-                    }
-                }
-
-                if ( length $h->{rbuf} >= $header->{len} ) {
-                    $self->_on_frame( $header, \substr $h->{rbuf}, 0, $header->{len}, q[] );
-                }
-                else {
-                    my $payload = $h->read_chunk( $header->{len}, timeout => undef );
-
-                    last if !$payload;
-
-                    $self->_on_frame( $header, $payload );
-                }
-            }
-        }
-
-        # TODO
-        say '--- listen coro finished';
-
-        return;
-    };
-
-    # auto-pong on timeout
-    # if ( $self->{pong_timeout} ) {
-    #     $self->{_h}->on_timeout( sub ($h) {
-    #         return if !$self;
-
-    #         $self->send_pong;
-
-    #         return;
-    #     } );
-
-    #     $self->{_h}->timeout( $self->{pong_timeout} );
-    # }
-
-    $self->_on_connect;
-
-    return;
-}
-
-sub _on_frame ( $self, $header, $payload_ref ) {
-    if ($payload_ref) {
-
-        # unmask
-        $payload_ref = \to_xor( $payload_ref->$*, $header->{mask} ) if $header->{mask};
-
-        # decompress
-        if ( $header->{rsv1} ) {
-            my $inflate = $self->{_inflate} ||= Compress::Raw::Zlib::Inflate->new(
-                -WindowBits => -15,
-                ( $self->{max_message_size} ? ( -Bufsize => $self->{max_message_size} ) : () ),
-                -AppendOutput => 0,
-                -ConsumeInput => 1,
-                -LimitOutput  => 1,
-            );
-
-            $payload_ref->$* .= "\x00\x00\xff\xff";
-
-            $inflate->inflate( $payload_ref, my $out );
-
-            return $self->disconnect( res [ 1009, $WEBSOCKET_STATUS_REASON ] ) if length $payload_ref->$*;
-
-            $payload_ref = \$out;
-        }
-    }
-
-    # this is message fragment frame
-    if ( !$header->{fin} ) {
-
-        # add frame to the message buffer
-        $self->{_msg}->[0] .= $payload_ref->$* if $payload_ref;
-    }
-
-    # message completed, dispatch message
-    else {
-        if ( $self->{_msg} ) {
-            $payload_ref = \( $self->{_msg}->[0] . $payload_ref->$* ) if $payload_ref && defined $self->{_msg}->[0];
-
-            # cleanup fragmentated message data
-            undef $self->{_msg};
-        }
-
-        # TEXT message
-        if ( $header->{op} == $WEBSOCKET_OP_TEXT ) {
-            $self->_on_text($payload_ref) if $payload_ref;
-        }
-
-        # BINARY message
-        elsif ( $header->{op} == $WEBSOCKET_OP_BINARY ) {
-            $self->_on_binary($payload_ref) if $payload_ref;
-        }
-
-        # CLOSE message
-        elsif ( $header->{op} == $WEBSOCKET_OP_CLOSE ) {
-            my ( $status, $reason );
-
-            if ( $payload_ref && length $payload_ref->$* >= 2 ) {
-                $status = unpack 'n', substr $payload_ref->$*, 0, 2, q[];
-
-                $reason = decode_utf8 $payload_ref->$* if length $payload_ref->$*;
-            }
-            else {
-                $status = 1006;    # 1006 - Abnormal Closure - if close status was not specified
-            }
-
-            $self->disconnect( res [ $status, $reason, $WEBSOCKET_STATUS_REASON ] );
-        }
-
-        # PING message
-        elsif ( $header->{op} == $WEBSOCKET_OP_PING ) {
-
-            # reply pong automatically
-            $self->send_pong( $payload_ref ? $payload_ref->$* : q[] );
-
-            $self->{on_ping}->( $self, $payload_ref || \q[] ) if $self->{on_ping};
-        }
-
-        # PONG message
-        elsif ( $header->{op} == $WEBSOCKET_OP_PONG ) {
-            $self->{on_pong}->( $self, $payload_ref || \q[] ) if $self->{on_pong};
-        }
-    }
-
-    return;
 }
 
 sub _build_frame ( $self, $fin, $rsv1, $rsv2, $rsv3, $op, $payload_ref ) {
@@ -611,6 +402,123 @@ sub _build_frame ( $self, $fin, $rsv1, $rsv2, $rsv3, $op, $payload_ref ) {
     return $frame . $payload_ref->$*;
 }
 
+# TODO $self is undef, on_error, pong_timeout
+sub __on_connect ( $self, $h ) {
+    return if $self->{is_connected};
+
+    $self->{is_connected} = 1;
+
+    $self->{_h} = $h;
+
+    weaken $self;
+
+    # set on_error handler
+    # $self->{_h}->on_error(
+    #     sub ( $h, @ ) {
+    #         $self->disconnect( res [ 1001, $WEBSOCKET_STATUS_REASON ] ) if $self;    # 1001 - Going Away
+
+    #         return;
+    #     }
+    # );
+
+    # start listen
+    Coro::async_pool {
+        my $msg;
+
+        while () {
+            my $header = _parse_frame_header($h);
+
+            last if !$header;
+            last if !$self;
+
+            # check protocol errors
+            if ( $header->{fin} ) {
+
+                # this is the last frame of the fragmented message
+                if ( $header->{op} == $WEBSOCKET_OP_CONTINUATION ) {
+
+                    # message was not started, return 1002 - protocol error
+                    return $self->disconnect( res [ 1002, $WEBSOCKET_STATUS_REASON ] ) if !$msg;
+
+                    # restore message "op", "rsv1"
+                    ( $header->{op}, $header->{rsv1} ) = ( $msg->[1], $msg->[2] );
+                }
+            }
+            else {
+
+                # this is the next frame of the fragmented message
+                if ( $header->{op} == $WEBSOCKET_OP_CONTINUATION ) {
+
+                    # message was not started, return 1002 - protocol error
+                    return $self->disconnect( res [ 1002, $WEBSOCKET_STATUS_REASON ] ) if !$msg;
+
+                    # restore "rsv1" flag
+                    $header->{rsv1} = $msg->[2];
+                }
+
+                # this is the first frame of the fragmented message
+                else {
+
+                    # store message "op"
+                    $msg->[1] = $header->{op};
+
+                    # store "rsv1" flag
+                    $msg->[2] = $header->{rsv1};
+                }
+            }
+
+            # empty frame
+            if ( !$header->{len} ) {
+                $self->_on_frame( $header, \$msg, undef );
+            }
+            else {
+
+                # check max. message size, return 1009 - message too big
+                if ( $self->{max_message_size} ) {
+                    if ( $msg && $msg->[0] ) {
+                        return $self->disconnect( res [ 1009, $WEBSOCKET_STATUS_REASON ] ) if $header->{len} + length $msg->[0] > $self->{max_message_size};
+                    }
+                    else {
+                        return $self->disconnect( res [ 1009, $WEBSOCKET_STATUS_REASON ] ) if $header->{len} > $self->{max_message_size};
+                    }
+                }
+
+                my $payload = $h->read_chunk( $header->{len}, timeout => undef );
+
+                # TODO status, proto error
+                last if !$payload;
+
+                $self->_on_frame( $header, \$msg, $payload );
+            }
+
+            # cleanup msg structure
+            undef $msg if $header->{fin};
+        }
+
+        # TODO
+        say '--- listen coro finished';
+
+        return;
+    };
+
+    # auto-pong on timeout
+    # if ( $self->{pong_timeout} ) {
+    #     $self->{_h}->on_timeout( sub ($h) {
+    #         return if !$self;
+
+    #         $self->send_pong;
+
+    #         return;
+    #     } );
+
+    #     $self->{_h}->timeout( $self->{pong_timeout} );
+    # }
+
+    $self->_on_connect;
+
+    return;
+}
+
 # TODO $self is undef
 sub _parse_frame_header ( $h ) {
 
@@ -628,12 +536,12 @@ sub _parse_frame_header ( $h ) {
         len => $second & 0b01111111,
 
         # FIN
-        fin => $first & 0b10000000 == 0b10000000 ? 1 : 0,
+        fin => ( $first & 0b10000000 ) == 0b10000000 ? 1 : 0,
 
         # RSV1-3
-        rsv1 => $first & 0b01000000 == 0b01000000 ? 1 : 0,
-        rsv2 => $first & 0b00100000 == 0b00100000 ? 1 : 0,
-        rsv3 => $first & 0b00010000 == 0b00010000 ? 1 : 0,
+        rsv1 => ( $first & 0b01000000 ) == 0b01000000 ? 1 : 0,
+        rsv2 => ( $first & 0b00100000 ) == 0b00100000 ? 1 : 0,
+        rsv3 => ( $first & 0b00010000 ) == 0b00010000 ? 1 : 0,
 
         # opcode
         op => $first & 0b00001111,
@@ -676,6 +584,87 @@ sub _parse_frame_header ( $h ) {
     return $header;
 }
 
+sub _on_frame ( $self, $header, $msg, $payload_ref ) {
+    if ($payload_ref) {
+
+        # unmask
+        $payload_ref = \to_xor( $payload_ref->$*, $header->{mask} ) if $header->{mask};
+
+        # decompress
+        if ( $header->{rsv1} ) {
+            my $inflate = $self->{_inflate} ||= Compress::Raw::Zlib::Inflate->new(
+                -WindowBits => -15,
+                ( $self->{max_message_size} ? ( -Bufsize => $self->{max_message_size} ) : () ),
+                -AppendOutput => 0,
+                -ConsumeInput => 1,
+                -LimitOutput  => 1,
+            );
+
+            $payload_ref->$* .= "\x00\x00\xff\xff";
+
+            $inflate->inflate( $payload_ref, my $out );
+
+            return $self->disconnect( res [ 1009, $WEBSOCKET_STATUS_REASON ] ) if length $payload_ref->$*;
+
+            $payload_ref = \$out;
+        }
+    }
+
+    # this is message fragment frame
+    if ( !$header->{fin} ) {
+
+        # add frame to the message buffer
+        $msg->$*->[0] .= $payload_ref->$* if $payload_ref;
+    }
+
+    # message completed, dispatch message
+    else {
+        $payload_ref = \( $msg->$*->[0] . $payload_ref->$* ) if $payload_ref && $msg->$* && defined $msg->$*->[0];
+
+        # TEXT message
+        if ( $header->{op} == $WEBSOCKET_OP_TEXT ) {
+            $self->_on_text($payload_ref) if $payload_ref;
+        }
+
+        # BINARY message
+        elsif ( $header->{op} == $WEBSOCKET_OP_BINARY ) {
+            $self->_on_binary($payload_ref) if $payload_ref;
+        }
+
+        # CLOSE message
+        elsif ( $header->{op} == $WEBSOCKET_OP_CLOSE ) {
+            my ( $status, $reason );
+
+            if ( $payload_ref && length $payload_ref->$* >= 2 ) {
+                $status = unpack 'n', substr $payload_ref->$*, 0, 2, q[];
+
+                $reason = decode_utf8 $payload_ref->$* if length $payload_ref->$*;
+            }
+            else {
+                $status = 1006;    # 1006 - Abnormal Closure - if close status was not specified
+            }
+
+            $self->disconnect( res [ $status, $reason, $WEBSOCKET_STATUS_REASON ] );
+        }
+
+        # PING message
+        elsif ( $header->{op} == $WEBSOCKET_OP_PING ) {
+
+            # reply pong automatically
+            $self->send_pong( $payload_ref ? $payload_ref->$* : q[] );
+
+            $self->{on_ping}->( $self, $payload_ref || \q[] ) if $self->{on_ping};
+        }
+
+        # PONG message
+        elsif ( $header->{op} == $WEBSOCKET_OP_PONG ) {
+            $self->{on_pong}->( $self, $payload_ref || \q[] ) if $self->{on_pong};
+        }
+    }
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -684,15 +673,15 @@ sub _parse_frame_header ( $h ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 152                  | * Subroutine "connect" with high complexity score (28)                                                         |
-## |      | 355                  | * Subroutine "__on_connect" with high complexity score (23)                                                    |
-## |      | 470                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
+## |      | 151                  | * Subroutine "connect" with high complexity score (28)                                                         |
+## |      | 406                  | * Subroutine "__on_connect" with high complexity score (22)                                                    |
+## |      | 587                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 310, 316, 556        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 306, 312, 347        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 623, 625, 627        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 531, 533, 535        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 40, 486              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 39, 603              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
