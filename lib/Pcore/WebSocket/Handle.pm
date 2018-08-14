@@ -156,7 +156,7 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
     };
 
     $self->{_is_client}   = 1;
-    $self->{_send_masked} = 1;
+    $self->{_send_masked} = 1;          # client always send masked data
 
     if ( $uri =~ m[\Awss?://unix:(.+)?/]sm ) {
         $self->{_connect} = [ 'unix/', $1 ];
