@@ -16,7 +16,7 @@ has subscribe_events => ();    # Str or ArrayRef[Str]
 
 # callbacks
 has on_disconnect => ();       # Maybe [CodeRef], ($self, $status)
-has on_auth       => ();       # Maybe [CodeRef], server: ($self, $token), client: ($self, $auth)
+has on_auth       => ();       # Maybe [CodeRef], server: ($self, $token)
 has on_subscribe  => ();       # Maybe [CodeRef], ($self, $mask), must return true for subscribe to event
 has on_event      => ();       # Maybe [CodeRef], ($self, $ev)
 has on_rpc        => ();       # Maybe [CodeRef], ($self, $req, $tx)
@@ -26,6 +26,7 @@ has _peer_is_text => ();            # remote peer message serialization protocol
 has _req_cb       => sub { {} };    # HashRef, tid => $cb
 has _listeners    => ();            # HashRef, events listeners
 has _conn_ver     => 0;             # increased on each reset call
+has _auth_cb      => ();
 
 const our $PROTOCOL => 'pcore';
 
@@ -39,6 +40,10 @@ my $CBOR = Pcore::Util::Data::get_cbor();
 my $JSON = Pcore::Util::Data::get_json( utf8 => 1 );
 
 sub auth ( $self, $token, %events ) {
+    die q[Connection is not ready] if !$self->{is_ready};
+
+    $self->{_auth_cb} = Coro::rouse_cb;
+
     $self->_reset;
 
     $self->{token} = $token;
@@ -52,7 +57,9 @@ sub auth ( $self, $token, %events ) {
         events => $self->{subscribe_events},
     } );
 
-    return;
+    Coro::rouse_wait $self->{_auth_cb};
+
+    return $self;
 }
 
 sub rpc_call ( $self, $method, $args, $cb ) {
@@ -107,14 +114,21 @@ sub unsubscribe ( $self, $events ) {
 
 sub _on_connect ($self) {
     if ( $self->{_is_client} ) {
+        $self->{_auth_cb} = Coro::rouse_cb;
+
         $self->_send_msg( {
             type   => $TX_TYPE_AUTH,
             token  => $self->{token},
             events => $self->{subscribe_events},
         } );
-    }
 
-    return;
+        Coro::rouse_wait $self->{_auth_cb};
+
+        return $self;
+    }
+    else {
+        return $self;
+    }
 }
 
 sub _on_disconnect ( $self ) {
@@ -333,7 +347,9 @@ sub _on_auth_response ( $self, $tx ) {
     $self->_on_subscribe( $tx->{events} ) if $tx->{events};
 
     # call on_auth
-    $self->{on_auth}->( $self, $self->{auth} ) if $self->{on_auth};
+    if ( my $cb = delete $self->{_auth_cb} ) {
+        $cb->();
+    }
 
     return;
 }
@@ -419,14 +435,14 @@ sub _send_msg ( $self, $msg ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 108                  | * Private subroutine/method '_on_connect' declared but not used                                                |
-## |      | 120                  | * Private subroutine/method '_on_disconnect' declared but not used                                             |
-## |      | 128                  | * Private subroutine/method '_on_text' declared but not used                                                   |
-## |      | 140                  | * Private subroutine/method '_on_binary' declared but not used                                                 |
+## |      | 115                  | * Private subroutine/method '_on_connect' declared but not used                                                |
+## |      | 134                  | * Private subroutine/method '_on_disconnect' declared but not used                                             |
+## |      | 142                  | * Private subroutine/method '_on_text' declared but not used                                                   |
+## |      | 154                  | * Private subroutine/method '_on_binary' declared but not used                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 152                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (29)               |
+## |    3 | 166                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (29)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 207, 224             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 221, 238             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -9,7 +9,7 @@ has on_text       => ();    # Maybe [CodeRef], ($self, \$payload)
 has on_binary     => ();    # Maybe [CodeRef], ($self, \$payload)
 
 sub _on_connect ( $self ) {
-    return;
+    return $self;
 }
 
 sub _on_disconnect ( $self ) {

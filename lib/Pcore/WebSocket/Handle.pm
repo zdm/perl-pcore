@@ -264,9 +264,7 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
     }
 
     # call protocol on_connect
-    $self->__on_connect($h);
-
-    return $self;
+    return $self->__on_connect($h);
 }
 
 sub send_text ( $self, $data_ref ) {
@@ -396,7 +394,7 @@ sub _build_frame ( $self, $fin, $rsv1, $rsv2, $rsv3, $op, $payload_ref ) {
 }
 
 sub __on_connect ( $self, $h ) {
-    return if $self->{is_connected};
+    return $self if $self->{is_connected};
 
     $self->{is_connected} = 1;
 
@@ -498,9 +496,7 @@ sub __on_connect ( $self, $h ) {
         };
     }
 
-    $self->_on_connect;
-
-    return;
+    return $self->_on_connect;
 }
 
 sub _parse_frame_header ( $h ) {
@@ -661,14 +657,14 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 153                  | * Subroutine "connect" with high complexity score (29)                                                         |
-## |      | 398                  | * Subroutine "__on_connect" with high complexity score (28)                                                    |
-## |      | 570                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
+## |      | 396                  | * Subroutine "__on_connect" with high complexity score (28)                                                    |
+## |      | 566                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 284, 290, 340        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 282, 288, 338        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 514, 516, 518        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 510, 512, 514        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 46, 586              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 46, 582              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
