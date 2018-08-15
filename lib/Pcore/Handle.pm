@@ -74,6 +74,7 @@ has peername         => ();
 has so_no_delay      => 1;
 has so_keepalive     => 1;
 has so_oobinline     => 1;
+has on_disconnect    => ();              # CodeRef->($h)
 
 has is_connected => 1;
 has rbuf         => ();
@@ -496,6 +497,8 @@ sub close ( $self ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
 
     $self->{reason} = 'Disconnected';
 
+    if ( my $cb = delete $self->{on_disconnect} ) { $cb->($self) }
+
     return;
 }
 
@@ -509,6 +512,8 @@ sub shutdown ( $self, $type = 2 ) {    ## no critic qw[Subroutines::ProhibitBuil
     $self->{status} = $HANDLE_STATUS_SOCKET_ERROR;
 
     $self->{reason} = 'Disconnected';
+
+    if ( my $cb = delete $self->{on_disconnect} ) { $cb->($self) }
 
     return;
 }
@@ -533,6 +538,8 @@ sub _set_status ( $self, $status, $reason = undef ) {
         $self->{is_connected} = 0;
 
         CORE::shutdown $self->{fh}, 2;
+
+        if ( my $cb = delete $self->{on_disconnect} ) { $cb->($self) }
     }
 
     return;
@@ -776,13 +783,13 @@ sub read_http_chunked_data ( $self, %args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 488                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
+## |    3 | 489                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 672                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
+## |    3 | 679                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 733                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 740                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 359                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 360                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
