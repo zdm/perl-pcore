@@ -403,7 +403,6 @@ sub _build_frame ( $self, $fin, $rsv1, $rsv2, $rsv3, $op, $payload_ref ) {
     return $frame . $payload_ref->$*;
 }
 
-# TODO pong_timeout
 sub __on_connect ( $self, $h ) {
     return if $self->{is_connected};
 
@@ -495,17 +494,15 @@ sub __on_connect ( $self, $h ) {
     };
 
     # auto-pong on timeout
-    # if ( $self->{pong_timeout} ) {
-    #     $self->{_h}->on_timeout( sub ($h) {
-    #         return if !$self;
+    if ( $self->{pong_timeout} ) {
+        $self->{_pong_timer} = AE::timer $self->{pong_timeout}, $self->{pong_timeout}, sub {
+            if ( defined $self && $self->{is_connected} ) {
+                $self->send_pong;
+            }
 
-    #         $self->send_pong;
-
-    #         return;
-    #     } );
-
-    #     $self->{_h}->timeout( $self->{pong_timeout} );
-    # }
+            return;
+        };
+    }
 
     $self->_on_connect;
 
@@ -670,14 +667,14 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 150                  | * Subroutine "connect" with high complexity score (29)                                                         |
-## |      | 407                  | * Subroutine "__on_connect" with high complexity score (25)                                                    |
-## |      | 579                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
+## |      | 406                  | * Subroutine "__on_connect" with high complexity score (28)                                                    |
+## |      | 576                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 305, 311, 348        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 523, 525, 527        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 520, 522, 524        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 39, 595              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 39, 592              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
