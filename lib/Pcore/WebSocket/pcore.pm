@@ -15,7 +15,6 @@ has forward_events   => ();    # Str or ArrayRef[Str]
 has subscribe_events => ();    # Str or ArrayRef[Str]
 
 # callbacks
-has on_connect    => ();       # Maybe [CodeRef], ($self)
 has on_disconnect => ();       # Maybe [CodeRef], ($self, $status)
 has on_auth       => ();       # Maybe [CodeRef], server: ($self, $token), client: ($self, $auth)
 has on_subscribe  => ();       # Maybe [CodeRef], ($self, $mask), must return true for subscribe to event
@@ -107,8 +106,6 @@ sub unsubscribe ( $self, $events ) {
 }
 
 sub _on_connect ($self) {
-    $self->{on_connect}->($self) if $self->{on_connect};
-
     if ( $self->{_is_client} ) {
         $self->_send_msg( {
             type   => $TX_TYPE_AUTH,
@@ -120,10 +117,10 @@ sub _on_connect ($self) {
     return;
 }
 
-sub _on_disconnect ( $self, $status ) {
-    $self->_reset($status);
+sub _on_disconnect ( $self ) {
+    $self->_reset( res [ $self->{status}, $self->{reason} ] );
 
-    $self->{on_disconnect}->( $self, $status ) if $self->{on_disconnect};
+    $self->{on_disconnect}->($self) if $self->{on_disconnect};
 
     return;
 }
@@ -422,14 +419,14 @@ sub _send_msg ( $self, $msg ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 109                  | * Private subroutine/method '_on_connect' declared but not used                                                |
-## |      | 123                  | * Private subroutine/method '_on_disconnect' declared but not used                                             |
-## |      | 131                  | * Private subroutine/method '_on_text' declared but not used                                                   |
-## |      | 143                  | * Private subroutine/method '_on_binary' declared but not used                                                 |
+## |      | 108                  | * Private subroutine/method '_on_connect' declared but not used                                                |
+## |      | 120                  | * Private subroutine/method '_on_disconnect' declared but not used                                             |
+## |      | 128                  | * Private subroutine/method '_on_text' declared but not used                                                   |
+## |      | 140                  | * Private subroutine/method '_on_binary' declared but not used                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 155                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (29)               |
+## |    3 | 152                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (29)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 210, 227             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 207, 224             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

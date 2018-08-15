@@ -7,6 +7,11 @@ use Pcore::Util::UUID qw[uuid_v1mc_str];
 use Pcore::Util::Data qw[to_b64 to_xor];
 use Pcore::Util::Digest qw[sha1];
 use Compress::Raw::Zlib;
+use overload    #
+  q[bool]  => sub { return $_[0]->{is_connected} },
+  q[0+]    => sub { return $_[0]->{status} },
+  q[""]    => sub { return $_[0]->{status} . q[ ] . $_[0]->{reason} },
+  fallback => 1;
 
 # Websocket v13 spec. https://tools.ietf.org/html/rfc6455
 
@@ -25,6 +30,8 @@ has on_pong          => ();                     # Maybe [CodeRef], ($self, \$pay
 
 has id           => sub {uuid_v1mc_str};
 has is_connected => ();                         # Bool
+has status       => ();
+has reason       => ();
 has _connect     => ();                         # prepared connect data
 has _is_client   => ();
 has _h           => ();                         # InstanceOf ['Pcore::AE::Handle']
@@ -78,19 +85,19 @@ sub DESTROY ( $self ) {
 sub accept ( $self, $req ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my $env = $req->{env};
 
-    # websocket version is not specified or not supported
-    if ( !$env->{HTTP_SEC_WEBSOCKET_VERSION} || $env->{HTTP_SEC_WEBSOCKET_VERSION} ne $WEBSOCKET_VERSION ) {
+    state $on_error = sub ( $self, $req, $status, $reason = undef ) {
         $req->return_xxx(400);
 
-        return;
-    }
+        $self->_set_status( $status, $reason );
+
+        return $self;
+    };
+
+    # websocket version is not specified or not supported
+    return $on_error->( $self, $req, 1002 ) if !$env->{HTTP_SEC_WEBSOCKET_VERSION} || $env->{HTTP_SEC_WEBSOCKET_VERSION} ne $WEBSOCKET_VERSION;
 
     # websocket key is not specified
-    if ( !$env->{HTTP_SEC_WEBSOCKET_KEY} ) {
-        $req->return_xxx(400);
-
-        return;
-    }
+    return $on_error->( $self, $req, 1002 ) if !$env->{HTTP_SEC_WEBSOCKET_KEY};
 
     my $protocol = do {
         no strict qw[refs];
@@ -100,16 +107,10 @@ sub accept ( $self, $req ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomo
 
     # check websocket protocol
     if ($protocol) {
-        if ( !$env->{HTTP_SEC_WEBSOCKET_PROTOCOL} || $env->{HTTP_SEC_WEBSOCKET_PROTOCOL} !~ /\b$protocol\b/smi ) {
-            $req->return_xxx(400);
-
-            return;
-        }
+        return $on_error->( $self, $req, 1002 ) if !$env->{HTTP_SEC_WEBSOCKET_PROTOCOL} || $env->{HTTP_SEC_WEBSOCKET_PROTOCOL} !~ /\b$protocol\b/smi;
     }
     elsif ( $env->{HTTP_SEC_WEBSOCKET_PROTOCOL} ) {
-        $req->return_xxx(400);
-
-        return;
+        return $on_error->( $self, $req, 1002 );
     }
 
     # server send unmasked frames
@@ -144,7 +145,7 @@ sub accept ( $self, $req ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomo
     # start listen
     $self->__on_connect($h);
 
-    return 1;
+    return $self;
 }
 
 sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
@@ -173,6 +174,12 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
         $self->{_connect} = $uri;
     }
 
+    state $on_error = sub ( $self, $status, $reason = undef ) {
+        $self->_set_status( $status, $reason );
+
+        return $self;
+    };
+
     my $h = P->handle(
         $self->{_connect},
         timeout         => undef,
@@ -182,21 +189,13 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
     );
 
     # connection error
-    if ( !$h ) {
-        $self->_on_disconnect( res [ $h->{status}, $h->{reason} ] );
-
-        return;
-    }
+    return $on_error->( $self, $h->{status}, $h->{reason} ) if !$h;
 
     # start TLS, only if TLS is required and TLS is not established yet
     $h->starttls if $uri->is_secure && !exists $h->{tls};
 
     # TLS error
-    if ( !$h ) {
-        $self->_on_disconnect( res [ $h->{status}, $h->{reason} ] );
-
-        return;
-    }
+    return $on_error->( $self, $h->{status}, $h->{reason} ) if !$h;
 
     # generate websocket key
     my $sec_websocket_key = to_b64 rand 100_000, q[];
@@ -219,57 +218,31 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
     $h->write( join( $CRLF, @headers ) . $CRLF . $CRLF );
 
     # write headers error
-    if ( !$h ) {
-        $self->_on_disconnect( res [ $h->{status}, $h->{reason} ] );
-
-        return;
-    }
+    return $on_error->( $self, $h->{status}, $h->{reason} ) if !$h;
 
     # read response headers
     my $headers = $h->read_http_res_headers;
 
     # read headers error
-    if ( !$h ) {
-        $self->_on_disconnect( res [ $h->{status}, $h->{reason} ] );
-
-        return;
-    }
+    return $on_error->( $self, $h->{status}, $h->{reason} ) if !$h;
 
     my $res_headers = $headers->{headers};
 
     # check response status
-    if ( $headers->{status} != 101 ) {
-        $self->_on_disconnect( res [ $Pcore::Handle::HANDLE_STATUS_PROTOCOL_ERROR, 'Invalid HTTP headers' ] );
-
-        return;
-    }
+    return $on_error->( $self, $Pcore::Handle::HANDLE_STATUS_PROTOCOL_ERROR, 'Invalid HTTP response status' ) if $headers->{status} != 101;
 
     # check response connection headers
-    if ( !$res_headers->{CONNECTION} || !$res_headers->{UPGRADE} || $res_headers->{CONNECTION} !~ /\bupgrade\b/smi || $res_headers->{UPGRADE} !~ /\bwebsocket\b/smi ) {
-        $self->_on_disconnect( res [ $Pcore::Handle::HANDLE_STATUS_PROTOCOL_ERROR, q[WebSocket handshake error] ] );
-
-        return;
-    }
+    return $on_error->( $self, $Pcore::Handle::HANDLE_STATUS_PROTOCOL_ERROR, q[WebSocket handshake error] ) if !$res_headers->{CONNECTION} || !$res_headers->{UPGRADE} || $res_headers->{CONNECTION} !~ /\bupgrade\b/smi || $res_headers->{UPGRADE} !~ /\bwebsocket\b/smi;
 
     # validate SEC_WEBSOCKET_ACCEPT
-    if ( !$res_headers->{SEC_WEBSOCKET_ACCEPT} || $res_headers->{SEC_WEBSOCKET_ACCEPT} ne $self->_get_challenge($sec_websocket_key) ) {
-        $self->_on_disconnect( res [ $Pcore::Handle::HANDLE_STATUS_PROTOCOL_ERROR, q[Invalid SEC_WEBSOCKET_ACCEPT header] ] );
-
-        return;
-    }
+    return $on_error->( $self, $Pcore::Handle::HANDLE_STATUS_PROTOCOL_ERROR, q[Invalid SEC_WEBSOCKET_ACCEPT header] ) if !$res_headers->{SEC_WEBSOCKET_ACCEPT} || $res_headers->{SEC_WEBSOCKET_ACCEPT} ne $self->_get_challenge($sec_websocket_key);
 
     # check protocol
     if ( $res_headers->{SEC_WEBSOCKET_PROTOCOL} ) {
-        if ( !$protocol || $res_headers->{SEC_WEBSOCKET_PROTOCOL} !~ /\b$protocol\b/smi ) {
-            $self->_on_disconnect( res [ $Pcore::Handle::HANDLE_STATUS_PROTOCOL_ERROR, qq[WebSocket server returned unsupported protocol "$res_headers->{SEC_WEBSOCKET_PROTOCOL}"] ] );
-
-            return;
-        }
+        return $on_error->( $self, $Pcore::Handle::HANDLE_STATUS_PROTOCOL_ERROR, qq[WebSocket server returned unsupported protocol "$res_headers->{SEC_WEBSOCKET_PROTOCOL}"] ) if !$protocol || $res_headers->{SEC_WEBSOCKET_PROTOCOL} !~ /\b$protocol\b/smi;
     }
     elsif ($protocol) {
-        $self->_on_disconnect( res [ $Pcore::Handle::HANDLE_STATUS_PROTOCOL_ERROR, q[WebSocket server returned no protocol] ] );
-
-        return;
+        return $on_error->( $self, $Pcore::Handle::HANDLE_STATUS_PROTOCOL_ERROR, q[WebSocket server returned no protocol] );
     }
 
     # drop compression
@@ -287,7 +260,7 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
     # call protocol on_connect
     $self->__on_connect($h);
 
-    return;
+    return $self;
 }
 
 sub send_text ( $self, $data_ref ) {
@@ -320,12 +293,17 @@ sub disconnect ( $self, $status = undef ) {
     # mark connection as closed
     $self->{is_connected} = 0;
 
-    $status = res [ 1000, $WEBSOCKET_STATUS_REASON ] if !defined $status;
+    if ( defined $status ) {
+        $self->_set_status( $status->{status}, $status->{reason} );
+    }
+    else {
+        $self->_set_status(1000);
+    }
 
     if ( $self->{_h}->{is_connected} ) {
 
         # send close message
-        $self->{_h}->write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_CLOSE, \( pack( 'n', $status->{status} ) . encode_utf8 $status->{reason} ) ) );
+        $self->{_h}->write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_CLOSE, \( pack( 'n', $self->{status} ) . encode_utf8 $self->{reason} ) ) );
 
         # destroy handle
         $self->{_h}->shutdown;
@@ -335,7 +313,15 @@ sub disconnect ( $self, $status = undef ) {
     delete $SERVER_CONN->{ $self->{id} } if !$self->{_is_client};
 
     # call protocol on_disconnect
-    $self->_on_disconnect($status);
+    $self->_on_disconnect;
+
+    return;
+}
+
+sub _set_status ( $self, $status, $reason = undef ) {
+    $self->{status} = $status;
+
+    $self->{reason} = $reason // $WEBSOCKET_STATUS_REASON->{$status};
 
     return;
 }
@@ -407,6 +393,8 @@ sub __on_connect ( $self, $h ) {
     return if $self->{is_connected};
 
     $self->{is_connected} = 1;
+
+    $self->_set_status( 200, 'Connected' );
 
     $self->{_h} = $h;
 
@@ -666,15 +654,15 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 150                  | * Subroutine "connect" with high complexity score (29)                                                         |
-## |      | 406                  | * Subroutine "__on_connect" with high complexity score (28)                                                    |
-## |      | 576                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
+## |      | 151                  | * Subroutine "connect" with high complexity score (29)                                                         |
+## |      | 392                  | * Subroutine "__on_connect" with high complexity score (28)                                                    |
+## |      | 564                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 305, 311, 348        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 278, 284, 334        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 520, 522, 524        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 508, 510, 512        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 39, 592              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 46, 580              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
