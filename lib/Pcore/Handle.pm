@@ -50,7 +50,7 @@ const our $HANDLE_STATUS_SOCKET_ERROR   => 598;
 const our $HANDLE_STATUS_EOF            => 599;
 
 const our $STATUS_REASON => {
-    $HANDLE_STATUS_OK             => 'OK',
+    $HANDLE_STATUS_OK             => 'Connected',
     $HANDLE_STATUS_TIMEOUT        => 'Timeout',
     $HANDLE_STATUS_CONNECT_ERROR  => 'Connect error',
     $HANDLE_STATUS_TLS_ERROR      => 'TLS handshake error',
