@@ -82,8 +82,16 @@ sub DESTROY ( $self ) {
     return;
 }
 
-sub accept ( $self, $req ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+sub accept ( $self, $req, %args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my $env = $req->{env};
+
+    my $protocol = do {
+        no strict qw[refs];
+
+        ${"$self\::PROTOCOL"};
+    };
+
+    $self = $self->new(%args);
 
     state $on_error = sub ( $self, $req, $status, $reason = undef ) {
         $req->return_xxx(400);
@@ -98,12 +106,6 @@ sub accept ( $self, $req ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomo
 
     # websocket key is not specified
     return $on_error->( $self, $req, 1002 ) if !$env->{HTTP_SEC_WEBSOCKET_KEY};
-
-    my $protocol = do {
-        no strict qw[refs];
-
-        ${ ref($self) . '::PROTOCOL' };
-    };
 
     # check websocket protocol
     if ($protocol) {
@@ -149,44 +151,48 @@ sub accept ( $self, $req ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomo
 }
 
 sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    my $protocol = do {
-        no strict qw[refs];
-
-        ${ ref($self) . '::PROTOCOL' };
-    };
-
-    $self->{_is_client}   = 1;
-    $self->{_send_masked} = 1;          # client always send masked data
-
-    if ( $uri =~ m[\Awss?://unix:(.+)?/]sm ) {
-        $self->{_connect} = [ 'unix/', $1 ];
-
-        $uri = P->uri($uri) if !is_ref $uri;
-    }
-    elsif ( $uri =~ m[\A(wss?)://[*]:(.+)]sm ) {
-        $uri = P->uri("$1://127.0.0.1:$2");
-
-        $self->{_connect} = $uri;
-    }
-    else {
-        $uri = P->uri($uri) if !is_ref $uri;
-
-        $self->{_connect} = $uri;
-    }
-
     state $on_error = sub ( $self, $status, $reason = undef ) {
         $self->_set_status( $status, $reason );
 
         return $self;
     };
 
+    my $protocol = do {
+        no strict qw[refs];
+
+        ${"$self\::PROTOCOL"};
+    };
+
+    my $connect;
+
+    if ( $uri =~ m[\Awss?://unix:(.+)?/]sm ) {
+        $connect = [ 'unix/', $1 ];
+
+        $uri = P->uri($uri) if !is_ref $uri;
+    }
+    elsif ( $uri =~ m[\A(wss?)://[*]:(.+)]sm ) {
+        $uri = P->uri("$1://127.0.0.1:$2");
+
+        $connect = $uri;
+    }
+    else {
+        $uri = P->uri($uri) if !is_ref $uri;
+
+        $connect = $uri;
+    }
+
     my $h = P->handle(
-        $self->{_connect},
-        timeout         => undef,
-        connect_timeout => $args{connect_timeout},
-        tls_ctx         => $args{tls_ctx},
-        bind_ip         => $args{bind_ip},
+        $connect,
+        timeout         => delete $args{timeout} // 30,
+        connect_timeout => delete $args{connect_timeout},
+        tls_ctx         => delete $args{tls_ctx},
+        bind_ip         => delete $args{bind_ip},
     );
+
+    $self = $self->new( \%args );
+
+    $self->{_is_client}   = 1;
+    $self->{_send_masked} = 1;    # client always send masked data
 
     # connection error
     return $on_error->( $self, $h->{status}, $h->{reason} ) if !$h;
@@ -654,15 +660,15 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 151                  | * Subroutine "connect" with high complexity score (29)                                                         |
-## |      | 392                  | * Subroutine "__on_connect" with high complexity score (28)                                                    |
-## |      | 564                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
+## |      | 153                  | * Subroutine "connect" with high complexity score (29)                                                         |
+## |      | 398                  | * Subroutine "__on_connect" with high complexity score (28)                                                    |
+## |      | 570                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 278, 284, 334        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 284, 290, 340        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 508, 510, 512        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 514, 516, 518        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 46, 580              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 46, 586              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
