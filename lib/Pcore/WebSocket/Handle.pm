@@ -147,7 +147,6 @@ sub accept ( $self, $req ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomo
     return 1;
 }
 
-# TODO store connection args for reconnect???
 sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my $protocol = do {
         no strict qw[refs];
@@ -670,15 +669,15 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 151                  | * Subroutine "connect" with high complexity score (29)                                                         |
-## |      | 408                  | * Subroutine "__on_connect" with high complexity score (25)                                                    |
-## |      | 580                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
+## |      | 150                  | * Subroutine "connect" with high complexity score (29)                                                         |
+## |      | 407                  | * Subroutine "__on_connect" with high complexity score (25)                                                    |
+## |      | 579                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 306, 312, 349        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 305, 311, 348        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 524, 526, 528        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 523, 525, 527        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 39, 596              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 39, 595              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
