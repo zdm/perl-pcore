@@ -491,7 +491,7 @@ sub close ( $self ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
 
     $self->{is_connected} = 0;
 
-    CORE::close $self->{fh};
+    CORE::close $self->{fh} if defined $self->{fh};
 
     $self->{status} = $HANDLE_STATUS_SOCKET_ERROR;
 
@@ -507,7 +507,7 @@ sub shutdown ( $self, $type = 2 ) {    ## no critic qw[Subroutines::ProhibitBuil
 
     $self->{is_connected} = 0;
 
-    CORE::shutdown $self->{fh}, $type;
+    CORE::shutdown $self->{fh}, $type if defined $self->{fh};
 
     $self->{status} = $HANDLE_STATUS_SOCKET_ERROR;
 
@@ -537,7 +537,7 @@ sub _set_status ( $self, $status, $reason = undef ) {
     if ( substr( $status, 0, 1 ) != 2 ) {
         $self->{is_connected} = 0;
 
-        CORE::shutdown $self->{fh}, 2;
+        CORE::shutdown $self->{fh}, 2 if defined $self->{fh};
 
         if ( my $cb = delete $self->{on_disconnect} ) { $cb->($self) }
     }
