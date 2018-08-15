@@ -7,8 +7,8 @@ use Pcore::Util::Scalar qw[weaken is_plain_arrayref];
 
 with qw[Pcore::API::SCM];
 
-has capabilities => ( is => 'ro', isa => Str, init_arg => undef );
-has _server_proc => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Sys::Proc'], init_arg => undef );
+has capabilities => ();
+has _server_proc => ();
 
 our $SERVER_PROC;
 
@@ -78,7 +78,7 @@ sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
 
     my $res = {};
 
-    while {
+    while () {
         my $data = $self->_read;
 
         if ( $data->[0] ne 'r' ) {
