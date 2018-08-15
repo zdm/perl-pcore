@@ -62,30 +62,58 @@ sub auth ( $self, $token, %events ) {
     return $self;
 }
 
-sub rpc_call ( $self, $method, $args, $cb ) {
+sub rpc_call ( $self, $method, @args ) {
+
+    # parse callback
+    my $cb = is_plain_coderef $_[-1] || ( is_blessed_ref $_[-1] && $_[-1]->can('IS_CALLBACK') ) ? pop : undef;
+
     if ( !$self->{is_ready} ) {
-        if ($cb) {
-            $cb->( res [ 500, 'Connection is not ready' ] );
+        my $res = res [ 500, 'Connection is not ready' ];
+
+        if ( defined wantarray ) {
+            if   ($cb) { return $cb->($res) }
+            else       { return $res }
+        }
+        else {
+            if ($cb) { $cb->($res) }
+
+            return;
         }
     }
     else {
         my $msg = {
             type   => $TX_TYPE_RPC,
             method => $method,
-            args   => $args,
+            args   => \@args,
         };
 
-        # detect callback
-        if ($cb) {
+        if ( defined wantarray ) {
+            my $rouse_cb = Coro::rouse_cb;
+
             $msg->{tid} = uuid_v1mc_str;
 
-            $self->{_req_cb}->{ $msg->{tid} } = $cb;
+            $self->{_req_cb}->{ $msg->{tid} } = sub ($res) {
+                $rouse_cb->( $cb ? $cb->($res) : $res );
+
+                return;
+            };
+
+            $self->_send_msg($msg);
+
+            return Coro::rouse_wait $rouse_cb;
         }
+        else {
+            if ($cb) {
+                $msg->{tid} = uuid_v1mc_str;
 
-        $self->_send_msg($msg);
+                $self->{_req_cb}->{ $msg->{tid} } = $cb;
+            }
+
+            $self->_send_msg($msg);
+
+            return;
+        }
     }
-
-    return;
 }
 
 # listen for remote events
@@ -436,14 +464,14 @@ sub _send_msg ( $self, $msg ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 115                  | * Private subroutine/method '_on_connect' declared but not used                                                |
-## |      | 134                  | * Private subroutine/method '_on_disconnect' declared but not used                                             |
-## |      | 142                  | * Private subroutine/method '_on_text' declared but not used                                                   |
-## |      | 154                  | * Private subroutine/method '_on_binary' declared but not used                                                 |
+## |      | 143                  | * Private subroutine/method '_on_connect' declared but not used                                                |
+## |      | 162                  | * Private subroutine/method '_on_disconnect' declared but not used                                             |
+## |      | 170                  | * Private subroutine/method '_on_text' declared but not used                                                   |
+## |      | 182                  | * Private subroutine/method '_on_binary' declared but not used                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 166                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (29)               |
+## |    3 | 194                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (29)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 221, 238             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 249, 266             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
