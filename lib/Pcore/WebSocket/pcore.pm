@@ -347,9 +347,7 @@ sub _on_auth_response ( $self, $tx ) {
     $self->_on_subscribe( $tx->{events} ) if $tx->{events};
 
     # call on_auth
-    if ( my $cb = delete $self->{_auth_cb} ) {
-        $cb->();
-    }
+    if ( my $cb = delete $self->{_auth_cb} ) { $cb->() }
 
     return;
 }
@@ -412,6 +410,9 @@ sub _reset ( $self, $status = undef ) {
             $cb->( Clone::clone($status) );
         }
     }
+
+    # call auth callback
+    if ( my $cb = delete $self->{_auth_cb} ) { $cb->() }
 
     return;
 }
