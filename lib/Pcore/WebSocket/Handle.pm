@@ -315,7 +315,6 @@ sub send_pong ( $self, $payload = $WEBSOCKET_PING_PONG_PAYLOAD ) {
     return;
 }
 
-# TODO
 sub disconnect ( $self, $status = undef ) {
     return if !$self->{is_connected};
 
@@ -324,11 +323,14 @@ sub disconnect ( $self, $status = undef ) {
 
     $status = res [ 1000, $WEBSOCKET_STATUS_REASON ] if !defined $status;
 
-    # send close message
-    # $self->{_h}->write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_CLOSE, \( pack( 'n', $status->{status} ) . encode_utf8 $status->{reason} ) ) );
+    if ( $self->{_h}->{is_connected} ) {
 
-    # destroy handle
-    $self->{_h}->shutdown;
+        # send close message
+        $self->{_h}->write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_CLOSE, \( pack( 'n', $status->{status} ) . encode_utf8 $status->{reason} ) ) );
+
+        # destroy handle
+        $self->{_h}->shutdown;
+    }
 
     # remove from conn, on server only
     delete $SERVER_CONN->{ $self->{id} } if !$self->{_is_client};
@@ -402,7 +404,7 @@ sub _build_frame ( $self, $fin, $rsv1, $rsv2, $rsv3, $op, $payload_ref ) {
     return $frame . $payload_ref->$*;
 }
 
-# TODO $self is undef, on_error, pong_timeout
+# TODO pong_timeout
 sub __on_connect ( $self, $h ) {
     return if $self->{is_connected};
 
@@ -413,13 +415,11 @@ sub __on_connect ( $self, $h ) {
     weaken $self;
 
     # set on_error handler
-    # $self->{_h}->on_error(
-    #     sub ( $h, @ ) {
-    #         $self->disconnect( res [ 1001, $WEBSOCKET_STATUS_REASON ] ) if $self;    # 1001 - Going Away
+    $h->{on_disconnect} = sub ( $h ) {
+        $self->disconnect( res [ 1001, $WEBSOCKET_STATUS_REASON ] ) if defined $self;    # 1001 - Going Away
 
-    #         return;
-    #     }
-    # );
+        return;
+    };
 
     # start listen
     Coro::async_pool {
@@ -429,7 +429,7 @@ sub __on_connect ( $self, $h ) {
             my $header = _parse_frame_header($h);
 
             last if !$header;
-            last if !$self;
+            last if !defined $self;
 
             # check protocol errors
             if ( $header->{fin} ) {
@@ -469,7 +469,7 @@ sub __on_connect ( $self, $h ) {
 
             # empty frame
             if ( !$header->{len} ) {
-                $self->_on_frame( $header, \$msg, undef );
+                last if !$self->_on_frame( $header, \$msg, undef );
             }
             else {
 
@@ -485,15 +485,12 @@ sub __on_connect ( $self, $h ) {
 
                 my $payload = $h->read_chunk( $header->{len}, timeout => undef );
 
-                # TODO status, proto error
                 last if !$payload;
+                last if !defined $self;
 
-                $self->_on_frame( $header, \$msg, $payload );
+                last if !$self->_on_frame( $header, \$msg, $payload );
             }
         }
-
-        # TODO
-        say '--- listen coro finished';
 
         return;
     };
@@ -516,7 +513,6 @@ sub __on_connect ( $self, $h ) {
     return;
 }
 
-# TODO $self is undef
 sub _parse_frame_header ( $h ) {
 
     # read header
@@ -601,6 +597,7 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
 
             $inflate->inflate( $payload_ref, my $out );
 
+            # error decompressing data
             return $self->disconnect( res [ 1009, $WEBSOCKET_STATUS_REASON ] ) if length $payload_ref->$*;
 
             $payload_ref = \$out;
@@ -662,7 +659,7 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
         }
     }
 
-    return;
+    return 1;
 }
 
 1;
@@ -674,14 +671,14 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 151                  | * Subroutine "connect" with high complexity score (29)                                                         |
-## |      | 406                  | * Subroutine "__on_connect" with high complexity score (21)                                                    |
-## |      | 584                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
+## |      | 408                  | * Subroutine "__on_connect" with high complexity score (25)                                                    |
+## |      | 580                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 306, 312, 347        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 306, 312, 349        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 528, 530, 532        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 524, 526, 528        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 39, 600              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 39, 596              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
