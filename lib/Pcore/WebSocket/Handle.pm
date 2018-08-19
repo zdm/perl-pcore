@@ -3,7 +3,7 @@ package Pcore::WebSocket::Handle;
 use Pcore -const, -role, -res;
 use Pcore::Util::Scalar qw[is_ref weaken];
 use Pcore::Util::Text qw[decode_utf8 encode_utf8];
-use Pcore::Util::UUID qw[uuid_v1mc_str];
+use Pcore::Util::UUID qw[uuid_v4_str];
 use Pcore::Util::Data qw[to_b64 to_xor];
 use Pcore::Util::Digest qw[sha1];
 use Compress::Raw::Zlib;
@@ -28,17 +28,17 @@ has pong_timeout     => ();                     # send pong on inactive connecti
 has on_ping          => ();                     # Maybe [CodeRef], ($self, \$payload)
 has on_pong          => ();                     # Maybe [CodeRef], ($self, \$payload)
 
-has id           => sub {uuid_v1mc_str};
-has is_connected => ();                         # Bool
-has status       => ();
-has reason       => ();
-has _connect     => ();                         # prepared connect data
-has _is_client   => ();
-has _h           => ();                         # InstanceOf ['Pcore::Handle']
-has _compression => ();                         # Bool, use compression, set after connected
-has _send_masked => ();                         # Bool, mask data on send, for websocket client only
-has _deflate     => ();
-has _inflate     => ();
+has id           => ( sub {uuid_v4_str}, init_arg => undef );
+has is_connected => ( init_arg                    => undef );    # Bool
+has status       => ( init_arg                    => undef );
+has reason       => ( init_arg                    => undef );
+has _connect     => ( init_arg                    => undef );    # prepared connect data
+has _is_client   => ( init_arg                    => undef );
+has _h           => ( init_arg                    => undef );    # InstanceOf ['Pcore::Handle']
+has _compression => ( init_arg                    => undef );    # Bool, use compression, set after connected
+has _send_masked => ( init_arg                    => undef );    # Bool, mask data on send, for websocket client only
+has _deflate     => ( init_arg                    => undef );
+has _inflate     => ( init_arg                    => undef );
 
 const our $WEBSOCKET_VERSION => 13;
 const our $WEBSOCKET_GUID    => '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
