@@ -22,12 +22,12 @@ has on_subscribe  => ();       # Maybe [CodeRef], ($self, $mask), must return tr
 has on_event      => ();       # Maybe [CodeRef], ($self, $ev)
 has on_rpc        => ();       # Maybe [CodeRef], ($self, $req, $tx)
 
-has is_ready      => ();            # Bool
-has _peer_is_text => ();            # remote peer message serialization protocol
-has _req_cb       => sub { {} };    # HashRef, tid => $cb
-has _listeners    => ();            # HashRef, events listeners
-has _conn_ver     => 0;             # increased on each reset call
-has _auth_cb      => ();
+has _conn_ver     => ( 0, init_arg => undef );             # increased on each reset call
+has _req_cb       => ( sub { {} }, init_arg => undef );    # HashRef, tid => $cb
+has is_ready      => ( init_arg => undef );                # Bool
+has _peer_is_text => ( init_arg => undef );                # remote peer message serialization protocol
+has _listeners    => ( init_arg => undef );                # HashRef, events listeners
+has _auth_cb      => ( init_arg => undef );
 
 const our $PROTOCOL => 'pcore';
 
