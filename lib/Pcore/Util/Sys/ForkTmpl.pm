@@ -15,6 +15,7 @@ END {
 
 _fork_tmpl();
 
+# TODO
 sub _fork_tmpl {
     ( my $read_fh, $CHILD_FH ) = AnyEvent::Util::portable_socketpair();
 
@@ -22,7 +23,8 @@ sub _fork_tmpl {
     if ( $CHILD_PID = fork ) {
         Pcore::_CORE_INIT_AFTER_FORK();
 
-        require Pcore::AE::Handle;
+        # TODO move to Pcore::Handle
+        require Pcore::AE::DNS::Cache;
 
         close $read_fh or die $!;
     }
@@ -64,7 +66,7 @@ sub _tmpl_proc ( $fh ) {
 
     local $SIG{TERM} = sub { exit 128 + 15 };
 
-    while (1) {
+    while () {
         sysread $fh, my $len, 4 or die $!;
 
         sysread $fh, my $data, unpack 'L', $len or die $!;
@@ -125,7 +127,7 @@ sub _forked_proc ( $data ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 23, 103              | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 24, 105              | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -2,7 +2,6 @@ package Pcore::Node::Proc;
 
 use Pcore -class;
 use Fcntl;
-use Pcore::AE::Handle;
 use AnyEvent::Util qw[portable_pipe];
 use if $MSWIN, 'Win32API::File';
 use Pcore::Util::Data qw[to_cbor from_cbor];
@@ -21,7 +20,7 @@ around new => sub ( $orig, $self, $type, % ) {
     # create handles
     my ( $fh_r, $fh_w ) = portable_pipe();
 
-    Pcore::AE::Handle->new( fh => $fh_r, on_connect => sub ( $h, @ ) { $fh_r = $h } );
+    $fh_r = P->handle($fh_r);
 
     my $boot_args = {
         script_path => $ENV->{SCRIPT_PATH},
@@ -41,6 +40,7 @@ around new => sub ( $orig, $self, $type, % ) {
         $boot_args->{fh} = fileno $fh_w;
     }
 
+    # run via fork tmpl
     if ($Pcore::Util::Sys::ForkTmpl::CHILD_PID) {
         Pcore::Util::Sys::ForkTmpl::run_node( $type, $boot_args );
 
@@ -62,6 +62,8 @@ around new => sub ( $orig, $self, $type, % ) {
             }
         );
     }
+
+    # run via run_proc
     else {
         state $perl = do {
             if ( $ENV->{is_par} ) {
