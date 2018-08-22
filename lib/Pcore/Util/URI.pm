@@ -329,6 +329,11 @@ sub TO_DUMP ( $self, $dumper, @ ) {
     return $res, $tags;
 }
 
+# SERIALIZE
+*TO_JSON = *TO_CBOR = sub ($self) {
+    return $self->to_string;
+};
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
