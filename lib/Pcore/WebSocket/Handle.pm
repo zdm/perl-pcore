@@ -161,26 +161,10 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
         ${"$self\::PROTOCOL"};
     };
 
-    my $connect;
-
-    if ( $uri =~ m[\Awss?://unix:(.+)?/]sm ) {
-        $connect = [ 'unix/', $1 ];
-
-        $uri = P->uri($uri) if !is_ref $uri;
-    }
-    elsif ( $uri =~ m[\A(wss?)://[*]:(.+)]sm ) {
-        $uri = P->uri("$1://127.0.0.1:$2");
-
-        $connect = $uri;
-    }
-    else {
-        $uri = P->uri($uri) if !is_ref $uri;
-
-        $connect = $uri;
-    }
+    $uri = P->uri( $uri, base => 'ws:' ) if !is_ref $uri;
 
     my $h = P->handle(
-        $connect,
+        $uri,
         timeout         => delete $args{timeout} // 30,
         connect_timeout => delete $args{connect_timeout},
         tls_ctx         => delete $args{tls_ctx},
@@ -654,15 +638,15 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 151                  | * Subroutine "connect" with high complexity score (29)                                                         |
-## |      | 394                  | * Subroutine "__on_connect" with high complexity score (28)                                                    |
-## |      | 564                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
+## |      | 151                  | * Subroutine "connect" with high complexity score (25)                                                         |
+## |      | 378                  | * Subroutine "__on_connect" with high complexity score (28)                                                    |
+## |      | 548                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 280, 286, 336        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 264, 270, 320        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 508, 510, 512        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 492, 494, 496        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 46, 580              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 46, 564              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -13,24 +13,30 @@ sub hostname {
     return $hostname;
 }
 
-sub resolve_listen ($listen) {
+# undef -> 127.0.0.1:rand-port, or unix:/\x00rand on linux
+# host -> host:rand-port
+# * -> *:rand-port
+sub resolve_listen ($listen = undef) {
     if ( !$listen ) {
 
         # for windows use TCP loopback
         if ($MSWIN) {
-            $listen = '127.0.0.1:' . get_free_port('127.0.0.1');
+            $listen = '//127.0.0.1:' . get_free_port('127.0.0.1');
         }
 
         # for linux use abstract UDS
         else {
-            $listen = "unix:\x00pcore-" . uuid_v4_str;
+            $listen = "unix:/\x00" . uuid_v4_str;
         }
     }
     else {
 
         # host without port
         if ( $listen !~ /:/sm ) {
-            $listen = "$listen:" . get_free_port( $listen eq '*' ? () : $listen );
+            $listen = "//$listen:" . get_free_port( $listen eq '*' ? () : $listen );
+        }
+        else {
+            $listen = "//$listen";
         }
     }
 
@@ -69,7 +75,7 @@ sub get_free_port ($ip = undef) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 26, 47               | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 29, 53               | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

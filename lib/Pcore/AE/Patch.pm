@@ -31,7 +31,17 @@ sub resolve_sockaddr : prototype($$$$$$) ( $node, $service, $proto, $family, $ty
     if ( $node eq 'unix/' ) {
 
         # error
-        return $cb->() if $family || $service !~ /^[\/\x00]/sm;
+        return $cb->() if $family;
+
+        # UDS socket
+        if ( $service =~ m[\A/?(\x00.+)]sm ) {
+            $service = $1;
+        }
+
+        # error, socket path must be absolute
+        elsif ( substr( $service, 0, 1 ) ne '/' ) {
+            return $cb->();
+        }
 
         return $cb->( [ AF_UNIX, defined $type ? $type : SOCK_STREAM, 0, Socket::pack_sockaddr_un $service] );
     }
@@ -81,7 +91,9 @@ sub resolve_sockaddr : prototype($$$$$$) ( $node, $service, $proto, $family, $ty
 sub _tcp_bind : prototype($$$;$) ( $host, $service, $done, $prepare = undef ) {
 
     # hook for Linux abstract Unix Domain Sockets (UDS)
-    if ( defined $host && $host eq 'unix/' && substr( $service, 0, 1 ) eq "\x00" ) {
+    if ( defined $host && $host eq 'unix/' && $service =~ m[\A/?(\x00.+)]sm ) {
+        $service = $1;
+
         state $ipn_uds = pack 'S', AF_UNIX;
 
         my %state;
@@ -117,9 +129,7 @@ sub _tcp_bind : prototype($$$;$) ( $host, $service, $done, $prepare = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 16, 23               | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 108                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 84                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    3 | 120                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

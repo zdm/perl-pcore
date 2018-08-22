@@ -105,18 +105,25 @@ around new => sub ( $orig, $self, $connect, @args ) {
     else {
         my ( $uri, $scheme );
 
-        # parse connect
+        # connect is string
         if ( !is_ref $connect) {
-            $uri    = P->uri($connect);
-            $scheme = $uri->scheme;
-
-            $connect = [ $uri->host, $uri->port || $uri->default_port ];
+            $uri = P->uri( $connect, base => 'tcp:' );
         }
-        elsif ( !is_plain_arrayref $connect) {
-            $uri    = $connect;
-            $scheme = $connect->scheme;
 
-            $connect = [ $connect->host, $connect->port || $connect->default_port ];
+        # connect is uri ref
+        elsif ( !is_plain_arrayref $connect) {
+            $uri = $connect;
+        }
+
+        if ( defined $uri ) {
+            $scheme = $uri->{scheme};
+
+            if ( $uri->{scheme} eq 'unix' ) {
+                $connect = [ 'unix/', $uri->{path}->to_string ];
+            }
+            else {
+                $connect = [ "$uri->{host}" || '127.0.0.1', $uri->connect_port ];
+            }
         }
 
         if ($scheme) {
@@ -783,13 +790,15 @@ sub read_http_chunked_data ( $self, %args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 489                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
+## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (21)                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 679                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
+## |    3 | 496                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 740                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 686                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 360                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    3 | 747                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 367                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

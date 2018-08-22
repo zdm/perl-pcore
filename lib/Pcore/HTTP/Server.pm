@@ -1,6 +1,7 @@
 package Pcore::HTTP::Server;
 
 use Pcore -class, -const, -res;
+use Pcore::Util::Scalar qw[is_ref];
 use AnyEvent::Socket qw[];
 use Pcore::HTTP::Server::Request;
 
@@ -30,21 +31,23 @@ has _listen_socket => ();                                              # ( is =>
 sub run ($self) {
 
     # parse listen
-    if ( $self->{listen} =~ /\Aunix:(.+)/sm ) {
-        my $path = $1;
+    $self->{listen} = P->uri( P->net->resolve_listen( $self->{listen} ), base => 'tcp:' ) if !is_ref $self->{listen};
+
+    my $uri = $self->{listen};
+
+    if ( $uri->{scheme} eq 'unix' ) {
+        my $path = $uri->{path}->to_string;
 
         $self->{_listen_socket} = AnyEvent::Socket::tcp_server( 'unix/', $path, Coro::unblock_sub { return $self->_on_accept(@_) }, sub { return $self->_on_prepare(@_) } );
 
-        chmod oct 777, $path or die if substr( $path, 0, 1 ) eq '/';
+        chmod oct 777, $path or die if index( $path, "\x00" ) == -1;
     }
     else {
-        my ( $host, $port ) = split /:/sm, $self->{listen};
+        my $host = "$uri->{host}";
 
-        die qq[Invalid listen "$self->{listen}"] if !$host || !$port;
+        undef $host if !$host || $host eq '*';
 
-        undef $host if $host eq '*';
-
-        $self->{_listen_socket} = AnyEvent::Socket::tcp_server( $host, $port, Coro::unblock_sub { return $self->_on_accept(@_) }, sub { return $self->_on_prepare(@_) } );
+        $self->{_listen_socket} = AnyEvent::Socket::tcp_server( $host, $uri->connect_port, Coro::unblock_sub { return $self->_on_accept(@_) }, sub { return $self->_on_prepare(@_) } );
     }
 
     return $self;
@@ -223,7 +226,9 @@ sub return_xxx ( $self, $h, $status, $close_connection = 1 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 57                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (33)                |
+## |    3 | 60                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (33)                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 43                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
