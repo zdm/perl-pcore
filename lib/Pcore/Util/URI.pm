@@ -48,12 +48,11 @@ has connect_port => ( is => 'lazy', init_arg => undef );
 
 around new => sub ( $orig, $self, $uri, @ ) {
     my %args = (
-        base      => undef,
-        authority => undef,
+        base => undef,
         splice @_, 3,
     );
 
-    my $uri_args = $self->_parse_uri_string( $uri, $args{authority} );
+    my $uri_args = $self->_parse_uri_string($uri);
 
     my $scheme = $uri_args->{scheme};
 
@@ -93,14 +92,12 @@ const our $RESERVED_SUB_DELIMS => quotemeta q[!$&'()*+,;=];
 const our $ESCAPE_RE           => qq[^${UNRESERVED}${RESERVED_GEN_DELIMS}${RESERVED_SUB_DELIMS}%];
 const our $ESC_CHARS           => { map { chr $_ => sprintf '%%%02X', $_ } ( 0 .. 255 ) };
 
-sub _parse_uri_string ( $self, $uri, $with_authority = 0 ) {
+sub _parse_uri_string ( $self, $uri ) {
     my %args;
 
     utf8::encode($uri) if utf8::is_utf8($uri);
 
     $uri =~ s/([$ESCAPE_RE])/$ESC_CHARS->{$1}/smg;
-
-    $uri = q[//] . $uri if $with_authority && index( $uri, q[//] ) == -1;
 
     # official regex from RFC 3986
     $uri =~ m[^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)([?]([^#]*))?(#(.*))?]sm;
@@ -341,10 +338,10 @@ sub TO_DUMP ( $self, $dumper, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 108, 111, 118, 128,  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
-## |      | 139, 144, 147        |                                                                                                                |
+## |    3 | 105, 108, 115, 125,  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |      | 136, 141, 144        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 92                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 91                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

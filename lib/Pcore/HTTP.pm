@@ -172,7 +172,7 @@ sub request {
     );
 
     # parse url
-    $args{url} = P->uri( $args{url}, base => 'http://', authority => 1 ) if !is_ref $args{url};
+    $args{url} = P->uri( $args{url}, base => 'http://' ) if !is_ref $args{url};
 
     # proxy connections can't be persistent
     # TODO use proxy "persistent" attr

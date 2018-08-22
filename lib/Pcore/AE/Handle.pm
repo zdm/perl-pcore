@@ -448,7 +448,7 @@ sub get_connect ($connect) {
     if ( !is_plain_arrayref $connect ) {
 
         # parse uri string
-        $connect = P->uri( $connect, authority => 1 ) if !is_ref $connect;
+        $connect = P->uri( $connect, base => 'tcp:' ) if !is_ref $connect;
 
         my $scheme = $connect->scheme eq q[] ? 'tcp' : $connect->scheme;
 
