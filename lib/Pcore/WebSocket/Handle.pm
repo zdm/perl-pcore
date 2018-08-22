@@ -152,6 +152,9 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
     state $on_error = sub ( $self, $status, $reason = undef ) {
         $self->_set_status( $status, $reason );
 
+        # call protocol on_disconnect
+        $self->_on_disconnect;
+
         return $self;
     };
 
@@ -639,14 +642,14 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 151                  | * Subroutine "connect" with high complexity score (25)                                                         |
-## |      | 378                  | * Subroutine "__on_connect" with high complexity score (28)                                                    |
-## |      | 548                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
+## |      | 381                  | * Subroutine "__on_connect" with high complexity score (28)                                                    |
+## |      | 551                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 264, 270, 320        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 267, 273, 323        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 492, 494, 496        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 495, 497, 499        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 46, 564              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 46, 567              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
