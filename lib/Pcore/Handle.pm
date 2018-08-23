@@ -199,7 +199,7 @@ sub so_no_delay ( $self, $val ) {
 sub so_oobinline ( $self, $val ) {
     $self->{so_oobinline} = $val;
 
-    setsockopt $self->{fh}, Socket::SOL_SOCKET(), Socket::SO_OOBINLINE(), $val or die $!;
+    setsockopt $self->{fh}, Socket::SOL_SOCKET(), Socket::SO_OOBINLINE(), $val;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 
     return;
 }
@@ -207,7 +207,7 @@ sub so_oobinline ( $self, $val ) {
 sub so_keepalive ( $self, $val ) {
     $self->{so_keepalive} = $val;
 
-    setsockopt $self->{fh}, Socket::SOL_SOCKET(), Socket::SO_KEEPALIVE(), $val or die $!;
+    setsockopt $self->{fh}, Socket::SOL_SOCKET(), Socket::SO_KEEPALIVE(), $val;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 
     return;
 }

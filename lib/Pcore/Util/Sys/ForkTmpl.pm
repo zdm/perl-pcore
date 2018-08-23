@@ -24,7 +24,7 @@ sub _fork_tmpl {
         Pcore::_CORE_INIT_AFTER_FORK();
 
         # TODO move to Pcore::Handle
-        require Pcore::AE::DNS::Cache;
+        # require Pcore::AE::DNS::Cache;
 
         close $read_fh or die $!;
     }
@@ -67,9 +67,12 @@ sub _tmpl_proc ( $fh ) {
     local $SIG{TERM} = sub { exit 128 + 15 };
 
     while () {
-        sysread $fh, my $len, 4 or die $!;
 
-        sysread $fh, my $data, unpack 'L', $len or die $!;
+        # exit on fh close
+        sysread $fh, my $len, 4 or exit;
+
+        # exit on fh close
+        sysread $fh, my $data, unpack 'L', $len or exit;
 
         $data = from_cbor $data;
 
@@ -127,7 +130,7 @@ sub _forked_proc ( $data ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 24, 105              | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 24, 108              | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
