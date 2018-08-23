@@ -123,12 +123,12 @@ around new => sub ( $orig, $self, $uri, @args ) {
         $self = $self->$orig(@args);
 
         my $connect = do {
-            my $host = $uri->{host};
+            my $host = "$uri->{host}";
 
             if ($host) {
                 $self->{peername} //= $host;
 
-                [ "$host" || '127.0.0.1', $uri->connect_port ];
+                [ $host, $uri->connect_port ];
             }
             else {
                 [ 'unix/', $uri->{path}->to_string ];

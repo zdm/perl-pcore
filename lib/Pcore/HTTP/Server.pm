@@ -31,13 +31,11 @@ has _listen_socket => ();                                              # ( is =>
 sub run ($self) {
 
     # parse listen
-    $self->{listen} = P->uri( P->net->resolve_listen( $self->{listen} ), base => 'tcp:' ) if !is_ref $self->{listen};
+    $self->{listen} = P->net->resolve_listen( $self->{listen}, 'tcp:' ) if !is_ref $self->{listen};
 
     my $uri = $self->{listen};
 
     if ( my $host = "$uri->{host}" ) {
-        undef $host if !$host || $host eq '*';
-
         $self->{_listen_socket} = AnyEvent::Socket::tcp_server( $host, $uri->connect_port, Coro::unblock_sub { return $self->_on_accept(@_) }, sub { return $self->_on_prepare(@_) } );
     }
     else {
@@ -224,9 +222,9 @@ sub return_xxx ( $self, $h, $status, $close_connection = 1 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 58                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (33)                |
+## |    3 | 56                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (33)                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 48                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 46                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
