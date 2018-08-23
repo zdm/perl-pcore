@@ -303,6 +303,7 @@ sub query_params ($self) {
 }
 
 # used to compose url for nginx proxy_pass directive
+# TODO
 sub to_nginx ( $self, $scheme = 'http' ) {
     if ( $self->scheme eq 'unix' ) {
         return $scheme . q[://unix:] . $self->path;

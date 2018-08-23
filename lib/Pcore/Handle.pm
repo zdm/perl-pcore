@@ -91,41 +91,24 @@ sub DESTROY ($self) {
 }
 
 # TODO persistent
-around new => sub ( $orig, $self, $connect, @args ) {
+around new => sub ( $orig, $self, $uri, @args ) {
 
     # wrap fh
-    if ( is_glob $connect) {
+    if ( is_glob $uri) {
         $self = $self->$orig(@args);
 
-        $self->{fh} = $connect;
+        $self->{fh} = $uri;
 
         $self->_set_status($HANDLE_STATUS_OK);
     }
 
     # connect
     else {
-        my ( $uri, $scheme );
 
-        # connect is string
-        if ( !is_ref $connect) {
-            $uri = P->uri( $connect, base => 'tcp:' );
-        }
+        # convert to URI object
+        $uri = P->uri( $uri, base => 'tcp:' ) if !is_ref $uri;
 
-        # connect is uri ref
-        elsif ( !is_plain_arrayref $connect) {
-            $uri = $connect;
-        }
-
-        if ( defined $uri ) {
-            $scheme = $uri->{scheme};
-
-            if ( $uri->{scheme} eq 'unix' ) {
-                $connect = [ 'unix/', $uri->{path}->to_string ];
-            }
-            else {
-                $connect = [ "$uri->{host}" || '127.0.0.1', $uri->connect_port ];
-            }
-        }
+        my $scheme = $uri->{scheme};
 
         if ($scheme) {
             if ( !exists $SCHEME_CACHE->{$scheme} ) {
@@ -139,7 +122,18 @@ around new => sub ( $orig, $self, $connect, @args ) {
 
         $self = $self->$orig(@args);
 
-        $self->{peername} //= $connect->[0];
+        my $connect = do {
+            my $host = $uri->{host};
+
+            if ($host) {
+                $self->{peername} //= $host;
+
+                [ "$host" || '127.0.0.1', $uri->connect_port ];
+            }
+            else {
+                [ 'unix/', $uri->{path}->to_string ];
+            }
+        };
 
         my $bind_error;
 
@@ -791,15 +785,13 @@ sub read_http_chunked_data ( $self, %args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (21)                               |
+## |    3 | 491                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 497                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
+## |    3 | 681                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 687                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
+## |    3 | 742                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 748                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 368                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 362                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

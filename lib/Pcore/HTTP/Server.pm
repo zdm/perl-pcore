@@ -35,19 +35,17 @@ sub run ($self) {
 
     my $uri = $self->{listen};
 
-    if ( $uri->{scheme} eq 'unix' ) {
+    if ( my $host = "$uri->{host}" ) {
+        undef $host if !$host || $host eq '*';
+
+        $self->{_listen_socket} = AnyEvent::Socket::tcp_server( $host, $uri->connect_port, Coro::unblock_sub { return $self->_on_accept(@_) }, sub { return $self->_on_prepare(@_) } );
+    }
+    else {
         my $path = $uri->{path}->to_string;
 
         $self->{_listen_socket} = AnyEvent::Socket::tcp_server( 'unix/', $path, Coro::unblock_sub { return $self->_on_accept(@_) }, sub { return $self->_on_prepare(@_) } );
 
         chmod oct 777, $path or die if index( $path, "\x00" ) == -1;
-    }
-    else {
-        my $host = "$uri->{host}";
-
-        undef $host if !$host || $host eq '*';
-
-        $self->{_listen_socket} = AnyEvent::Socket::tcp_server( $host, $uri->connect_port, Coro::unblock_sub { return $self->_on_accept(@_) }, sub { return $self->_on_prepare(@_) } );
     }
 
     return $self;
@@ -226,9 +224,9 @@ sub return_xxx ( $self, $h, $status, $close_connection = 1 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 60                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (33)                |
+## |    3 | 58                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (33)                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 43                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 48                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

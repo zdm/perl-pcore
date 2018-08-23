@@ -13,9 +13,9 @@ sub hostname {
     return $hostname;
 }
 
-# undef -> 127.0.0.1:rand-port, or unix:/\x00rand on linux
-# host -> host:rand-port
-# * -> *:rand-port
+# undef -> //127.0.0.1:rand-port, or ///\x00rand on linux
+# host -> //host:rand-port
+# * -> //*:rand-port
 sub resolve_listen ($listen = undef) {
     if ( !$listen ) {
 
@@ -26,7 +26,7 @@ sub resolve_listen ($listen = undef) {
 
         # for linux use abstract UDS
         else {
-            $listen = "unix:/\x00" . uuid_v4_str;
+            $listen = "///\x00" . uuid_v4_str;
         }
     }
     else {
