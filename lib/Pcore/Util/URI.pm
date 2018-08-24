@@ -304,6 +304,13 @@ sub query_params ($self) {
 
 # used to compose url for nginx proxy_pass directive
 # TODO
+# listen 127.0.0.1:12345
+# listen *:12345
+# listen 12345 - то же, что и *:12345
+# listen localhost:12345
+# listen unix:/var/run/nginx.sock
+# proxy_pass http://localhost:8000/uri/
+# proxy_pass http://unix:/tmp/backend.socket:/uri/
 sub to_nginx ( $self, $scheme = 'http' ) {
     if ( $self->scheme eq 'unix' ) {
         return $scheme . q[://unix:] . $self->path;

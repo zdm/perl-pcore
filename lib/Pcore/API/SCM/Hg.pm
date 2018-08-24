@@ -33,7 +33,7 @@ sub _server ( $self ) {
     else {
         local $ENV{HGENCODING} = 'UTF-8';
 
-        $self->{_server_proc} = $SERVER_PROC = P->sys->run_proc1(
+        $self->{_server_proc} = $SERVER_PROC = P->sys->run_proc(
             [qw[hg serve --config ui.interactive=True --cmdserver pipe]],
             stdin  => 1,
             stdout => 1,

@@ -1,134 +1,166 @@
 package Pcore::Node::Server;
 
 use Pcore -class, -res;
+use Pcore::Util::Scalar qw[weaken];
 use Pcore::Util::UUID qw[uuid_v4_str];
-use Pcore::WebSocket::pcore;
 use Pcore::HTTP::Server;
-use Pcore::Node::Const qw[:ALL];
+use Pcore::WebSocket::pcore;
 
-has token => sub {uuid_v4_str};
-has listen => ();
+has token       => ();
+has listen      => ();
+has compression => 0;
 
-has _node         => ();    # all nodes
-has _client_node  => ();    # client nodes
-has _service_node => ();    # service nodes
+has id           => ( sub {uuid_v4_str}, init_arg => undef );
+has connect      => ( init_arg                    => undef );    # connect url, including token
+has _http_server => ( init_arg                    => undef );    # InstanceOf['Pcore::HTTP::Server']
+has _nodes       => ( init_arg                    => undef );    # HashRef, node registry, node_id => {}
+has _nodes_h     => ( init_arg                    => undef );    # HashRef, connected nodes handles, node_id => $handle
 
-sub run ($self) {
-    $self->{listen} = P->net->resolve_listen( $self->{listen} );
+# TODO use uri method to insert token
+sub BUILD ( $self, $args ) {
+    weaken $self;
 
-    $self->{http_server} = Pcore::HTTP::Server->new( {
+    $self->{token} //= P->uuid->uuid_v4_str;
+
+    $self->{_http_server} = Pcore::HTTP::Server->new(
         listen => $self->{listen},
         app    => sub ($req) {
             if ( $req->is_websocket_connect_request ) {
+                my $h = Pcore::WebSocket::pcore->accept(
+                    $req,
+                    compression   => $self->{compression},
+                    on_disconnect => sub ($h) {
+                        return if !defined $self;
 
-                # create connection, accept websocket connect request
-                Pcore::WebSocket::pcore->new(
-                    compression   => 0,
-                    on_disconnect => sub ( $h, $status ) {
-                        $self->_on_node_disconnect( $h->{_node_id} );
+                        $self->remove_node( $h->{node_id} );
 
                         return;
                     },
                     on_auth => sub ( $h, $token ) {
-                        ( my $id, $token ) = $token->@*;
+                        return if !defined $self;
 
-                        if ( $self->{token} && $self->{token} ne ( $token // q[] ) ) {
-                            $h->disconnect( res 401 );
+                        ( $token, $h->{node_id}, $h->{node_data} ) = $token->@*;
+
+                        if ( $self->{token} && $token ne $self->{token} ) {
+                            $h->disconnect;
 
                             return;
                         }
-
-                        $h->{_node_id} = $id;
-
-                        return res(200), forward => 'SWARM';
+                        else {
+                            return res 200;
+                        }
                     },
-                    on_subscribe => sub ( $h, $event ) {
-                        return;
-                    },
-                    on_event => sub ( $h, $ev ) {
+                    on_ready => sub ($h) {
+                        $self->register_node( $h, $h->{node_id}, delete $h->{node_data}, 1 );
+
                         return;
                     },
                     on_rpc => sub ( $h, $req, $tx ) {
-                        $self->_on_rpc( $h->{_node_id}, $req, $tx );
+                        return if !defined $self;
+
+                        if ( $tx->{method} eq 'update_status' ) {
+                            $self->update_node_status( $h->{node_id}, $tx->{args}->[0] );
+                        }
 
                         return;
                     },
-                )->accept($req);
-            }
-            else {
-                $req->return_xxx(400);
+                );
             }
 
             return;
-        },
-    } );
-
-    $self->{http_server}->run;
-
-    return $self;
-}
-
-sub _on_rpc ( $self, $node_id, $req, $tx ) {
-
-    # register node
-    if ( $tx->{method} eq 'register' ) {
-        my $node = $tx->{args}->[0];
-
-        if ( $node->{is_service} ) {
-            $self->{_node}->{$node_id} = $self->{_service_node}->{$node_id} = $node;
         }
-        else {
-            $self->{_node}->{$node_id} = $self->{_client_node}->{$node_id} = $node;
-        }
+    )->run;
 
-        P->fire_event( 'SWARM', $node ) if $node->{status} == $STATUS_ONLINE;
+    my $listen = $self->{listen} = $self->{_http_server}->{listen};
 
-        # return full service_node table
-        $req->( res 200, [ values $self->{_service_node}->%* ] );
-    }
-
-    # update node status
-    elsif ( $tx->{method} eq 'update' ) {
-        $self->_set_node_status( $node_id, $tx->{args}->[0]->{status} );
-    }
-
-    return;
-}
-
-sub _on_node_disconnect ( $self, $node_id ) {
-    my $node = delete $self->{_node}->{$node_id};
-
-    if ( $node->{is_service} ) {
-        delete $self->{_service_node}->{$node_id};
-
-        if ( $node->{status} == $STATUS_ONLINE ) {
-            $node->{status} = $STATUS_OFFLINE;
-
-            P->fire_event( 'SWARM', $node );
-        }
+    # TODO use uri method to insert token
+    $self->{connect} = $listen->{scheme} ? "$listen->{scheme}://" : '//';
+    $self->{connect} .= "$self->{token}@" if defined $self->{token};
+    if ( my $host = "$listen->{host}" ) {
+        $self->{connect} .= "$host:" . $listen->connect_port . '/';
     }
     else {
-        delete $self->{_client_node}->{$node_id};
+        $self->{connect} .= $listen->{path}->to_string;
     }
 
     return;
 }
 
-sub _set_node_status ( $self, $node_id, $new_status ) {
-    my $node = $self->{_node}->{$node_id};
+sub register_node ( $self, $node_h, $node_id, $node_data, $is_remote = 0 ) {
+    $node_data->{is_online} //= 0;
 
-    my $current_status = $node->{status};
+    $self->{_nodes}->{$node_id} = $node_data;
 
-    if ( $current_status != $new_status ) {
-        $node->{status} = $new_status;
+    $self->{_nodes_h}->{$node_id} = {
+        is_remote => $is_remote,
+        h         => $node_h,
+    };
 
-        P->fire_event( 'SWARM', $node ) if $node->{is_service};
+    weaken $self->{_nodes_h}->{$node_id}->{h};
+
+    $self->_on_update;
+
+    return;
+}
+
+sub remove_node ( $self, $node_id ) {
+    if ( exists $self->{_nodes}->{$node_id} ) {
+        delete $self->{_nodes}->{$node_id};
+        delete $self->{_nodes_h}->{$node_id};
+
+        $self->_on_update;
+    }
+
+    return;
+}
+
+sub update_node_status ( $self, $node_id, $is_online ) {
+    my $node = $self->{_nodes}->{$node_id};
+
+    # node is unknown
+    return if !defined $node;
+
+    $is_online //= 0;
+
+    # node status was changed
+    if ( $node->{is_online} != $is_online ) {
+        $node->{is_online} = $is_online;
+
+        $self->_on_update;
+    }
+
+    return;
+}
+
+sub _on_update ($self) {
+    for my $node ( values $self->{_nodes_h}->%* ) {
+        next if !defined $node->{h};
+
+        # remote node
+        if ( $node->{is_remote} ) {
+            $node->{h}->rpc_call( 'update_node_table', $self->{_nodes} );
+        }
+
+        # local node
+        else {
+            $node->{h}->_update_node_table( $self->{_nodes} );
+        }
     }
 
     return;
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 89                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
