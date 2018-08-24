@@ -7,8 +7,8 @@ use Pcore::Util::Scalar qw[weaken is_plain_arrayref];
 
 with qw[Pcore::API::SCM];
 
-has capabilities => ();
-has _server_proc => ();
+has capabilities => ( init_arg => undef );
+has _server_proc => ( init_arg => undef );
 
 our $SERVER_PROC;
 
