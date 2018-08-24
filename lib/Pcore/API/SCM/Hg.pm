@@ -27,7 +27,7 @@ sub _server ( $self ) {
     if ( exists $self->{_server_proc} ) {
         return $self->{_server_proc};
     }
-    elsif ($SERVER_PROC) {
+    elsif ( defined $SERVER_PROC ) {
         return $self->{_server_proc} = $SERVER_PROC;
     }
     else {
