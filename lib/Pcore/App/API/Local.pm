@@ -276,7 +276,7 @@ sub set_user_permissions ( $self, $user_id, $permissions ) {
         return $res1 if !$res1;
 
         # fire event if user permissions was changed
-        P->fire_event('APP.API.AUTH') if $res == 200;
+        P->fire_event('app.api.auth') if $res == 200;
 
         return $res;
     }
@@ -326,7 +326,7 @@ sub set_user_password ( $self, $user_id, $password ) {
     return res 500 if !$res->{rows};
 
     # fire AUTH event if user password was changed
-    P->fire_event('APP.API.AUTH');
+    P->fire_event('app.api.auth');
 
     return res 200;
 }
@@ -349,7 +349,7 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
         return res 500 if !$res->{rows};
 
         # fire AUTH event if user was disabled
-        P->fire_event('APP.API.AUTH') if !$enabled;
+        P->fire_event('app.api.auth') if !$enabled;
 
         return res 200, { enabled => $enabled };
     }
@@ -475,7 +475,7 @@ sub remove_user_token ( $self, $user_token_id ) {
     # not found
     return res 204 if !$res->{rows};
 
-    P->fire_event('APP.API.AUTH');
+    P->fire_event('app.api.auth');
 
     return res 200;
 }
@@ -516,7 +516,7 @@ sub remove_user_session ( $self, $user_sid ) {
     # not found
     return res 204 if !$res->{rows};
 
-    P->fire_event('APP.API.AUTH');
+    P->fire_event('app.api.auth');
 
     return res 200;
 }

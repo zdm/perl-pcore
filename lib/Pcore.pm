@@ -390,13 +390,13 @@ sub ev ($self) {
         my $_broker = Pcore::Core::Event->new;
 
         # # set default log channels
-        $_broker->listen_events( 'LOG.EXCEPTION.*', 'stderr:' );
+        $_broker->listen_events( 'log.EXCEPTION.*', 'stderr:' );
 
         # file logs are disabled by default for scripts, that are not part of the distribution
         if ( $ENV->dist ) {
-            $_broker->listen_events( 'LOG.EXCEPTION.FATAL', 'file:fatal.log' );
-            $_broker->listen_events( 'LOG.EXCEPTION.ERROR', 'file:error.log' );
-            $_broker->listen_events( 'LOG.EXCEPTION.WARN',  'file:warn.log' );
+            $_broker->listen_events( 'log.EXCEPTION.FATAL', 'file:fatal.log' );
+            $_broker->listen_events( 'log.EXCEPTION.ERROR', 'file:error.log' );
+            $_broker->listen_events( 'log.EXCEPTION.WARN',  'file:warn.log' );
         }
 
         $_broker;
@@ -409,8 +409,8 @@ sub get_listener ( $self, $id ) {
     return $self->ev->get_listener($id);
 }
 
-sub listen_events ( $self, $mask, $listener ) {
-    return $self->ev->listen_events( $mask, $listener );
+sub listen_events ( $self, $masks, $listener ) {
+    return $self->ev->listen_events( $masks, $listener );
 }
 
 sub has_listeners ( $self, $key ) {
@@ -435,7 +435,7 @@ sub fire_event ( $self, $key, $data = undef ) {
 sub sendlog ( $self, $key, $title, $data = undef ) {
     my $broker = $self->ev;
 
-    return if !$broker->has_listeners("LOG.$key");
+    return if !$broker->has_listeners("log.$key");
 
     my $ev;
 
@@ -443,7 +443,7 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 
     die q[Log level must be specified] unless $ev->{level};
 
-    $ev->{key}       = "LOG.$key";
+    $ev->{key}       = "log.$key";
     $ev->{timestamp} = Time::HiRes::time();
     \$ev->{title} = \$title;
     \$ev->{data}  = \$data;

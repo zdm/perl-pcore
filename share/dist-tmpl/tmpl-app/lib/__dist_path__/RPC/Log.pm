@@ -8,7 +8,7 @@ with qw[<: $module_name ~ "::RPC" :>];
 
 const our $NODE_REQUIRES       => undef;
 const our $NODE_FORWARD_EVENTS => undef;
-const our $NODE_LISTEN_EVENTS  => ['LOG.#'];
+const our $NODE_LISTEN_EVENTS  => ['log.#'];
 
 sub NODE_ON_SUBSCRIBE ( $self, $event ) {
     return 1;
@@ -24,7 +24,7 @@ sub BUILD ( $self, $args ) {
 
     # create event listener
     P->listen_events(
-        ['LOG.#'],
+        ['log.#'],
         sub ( $ev ) {
             my $data = ref $ev->{data} ? to_json( $ev->{data}, readable => 1 )->$* : $ev->{data};
 

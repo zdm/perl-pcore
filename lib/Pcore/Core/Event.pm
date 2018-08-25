@@ -125,7 +125,7 @@ Pcore::Core::Event - Pcore event broker
 =head1 SYNOPSIS
 
     P->listen_events(
-        [ 'TEST1', 'TEST2.*.LOG', 'TEST3.#' ],                       # listen masks
+        [ 'test1', 'test2.*.log', 'test3.#' ],                       # listen masks
         sub ( $ev ) {                                                # callback
             say dump $ev->{key};
             say dump $ev->{data};
@@ -134,11 +134,11 @@ Pcore::Core::Event - Pcore event broker
         },
     );
 
-    P->listen_events( 'log.test', 'stderr:' );                                                   # pipe
-    P->listen_events( 'log.test', [ 'stderr:',      tmpl => "<: \$key :>$LF<: \$text :>" ] );    # pipe with params
-    P->listen_events( 'log.test', [ 'file:123.log', tmpl => "<: \$key :>$LF<: \$text :>" ] );    # pipe with params
+    P->listen_events( 'log.test.*', 'stderr:' );                                                   # pipe
+    P->listen_events( 'log.test.*', [ 'stderr:',      tmpl => "<: \$key :>$LF<: \$text :>" ] );    # pipe with params
+    P->listen_events( 'log.test.*', [ 'file:123.log', tmpl => "<: \$key :>$LF<: \$text :>" ] );    # pipe with params
 
-    P->fire_event( 'TEST.1234.AAA', $data );
+    P->fire_event( 'test.1234.aaa', $data );
 
 =head1 DESCRIPTION
 
