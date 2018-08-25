@@ -30,10 +30,8 @@ requires 'IO::Socket::SSL';
 requires 'Net::DNS::Resolver';
 requires 'Guard';
 requires 'IO::FDPass';
-feature linux => sub {
-    requires 'AnyEvent::AIO';
-    requires 'IO::AIO';
-};
+requires 'IO::AIO';
+requires 'AnyEvent::AIO';
 
 # Inline
 requires 'Inline';
