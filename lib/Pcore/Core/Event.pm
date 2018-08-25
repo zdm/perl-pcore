@@ -53,8 +53,9 @@ sub listen_events ( $self, $masks, $listener ) {
     return $listener;
 }
 
+# TODO limit _key_masks_cache size
 sub get_key_masks ( $self, $mask, $cache = undef ) {
-    $cache //= $self->{_key_masks_cache};
+    $cache //= $self->{_key_masks_cache} //= {};
 
     state $gen = sub ( $keys, $path, $words ) {
         my $word = shift $words->@*;
