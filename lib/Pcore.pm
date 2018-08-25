@@ -435,7 +435,7 @@ sub fire_event ( $self, $key, $data = undef ) {
 sub sendlog ( $self, $key, $title, $data = undef ) {
     my $broker = $self->ev;
 
-    return if !$broker->has_listeners("log.$key");
+    return if !$broker->has_listeners("LOG.$key");
 
     my $ev;
 
@@ -443,7 +443,7 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 
     die q[Log level must be specified] unless $ev->{level};
 
-    $ev->{key}       = "log.$key";
+    $ev->{key}       = "LOG.$key";
     $ev->{timestamp} = Time::HiRes::time();
     \$ev->{title} = \$title;
     \$ev->{data}  = \$data;
