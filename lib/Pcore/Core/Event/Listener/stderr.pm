@@ -1,4 +1,4 @@
-package Pcore::Core::Event::Listener::Pipe::stderr;
+package Pcore::Core::Event::Listener::stderr;
 
 use Pcore -class, -ansi, -const;
 use Pcore::Util::Text qw[remove_ansi];
@@ -6,31 +6,32 @@ use Pcore::Util::Data qw[to_json];
 use Pcore::Util::Scalar qw[is_ref];
 use Time::HiRes qw[];
 
-with qw[Pcore::Core::Event::Listener::Pipe];
+with qw[Pcore::Core::Event::Listener];
 
 has tmpl => $BOLD . $GREEN . '[<: $date.strftime("%Y-%m-%d %H:%M:%S.%4N") :>]' . $BOLD . $YELLOW . '[<: $channel :>]' . $BOLD . $RED . '[<: $level :>]' . $RESET . ' <: $title | raw :>' . $LF . '<: $text | raw :>';
 
-has _tmpl    => ();    # isa => InstanceOf ['Pcore::Util::Tmpl'], init_arg => undef );
-has _is_ansi => ();    # isa => Bool, init_arg => undef );
-has _init    => ();    # isa => Bool, init_arg => undef );
+has _tmpl    => ( init_arg => undef );    # InstanceOf ['Pcore::Util::Tmpl']
+has _is_ansi => ( init_arg => undef );
 
 const our $INDENT => q[ ] x 4;
 
-sub sendlog ( $self, $ev ) {
-    return if $ENV->{PCORE_LOG_STDERR_DISABLED} || !defined *STDERR;
+sub BUILD ( $self, $args ) {
 
-    # init
-    if ( !$self->{_init} ) {
-        $self->{_init} = 1;
+    # init template
+    $self->{_tmpl} = P->tmpl;
 
-        # init template
-        $self->{_tmpl} = P->tmpl;
+    $self->{_tmpl}->cache_string_tmpl( message => \"$self->{tmpl}$LF" );
 
-        $self->{_tmpl}->cache_string_tmpl( message => \"$self->{tmpl}$LF" );
+    # check ansi support
+    $self->{_is_ansi} //= -t *STDERR ? 1 : 0;    ## no critic qw[InputOutput::ProhibitInteractiveTest]
 
-        # check ansi support
-        $self->{_is_ansi} //= -t *STDERR ? 1 : 0;    ## no critic qw[InputOutput::ProhibitInteractiveTest]
-    }
+    return;
+}
+
+sub _build_id ($self) { return 'stderr:' }
+
+sub forward_event ( $self, $ev ) {
+    return if !defined *STDERR;
 
     # sendlog
     {
@@ -69,9 +70,9 @@ sub sendlog ( $self, $ev ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 41                   | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 42                   | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 38, 41               | Variables::ProhibitLocalVars - Variable declared as "local"                                                    |
+## |    2 | 39, 42               | Variables::ProhibitLocalVars - Variable declared as "local"                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 11                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
@@ -84,7 +85,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::Event::Listener::Pipe::stderr
+Pcore::Core::Event::Listener::stderr
 
 =head1 SYNOPSIS
 

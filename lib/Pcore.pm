@@ -383,13 +383,13 @@ PERL
 }
 
 # EVENT
-sub _init_ev {
+sub ev ($self) {
     state $broker = do {
         require Pcore::Core::Event;
 
         my $_broker = Pcore::Core::Event->new;
 
-        # set default log channels
+        # # set default log channels
         $_broker->listen_events( 'LOG.EXCEPTION.*', 'stderr:' );
 
         # file logs are disabled by default for scripts, that are not part of the distribution
@@ -405,39 +405,37 @@ sub _init_ev {
     return $broker;
 }
 
-sub listen_events ( $self, $masks, @listeners ) {
-    state $broker = _init_ev();
+sub get_listener ( $self, $id ) {
+    return $self->ev->get_listener($id);
+}
 
-    return $broker->listen_events( $masks, @listeners );
+sub listen_events ( $self, $mask, $listener ) {
+    return $self->ev->listen_events( $mask, $listener );
 }
 
 sub has_listeners ( $self, $key ) {
-    state $broker = _init_ev();
-
-    return $broker->has_listeners($key);
+    return $self->ev->has_listeners($key);
 }
 
 sub forward_event ( $self, $ev ) {
-    state $broker = _init_ev();
+    $self->ev->forward_event($ev);
 
-    return $broker->forward_event($ev);
+    return;
 }
 
 sub fire_event ( $self, $key, $data = undef ) {
-    state $broker = _init_ev();
-
     my $ev = {
         key  => $key,
         data => $data,
     };
 
-    return $broker->forward_event($ev);
+    return $self->ev->forward_event($ev);
 }
 
 sub sendlog ( $self, $key, $title, $data = undef ) {
-    state $broker = _init_ev();
+    my $broker = $self->ev;
 
-    return if !$broker->has_listeners("LOG.$key");
+    return if !$broker->has_listeners("log.$key");
 
     my $ev;
 
@@ -445,7 +443,7 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 
     die q[Log level must be specified] unless $ev->{level};
 
-    $ev->{key}       = "LOG.$key";
+    $ev->{key}       = "log.$key";
     $ev->{timestamp} = Time::HiRes::time();
     \$ev->{title} = \$title;
     \$ev->{data}  = \$data;
@@ -466,7 +464,7 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 205, 234, 237, 241,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
 ## |      | 273, 276, 281, 284,  |                                                                                                                |
-## |      | 309, 446             |                                                                                                                |
+## |      | 309, 444             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 291                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|

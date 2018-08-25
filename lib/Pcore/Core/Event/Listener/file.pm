@@ -1,4 +1,4 @@
-package Pcore::Core::Event::Listener::Pipe::file;
+package Pcore::Core::Event::Listener::file;
 
 use Pcore -class, -ansi, -const;
 use Pcore::Util::Data qw[to_json];
@@ -7,23 +7,21 @@ use Fcntl qw[:flock];
 use IO::File;
 use Time::HiRes qw[];
 
-with qw[Pcore::Core::Event::Listener::Pipe];
+with qw[Pcore::Core::Event::Listener];
 
 has tmpl => '[<: $date.strftime("%Y-%m-%d %H:%M:%S.%4N") :>][<: $channel :>][<: $level :>] <: $title | raw :>' . $LF . '<: $text | raw :>';
 
-has _tmpl => ();    # isa => InstanceOf ['Pcore::Util::Tmpl'], init_arg => undef );
-has _path => ();    # isa => InstanceOf ['Pcore::Util::Path'],     init_arg => undef );
-has _h    => ();    # isa => InstanceOf ['IO::File'],              init_arg => undef );
-
-has _init => ( is => 'ro', isa => Bool, init_arg => undef );
+has _tmpl => ( init_arg => undef );    # InstanceOf ['Pcore::Util::Tmpl']
+has _path => ( init_arg => undef );    # InstanceOf ['Pcore::Util::Path']
+has _h    => ( init_arg => undef );    # InstanceOf ['IO::File']
+has _init => ( init_arg => undef );
 
 const our $INDENT => q[ ] x 4;
 
-sub sendlog ( $self, $ev ) {
+sub _build_id ($self) { return 'file:' . $self->{uri}->path->to_string }
 
-    # init
-    if ( !$self->{_init} ) {
-        $self->{_init} = 1;
+sub forward_event ( $self, $ev ) {
+    $self->{_init} //= do {
 
         # init template
         $self->{_tmpl} = P->tmpl;
@@ -34,12 +32,14 @@ sub sendlog ( $self, $ev ) {
         if ( $self->{uri}->path->is_abs ) {
             P->file->mkpath( $self->{uri}->path->dirname );
 
-            $self->{_path} = $self->{uri}->path;
+            $self->{_path} = $self->{uri}->path->to_string;
         }
         else {
-            $self->{_path} = P->path( $ENV->{DATA_DIR} . $self->{uri}->path );
+            $self->{_path} = P->path( $ENV->{DATA_DIR} . $self->{uri}->path->to_string );
         }
-    }
+
+        1;
+    };
 
     # open filehandle
     if ( !-f $self->{_path} || !$self->{_h} ) {
@@ -104,7 +104,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::Event::Listener::Pipe::file
+Pcore::Core::Event::Listener::file
 
 =head1 SYNOPSIS
 
