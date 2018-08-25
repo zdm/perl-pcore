@@ -6,25 +6,25 @@ use AnyEvent::Socket qw[];
 use Pcore::HTTP::Server::Request;
 
 # listen:
-# - unix:/socket/path
-# - unix:abstract-socket-name
-# - *:80
-# - 127.0.0.1:80
+# - /socket/path
+# - abstract-socket-name
+# - //0.0.0.0:80
+# - //127.0.0.1:80
 
-has listen => ();    # ( is => 'ro', isa => Str, required => 1 );
-has app    => ();    # ( is => 'ro', isa => CodeRef | InstanceOf ['Pcore::App::Router'], required => 1 );
+has on_request => ( required => 1 );    # CodeRef->($req)
+has listen => ();
 
-has backlog      => 0;    # ( is => 'ro', isa => Maybe [PositiveOrZeroInt], default => 0 );
-has so_no_delay  => 1;    # ( is => 'ro', isa => Bool,                      default => 1 );
-has so_keepalive => 1;    # ( is => 'ro', isa => Bool,                      default => 1 );
+has backlog      => 0;
+has so_no_delay  => 1;
+has so_keepalive => 1;
 
-has server_tokens         => qq[Pcore-HTTP-Server/$Pcore::VERSION];    # ( is => 'ro', isa => Maybe [Str] );
-has keepalive_timeout     => 60;                                       # ( is => 'ro', isa => PositiveOrZeroInt, default => 60 ); # 0 - disable keepalive
-has client_header_timeout => 60;                                       # ( is => 'ro', isa => PositiveOrZeroInt, default => 60 ); # 0 - do not use
-has client_body_timeout   => 60;                                       # ( is => 'ro', isa => PositiveOrZeroInt, default => 60 ); # 0 - do not use
-has client_max_body_size  => 0;                                        # 0 - do not check
+has server_tokens         => qq[Pcore-HTTP-Server/$Pcore::VERSION];
+has keepalive_timeout     => 60;                                      # 0 - disable keepalive
+has client_header_timeout => 60;                                      # undef - do not use
+has client_body_timeout   => 60;                                      # undef - do not use
+has client_max_body_size  => 0;                                       # 0 - do not check
 
-has _listen_socket => ();                                              # ( is => 'ro', isa => Object, init_arg => undef );
+has _listen_socket => ( init_arg => undef );
 
 # TODO implement shutdown and graceful shutdown
 
@@ -183,10 +183,8 @@ sub _on_accept ( $self, $fh, $host, $port ) {
           },
           'Pcore::HTTP::Server::Request';
 
-        # evaluate application
-        eval { $self->{app}->($req); 1; } or do {
-            $@->sendlog if $@;
-        };
+        # evaluate "on_request" callback
+        eval { $self->{on_request}->($req); 1; } or $@->sendlog;
     };
 
     # keep-alive
@@ -222,7 +220,7 @@ sub return_xxx ( $self, $h, $status, $close_connection = 1 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 56                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (33)                |
+## |    3 | 56                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (32)                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 46                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

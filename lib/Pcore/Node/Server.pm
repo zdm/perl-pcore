@@ -23,8 +23,8 @@ sub BUILD ( $self, $args ) {
     $self->{token} //= P->uuid->uuid_v4_str;
 
     $self->{_http_server} = Pcore::HTTP::Server->new(
-        listen => $self->{listen},
-        app    => sub ($req) {
+        listen     => $self->{listen},
+        on_request => sub ($req) {
             if ( $req->is_websocket_connect_request ) {
                 my $h = Pcore::WebSocket::pcore->accept(
                     $req,

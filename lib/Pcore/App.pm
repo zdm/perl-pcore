@@ -6,13 +6,13 @@ use Pcore::HTTP::Server;
 use Pcore::App::Router;
 use Pcore::App::API;
 
-has app_cfg => ( required => 1, isa => HashRef );
-has devel   => ( default  => 0, isa => Bool );
+has app_cfg => ( required => 1 );    # HashRef
+has devel => 0;                      # Bool
 
-has server => ( isa => InstanceOf ['Pcore::HTTP::Server'], init_arg => undef );
-has router => ( isa => InstanceOf ['Pcore::App::Router'],  init_arg => undef );
-has api => ( isa => Maybe [ ConsumerOf ['Pcore::App::API'] ], init_arg => undef );
-has node => ();    # InstanceOf ['Pcore::Node']
+has server => ( init_arg => undef ); # InstanceOf ['Pcore::HTTP::Server']
+has router => ( init_arg => undef ); # InstanceOf ['Pcore::App::Router']
+has api    => ( init_arg => undef ); # Maybe [ ConsumerOf ['Pcore::App::API'] ]
+has node   => ( init_arg => undef ); # InstanceOf ['Pcore::Node']
 
 sub BUILD ( $self, $args ) {
 
@@ -63,7 +63,7 @@ around run => sub ( $orig, $self ) {
     if ( defined $self->{app_cfg}->{server}->{listen} ) {
         $self->{server} = Pcore::HTTP::Server->new( {
             $self->{app_cfg}->{server}->%*,    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
-            app => $self->{router}
+            on_request => $self->{router}
         } );
 
         $self->{server}->run;

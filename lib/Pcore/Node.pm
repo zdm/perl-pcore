@@ -179,8 +179,8 @@ sub _run_http_server ($self) {
     weaken $self;
 
     $self->{_http_server} = Pcore::HTTP::Server->new(
-        listen => $self->{listen},
-        app    => sub ($req) {
+        listen     => $self->{listen},
+        on_request => sub ($req) {
             if ( $req->is_websocket_connect_request ) {
                 my $h = Pcore::WebSocket::pcore->accept(
                     $req,
@@ -224,8 +224,8 @@ sub _run_http_server ($self) {
 
                         return;
                     },
-                    on_event => $self->_get_on_event_cb,
-                    on_rpc   => $self->_get_on_rpc_cb,
+                    on_event => $self->{on_event},
+                    on_rpc   => $self->{on_rpc},
                 );
             }
 
@@ -288,8 +288,8 @@ sub _connect_node ( $self, $node_id, $check_connecting = 1 ) {
 
                 return;
             },
-            on_event => $self->_get_on_event_cb,
-            on_rpc   => $self->_get_on_rpc_cb,
+            on_event => $self->{on_event},
+            on_rpc   => $self->{on_rpc},
         );
 
         # connected to the node server
@@ -436,44 +436,6 @@ sub _update_node_table ( $self, $nodes ) {
     $self->_check_status if $changed;
 
     return;
-}
-
-sub _get_on_event_cb ($self) {
-    weaken $self;
-
-    state $on_event = sub {
-
-        # node was destroyed
-        return if !defined $self;
-
-        # node is not online
-        return if !$self->{is_online};
-
-        $self->{on_event}->(@_);
-
-        return;
-    };
-
-    return defined $self->{on_event} ? $on_event : undef;
-}
-
-sub _get_on_rpc_cb ($self) {
-    weaken $self;
-
-    state $on_rpc = sub {
-
-        # node was destroyed
-        return if !defined $self;
-
-        # node is not online
-        return if !$self->{is_online};
-
-        $self->{on_rpc}->(@_);
-
-        return;
-    };
-
-    return defined $self->{on_rpc} ? $on_rpc : undef;
 }
 
 sub _remove_online_node ( $self, $node_id, $node_type ) {
@@ -723,7 +685,7 @@ sub rpc_call ( $self, $type, $method, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 483                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 445                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
