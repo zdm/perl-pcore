@@ -7,18 +7,15 @@ use Pcore::Node::Proc;
 use Pcore::WebSocket::pcore;
 use Pcore::Util::UUID qw[uuid_v4_str];
 
-has type   => ( required => 1 );
-has server => ();                  # InstanceOf['Pcore::Node::Server'] || $uri, if not specified - local server will be created
-has listen => ();
-has token  => ();                  # generated automatically if not defined
+has type     => ( required => 1 );
+has server   => ();                  # InstanceOf['Pcore::Node::Server'] || $uri, if not specified - local server will be created
+has listen   => ();
+has token    => ();                  # generated automatically if not defined
+has requires => ();                  # HashRef, required nodes types
 
-# has events   => ();                # ArrayRef, list of public events
-has default_bindings => ();
-has requires         => ();        # HashRef, required nodes types
-
-has on_status_change => ();        # CodeRef, ->($self, $is_online)
-has on_rpc           => ();        # CodeRef, ->($h, $req, $tx)
-has on_event         => ();        # CodeRef, ->($h, $ev)
+has on_status_change => ();          # CodeRef, ->($self, $is_online)
+has on_rpc           => ();          # CodeRef, ->($h, $req, $tx)
+has on_event         => ();          # CodeRef, ->($h, $ev)
 
 has reconnect_timeout   => 3;
 has compression         => 0;         # use websocket compression
@@ -29,6 +26,7 @@ has id               => ( sub {uuid_v4_str}, init_arg => undef );    # my node i
 has is_online        => ( init_arg                    => undef );    # node status
 has server_is_online => ( init_arg                    => undef );    # node server status
 
+has _has_requires        => ( init_arg => undef );
 has _server_is_remote    => ( init_arg => undef );
 has _remote_server_h     => ( init_arg => undef );                   # remote node server connection handle
 has _http_server         => ( init_arg => undef );                   # InstanceOf['Pcore::HTTP::Server']
@@ -44,11 +42,26 @@ has _node_data           => ( init_arg => undef );                   # node conn
 sub BUILD ( $self, $args ) {
     $self->{token} //= P->uuid->uuid_v4_str;
 
+    $self->{_has_requires} = do {
+        if ( !defined $self->{requires} ) {
+            undef;
+        }
+        elsif ( !$self->{requires}->%* ) {
+            undef;
+        }
+        elsif ( keys $self->{requires}->%* == 1 && exists $self->{requires}->{'*'} ) {
+            undef;
+        }
+        else {
+            1;
+        }
+    };
+
     # resolve listen
     $self->{listen} = P->net->resolve_listen( $self->{listen}, 'ws:' ) if !is_ref $self->{listen};
 
     # init node status
-    $self->{is_online} = defined $self->{requires} && $self->{requires}->%* ? 0 : 1;
+    $self->{is_online} = $self->{_has_requires} ? 0 : 1;
 
     $self->{on_status_change}->( $self, $self->{is_online} ) if defined $self->{on_status_change};
 
@@ -214,7 +227,7 @@ sub _run_http_server ($self) {
                             return;
                         }
                         else {
-                            return res(200), $self->_get_bindings( $h->{node_type}, 1 );
+                            return res(200), $self->_get_bindings( $h->{node_type} );
                         }
                     },
                     on_ready => sub ($h) {
@@ -260,7 +273,7 @@ sub _connect_node ( $self, $node_id, $check_connecting = 1 ) {
             compression   => $self->{compression},
             pong_timeout  => $self->{pong_timeout},
             token         => [ $node->{listen}->username, $self->{id}, $self->{type} ],
-            bindings      => $self->_get_bindings( $node->{type}, 0 ),
+            bindings      => $self->_get_bindings( $node->{type} ) // undef,
             node_id       => $node_id,
             node_type     => $node->{type},
             on_disconnect => sub ($h) {
@@ -317,12 +330,14 @@ sub _connect_node ( $self, $node_id, $check_connecting = 1 ) {
     return;
 }
 
-sub _get_bindings ( $self, $node_type, $server ) {
+sub _get_bindings ( $self, $node_type ) {
+    return if !defined $self->{on_event};
+
     if ( defined( my $requires = $self->{requires} ) ) {
         return $requires->{$node_type} if exists $requires->{$node_type};
-    }
 
-    return $self->{default_bindings} if $server;
+        return $requires->{'*'} if exists $requires->{'*'};
+    }
 
     return;
 }
@@ -423,7 +438,7 @@ sub _update_node_table ( $self, $nodes ) {
     delete $nodes->{ $self->{id} };
 
     # do nothing, if node has no deps
-    return if !defined $self->{requires};
+    return if !$self->{_has_requires};
 
     my $changed;
 
@@ -492,8 +507,9 @@ sub _check_status ($self) {
     my $is_online = 1;
 
     # calculate node online status
-    if ( defined $self->{requires} ) {
+    if ( $self->{_has_requires} ) {
         for my $type ( keys $self->{requires}->%* ) {
+            next if $type eq '*';
 
             # required node type is offline
             if ( !$self->{_online_nodes}->{$type}->@* ) {
@@ -720,7 +736,7 @@ sub rpc_call ( $self, $type, $method, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 480                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 495                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
