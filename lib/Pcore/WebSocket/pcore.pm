@@ -342,6 +342,8 @@ sub _on_auth_response ( $self, $tx ) {
 }
 
 sub _bind_events ( $self, $bindings ) {
+
+    # process bindings if has "on_bind" callback defined
     if ( my $cb = $self->{on_bind} ) {
         for my $binding ( is_plain_arrayref $bindings ? $bindings->@* : $bindings ) {
             next if !defined $binding;
