@@ -293,9 +293,9 @@ sub _on_auth_request ( $self, $tx ) {
             $self->_bind_events( $tx->{bindings} ) if defined $tx->{bindings};
 
             $self->_send_msg( {
-                type   => $TX_TYPE_AUTH,
-                auth   => $auth,
-                events => $bindings,
+                type     => $TX_TYPE_AUTH,
+                auth     => $auth,
+                bindings => $bindings,
             } );
 
             $self->{on_ready}->($self) if $self->{on_ready};
