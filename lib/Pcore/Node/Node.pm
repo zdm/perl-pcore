@@ -15,58 +15,23 @@ sub run ( $type, $args ) {
     # create object
     my $node = $type->new( $args->{buildargs} // () );
 
+    my $on_event = do {
+        if ( $node->can('NODE_ON_EVENT') ) {
+            sub ( $h, $ev ) {
+                $node->NODE_ON_EVENT($ev);
+
+                return;
+            };
+        }
+    };
+
     $node->{node} = Pcore::Node->new(
-        server => $args->{server},
-        listen => $args->{listen},
-        type   => $type,
-
-        # requires   => do {
-        #     no strict qw[refs];
-
-        #     ${"$type\::NODE_REQUIRES"};
-        # },
-        # forward_events => do {
-        #     no strict qw[refs];
-
-        #     ${"$type\::NODE_FORWARD_EVENTS"};
-        # },
-        # subscribe_events => do {
-        #     no strict qw[refs];
-
-        #     ${"$type\::NODE_SUBSCRIBE_EVENTS"};
-        # },
-        # on_subscribe => sub ( $h, $event ) {
-        #     if ( !$h->{auth} ) {
-        #         $h->disconnect( res 401 );
-
-        #         return;
-        #     }
-
-        #     state $sub = $rpc->can('NODE_ON_SUBSCRIBE');
-
-        #     return $rpc->$sub($event) if $sub;
-
-        #     # silently subscribe to all events, if handler is not exists
-        #     return 1;
-        # },
-        # on_event => sub ( $h, $ev ) {
-        #     if ( !$h->{auth} ) {
-        #         $h->disconnect( res 401 );
-
-        #         return;
-        #     }
-
-        #     state $sub = $rpc->can('NODE_ON_EVENT');
-
-        #     return $rpc->$sub($ev) if $sub;
-
-        #     # silently forward all events, if handler is not exists
-        #     P->forward_event($ev);
-
-        #     return;
-        # },
-
-        on_rpc => sub ( $h, $req, $tx ) {
+        server   => $args->{server},
+        listen   => $args->{listen},
+        type     => $type,
+        requires => $node->NODE_REQUIRES,
+        on_event => $on_event,
+        on_rpc   => sub ( $h, $req, $tx ) {
             my $method_name = "API_$tx->{method}";
 
             if ( my $sub = $node->can($method_name) ) {
@@ -116,7 +81,7 @@ sub run ( $type, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 75                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 40                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

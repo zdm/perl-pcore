@@ -10,52 +10,47 @@ use Clone qw[];
 with qw[Pcore::WebSocket::Handle];
 
 # client attributes
-has token            => ();    # authentication token
-has forward_events   => ();    # Str or ArrayRef[Str]
-has subscribe_events => ();    # Str or ArrayRef[Str]
+has token    => ();    # authentication token, used on client only
+has bindings => ();    # events bindings, used on client only
 
 # callbacks
-has on_disconnect => ();       # Maybe [CodeRef], ($self, $status)
-has on_auth       => ();       # Maybe [CodeRef], server only: ($self, $token)
-has on_ready      => ();       # Maybe [CodeRef], server only: ($self), called after on_auth, not called, if was disconnected in on_auth callback
-has on_subscribe  => ();       # Maybe [CodeRef], ($self, $mask), must return true for subscribe to event
-has on_event      => ();       # Maybe [CodeRef], ($self, $ev)
-has on_rpc        => ();       # Maybe [CodeRef], ($self, $req, $tx)
+has on_disconnect => ();    # Maybe [CodeRef], ($self, $status)
+has on_auth       => ();    # Maybe [CodeRef], server only: ($self, $token)
+has on_ready      => ();    # Maybe [CodeRef], server only: ($self), called after on_auth, not called, if was disconnected in on_auth callback
+has on_bind       => ();    # Maybe [CodeRef], ($self, $bindings), must return true for bind event
+has on_event      => ();    # Maybe [CodeRef], ($self, $ev)
+has on_rpc        => ();    # Maybe [CodeRef], ($self, $req, $tx)
 
 has _conn_ver     => ( 0, init_arg => undef );             # increased on each reset call
 has _req_cb       => ( sub { {} }, init_arg => undef );    # HashRef, tid => $cb
 has is_ready      => ( init_arg => undef );                # Bool
 has _peer_is_text => ( init_arg => undef );                # remote peer message serialization protocol
-has _listeners    => ( init_arg => undef );                # HashRef, events listeners
+has _listener     => ( init_arg => undef );                # ConsumerOf['Pcore::Core::Event::Listener']
 has _auth_cb      => ( init_arg => undef );
 
 const our $PROTOCOL => 'pcore';
 
-const our $TX_TYPE_AUTH        => 'auth';
-const our $TX_TYPE_SUBSCRIBE   => 'subscribe';
-const our $TX_TYPE_UNSUBSCRIBE => 'unsubscribe';
-const our $TX_TYPE_EVENT       => 'event';
-const our $TX_TYPE_RPC         => 'rpc';
+const our $TX_TYPE_AUTH  => 'auth';
+const our $TX_TYPE_EVENT => 'event';
+const our $TX_TYPE_RPC   => 'rpc';
 
 my $CBOR = Pcore::Util::Data::get_cbor();
 my $JSON = Pcore::Util::Data::get_json( utf8 => 1 );
 
-sub auth ( $self, $token, %events ) {
+sub auth ( $self, $token, $bindings = undef ) {
     die q[Connection is not ready] if !$self->{is_ready};
 
     $self->{_auth_cb} = Coro::rouse_cb;
 
     $self->_reset;
 
-    $self->{token} = $token;
-
-    $self->{forward_events}   = $events{forward};
-    $self->{subscribe_events} = $events{subscribe};
+    $self->{token}    = $token;
+    $self->{bindings} = $bindings;
 
     $self->_send_msg( {
-        type   => $TX_TYPE_AUTH,
-        token  => $token,
-        events => $self->{subscribe_events},
+        type     => $TX_TYPE_AUTH,
+        token    => $token,
+        bindings => $bindings,
     } );
 
     Coro::rouse_wait $self->{_auth_cb};
@@ -117,38 +112,18 @@ sub rpc_call ( $self, $method, @args ) {
     }
 }
 
-# listen for remote events
-sub subscribe ( $self, $events ) {
-    if ( $self->{is_ready} ) {
-        $self->_send_msg( {
-            type   => $TX_TYPE_SUBSCRIBE,
-            events => $events,
-        } );
-    }
-
-    return;
-}
-
-# remove remote events subscription
-sub unsubscribe ( $self, $events ) {
-    if ( $self->{is_ready} ) {
-        $self->_send_msg( {
-            type   => $TX_TYPE_UNSUBSCRIBE,
-            events => $events,
-        } );
-    }
-
-    return;
-}
-
 sub _on_connect ($self) {
+
+    # create events listener
+    $self->_create_listener;
+
     if ( $self->{_is_client} ) {
         $self->{_auth_cb} = Coro::rouse_cb;
 
         $self->_send_msg( {
-            type   => $TX_TYPE_AUTH,
-            token  => $self->{token},
-            events => $self->{subscribe_events},
+            type     => $TX_TYPE_AUTH,
+            token    => $self->{token},
+            bindings => $self->{bindings},
         } );
 
         Coro::rouse_wait $self->{_auth_cb};
@@ -220,22 +195,8 @@ sub _on_message ( $self, $msg ) {
         # connection is IN the ready state
         else {
 
-            # SUBSCRIBE
-            if ( $tx->{type} eq $TX_TYPE_SUBSCRIBE ) {
-                $self->_on_subscribe( $tx->{events} ) if $tx->{events};
-            }
-
-            # UNSUBSCRIBE
-            elsif ( $tx->{type} eq $TX_TYPE_UNSUBSCRIBE ) {
-                if ( $tx->{events} ) {
-                    for my $event ( is_plain_arrayref $tx->{events} ? $tx->{events}->@* : $tx->{events} ) {
-                        delete $self->{_listeners}->{$event};
-                    }
-                }
-            }
-
             # EVENT
-            elsif ( $tx->{type} eq $TX_TYPE_EVENT ) {
+            if ( $tx->{type} eq $TX_TYPE_EVENT ) {
                 $self->{on_event}->( $self, $tx->{event} ) if $self->{on_event};
             }
 
@@ -307,7 +268,7 @@ sub _on_message ( $self, $msg ) {
     return;
 }
 
-# auth request, processed on server only
+# server, auth request
 sub _on_auth_request ( $self, $tx ) {
     $self->_reset;
 
@@ -317,7 +278,7 @@ sub _on_auth_request ( $self, $tx ) {
         weaken $self;
 
         Coro::async_pool {
-            my ( $auth, %events ) = $self->{on_auth}->( $self, $tx->{token} );
+            my ( $auth, $bindings ) = $self->{on_auth}->( $self, $tx->{token} );
 
             return if !$self;
 
@@ -325,18 +286,16 @@ sub _on_auth_request ( $self, $tx ) {
 
             $self->{is_ready} = 1;
 
+            # store authentication result
             $self->{auth} = $auth;
 
-            # subscribe client to the server events
-            $self->_set_listeners( $events{forward} ) if $events{forward};
-
             # subscribe client to the server events from client request
-            $self->_on_subscribe( $tx->{events} ) if $tx->{events};
+            $self->_bind_events( $tx->{bindings} ) if defined $tx->{bindings};
 
             $self->_send_msg( {
                 type   => $TX_TYPE_AUTH,
                 auth   => $auth,
-                events => $events{subscribe},
+                events => $bindings,
             } );
 
             $self->{on_ready}->($self) if $self->{on_ready};
@@ -366,18 +325,15 @@ sub _on_auth_request ( $self, $tx ) {
     return;
 }
 
-# auth response, processed on client only
+# client, auth response
 sub _on_auth_response ( $self, $tx ) {
     $self->{is_ready} = 1;
 
     # create and store auth object
     $self->{auth} = bless $tx->{auth}, 'Pcore::Util::Result';
 
-    # set forward events
-    $self->_set_listeners( $self->{forward_events} ) if $self->{forward_events};
-
     # set events listeners
-    $self->_on_subscribe( $tx->{events} ) if $tx->{events};
+    $self->_bind_events( $tx->{bindings} ) if defined $tx->{bindings};
 
     # call on_auth
     if ( my $cb = delete $self->{_auth_cb} ) { $cb->() }
@@ -385,39 +341,16 @@ sub _on_auth_response ( $self, $tx ) {
     return;
 }
 
-sub _on_subscribe ( $self, $events ) {
-    if ( my $cb = $self->{on_subscribe} ) {
-        for my $event ( is_plain_arrayref $events ? $events->@* : $events ) {
-            next if !$event;
+sub _bind_events ( $self, $bindings ) {
+    if ( my $cb = $self->{on_bind} ) {
+        for my $binding ( is_plain_arrayref $bindings ? $bindings->@* : $bindings ) {
+            next if !defined $binding;
 
-            next if exists $self->{_listeners}->{$event};
+            # already bound
+            next if exists $self->{_listener}->{bindings}->{$binding};
 
-            $self->_set_listeners($event) if ( $cb->( $self, $event ) );
+            $self->{_listener}->bind($binding) if $cb->( $self, $binding );
         }
-    }
-
-    return;
-}
-
-sub _set_listeners ( $self, $events ) {
-    weaken $self;
-
-    for my $event ( is_plain_arrayref $events ? $events->@* : $events ) {
-        next if exists $self->{_listeners}->{$event};
-
-        $self->{_listeners}->{$event} = P->listen_events(
-            $event,
-            sub ( $ev ) {
-                if ( defined $self ) {
-                    $self->_send_msg( {
-                        type  => $TX_TYPE_EVENT,
-                        event => $ev,
-                    } );
-                }
-
-                return;
-            }
-        );
     }
 
     return;
@@ -426,7 +359,8 @@ sub _set_listeners ( $self, $events ) {
 sub _reset ( $self, $status = undef ) {
     delete $self->{auth};
 
-    delete $self->{_listeners};
+    # reset events listener
+    $self->{_listener}->unbind_all;
 
     $self->{is_ready} = 0;
     $self->{_conn_ver}++;
@@ -461,6 +395,38 @@ sub _send_msg ( $self, $msg ) {
     return;
 }
 
+sub _create_listener ($self) {
+    weaken $self;
+
+    $self->{_listener} = P->ev->bind_events(
+        undef,
+        sub ($ev) {
+            return if !defined $self;
+
+            $self->_send_msg( {
+                type  => $TX_TYPE_EVENT,
+                event => $ev,
+            } );
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub suspend_events ($self) {
+    $self->{_listener}->suspend;
+
+    return;
+}
+
+sub resume_events ($self) {
+    $self->{_listener}->resume;
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -469,14 +435,14 @@ sub _send_msg ( $self, $msg ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 144                  | * Private subroutine/method '_on_connect' declared but not used                                                |
-## |      | 163                  | * Private subroutine/method '_on_disconnect' declared but not used                                             |
-## |      | 171                  | * Private subroutine/method '_on_text' declared but not used                                                   |
-## |      | 183                  | * Private subroutine/method '_on_binary' declared but not used                                                 |
+## |      | 115                  | * Private subroutine/method '_on_connect' declared but not used                                                |
+## |      | 138                  | * Private subroutine/method '_on_disconnect' declared but not used                                             |
+## |      | 146                  | * Private subroutine/method '_on_text' declared but not used                                                   |
+## |      | 158                  | * Private subroutine/method '_on_binary' declared but not used                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 195                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (29)               |
+## |    3 | 170                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (23)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 250, 267             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 211, 228             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -41,6 +41,8 @@ sub resume ($self) {
 }
 
 sub bind ( $self, $bindings ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+    return if !defined $bindings;
+
     my $id              = $self->{id};
     my $my_bindings     = $self->{bindings};
     my $broker_bindings = $self->{broker}->{_bindings};
@@ -59,6 +61,8 @@ sub bind ( $self, $bindings ) {    ## no critic qw[Subroutines::ProhibitBuiltinH
 }
 
 sub unbind ( $self, $bindings ) {
+    return if !defined $bindings;
+
     my $id              = $self->{id};
     my $my_bindings     = $self->{bindings};
     my $broker_bindings = $self->{broker}->{_bindings};

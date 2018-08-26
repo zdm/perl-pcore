@@ -175,6 +175,7 @@ sub _connect_to_remote_server ($self) {
     return;
 }
 
+# TODO on_bind
 sub _run_http_server ($self) {
     weaken $self;
 
@@ -212,7 +213,7 @@ sub _run_http_server ($self) {
                             return;
                         }
                         else {
-                            return res 200;
+                            return 1, $self->{requires}->{ $h->{node_type} };
                         }
                     },
                     on_ready => sub ($h) {
@@ -224,6 +225,9 @@ sub _run_http_server ($self) {
 
                         return;
                     },
+
+                    # TODO
+                    on_bind  => sub ( $h, $binding ) { return 1 },
                     on_event => $self->{on_event},
                     on_rpc   => $self->{on_rpc},
                 );
@@ -236,6 +240,7 @@ sub _run_http_server ($self) {
     return;
 }
 
+# TODO on_bind
 sub _connect_node ( $self, $node_id, $check_connecting = 1 ) {
 
     # return, if can't connect to the node
@@ -251,9 +256,10 @@ sub _connect_node ( $self, $node_id, $check_connecting = 1 ) {
     Coro::async_pool {
         my $h = Pcore::WebSocket::pcore->connect(
             $node->{listen},
-            token         => [ $node->{listen}->username, $self->{id}, $self->{type} ],
             compression   => $self->{compression},
             pong_timeout  => $self->{pong_timeout},
+            token         => [ $node->{listen}->username, $self->{id}, $self->{type} ],
+            bindings      => $self->{requires}->{ $node->{type} },
             node_id       => $node_id,
             node_type     => $node->{type},
             on_disconnect => sub ($h) {
@@ -288,6 +294,9 @@ sub _connect_node ( $self, $node_id, $check_connecting = 1 ) {
 
                 return;
             },
+
+            # TODO
+            on_bind  => sub ( $h, $binding ) { return 1 },
             on_event => $self->{on_event},
             on_rpc   => $self->{on_rpc},
         );
@@ -349,11 +358,20 @@ sub _on_node_connect ( $self, $h ) {
 
     # node is known, is required and is online
     if ( defined $node && $node->{is_online} ) {
+
+        # resume events listener
+        $h->resume_events;
+
         $connected_node->{is_online} = $node->{is_online};
 
         unshift $self->{_online_nodes}->{$node_type}->@*, $h;
 
         $self->_check_status;
+    }
+    else {
+
+        # suspend events listener
+        $h->suspend_events;
     }
 
     return;
@@ -416,10 +434,16 @@ sub _update_node_table ( $self, $nodes ) {
 
                 if ( $node->{is_online} ) {
 
+                    # resume events listener
+                    $connected_node->{h}->resume_events;
+
                     # add node to online nodes
                     unshift $self->{_online_nodes}->{ $node->{type} }->@*, $connected_node->{h};
                 }
                 else {
+
+                    # suspend events listener
+                    $connected_node->{h}->suspend_events;
 
                     # remove node from online
                     $self->_remove_online_node( $node_id, $connected_node->{type} );
@@ -685,7 +709,7 @@ sub rpc_call ( $self, $type, $method, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 445                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 469                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
