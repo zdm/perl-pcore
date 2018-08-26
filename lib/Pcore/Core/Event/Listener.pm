@@ -29,13 +29,31 @@ sub DESTROY ( $self ) {
 }
 
 sub suspend ($self) {
-    $self->{is_suspended} = 1;
+    if ( !$self->{is_suspended} ) {
+        $self->{is_suspended} = 1;
+
+        my $id              = $self->{id};
+        my $broker_bindings = $self->{broker}->{_bindings};
+
+        for my $binding ( keys $self->{bindings}->%* ) { delete $broker_bindings->{$binding}->{$id} }
+    }
 
     return;
 }
 
 sub resume ($self) {
-    $self->{is_suspended} = 0;
+    if ( $self->{is_suspended} ) {
+        $self->{is_suspended} = 0;
+
+        my $id              = $self->{id};
+        my $broker_bindings = $self->{broker}->{_bindings};
+
+        for my $binding ( keys $self->{bindings}->%* ) {
+            $broker_bindings->{$binding}->{$id} = $self;
+
+            weaken $broker_bindings->{$binding}->{$id};
+        }
+    }
 
     return;
 }
@@ -46,14 +64,17 @@ sub bind ( $self, $bindings ) {    ## no critic qw[Subroutines::ProhibitBuiltinH
     my $id              = $self->{id};
     my $my_bindings     = $self->{bindings};
     my $broker_bindings = $self->{broker}->{_bindings};
+    my $is_suspended    = $self->{is_suspended};
 
     for my $binding ( is_plain_arrayref $bindings ? $bindings->@* : $bindings ) {
         if ( !exists $my_bindings->{$binding} ) {
             $my_bindings->{$binding} = 1;
 
-            $broker_bindings->{$binding}->{$id} = $self;
+            if ( !$is_suspended ) {
+                $broker_bindings->{$binding}->{$id} = $self;
 
-            weaken $broker_bindings->{$binding}->{$id};
+                weaken $broker_bindings->{$binding}->{$id};
+            }
         }
     }
 
@@ -78,7 +99,9 @@ sub unbind_all ( $self ) {
     my $id              = $self->{id};
     my $broker_bindings = $self->{broker}->{_bindings};
 
-    for my $binding ( keys $self->{bindings}->%* ) { delete $broker_bindings->{$binding}->{$id} }
+    if ( !$self->{is_suspended} ) {
+        for my $binding ( keys $self->{bindings}->%* ) { delete $broker_bindings->{$binding}->{$id} }
+    }
 
     $self->{bindings}->%* = ();
 

@@ -91,7 +91,11 @@ sub has_bindings ( $self, $key ) {
 }
 
 sub forward_event ( $self, $ev ) {
-    for my $listener ( $self->_get_listeners( $ev->{key} )->@* ) { $listener->forward_event($ev) }
+    for my $listener ( $self->_get_listeners( $ev->{key} )->@* ) {
+        next if $listener->{is_suspended};
+
+        $listener->forward_event($ev);
+    }
 
     return;
 }
@@ -99,14 +103,8 @@ sub forward_event ( $self, $ev ) {
 sub _get_listeners ( $self, $key ) {
     my $listeners;
 
-    for my $listeners_group ( $self->{_bindings}->@{ $self->get_key_bindings($key)->@* } ) {
-        next if !defined $listeners_group;
-
-        for my $listener ( values $listeners_group->%* ) {
-            next if $listener->{is_suspended};
-
-            $listeners->{ $listener->{id} } = $listener;
-        }
+    for my $binding_listeners ( grep {defined} $self->{_bindings}->@{ $self->get_key_bindings($key)->@* } ) {
+        $listeners->@{ keys $binding_listeners->%* } = values $binding_listeners->%*;
     }
 
     return [ values $listeners->%* ];
