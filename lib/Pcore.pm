@@ -390,13 +390,13 @@ sub ev ($self) {
         my $_broker = Pcore::Core::Event->new;
 
         # # set default log channels
-        $_broker->listen_events( 'log.EXCEPTION.*', 'stderr:' );
+        $_broker->bind_events( 'log.EXCEPTION.*', 'stderr:' );
 
         # file logs are disabled by default for scripts, that are not part of the distribution
         if ( $ENV->dist ) {
-            $_broker->listen_events( 'log.EXCEPTION.FATAL', 'file:fatal.log' );
-            $_broker->listen_events( 'log.EXCEPTION.ERROR', 'file:error.log' );
-            $_broker->listen_events( 'log.EXCEPTION.WARN',  'file:warn.log' );
+            $_broker->bind_events( 'log.EXCEPTION.FATAL', 'file:fatal.log' );
+            $_broker->bind_events( 'log.EXCEPTION.ERROR', 'file:error.log' );
+            $_broker->bind_events( 'log.EXCEPTION.WARN',  'file:warn.log' );
         }
 
         $_broker;
@@ -409,12 +409,12 @@ sub get_listener ( $self, $id ) {
     return $self->ev->get_listener($id);
 }
 
-sub listen_events ( $self, $bindings, $listener ) {
-    return $self->ev->listen_events( $bindings, $listener );
+sub bind_events ( $self, $bindings, $listener ) {
+    return $self->ev->bind_events( $bindings, $listener );
 }
 
-sub has_listeners ( $self, $key ) {
-    return $self->ev->has_listeners($key);
+sub has_bindings ( $self, $key ) {
+    return $self->ev->has_bindings($key);
 }
 
 sub forward_event ( $self, $ev ) {

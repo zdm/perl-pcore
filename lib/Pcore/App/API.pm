@@ -64,7 +64,7 @@ around init => sub ( $orig, $self ) {
     say 'done';
 
     # setup events listeners
-    P->listen_events(
+    P->bind_events(
         'app.api.auth',
         sub ($ev) {
             $self->{_auth_cache}->%* = ();

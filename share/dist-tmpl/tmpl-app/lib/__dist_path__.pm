@@ -29,7 +29,7 @@ sub run ( $self ) {
         {   type           => '<: $module_name :>::RPC::Worker',
             workers        => 1,
             token          => undef,
-            listen_events  => undef,
+            bind_events    => undef,
             forward_events => ['APP.SETTINGS_UPDATED'],
             buildargs      => {                                    #
                 cfg  => $self->{cfg},
@@ -39,7 +39,7 @@ sub run ( $self ) {
         {   type           => '<: $module_name :>::RPC::Log',
             workers        => 1,
             token          => undef,
-            listen_events  => undef,
+            bind_events    => undef,
             forward_events => undef,
             buildargs      => {                                    #
                 cfg  => $self->{cfg},

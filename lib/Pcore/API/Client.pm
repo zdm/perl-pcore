@@ -21,7 +21,7 @@ has timeout => ( is => 'ro', isa => Maybe [PositiveOrZeroInt] );
 
 # WebSocket options
 has compression    => ( is => 'ro', isa => Bool, default => 0 );
-has listen_events  => ( is => 'ro', isa => ArrayRef );
+has bind_events    => ( is => 'ro', isa => ArrayRef );
 has forward_events => ( is => 'ro', isa => ArrayRef );
 has on_connect     => ( is => 'ro', isa => Maybe [CodeRef] );
 has on_disconnect  => ( is => 'ro', isa => Maybe [CodeRef] );
@@ -197,7 +197,7 @@ sub _get_ws ( $self, $cb ) {
             tls_ctx          => $self->{tls_ctx},
             before_connect   => {
                 token          => $self->{token},
-                listen_events  => $self->{listen_events},
+                bind_events    => $self->{bind_events},
                 forward_events => $self->{forward_events},
             },
             on_listen_event => sub ( $ws, $mask ) {    # API server can listen client events

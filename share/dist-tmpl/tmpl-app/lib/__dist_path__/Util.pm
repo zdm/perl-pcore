@@ -18,7 +18,7 @@ sub BUILD ( $self, $args ) {
     $self->{tmpl} = P->tmpl;
 
     # set settings listener
-    P->listen_events(
+    P->bind_events(
         'app.settings-updated',
         sub ($ev) {
             $self->{settings} = $ev->{data};
