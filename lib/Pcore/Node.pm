@@ -12,8 +12,9 @@ has server => ();                  # InstanceOf['Pcore::Node::Server'] || $uri, 
 has listen => ();
 has token  => ();                  # generated automatically if not defined
 
-has events   => ();                # ArrayRef, list of public events
-has requires => ();                # HashRef, required nodes types
+# has events   => ();                # ArrayRef, list of public events
+has default_bindings => ();
+has requires         => ();        # HashRef, required nodes types
 
 has on_status_change => ();        # CodeRef, ->($self, $is_online)
 has on_rpc           => ();        # CodeRef, ->($h, $req, $tx)
@@ -213,7 +214,7 @@ sub _run_http_server ($self) {
                             return;
                         }
                         else {
-                            return 1, $self->{requires}->{ $h->{node_type} };
+                            return res(200), $self->_get_bindings( $h->{node_type}, 1 );
                         }
                     },
                     on_ready => sub ($h) {
@@ -259,7 +260,7 @@ sub _connect_node ( $self, $node_id, $check_connecting = 1 ) {
             compression   => $self->{compression},
             pong_timeout  => $self->{pong_timeout},
             token         => [ $node->{listen}->username, $self->{id}, $self->{type} ],
-            bindings      => $self->{requires}->{ $node->{type} },
+            bindings      => $self->_get_bindings( $node->{type}, 0 ),
             node_id       => $node_id,
             node_type     => $node->{type},
             on_disconnect => sub ($h) {
@@ -312,6 +313,16 @@ sub _connect_node ( $self, $node_id, $check_connecting = 1 ) {
 
         return;
     };
+
+    return;
+}
+
+sub _get_bindings ( $self, $node_type, $server ) {
+    if ( defined( my $requires = $self->{requires} ) ) {
+        return $requires->{$node_type} if exists $requires->{$node_type};
+    }
+
+    return $self->{default_bindings} if $server;
 
     return;
 }
@@ -709,7 +720,7 @@ sub rpc_call ( $self, $type, $method, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 469                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 480                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

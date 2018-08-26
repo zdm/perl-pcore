@@ -26,12 +26,13 @@ sub run ( $type, $args ) {
     };
 
     $node->{node} = Pcore::Node->new(
-        server   => $args->{server},
-        listen   => $args->{listen},
-        type     => $type,
-        requires => $node->NODE_REQUIRES,
-        on_event => $on_event,
-        on_rpc   => sub ( $h, $req, $tx ) {
+        server           => $args->{server},
+        listen           => $args->{listen},
+        type             => $type,
+        default_bindings => $node->can('NODE_DEFAULT_BINDINGS') ? $node->NODE_DEFAULT_BINDINGS // undef : undef,
+        requires         => $node->can('NODE_REQUIRES') ? $node->NODE_REQUIRES // undef : undef,
+        on_event         => $on_event,
+        on_rpc           => sub ( $h, $req, $tx ) {
             my $method_name = "API_$tx->{method}";
 
             if ( my $sub = $node->can($method_name) ) {
@@ -81,7 +82,7 @@ sub run ( $type, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 40                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 41                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

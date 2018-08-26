@@ -435,7 +435,7 @@ sub fire_event ( $self, $key, $data = undef ) {
 sub sendlog ( $self, $key, $title, $data = undef ) {
     my $broker = $self->ev;
 
-    return if !$broker->has_listeners("log.$key");
+    return if !$broker->has_bindings("log.$key");
 
     my $ev;
 
