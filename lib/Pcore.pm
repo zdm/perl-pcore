@@ -409,8 +409,8 @@ sub get_listener ( $self, $id ) {
     return $self->ev->get_listener($id);
 }
 
-sub listen_events ( $self, $masks, $listener ) {
-    return $self->ev->listen_events( $masks, $listener );
+sub listen_events ( $self, $bindings, $listener ) {
+    return $self->ev->listen_events( $bindings, $listener );
 }
 
 sub has_listeners ( $self, $key ) {

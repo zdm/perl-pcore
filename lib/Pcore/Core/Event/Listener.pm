@@ -9,8 +9,8 @@ has broker => ( required => 1 );    # InstanceOf ['Pcore::Core::Event']
 has uri    => ( required => 1 );
 has is_suspended => 0;
 
-has id     => ( init_arg => undef );
-has _masks => ( sub { {} }, init_arg => undef );
+has id       => ( init_arg => undef );
+has bindings => ( sub { {} }, init_arg => undef );
 
 sub BUILD ( $self, $args ) { }
 
@@ -23,7 +23,7 @@ around BUILD => sub ( $orig, $self, $args ) {
 };
 
 sub DESTROY ( $self ) {
-    $self->_remove if ${^GLOBAL_PHASE} ne 'DESTRUCT';
+    $self->destroy if ${^GLOBAL_PHASE} ne 'DESTRUCT';
 
     return;
 }
@@ -40,44 +40,55 @@ sub resume ($self) {
     return;
 }
 
-sub add_masks ( $self, $masks ) {
-    my $id             = $self->{id};
-    my $listener_masks = $self->{_masks};
-    my $mask_listener  = $self->{broker}->{_mask_listener};
+sub bind ( $self, $bindings ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+    my $id              = $self->{id};
+    my $my_bindings     = $self->{bindings};
+    my $broker_bindings = $self->{broker}->{_bindings};
 
-    for my $mask ( is_plain_arrayref $masks ? $masks->@* : $masks ) {
-        if ( !exists $listener_masks->{$mask} ) {
-            $listener_masks->{$mask} = 1;
+    for my $binding ( is_plain_arrayref $bindings ? $bindings->@* : $bindings ) {
+        if ( !exists $my_bindings->{$binding} ) {
+            $my_bindings->{$binding} = 1;
 
-            $mask_listener->{$mask}->{$id} = $self;
+            $broker_bindings->{$binding}->{$id} = $self;
 
-            weaken $mask_listener->{$mask}->{$id};
+            weaken $broker_bindings->{$binding}->{$id};
         }
     }
 
     return;
 }
 
-sub remove_masks ( $self, $masks ) {
-    my $id             = $self->{id};
-    my $listener_masks = $self->{_masks};
-    my $mask_listener  = $self->{broker}->{_mask_listener};
+sub unbind ( $self, $bindings ) {
+    my $id              = $self->{id};
+    my $my_bindings     = $self->{bindings};
+    my $broker_bindings = $self->{broker}->{_bindings};
 
-    for my $mask ( is_plain_arrayref $masks ? $masks->@* : $masks ) {
-        delete $mask_listener->{$mask}->{$id} if delete $listener_masks->{$mask};
+    for my $binding ( is_plain_arrayref $bindings ? $bindings->@* : $bindings ) {
+        delete $broker_bindings->{$binding}->{$id} if defined delete $my_bindings->{$binding};
     }
 
     return;
 }
 
-sub _remove ($self) {
-    my $broker        = $self->{broker};
-    my $id            = $self->{id};
-    my $mask_listener = $broker->{_mask_listener};
+sub unbind_all ( $self ) {
+    my $id              = $self->{id};
+    my $broker_bindings = $self->{broker}->{_bindings};
+
+    for my $binding ( keys $self->{bindings}->%* ) { delete $broker_bindings->{$binding}->{$id} }
+
+    $self->{bindings}->%* = ();
+
+    return;
+}
+
+sub destroy ($self) {
+    my $broker          = $self->{broker};
+    my $id              = $self->{id};
+    my $broker_bindings = $broker->{_bindings};
 
     delete $broker->{_listeners}->{$id};
 
-    for my $mask ( keys $self->{_masks}->%* ) { delete $mask_listener->{$mask}->{$id} }
+    for my $binding ( keys $self->{bindings}->%* ) { delete $broker_bindings->{$binding}->{$id} }
 
     return;
 }
