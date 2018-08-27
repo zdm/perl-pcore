@@ -3,6 +3,7 @@ package Pcore::Node;
 use Pcore -class, -res;
 use Pcore::Util::Scalar qw[weaken refaddr is_ref is_blessed_ref is_plain_coderef];
 use Pcore::HTTP::Server;
+use Pcore::Node::Server;
 use Pcore::Node::Proc;
 use Pcore::WebSocket::pcore;
 use Pcore::Util::UUID qw[uuid_v4_str];
@@ -788,7 +789,7 @@ sub rpc_call ( $self, $type, $method, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 534                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 535                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

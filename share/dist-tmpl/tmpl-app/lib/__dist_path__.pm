@@ -4,13 +4,35 @@ use Pcore -dist, -class, -const, -res;
 use <: $module_name ~ "::Const qw[:CONST]" :>;
 use <: $module_name ~ "::Util" :>;
 
-has cfg => ( is => 'ro', isa => HashRef, required => 1 );
+has cfg => ( required => 1 );
 
 has util => ( is => 'ro', isa => InstanceOf ['<: $module_name :>::Util'], init_arg => undef );
 
 with qw[Pcore::App];
 
 const our $API_ROLES => [ 'admin', 'user' ];
+
+const our $NODE_REQUIRES => {
+
+    # '*' => 'test',
+    # 'main' => ['test'],    # list of required events
+};
+
+sub NODE_ON_EVENT ( $self, $ev ) {
+    P->forward_event($ev);
+
+    return;
+}
+
+const our $LOCALES => {
+    en => 'English',
+    de => 'Deutsche',
+    ru => 'Русский',
+};
+
+sub get_locales ($self) {
+    return $LOCALES;
+}
 
 sub run ( $self ) {
     $self->{util} = <: $module_name ~ "::Util" :>->new;
@@ -24,34 +46,42 @@ sub run ( $self ) {
     $res = $self->{util}->load_settings;
 
     # run RPC
-    print 'Starting RPC hub ... ';
-    say $self->{node}->run_node(
-        {   type           => '<: $module_name :>::RPC::Worker',
-            workers        => 1,
-            token          => undef,
-            bind_events    => undef,
-            forward_events => ['APP.SETTINGS_UPDATED'],
-            buildargs      => {                                    #
-                cfg  => $self->{cfg},
-                util => $self->{util},
-            },
-        },
-        {   type           => '<: $module_name :>::RPC::Log',
-            workers        => 1,
-            token          => undef,
-            bind_events    => undef,
-            forward_events => undef,
-            buildargs      => {                                    #
-                cfg  => $self->{cfg},
-                util => { settings => $self->{util}->{settings} },
-            },
-        },
-    );
+    # print 'Starting RPC hub ... ';
+    # say $self->{node}->run_node(
+    #     {   type           => '<: $module_name :>::RPC::Worker',
+    #         workers        => 1,
+    #         token          => undef,
+    #         bind_events    => undef,
+    #         forward_events => ['APP.SETTINGS_UPDATED'],
+    #         buildargs      => {                                    #
+    #             cfg  => $self->{cfg},
+    #             util => $self->{util},
+    #         },
+    #     },
+    #     {   type           => '<: $module_name :>::RPC::Log',
+    #         workers        => 1,
+    #         token          => undef,
+    #         bind_events    => undef,
+    #         forward_events => undef,
+    #         buildargs      => {                                    #
+    #             cfg  => $self->{cfg},
+    #             util => { settings => $self->{util}->{settings} },
+    #         },
+    #     },
+    # );
 
-    $self->{node}->wait_for_online;
+    $self->node->wait_online;
 
     # app ready
     return res 200;
+}
+
+# node interface
+sub node ($self) {
+    use Pcore::Node;
+
+    return $self->{node} //= Pcore::Node->new( type => ref $self, requires => $NODE_REQUIRES, server => undef, listen => undef, token => undef, on_event => sub ( $node, $ev ) { $self->NODE_ON_EVENT($ev); return; },
+        on_rpc => undef, );
 }
 
 1;
@@ -63,9 +93,9 @@ sub run ( $self ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 4, 5                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 9, 29, 39            | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 9                    | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 73                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 77 does not match the package declaration       |
+## |    1 | 103                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 107 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

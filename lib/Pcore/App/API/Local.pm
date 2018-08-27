@@ -40,14 +40,14 @@ sub init ( $self ) {
     # run hash RPC
     print 'Starting API RPC ... ';
 
-    say $self->{app}->{node}->run_node(
+    say $self->{app}->node->run_node(
         {   type      => 'Pcore::App::API::RPC::Hash',
             workers   => $self->{app}->{app_cfg}->{api}->{rpc}->{workers},
             buildargs => $self->{app}->{app_cfg}->{api}->{rpc}->{argon},
         },
     );
 
-    $self->{app}->{node}->wait_for('Pcore::App::API::RPC::Hash');
+    $self->{app}->node->wait_node('Pcore::App::API::RPC::Hash');
 
     print 'Creating root user ... ';
 

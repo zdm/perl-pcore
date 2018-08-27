@@ -5,13 +5,11 @@ use <: $module_name ~ "::Const qw[:CONST]" :>;
 
 with qw[<: $module_name ~ "::RPC" :>];
 
-const our $NODE_REQUIRES       => undef;
-const our $NODE_FORWARD_EVENTS => undef;
-const our $NODE_LISTEN_EVENTS  => undef;
+const our $NODE_REQUIRES => {
 
-sub NODE_ON_SUBSCRIBE ( $self, $event ) {
-    return 1;
-}
+    # '*' => 'test',
+    # 'main' => ['test'],    # list of required events
+};
 
 sub NODE_ON_EVENT ( $self, $ev ) {
     P->forward_event($ev);
@@ -20,14 +18,8 @@ sub NODE_ON_EVENT ( $self, $ev ) {
 }
 
 sub BUILD ( $self, $args ) {
-    return;
-}
+    $self->{node}->wait_online;
 
-sub RPC_ON_CONNECT ( $self, $ws ) {
-    return;
-}
-
-sub RPC_ON_DISCONNECT ( $self, $ws, $status ) {
     return;
 }
 
@@ -46,7 +38,7 @@ sub API_test ( $self, $req, @args ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 1, 4                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 54                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 58 does not match the package declaration       |
+## |    1 | 46                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 50 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
