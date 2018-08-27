@@ -19,7 +19,7 @@ sub run ( $type, $args ) {
         server   => $args->{server},
         listen   => $args->{listen},
         type     => $type,
-        requires => do { no strict qw[refs]; ${"$type\::NODE_REQUIRES"} },
+        requires => ${"$type\::NODE_REQUIRES"},
         on_event => sub ( $self, $ev ) {
             state $can = $node->can('NODE_ON_EVENT') ? 1 : 0;
 

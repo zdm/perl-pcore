@@ -41,11 +41,7 @@ around run => sub ( $orig, $self ) {
     if (1) {
         require Pcore::Node;
 
-        my $node_req = do {
-            no strict qw[refs];
-
-            ${ ref($self) . '::NODE_REQUIRES' };
-        };
+        my $node_req = ${ ref($self) . '::NODE_REQUIRES' };
 
         my $requires = defined $node_req ? { $node_req->%* } : {};
 

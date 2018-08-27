@@ -79,8 +79,8 @@ for my $method ( keys $HTTP_METHODS->%* ) {
 PERL
 
     # create alias for export
-    no strict qw[refs];
     *{"http_$sub_name"} = \&{$sub_name};
+
     push $EXPORT->{METHODS}->@*, "http_$sub_name";
 }
 

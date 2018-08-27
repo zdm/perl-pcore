@@ -1,6 +1,7 @@
 package Pcore v0.72.4;
 
 use v5.28.0;
+no strict qw[refs];    ## no critic qw[TestingAndDebugging::ProhibitProlongedStrictureOverride]
 use common::header;
 use Pcore::Core::Exporter qw[];
 use Pcore::Core::Const qw[:CORE];
@@ -73,14 +74,7 @@ sub import {
     common::header->import;
 
     # export P sub to avoid indirect calls
-    {
-        no strict qw[refs];
-
-        *{"$caller\::P"} = $P;
-
-        # flush the cache exactly once if we make any direct symbol table changes
-        # mro::method_changed_in($caller);
-    }
+    *{"$caller\::P"} = $P;
 
     # re-export core packages
     Pcore::Core::Const->import( -caller => $caller );
@@ -110,8 +104,6 @@ sub import {
 
         # process -const pragma
         if ( $import->{pragma}->{const} ) {
-            no strict qw[refs];
-
             *{"$caller\::const"} = \&Const::Fast::const;
         }
 
@@ -336,8 +328,6 @@ sub AUTOLOAD ( $self, @ ) {    ## no critic qw[ClassHierarchies::ProhibitAutoloa
 
     require $class =~ s[::][/]smgr . '.pm';
 
-    no strict qw[refs];
-
     if ( $class->can('new') ) {
         eval <<"PERL";         ## no critic qw[BuiltinFunctions::ProhibitStringyEval ErrorHandling::RequireCheckingReturnValueOfEval]
             *{$util} = sub {
@@ -357,8 +347,6 @@ PERL
 
             sub AUTOLOAD {
                 my \$method = our \$AUTOLOAD =~ s/\\A.*:://smr;
-
-                no strict qw[refs];
 
                 die qq[Sub "$class\::\$method" is not defined] if !defined &{"$class\::\$method"};
 
@@ -460,15 +448,15 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 65                   | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 66                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 205, 234, 237, 241,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 273, 276, 281, 284,  |                                                                                                                |
-## |      | 309, 444             |                                                                                                                |
+## |    3 | 197, 226, 229, 233,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 265, 268, 273, 276,  |                                                                                                                |
+## |      | 301, 432             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 291                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
+## |    3 | 283                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 209                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 201                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

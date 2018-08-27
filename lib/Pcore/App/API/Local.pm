@@ -28,11 +28,7 @@ sub init ( $self ) {
 
     return $res unless $res;
 
-    my $roles = do {
-        no strict qw[refs];
-
-        ${ ref( $self->{app} ) . '::API_ROLES' };
-    };
+    my $roles = ${ ref( $self->{app} ) . '::API_ROLES' };
 
     # add api roles
     ( $res = $self->_db_add_roles( $self->{dbh}, $roles ) ) || return $res;
@@ -589,7 +585,7 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 103, 131, 187        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 99, 127, 183         | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

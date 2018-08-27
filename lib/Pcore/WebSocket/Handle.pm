@@ -85,11 +85,7 @@ sub DESTROY ( $self ) {
 sub accept ( $self, $req, %args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my $env = $req->{env};
 
-    my $protocol = do {
-        no strict qw[refs];
-
-        ${"$self\::PROTOCOL"};
-    };
+    my $protocol = ${"$self\::PROTOCOL"};
 
     $self = $self->new(%args);
 
@@ -158,11 +154,7 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
         return $self;
     };
 
-    my $protocol = do {
-        no strict qw[refs];
-
-        ${"$self\::PROTOCOL"};
-    };
+    my $protocol = ${"$self\::PROTOCOL"};
 
     $uri = P->uri( $uri, base => 'ws:' ) if !is_ref $uri;
 
@@ -641,15 +633,15 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 151                  | * Subroutine "connect" with high complexity score (25)                                                         |
-## |      | 381                  | * Subroutine "__on_connect" with high complexity score (28)                                                    |
-## |      | 551                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
+## |      | 147                  | * Subroutine "connect" with high complexity score (25)                                                         |
+## |      | 373                  | * Subroutine "__on_connect" with high complexity score (28)                                                    |
+## |      | 543                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 267, 273, 323        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 259, 265, 315        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 495, 497, 499        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 487, 489, 491        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 46, 567              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 46, 559              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
