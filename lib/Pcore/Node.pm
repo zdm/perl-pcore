@@ -39,6 +39,10 @@ has _online_nodes     => ( init_arg => undef );                      # HashRef, 
 has _node_proc        => ( init_arg => undef );                      # HashRef, running nodes processes
 has _node_data        => ( init_arg => undef );                      # node connect data
 
+# if node is offline it:
+# - can send rpc calls and events to other online nodes;
+# - can't receive rps call and events;
+
 sub BUILD ( $self, $args ) {
     $self->{token} //= P->uuid->uuid_v4_str;
 
@@ -715,6 +719,7 @@ sub run_node ( $self, @nodes ) {
     return res 200;
 }
 
+# TODO repaat to other node if node returns 1013 Try Again Later
 sub rpc_call ( $self, $type, $method, @args ) {
     my $h = shift $self->{_online_nodes}->{$type}->@*;
 
@@ -738,7 +743,7 @@ sub rpc_call ( $self, $type, $method, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 489                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 493                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -29,7 +29,7 @@ sub run ( $type, $args ) {
         server   => $args->{server},
         listen   => $args->{listen},
         type     => $type,
-        requires => $node->can('NODE_REQUIRES') ? $node->NODE_REQUIRES // undef : undef,
+        requires => do { no strict qw[refs]; ${"$type\::NODE_REQUIRES"} },
         on_event => $on_event,
         on_rpc   => sub ( $h, $req, $tx ) {
             my $method_name = "API_$tx->{method}";
