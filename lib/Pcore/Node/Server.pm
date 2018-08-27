@@ -5,6 +5,7 @@ use Pcore::Util::Scalar qw[weaken];
 use Pcore::Util::UUID qw[uuid_v4_str];
 use Pcore::HTTP::Server;
 use Pcore::WebSocket::pcore;
+use Clone qw[clone];
 
 has token       => ();
 has listen      => ();
@@ -143,7 +144,7 @@ sub _on_update ($self) {
 
         # local node
         else {
-            $node->{h}->_update_node_table( $self->{_nodes} );
+            $node->{h}->_update_node_table( clone $self->{_nodes} );
         }
     }
 
@@ -157,7 +158,7 @@ sub _on_update ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 89                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 90                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

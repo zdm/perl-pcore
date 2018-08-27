@@ -6,38 +6,32 @@ use Pcore::Util::Data qw[to_cbor];
 use if $MSWIN, 'Win32API::File';
 use Symbol;
 
+# TODO not working under windows if parent process killed in task manager
 sub run ( $type, $args ) {
     $ENV->scan_deps if $args->{scandeps};
 
     # ignore SIGINT
     $SIG->{INT} = AE::signal INT => sub { };
 
-    # create object
-    my $node = $type->new( $args->{buildargs} // () );
-
-    my $on_event = do {
-        if ( $node->can('NODE_ON_EVENT') ) {
-            sub ( $h, $ev ) {
-                $node->NODE_ON_EVENT($ev);
-
-                return;
-            };
-        }
-    };
-
-    $node->{node} = Pcore::Node->new(
+    $args->{buildargs}->{node} = Pcore::Node->new(
         server   => $args->{server},
         listen   => $args->{listen},
         type     => $type,
         requires => do { no strict qw[refs]; ${"$type\::NODE_REQUIRES"} },
-        on_event => $on_event,
-        on_rpc   => sub ( $h, $req, $tx ) {
+        on_event => sub ( $self, $ev ) {
+            state $can = $self->can('NODE_ON_EVENT') ? 1 : 0;
+
+            $self->NODE_ON_EVENT($ev) if $can;
+
+            return;
+        },
+        on_rpc => sub ( $self, $req, $tx ) {
             my $method_name = "API_$tx->{method}";
 
-            if ( my $sub = $node->can($method_name) ) {
+            if ( my $sub = $self->can($method_name) ) {
 
                 # call method
-                eval { $node->$sub( $req, $tx->{args} ? $tx->{args}->@* : () ) };
+                eval { $self->$sub( $req, $tx->{args} ? $tx->{args}->@* : () ) };
 
                 $@->sendlog if $@;
             }
@@ -49,27 +43,38 @@ sub run ( $type, $args ) {
         },
     );
 
-    # open control handle
-    my $fh = gensym;
+    # handshake
+    Coro::async_pool sub {
 
-    if ($MSWIN) {
-        Win32API::File::OsFHandleOpen( $fh, $args->{fh}, 'rw' ) or die $!;
-    }
-    else {
-        open $fh, '+<&=', $args->{fh} or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
-    }
+        # open control handle
+        my $fh = gensym;
 
-    binmode $fh or die;
+        if ($MSWIN) {
+            Win32API::File::OsFHandleOpen( $fh, $args->{fh}, 'rw' ) or die $!;
+        }
+        else {
+            open $fh, '+<&=', $args->{fh} or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
+        }
 
-    $fh = P->handle($fh);
+        binmode $fh or die;
 
-    my $data = to_cbor { pid => $$ };
+        $fh = P->handle($fh);
 
-    $fh->write( unpack( 'H*', $data->$* ) . $LF );
+        my $data = to_cbor { pid => $$ };
 
-    # blocks until $fh is closed
-    # TODO not working under windows if parent process killed in task manager
-    $fh->can_read(undef);
+        $fh->write( unpack( 'H*', $data->$* ) . $LF );
+
+        # blocks until $fh is closed
+        # TODO not working under windows if parent process killed in task manager
+        $fh->can_read(undef);
+
+        exit;
+    };
+
+    # create object
+    my $node = $type->new( $args->{buildargs} );
+
+    AE::cv->recv;
 
     exit;
 }
@@ -81,7 +86,7 @@ sub run ( $type, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 40                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 34                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

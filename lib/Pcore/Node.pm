@@ -465,7 +465,7 @@ sub _on_node_disconnect ( $self, $h ) {
             $self->_remove_online_node( $node_id, $connected_node->{type} );
 
             # re-check status if node is required
-            $self->_check_status if defined $self->{requires} && exists $self->{requires}->{ $connected_node->{type} };
+            $self->_check_status if $self->{_has_requires} && exists $self->{requires}->{ $connected_node->{type} };
         }
     }
 
@@ -483,7 +483,7 @@ sub _update_node_table ( $self, $nodes ) {
     for my $node ( values $nodes->%* ) {
         my $node_id = $node->{id};
 
-        my $node_is_required = $node->{is_required} = defined $self->{requires} && exists $self->{requires}->{ $node->{type} };
+        my $node_is_required = $node->{is_required} = $self->{_has_requires} && exists $self->{requires}->{ $node->{type} };
 
         # node already connected
         if ( my $connected_node = $self->{_connected_nodes}->{$node_id} ) {
@@ -619,14 +619,18 @@ sub wait_online ( $self, $timeout = undef ) {
     return $self->{is_online};
 }
 
-sub onlins_nodes ( $self, $type ) {
+sub online_nodes ( $self, $type ) {
     return 0 if !$self->{_online_nodes}->{$type};
 
     return scalar $self->{_online_nodes}->{$type}->@*;
 }
 
 sub wait_node ( $self, $type, $timeout = undef ) {
-    my $online_nodes = $self->onlins_nodes($type);
+
+    # only required nodes can be monitored
+    return if !$self->{_has_requires} || !exists $self->{requires}->{$type};
+
+    my $online_nodes = $self->online_nodes($type);
 
     return $online_nodes if $online_nodes;
 
@@ -654,7 +658,7 @@ sub wait_node ( $self, $type, $timeout = undef ) {
 
     Coro::rouse_wait $rouse_cb;
 
-    return $self->onlins_nodes($type);
+    return $self->online_nodes($type);
 }
 
 # required for run node via run_proc interface
