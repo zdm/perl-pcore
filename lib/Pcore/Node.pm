@@ -14,8 +14,8 @@ has token    => ();                  # generated automatically if not defined
 has requires => ();                  # HashRef, required nodes types
 
 has on_status_change => ();          # CodeRef, ->($self, $is_online)
-has on_rpc           => ();          # CodeRef, ->($h, $req, $tx)
-has on_event         => ();          # CodeRef, ->($h, $ev)
+has on_rpc           => ();          # CodeRef, ->($self, $req, $tx)
+has on_event         => ();          # CodeRef, ->($self, $ev)
 
 has reconnect_timeout   => 3;
 has compression         => 0;         # use websocket compression
@@ -38,6 +38,8 @@ has _connecting_nodes => ( init_arg => undef );                      # HashRef, 
 has _online_nodes     => ( init_arg => undef );                      # HashRef, online nodes connections by node type
 has _node_proc        => ( init_arg => undef );                      # HashRef, running nodes processes
 has _node_data        => ( init_arg => undef );                      # node connect data
+has _on_rpc           => ( init_arg => undef );                      # on_rpc callback wrapper
+has _on_event         => ( init_arg => undef );                      # on_event callback wrapper
 
 # if node is offline it:
 # - can send rpc calls and events to other online nodes;
@@ -68,6 +70,9 @@ sub BUILD ( $self, $args ) {
     $self->{is_online} = $self->{_has_requires} ? 0 : 1;
 
     $self->{on_status_change}->( $self, $self->{is_online} ) if defined $self->{on_status_change};
+
+    $self->{_on_rpc}   = $self->_build__on_rpc;
+    $self->{_on_event} = $self->_build__on_event;
 
     $self->_run_http_server;
 
@@ -246,8 +251,8 @@ sub _run_http_server ($self) {
 
                     # TODO
                     on_bind  => sub ( $h, $binding ) { return 1 },
-                    on_event => $self->{on_event},
-                    on_rpc   => $self->{on_rpc},
+                    on_event => $self->{_on_event},
+                    on_rpc   => $self->{_on_rpc},
                 );
             }
 
@@ -316,8 +321,8 @@ sub _connect_node ( $self, $node_id, $check_connecting = 1 ) {
 
             # TODO
             on_bind  => sub ( $h, $binding ) { return 1 },
-            on_event => $self->{on_event},
-            on_rpc   => $self->{on_rpc},
+            on_event => $self->{_on_event},
+            on_rpc   => $self->{_on_rpc},
         );
 
         # connected to the node server
@@ -345,6 +350,42 @@ sub _get_bindings ( $self, $node_type ) {
     }
 
     return;
+}
+
+sub _build__on_rpc ($self) {
+    return if !defined $self->{on_rpc};
+
+    weaken $self;
+
+    return sub ( $h, $req, $tx ) {
+        if ( !defined $self ) {
+            $req->( [ 1013, 'Node Destroyed' ] );
+        }
+        elsif ( !$self->{is_online} ) {
+            $req->( [ 1013, 'Node is Offline' ] );
+        }
+        else {
+            $self->{on_rpc}->( $self, $req, $tx );
+        }
+
+        return;
+    };
+}
+
+sub _build__on_event ($self) {
+    return if !defined $self->{on_event};
+
+    weaken $self;
+
+    return sub ( $h, $ev ) {
+        return if !defined $self;
+
+        if ( $self->{is_online} ) {
+            $self->{on_event}->( $self, $ev );
+        }
+
+        return;
+    };
 }
 
 sub _can_connect_node ( $self, $node_id, $check_connecting = 1 ) {
@@ -743,7 +784,7 @@ sub rpc_call ( $self, $type, $method, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 493                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 534                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
