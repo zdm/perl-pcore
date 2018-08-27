@@ -13,25 +13,27 @@ sub run ( $type, $args ) {
     # ignore SIGINT
     $SIG->{INT} = AE::signal INT => sub { };
 
+    my $node;
+
     $args->{buildargs}->{node} = Pcore::Node->new(
         server   => $args->{server},
         listen   => $args->{listen},
         type     => $type,
         requires => do { no strict qw[refs]; ${"$type\::NODE_REQUIRES"} },
         on_event => sub ( $self, $ev ) {
-            state $can = $self->can('NODE_ON_EVENT') ? 1 : 0;
+            state $can = $node->can('NODE_ON_EVENT') ? 1 : 0;
 
-            $self->NODE_ON_EVENT($ev) if $can;
+            $node->NODE_ON_EVENT($ev) if $can;
 
             return;
         },
         on_rpc => sub ( $self, $req, $tx ) {
             my $method_name = "API_$tx->{method}";
 
-            if ( my $sub = $self->can($method_name) ) {
+            if ( my $sub = $node->can($method_name) ) {
 
                 # call method
-                eval { $self->$sub( $req, $tx->{args} ? $tx->{args}->@* : () ) };
+                eval { $node->$sub( $req, $tx->{args} ? $tx->{args}->@* : () ) };
 
                 $@->sendlog if $@;
             }
@@ -72,7 +74,7 @@ sub run ( $type, $args ) {
     };
 
     # create object
-    my $node = $type->new( $args->{buildargs} );
+    $node = $type->new( $args->{buildargs} );
 
     AE::cv->recv;
 
@@ -86,7 +88,7 @@ sub run ( $type, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 34                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 36                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
