@@ -26,18 +26,18 @@ has id               => ( sub {uuid_v4_str}, init_arg => undef );    # my node i
 has is_online        => ( init_arg                    => undef );    # node status
 has server_is_online => ( init_arg                    => undef );    # node server status
 
-has _has_requires        => ( init_arg => undef );
-has _server_is_remote    => ( init_arg => undef );
-has _remote_server_h     => ( init_arg => undef );                   # remote node server connection handle
-has _http_server         => ( init_arg => undef );                   # InstanceOf['Pcore::HTTP::Server']
-has _node_type_is_online => ( init_arg => undef );                   # HashRef, node type online status
-has _wait_online_cb      => ( init_arg => undef );                   # HashRef, wait online callbacks, callback_id => sub
-has _wait_node_cb        => ( init_arg => undef );                   # HashRef, wait node callbacks by node type, callback_id => sub
-has _nodes               => ( init_arg => undef );                   # ArrayRef, nodes table
-has _connecting_nodes    => ( init_arg => undef );                   # HashRef, connecting / reconnecting nodes
-has _online_nodes        => ( init_arg => undef );                   # HashRef, required online nodes connections by node type
-has _node_proc           => ( init_arg => undef );                   # HashRef, running nodes processes
-has _node_data           => ( init_arg => undef );                   # node connect data
+has _has_requires     => ( init_arg => undef );
+has _server_is_remote => ( init_arg => undef );
+has _remote_server_h  => ( init_arg => undef );                      # remote node server connection handle
+has _http_server      => ( init_arg => undef );                      # InstanceOf['Pcore::HTTP::Server']
+has _wait_online_cb   => ( init_arg => undef );                      # HashRef, wait online callbacks, callback_id => sub
+has _wait_node_cb     => ( init_arg => undef );                      # HashRef, wait node callbacks by node type, callback_id => sub
+has _nodes            => ( init_arg => undef );                      # ArrayRef, nodes table
+has _connected_nodes  => ( init_arg => undef );                      # HashRef, connected nodes
+has _connecting_nodes => ( init_arg => undef );                      # HashRef, connecting / reconnecting nodes
+has _online_nodes     => ( init_arg => undef );                      # HashRef, online nodes connections by node type
+has _node_proc        => ( init_arg => undef );                      # HashRef, running nodes processes
+has _node_data        => ( init_arg => undef );                      # node connect data
 
 sub BUILD ( $self, $args ) {
     $self->{token} //= P->uuid->uuid_v4_str;
@@ -256,9 +256,10 @@ sub _run_http_server ($self) {
 
 # TODO on_bind
 sub _connect_node ( $self, $node_id, $check_connecting = 1 ) {
+    my $node = $self->_can_connect_node( $node_id, $check_connecting );
 
-    # return, if can't connect to the node
-    my $node = $self->_can_connect_node( $node_id, $check_connecting ) // return;
+    # can't connect to the node
+    return if !defined $node;
 
     # mark node as connecting
     $self->{_connecting_nodes}->{$node_id} = 1;
@@ -347,21 +348,17 @@ sub _can_connect_node ( $self, $node_id, $check_connecting = 1 ) {
     # check, that node is known
     my $node = $self->{_nodes}->{$node_id};
 
-    # node is unknown
+    # return if node is unknown
     return if !defined $node;
 
     # return if node is not required
-    return if !defined $self->{requires} || !exists $self->{requires}->{ $node->{type} };
-
-    # can't conect to myself
-    return if $node_id eq $self->{id};
+    return if !$node->{is_required};
 
     # node is already connected
     return if exists $self->{_connected_nodes}->{$node_id};
 
     # node is already in connecting phase
-    # NOTE do not checked, because we have only required nodes here, is already checked before
-    # return if $check_connecting && exists $self->{_connecting_nodes}->{$node_id};
+    return if $check_connecting && exists $self->{_connecting_nodes}->{$node_id};
 
     return $node;
 }
@@ -379,21 +376,23 @@ sub _on_node_connect ( $self, $h ) {
         is_online => 0,
     };
 
-    # return if connected node is not required
-    return if !defined $self->{requires} || !exists $self->{requires}->{$node_type};
-
-    # node is known, is required and is online
+    # node is known and is online
     if ( defined $node && $node->{is_online} ) {
+
+        # set connection status to online
+        $connected_node->{is_online} = $node->{is_online};
 
         # resume events listener
         $h->resume_events;
 
-        $connected_node->{is_online} = $node->{is_online};
-
+        # add node connection to the online list
         unshift $self->{_online_nodes}->{$node_type}->@*, $h;
 
-        $self->_check_status;
+        # re-check status if node is required
+        $self->_check_status if $node->{is_required};
     }
+
+    # node is unknown or is offline
     else {
 
         # suspend events listener
@@ -414,17 +413,14 @@ sub _on_node_disconnect ( $self, $h ) {
         # remove node from all nodes
         delete $self->{_connected_nodes}->{$node_id};
 
-        # return if connected node is not required
-        return if !defined $self->{requires} || !exists $self->{requires}->{ $connected_node->{type} };
-
         # node was online
         if ( $connected_node->{is_online} ) {
 
             # remove node from online nodes
             $self->_remove_online_node( $node_id, $connected_node->{type} );
 
-            # check online status
-            $self->_check_status;
+            # re-check status if node is required
+            $self->_check_status if defined $self->{requires} && exists $self->{requires}->{ $connected_node->{type} };
         }
     }
 
@@ -437,17 +433,12 @@ sub _update_node_table ( $self, $nodes ) {
     # remove self from node table
     delete $nodes->{ $self->{id} };
 
-    # do nothing, if node has no deps
-    return if !$self->{_has_requires};
-
     my $changed;
 
     for my $node ( values $nodes->%* ) {
-
-        # skip not required nodes
-        next if !exists $self->{requires}->{ $node->{type} };
-
         my $node_id = $node->{id};
+
+        my $node_is_required = $node->{is_required} = defined $self->{requires} && exists $self->{requires}->{ $node->{type} };
 
         # node already connected
         if ( my $connected_node = $self->{_connected_nodes}->{$node_id} ) {
@@ -456,8 +447,9 @@ sub _update_node_table ( $self, $nodes ) {
             if ( $connected_node->{is_online} != $node->{is_online} ) {
                 $connected_node->{is_online} = $node->{is_online};
 
-                $changed = 1;
+                $changed = 1 if $node_is_required;
 
+                # node connection status changed to online
                 if ( $node->{is_online} ) {
 
                     # resume events listener
@@ -466,19 +458,21 @@ sub _update_node_table ( $self, $nodes ) {
                     # add node to online nodes
                     unshift $self->{_online_nodes}->{ $node->{type} }->@*, $connected_node->{h};
                 }
+
+                # node connection status changed to offline
                 else {
 
                     # suspend events listener
                     $connected_node->{h}->suspend_events;
 
-                    # remove node from online
+                    # remove node from online nodes
                     $self->_remove_online_node( $node_id, $connected_node->{type} );
                 }
             }
         }
 
-        # node is not connected
-        else {
+        # node is not connected and is required
+        elsif ($node_is_required) {
             $self->_connect_node($node_id);
         }
     }
@@ -539,8 +533,8 @@ sub _check_status ($self) {
         # call "on_status_change" callback
         $self->{on_status_change}->( $self, $is_online ) if $self->{on_status_change};
 
-        # status was changed to "online"
-        if ( $is_online && exists $self->{_wait_online_cb} ) {
+        # status was changed to "online" and has "wait_online" callbacks
+        if ( $is_online && $self->{_wait_online_cb} ) {
 
             # call pending "wait_for_online" callbacks
             for my $cb ( values delete( $self->{_wait_online_cb} )->%* ) { $cb->() }
@@ -580,8 +574,16 @@ sub wait_online ( $self, $timeout = undef ) {
     return $self->{is_online};
 }
 
+sub onlins_nodes ( $self, $type ) {
+    return 0 if !$self->{_online_nodes}->{$type};
+
+    return scalar $self->{_online_nodes}->{$type}->@*;
+}
+
 sub wait_node ( $self, $type, $timeout = undef ) {
-    return 1 if $self->{_node_type_is_online}->{$type};
+    my $online_nodes = $self->onlins_nodes($type);
+
+    return $online_nodes if $online_nodes;
 
     my $rouse_cb = Coro::rouse_cb;
 
@@ -607,7 +609,7 @@ sub wait_node ( $self, $type, $timeout = undef ) {
 
     Coro::rouse_wait $rouse_cb;
 
-    return $self->{_node_type_is_online}->{$type};
+    return $self->onlins_nodes($type);
 }
 
 # required for run node via run_proc interface
@@ -736,7 +738,7 @@ sub rpc_call ( $self, $type, $method, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 495                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 489                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
