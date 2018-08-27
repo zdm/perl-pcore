@@ -36,6 +36,36 @@ sub get_default_locale ( $self, $req ) {
 }
 
 around run => sub ( $orig, $self ) {
+
+    # create node
+    if (1) {
+        require Pcore::Node;
+
+        my $node_req = do {
+            no strict qw[refs];
+
+            ${ ref($self) . '::NODE_REQUIRES' };
+        };
+
+        my $requires = defined $node_req ? { $node_req->%* } : {};
+
+        $requires->{'Pcore::App::API::RPC::Hash'} = undef if $self->{api};
+
+        $self->{node} = Pcore::Node->new( {
+            type     => ref $self,
+            requires => $requires,
+            server   => undef,
+            listen   => undef,
+            token    => undef,
+            on_event => sub ( $node, $ev ) {
+                $self->NODE_ON_EVENT($ev);
+
+                return;
+            },
+            on_rpc => undef,
+        } );
+    }
+
     if ( $self->{api} ) {
 
         # connect api

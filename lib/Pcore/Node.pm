@@ -552,7 +552,7 @@ sub _check_status ($self) {
             next if $type eq '*';
 
             # required node type is offline
-            if ( !$self->{_online_nodes}->{$type}->@* ) {
+            if ( !exists $self->{_online_nodes}->{$type} || !$self->{_online_nodes}->{$type}->@* ) {
                 $is_online = 0;
             }
 
