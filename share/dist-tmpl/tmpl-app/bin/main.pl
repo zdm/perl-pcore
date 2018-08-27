@@ -26,6 +26,13 @@ my $app = <: $module_name :>->new( {    #
             listen => '/var/run/<: $dist_path :>.sock',
             ssl    => 0,
         },
+        node => {
+            server => {
+                connect => $cfg->{node}->{server}->{connect},
+                listen  => $cfg->{node}->{server}->{listen},
+            },
+            listen => $cfg->{node}->{listen},
+        },
         api => {
             connect => $cfg->{auth},
             rpc     => {

@@ -38,6 +38,7 @@ sub get_default_locale ( $self, $req ) {
 around run => sub ( $orig, $self ) {
 
     # create node
+    # TODO when to use node???
     if (1) {
         require Pcore::Node;
 
@@ -45,44 +46,52 @@ around run => sub ( $orig, $self ) {
 
         my $requires = defined $node_req ? { $node_req->%* } : {};
 
-        $requires->{'Pcore::App::API::RPC::Hash'} = undef if $self->{api};
+        $requires->{'Pcore::App::API::RPC::Hash'} = undef if $self->{app_cfg}->{api}->{connect};
 
         $self->{node} = Pcore::Node->new( {
             type     => ref $self,
             requires => $requires,
-            server   => undef,
-            listen   => undef,
-            token    => undef,
-            on_event => sub ( $node, $ev ) {
-                $self->NODE_ON_EVENT($ev);
-
-                return;
+            server   => do {
+                if ( $self->{app_cfg}->{node}->{server}->{connect} ) {
+                    $self->{app_cfg}->{node}->{server}->{connect};
+                }
+                else {
+                    Pcore::Node::Server->new( $self->{app_cfg}->{node}->{server} );
+                }
             },
-            on_rpc => undef,
+            listen   => $self->{app_cfg}->{node}->{listen},
+            on_event => do {
+                if ( $self->can('NODE_ON_EVENT') ) {
+                    sub ( $node, $ev ) {
+                        $self->NODE_ON_EVENT($ev);
+
+                        return;
+                    };
+                }
+            },
+            on_rpc => do {
+                if ( $self->can('NODE_ON_RPC') ) {
+                    sub ( $node, $req, $tx ) {
+                        $self->NODE_ON_RPC( $req, $tx );
+
+                        return;
+                    };
+                }
+            },
         } );
     }
 
-    if ( $self->{api} ) {
-
-        # connect api
-        my $res = $self->{api}->init;
-
-        say 'API initialization ... ' . $res;
-
-        exit 3 if !$res;
-    }
-    else {
-
-        # die if API controller found, but no API server provided
-        die q[API is required] if $self->{router}->{host_api_path} && !$self->{api};
-    }
+    # connect api
+    my $res = $self->{api}->init;
+    say 'API initialization ... ' . $res;
+    exit 3 if !$res;
 
     # scan HTTP controllers
     print 'Scanning HTTP controllers ... ';
     $self->{router}->init;
     say 'done';
 
-    my $res = $self->$orig;
+    $res = $self->$orig;
     exit 3 if !$res;
 
     # start HTTP server

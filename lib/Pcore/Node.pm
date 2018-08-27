@@ -11,7 +11,7 @@ use Pcore::Util::UUID qw[uuid_v4_str];
 has type     => ( required => 1 );
 has server   => ();                  # InstanceOf['Pcore::Node::Server'] || $uri, if not specified - local server will be created
 has listen   => ();
-has token    => ();                  # generated automatically if not defined
+has token    => ();                  # generated automatically if not defined, TODO take from listen
 has requires => ();                  # HashRef, required nodes types
 
 has on_status_change => ();          # CodeRef, ->($self, $is_online)

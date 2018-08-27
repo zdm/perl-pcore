@@ -7,7 +7,7 @@ use Pcore::HTTP::Server;
 use Pcore::WebSocket::pcore;
 use Clone qw[clone];
 
-has token       => ();
+has token       => ();    # TODO take from listen
 has listen      => ();
 has compression => 0;
 

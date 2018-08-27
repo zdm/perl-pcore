@@ -22,6 +22,10 @@ sub NODE_ON_EVENT ( $self, $ev ) {
     return;
 }
 
+sub NODE_ON_RPC ( $self, $ev ) {
+    return;
+}
+
 const our $LOCALES => {
     en => 'English',
     de => 'Deutsche',
@@ -81,9 +85,9 @@ sub run ( $self ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 4, 5                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 9, 16, 49            | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 9, 16, 53            | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 91                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 95 does not match the package declaration       |
+## |    1 | 95                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 99 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
