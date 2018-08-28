@@ -13,9 +13,9 @@ with qw[Pcore::App];
 const our $API_ROLES => [ 'admin', 'user' ];
 
 const our $NODE_REQUIRES => {
-    '<: $module_name :>::Node::Worker' => ['app.settings-updated'],
+    '<: $module_name :>::Node::Worker' => undef,
 
-    # '<: $module_name :>::Node::Log'    => ['app.settings-updated'],
+    # '<: $module_name :>::Node::Log'    => undef,
 };
 
 sub NODE_ON_EVENT ( $self, $ev ) {

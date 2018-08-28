@@ -8,7 +8,8 @@ with qw[<: $module_name ~ "::Node" :>];
 const our $NODE_REQUIRES => {
 
     # '*' => 'test',
-    # 'type' => ['event'],    # list of required events
+    # TODO uncomment, when node cyclic deps will be resolved
+    # '<: $module_name :>' => ['app.settings-updated'],
 };
 
 sub NODE_ON_EVENT ( $self, $ev ) {
@@ -38,7 +39,7 @@ sub API_test ( $self, $req, @args ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 1, 4                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 46                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 50 does not match the package declaration       |
+## |    1 | 47                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 51 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
