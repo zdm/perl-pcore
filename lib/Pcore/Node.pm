@@ -11,7 +11,6 @@ use Pcore::Util::UUID qw[uuid_v4_str];
 has type     => ( required => 1 );
 has server   => ();                  # InstanceOf['Pcore::Node::Server'] || $uri, if not specified - local server will be created
 has listen   => ();
-has token    => ();                  # generated automatically if not defined, TODO take from listen
 has requires => ();                  # HashRef, required nodes types
 
 has on_status_change => ();          # CodeRef, ->($self, $is_online)
@@ -26,6 +25,7 @@ has wait_online_timeout => ();        # default wait_online timeout, false - wai
 has id               => ( sub {uuid_v4_str}, init_arg => undef );    # my node id
 has is_online        => ( init_arg                    => undef );    # node status
 has server_is_online => ( init_arg                    => undef );    # node server status
+has token            => ( init_arg                    => undef );    # from listen uri, generated automatically if not defined
 
 has _has_requires     => ( init_arg => undef );
 has _server_is_remote => ( init_arg => undef );
@@ -47,8 +47,6 @@ has _on_event         => ( init_arg => undef );                      # on_event 
 # - can't receive rps call and events;
 
 sub BUILD ( $self, $args ) {
-    $self->{token} //= P->uuid->uuid_v4_str;
-
     $self->{_has_requires} = do {
         if ( !defined $self->{requires} ) {
             undef;
@@ -66,6 +64,8 @@ sub BUILD ( $self, $args ) {
 
     # resolve listen
     $self->{listen} = P->net->resolve_listen( $self->{listen}, 'ws:' ) if !is_ref $self->{listen};
+
+    $self->{token} = $self->{listen}->username || P->uuid->uuid_v4_str;
 
     # init node status
     $self->{is_online} = $self->{_has_requires} ? 0 : 1;

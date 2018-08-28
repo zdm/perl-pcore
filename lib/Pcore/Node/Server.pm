@@ -7,11 +7,11 @@ use Pcore::HTTP::Server;
 use Pcore::WebSocket::pcore;
 use Clone qw[clone];
 
-has token       => ();    # TODO take from listen
 has listen      => ();
 has compression => 0;
 
 has id           => ( sub {uuid_v4_str}, init_arg => undef );
+has token        => ( init_arg                    => undef );    # take from listen or generste
 has connect      => ( init_arg                    => undef );    # connect url, including token
 has _http_server => ( init_arg                    => undef );    # InstanceOf['Pcore::HTTP::Server']
 has _nodes       => ( init_arg                    => undef );    # HashRef, node registry, node_id => {}
@@ -20,8 +20,6 @@ has _nodes_h     => ( init_arg                    => undef );    # HashRef, conn
 # TODO use uri method to insert token
 sub BUILD ( $self, $args ) {
     weaken $self;
-
-    $self->{token} //= P->uuid->uuid_v4_str;
 
     $self->{_http_server} = Pcore::HTTP::Server->new(
         listen     => $self->{listen},
@@ -73,6 +71,8 @@ sub BUILD ( $self, $args ) {
     )->run;
 
     my $listen = $self->{listen} = $self->{_http_server}->{listen};
+
+    $self->{token} = $listen->username || uuid_v4_str;
 
     # TODO use uri method to insert token
     $self->{connect} = $listen->{scheme} ? "$listen->{scheme}://" : '//';

@@ -38,7 +38,21 @@ sub resolve_listen ( $listen = undef, $base = undef ) {
     else {
         $listen =~ s[([^/:])?:[*]][$1 . ':' . get_free_port($1)]sme;
 
-        return P->uri( $listen, base => $base );
+        my $uri = P->uri( $listen, base => $base );
+
+        return $uri if $uri->{host} || ( $uri->{path} && $uri->{path} ne '/' );
+
+        my $userinfo = $uri->{userinfo} ? "$uri->{userinfo}@" : q[];
+
+        # for windows use TCP loopback
+        if ($MSWIN) {
+            return P->uri( "//${userinfo}127.0.0.1:" . get_free_port('127.0.0.1'), base => $base );
+        }
+
+        # for linux use abstract UDS
+        else {
+            return P->uri( "//${userinfo}/\x00" . uuid_v4_str, base => $base );
+        }
     }
 
     return $listen;
@@ -76,7 +90,7 @@ sub get_free_port ($ip = undef) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 35, 54               | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 35, 54, 68           | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
