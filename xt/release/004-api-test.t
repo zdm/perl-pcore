@@ -5,6 +5,7 @@ package main v0.1.0;
 use Pcore;
 use Test::More;
 use Pcore::App::API;
+use Pcore::Node;
 
 our $TESTS = 5;
 
@@ -22,7 +23,19 @@ package App {
 
 }
 
-my $app = bless { app_cfg => { api => { connect => 'sqlite:', rpc => { workers => 1 } } } }, 'App';
+my $app = bless {
+    app_cfg => {
+        api => {
+            connect => 'sqlite:',
+            rpc     => { workers => 1 }
+        }
+    },
+    node => Pcore::Node->new(
+        type     => 'main',
+        requires => { 'Pcore::App::API::Node' => undef },
+    ),
+  },
+  'App';
 
 my $api = Pcore::App::API->new($app);
 
