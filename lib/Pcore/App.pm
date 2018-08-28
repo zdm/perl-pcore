@@ -101,8 +101,6 @@ around run => sub ( $orig, $self ) {
             on_request => $self->{router}
         } );
 
-        $self->{server}->run;
-
         say qq[Listen: $self->{app_cfg}->{server}->{listen}];
     }
 

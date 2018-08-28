@@ -259,7 +259,7 @@ sub _run_http_server ($self) {
 
             return;
         }
-    )->run;
+    );
 
     return;
 }

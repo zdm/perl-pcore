@@ -28,7 +28,7 @@ has _listen_socket => ( init_arg => undef );
 
 # TODO implement shutdown and graceful shutdown
 
-sub run ($self) {
+sub BUILD ( $self, $args ) {
 
     # parse listen
     $self->{listen} = P->net->resolve_listen( $self->{listen}, 'tcp:' ) if !is_ref $self->{listen};
@@ -46,7 +46,7 @@ sub run ($self) {
         chmod oct 777, $path or die if index( $path, "\x00" ) == -1;
     }
 
-    return $self;
+    return;
 }
 
 sub _on_prepare ( $self, $fh, $host, $port ) {

@@ -68,7 +68,7 @@ sub BUILD ( $self, $args ) {
 
             return;
         }
-    )->run;
+    );
 
     my $listen = $self->{listen} = $self->{_http_server}->{listen};
 

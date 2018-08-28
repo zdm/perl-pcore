@@ -26,6 +26,12 @@ my $app = <: $module_name :>->new( {    #
             listen => '/var/run/<: $dist_path :>.sock',
             ssl    => 0,
         },
+        router => {                     # passed directly to the Pcore::App::Router
+            '*' => undef,
+
+            # 'host1.com' => 'Test::App::App1',
+            # 'host2.com' => 'Test::App::App2',
+        },
         node => {
             server => $cfg->{node}->{server},
             listen => $cfg->{node}->{listen},
