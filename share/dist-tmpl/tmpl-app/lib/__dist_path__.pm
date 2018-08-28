@@ -13,7 +13,9 @@ with qw[Pcore::App];
 const our $API_ROLES => [ 'admin', 'user' ];
 
 const our $NODE_REQUIRES => {
-    '<: $module_name :>::RPC::Worker' => ['app.settings-updated'],    # list of required events
+    '<: $module_name :>::RPC::Worker' => ['app.settings-updated'],
+
+    # '<: $module_name :>::RPC::Log'    => ['app.settings-updated'],
 };
 
 sub NODE_ON_EVENT ( $self, $ev ) {
@@ -47,27 +49,24 @@ sub run ( $self ) {
     # load settings
     $res = $self->{util}->load_settings;
 
-    # run RPC
-    print 'Starting RPC hub ... ';
+    # run local nodes
+    print 'Starting nodes ... ';
     say $self->{node}->run_node(
         {   type      => '<: $module_name :>::RPC::Worker',
             workers   => 1,
-            buildargs => {                                    #
+            buildargs => {
                 cfg  => $self->{cfg},
                 util => $self->{util},
             },
         },
 
-        #     {   type           => '<: $module_name :>::RPC::Log',
-        #         workers        => 1,
-        #         token          => undef,
-        #         bind_events    => undef,
-        #         forward_events => undef,
-        #         buildargs      => {                                    #
-        #             cfg  => $self->{cfg},
-        #             util => { settings => $self->{util}->{settings} },
-        #         },
+        # {   type      => '<: $module_name :>::RPC::Log',
+        #     workers   => 1,
+        #     buildargs => {
+        #         cfg  => $self->{cfg},
+        #         util => { settings => $self->{util}->{settings} },
         #     },
+        # },
     );
 
     $self->{node}->wait_online;
@@ -85,9 +84,9 @@ sub run ( $self ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 4, 5                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 9, 16, 53            | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 9, 16, 55            | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 95                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 99 does not match the package declaration       |
+## |    1 | 94                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 98 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

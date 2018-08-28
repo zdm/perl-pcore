@@ -34,16 +34,16 @@ sub init ( $self ) {
     ( $res = $self->_db_add_roles( $self->{dbh}, $roles ) ) || return $res;
 
     # run hash RPC
-    print 'Starting API RPC ... ';
+    print 'Starting API RPC node ... ';
 
     say $self->{app}->{node}->run_node(
-        {   type      => 'Pcore::App::API::RPC::Hash',
+        {   type      => 'Pcore::App::API::Node',
             workers   => $self->{app}->{app_cfg}->{api}->{rpc}->{workers},
             buildargs => $self->{app}->{app_cfg}->{api}->{rpc}->{argon},
         },
     );
 
-    $self->{app}->{node}->wait_node('Pcore::App::API::RPC::Hash');
+    $self->{app}->{node}->wait_node('Pcore::App::API::Node');
 
     print 'Creating root user ... ';
 
@@ -90,7 +90,7 @@ sub _verify_token_hash ( $self, $private_token_hash, $hash ) {
         return $self->{_hash_cache}->{$cache_id};
     }
     else {
-        my $res = $self->{app}->{node}->rpc_call( 'Pcore::App::API::RPC::Hash', 'verify_hash', $private_token_hash, $hash );
+        my $res = $self->{app}->{node}->rpc_call( 'Pcore::App::API::Node', 'verify_hash', $private_token_hash, $hash );
 
         return $self->{_hash_cache}->{$cache_id} = $res->{data} ? res 200 : res [ 400, 'Invalid token' ];
     }
@@ -103,7 +103,7 @@ sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8 )
 
     my $private_token_hash = sha3_512 $user_password_bin . $user_name_bin;
 
-    my $res = $self->{app}->{node}->rpc_call( 'Pcore::App::API::RPC::Hash', 'create_hash', $private_token_hash );
+    my $res = $self->{app}->{node}->rpc_call( 'Pcore::App::API::Node', 'create_hash', $private_token_hash );
 
     return $res if !$res;
 
@@ -117,7 +117,7 @@ sub _generate_token ( $self, $token_type ) {
 
     my $private_token_hash = sha3_512 $public_token;
 
-    my $res = $self->{app}->{node}->rpc_call( 'Pcore::App::API::RPC::Hash', 'create_hash', $private_token_hash );
+    my $res = $self->{app}->{node}->rpc_call( 'Pcore::App::API::Node', 'create_hash', $private_token_hash );
 
     return $res if !$res;
 

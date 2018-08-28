@@ -1,4 +1,4 @@
-package Pcore::App::API::RPC::Hash;
+package Pcore::App::API::Node;
 
 use Pcore -class;
 use Crypt::Argon2;
@@ -34,7 +34,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::RPC::Hash - RPC hash generator
+Pcore::App::API::Node - API RPC node
 
 =head1 SYNOPSIS
 

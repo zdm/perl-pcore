@@ -46,7 +46,7 @@ around run => sub ( $orig, $self ) {
 
         my $requires = defined $node_req ? { $node_req->%* } : {};
 
-        $requires->{'Pcore::App::API::RPC::Hash'} = undef if $self->{app_cfg}->{api}->{connect};
+        $requires->{'Pcore::App::API::Node'} = undef if $self->{app_cfg}->{api}->{connect};
 
         $self->{node} = Pcore::Node->new( {
             type     => ref $self,

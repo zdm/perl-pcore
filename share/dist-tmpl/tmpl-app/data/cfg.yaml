@@ -12,14 +12,10 @@ node:
     # //<token>@/<path-to-unix-socket>
     # //<token>@127.0.0.1:9999
     # //<token>@ - no host / path specified, local server will be started
+    # if "connect" key is specified - will be connected to the remote server
+    # otherwise - settings passed to the local server constructor
     server:
-
-        # if connect is specified - will be connected to the remote node server
-        # otherwise server config will be passed to the node server construstor
         connect:
-
-        # or specify address to listen for local node server
-        listen:
 
     # node listen address, if not defined - local listen address will be generated
     # see node server uri examples above
