@@ -86,16 +86,16 @@ sub api_call ( $self, $method, @args ) {
     my $cb = is_plain_coderef $_[-1] || ( is_blessed_ref $_[-1] && $_[-1]->can('IS_CALLBACK') ) ? pop : undef;
 
     if ( defined wantarray ) {
-        my $rouse_cb = Coro::roouse_cb;
+        my $cv = P->cv;
 
         if ( $self->{_is_http} ) {
-            $self->_send_http( $method, \@args, $rouse_cb );
+            $self->_send_http( $method, \@args, $cv );
         }
         else {
-            $self->_send_ws( $method, \@args, $rouse_cb );
+            $self->_send_ws( $method, \@args, $cv );
         }
 
-        my $res = Coro::rouse_wait $rouse_cb;
+        my $res = $cv->recv;
 
         return $cb ? $cb->($res) : $res;
     }

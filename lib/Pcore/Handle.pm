@@ -137,7 +137,7 @@ around new => sub ( $orig, $self, $uri, @args ) {
 
         my $bind_error;
 
-        my $rouse_cb = Coro::rouse_cb;
+        my $cv = P->cv;
 
         AnyEvent::Socket::tcp_connect(
             $connect->[0],
@@ -157,7 +157,7 @@ around new => sub ( $orig, $self, $uri, @args ) {
                     $self->_set_status( $HANDLE_STATUS_CONNECT_ERROR, $! );
                 }
 
-                $rouse_cb->();
+                $cv->();
 
                 return;
             },
@@ -168,7 +168,7 @@ around new => sub ( $orig, $self, $uri, @args ) {
             }
         );
 
-        Coro::rouse_wait $rouse_cb;
+        $cv->recv;
     }
 
     # configure fh

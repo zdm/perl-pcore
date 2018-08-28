@@ -233,7 +233,7 @@ sub _create_process ( $self, $cmd, $win32_cflags, $restore ) {
 sub wait ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     return $self if $self->{status} != $PROC_STATUS_ACTIVE;
 
-    my $rouse_cb = Coro::rouse_cb;
+    my $cv = P->cv;
 
     my $watcher;
 
@@ -244,7 +244,7 @@ sub wait ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
             if ( waitpid $self->{pid}, WNOHANG ) {
                 $self->{_win32_proc}->GetExitCode( my $exit_code );
 
-                $rouse_cb->($exit_code);
+                $cv->($exit_code);
             }
 
             return;
@@ -252,13 +252,13 @@ sub wait ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     }
     else {
         $watcher = AE::child $self->{pid}, sub ( $pid, $exit_code ) {
-            $rouse_cb->( $exit_code >> 8 );
+            $cv->( $exit_code >> 8 );
 
             return;
         };
     }
 
-    $self->_set_exit_code( Coro::rouse_wait $rouse_cb);
+    $self->_set_exit_code( $cv->recv );
 
     return $self;
 }

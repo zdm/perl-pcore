@@ -167,7 +167,7 @@ sub _on_accept ( $self, $fh, $host, $port ) {
         }
     };
 
-    my $rouse_cb = Coro::rouse_cb;
+    my $cv = P->cv;
 
     Coro::async_pool {
 
@@ -175,7 +175,7 @@ sub _on_accept ( $self, $fh, $host, $port ) {
         my $req = bless {
             _server          => $self,
             _h               => $h,
-            _cb              => $rouse_cb,
+            _cb              => $cv,
             env              => $env,
             data             => $data,
             keepalive        => $keepalive,
@@ -188,7 +188,7 @@ sub _on_accept ( $self, $fh, $host, $port ) {
     };
 
     # keep-alive
-    goto READ_HEADERS if !Coro::rouse_wait $rouse_cb && $keepalive;
+    goto READ_HEADERS if !$cv->recv && $keepalive;
 
     return;
 }

@@ -460,7 +460,7 @@ package Pcore::cv {    ## no critic qw[Modules::ProhibitMultiplePackages]
       '&{}' => sub ( $self, @ ) {
         return sub { return $self->send(@_) }
       },
-      'bool' => sub ($self) { return $self->[$IS_READY] };
+      fallback => 1;
 
     sub is_ready ($self) { return $self->[$IS_READY] }
 
