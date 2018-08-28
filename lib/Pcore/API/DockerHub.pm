@@ -403,19 +403,15 @@ sub get_autobuild_settings ( $self, $repo_id, $cb = undef ) {
 }
 
 sub unlink_tag ( $self, $repo_id, $tag_name, $cb = undef ) {
-    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
-
     my ( $delete_autobuild_tag_status, $delete_tag_status );
 
-    my $cv = AE::cv {
+    my $cv = P->cv->begin( sub ($cv) {
         my $res = res [ 200, "autobuild: $delete_autobuild_tag_status->{reason}, tag: $delete_tag_status->{reason}" ];
 
-        $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
+        $cv->( $cb ? $cb->($res) : $res );
 
         return;
-    };
-
-    $cv->begin;
+    } );
 
     $cv->begin;
     $self->delete_autobuild_tag_by_name(
@@ -445,7 +441,7 @@ sub unlink_tag ( $self, $repo_id, $tag_name, $cb = undef ) {
 
     $cv->end;
 
-    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
+    return defined wantarray ? $cv->rev : ();
 }
 
 # AUTOBUILD TAGS
@@ -599,8 +595,8 @@ sub trigger_autobuild_by_tag_name ( $self, $repo_id, $autobuild_tag_name, $cb = 
 ## |======+======================+================================================================================================================|
 ## |    3 | 83, 188, 316, 326,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |      | 342, 368, 372, 405,  |                                                                                                                |
-## |      | 473, 492, 496, 538,  |                                                                                                                |
-## |      | 551                  |                                                                                                                |
+## |      | 469, 488, 492, 534,  |                                                                                                                |
+## |      | 547                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 166                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

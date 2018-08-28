@@ -76,7 +76,7 @@ sub run ( $type, $args ) {
     # create object
     $node = $type->new( $args->{buildargs} );
 
-    AE::cv->recv;
+    P->cv->recv;
 
     exit;
 }

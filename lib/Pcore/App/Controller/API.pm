@@ -113,13 +113,11 @@ sub run ( $self, $req ) {
 sub _http_api_router ( $self, $auth, $data, $cb ) {
     my $response;
 
-    my $cv = AE::cv sub {
+    my $cv = P->cv->begin( sub {
         $cb->($response);
 
         return;
-    };
-
-    $cv->begin;
+    } );
 
     for my $tx ( is_plain_arrayref $data ? $data->@* : $data ) {
         next if !$tx->{type};

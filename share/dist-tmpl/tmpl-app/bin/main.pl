@@ -52,7 +52,7 @@ my $app = <: $module_name :>->new( {    #
     cfg   => $cfg,
 } );
 
-my $cv = AE::cv;
+my $cv = P->cv;
 
 $app->run;
 

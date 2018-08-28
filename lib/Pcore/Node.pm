@@ -585,11 +585,11 @@ sub _check_status ($self) {
 sub wait_online ( $self, $timeout = undef ) {
     return 1 if $self->{is_online};
 
-    my $rouse_cb = Coro::rouse_cb;
+    my $cv = P->cv;
 
-    my $id = refaddr $rouse_cb;
+    my $id = refaddr $cv;
 
-    $self->{_wait_online_cb}->{$id} = $rouse_cb;
+    $self->{_wait_online_cb}->{$id} = $cv;
 
     # set timer if has $timeout
     my $t;
@@ -607,7 +607,7 @@ sub wait_online ( $self, $timeout = undef ) {
         };
     }
 
-    Coro::rouse_wait $rouse_cb;
+    $cv->recv;
 
     return $self->{is_online};
 }
@@ -627,11 +627,11 @@ sub wait_node ( $self, $type, $timeout = undef ) {
 
     return $online_nodes if $online_nodes;
 
-    my $rouse_cb = Coro::rouse_cb;
+    my $cv = P->cv;
 
-    my $id = refaddr $rouse_cb;
+    my $id = refaddr $cv;
 
-    $self->{_wait_node_cb}->{$type}->{$id} = $rouse_cb;
+    $self->{_wait_node_cb}->{$type}->{$id} = $cv;
 
     # set timer if has $timeout
     my $t;
@@ -649,7 +649,7 @@ sub wait_node ( $self, $type, $timeout = undef ) {
         };
     }
 
-    Coro::rouse_wait $rouse_cb;
+    $cv->recv;
 
     return $self->online_nodes($type);
 }
@@ -691,11 +691,7 @@ sub import {
 }
 
 sub run_node ( $self, @nodes ) {
-    my $rouse_cb = Coro::rouse_cb;
-
-    my $cv = AE::cv sub { $rouse_cb->() };
-
-    $cv->begin;
+    my $cv = P->cv->begin;
 
     weaken $self;
 
@@ -750,9 +746,7 @@ sub run_node ( $self, @nodes ) {
         }
     }
 
-    $cv->end;
-
-    Coro::rouse_wait $rouse_cb;
+    $cv->end->recv;
 
     return res 200;
 }

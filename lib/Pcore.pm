@@ -442,7 +442,7 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 }
 
 # CV
-sub cv : prototype(;&) ( $cb = undef ) { return bless [$cb], 'Pcore::cv' }
+sub cv ( $self, $cb = undef ) { return bless [$cb], 'Pcore::cv' }
 
 *P::cv = \&cv;
 
@@ -473,13 +473,13 @@ package Pcore::cv {    ## no critic qw[Modules::ProhibitMultiplePackages]
     }
 
     sub end ($self) {
-        return if --$self->[$COUNTER] > 0;
+        return $self if --$self->[$COUNTER] > 0;
 
         my $cb = $self->[$CB];
 
         defined $cb ? $cb->($self) : $self->send();
 
-        return;
+        return $self;
     }
 
     sub recv ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
