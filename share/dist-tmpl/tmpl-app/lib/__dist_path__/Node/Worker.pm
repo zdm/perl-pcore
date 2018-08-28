@@ -1,21 +1,33 @@
-package <: $module_name ~ "::RPC" :>;
+package <: $module_name ~ "::Node::Worker" :>;
 
-use Pcore -role;
-use <: $module_name ~ "::Util" :>;
+use Pcore -class, -const;
+use <: $module_name ~ "::Const qw[:CONST]" :>;
 
-has cfg => ( is => 'ro', isa => HashRef, required => 1 );
+with qw[<: $module_name ~ "::Node" :>];
 
-has util => ( is => 'ro', isa => InstanceOf ['<: $module_name :>::Util'], init_arg => undef );
+const our $NODE_REQUIRES => {
 
-around BUILD => sub ( $orig, $self, $args ) {
-    $self->{util} = <: $module_name ~ "::Util" :>->new;
-
-    $self->{util}->@{ keys $args->{util}->%* } = values $args->{util}->%*;
-
-    $self->{util}->build_dbh( $self->{cfg}->{db} );
-
-    return $self->$orig($args);
+    # '*' => 'test',
+    # 'type' => ['event'],    # list of required events
 };
+
+sub NODE_ON_EVENT ( $self, $ev ) {
+    P->forward_event($ev);
+
+    return;
+}
+
+sub BUILD ( $self, $args ) {
+    $self->{node}->wait_online;
+
+    return;
+}
+
+sub API_test ( $self, $req, @args ) {
+    $req->( 200, time );
+
+    return;
+}
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
@@ -26,9 +38,7 @@ around BUILD => sub ( $orig, $self, $args ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 1, 4                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 8                    | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 36                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 40 does not match the package declaration       |
+## |    1 | 46                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 50 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -39,7 +49,7 @@ __END__
 
 =head1 NAME
 
-<: $module_name ~ "::RPC" :>
+<: $module_name ~ "::Node::Worker" :>
 
 =head1 SYNOPSIS
 

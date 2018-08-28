@@ -13,9 +13,9 @@ with qw[Pcore::App];
 const our $API_ROLES => [ 'admin', 'user' ];
 
 const our $NODE_REQUIRES => {
-    '<: $module_name :>::RPC::Worker' => ['app.settings-updated'],
+    '<: $module_name :>::Node::Worker' => ['app.settings-updated'],
 
-    # '<: $module_name :>::RPC::Log'    => ['app.settings-updated'],
+    # '<: $module_name :>::Node::Log'    => ['app.settings-updated'],
 };
 
 sub NODE_ON_EVENT ( $self, $ev ) {
@@ -52,7 +52,7 @@ sub run ( $self ) {
     # run local nodes
     print 'Starting nodes ... ';
     say $self->{node}->run_node(
-        {   type      => '<: $module_name :>::RPC::Worker',
+        {   type      => '<: $module_name :>::Node::Worker',
             workers   => 1,
             buildargs => {
                 cfg  => $self->{cfg},
@@ -60,7 +60,7 @@ sub run ( $self ) {
             },
         },
 
-        # {   type      => '<: $module_name :>::RPC::Log',
+        # {   type      => '<: $module_name :>::Node::Log',
         #     workers   => 1,
         #     buildargs => {
         #         cfg  => $self->{cfg},
