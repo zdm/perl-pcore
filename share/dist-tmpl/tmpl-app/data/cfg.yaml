@@ -14,7 +14,8 @@ node:
     # //<token>@ - no host / path specified, local server will be started
     server:
 
-        # connect to the remote node server
+        # if connect is specified - will be connected to the remote node server
+        # otherwise server config will be passed to the node server construstor
         connect:
 
         # or specify address to listen for local node server
