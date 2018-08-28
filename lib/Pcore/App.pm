@@ -123,11 +123,11 @@ sub nginx_cfg ($self) {
     my $params = {
         name              => lc( ref $self ) =~ s/::/-/smgr,
         data_dir          => $ENV->{DATA_DIR},
-        www_root_dir      => $www_storage ? $www_storage->[0] : undef,       # TODO
-        default_server    => 1,                                              # generate default server config
+        www_root_dir      => $www_storage ? $www_storage->[0] : undef,                                   # TODO
+        default_server    => 1,                                                                          # generate default server config
         nginx_default_key => $ENV->{share}->get('data/nginx/default.key'),
         nginx_default_pem => $ENV->{share}->get('data/nginx/default.pem'),
-        upstream          => $self->{app_cfg}->{server}->{listen},
+        upstream          => P->uri( $self->{app_cfg}->{server}->{listen} )->to_nginx_upstream_server,
     };
 
     for my $host ( keys $self->{router}->{_path_class_cache}->%* ) {

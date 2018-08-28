@@ -320,6 +320,21 @@ sub to_nginx ( $self, $scheme = 'http' ) {
     }
 }
 
+# host - default port is 80
+# 127.0.0.1 - default port is 80
+# 127.0.0.1:999
+# unix:/path-to-socket
+sub to_nginx_upstream_server ($self) {
+    if ( $self->{host} ) {
+        return "$self->{host}" . ( $self->{port} ? ":$self->{port}" : q[] );
+    }
+    else {
+        return 'unix:' . $self->{path}->to_string;
+    }
+
+    return;
+}
+
 sub TO_DUMP ( $self, $dumper, @ ) {
     my %args = (
         path => undef,

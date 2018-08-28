@@ -27,10 +27,7 @@ my $app = <: $module_name :>->new( {    #
             ssl    => 0,
         },
         node => {
-            server => {
-                connect => $cfg->{node}->{server}->{connect},
-                listen  => $cfg->{node}->{server}->{listen},
-            },
+            server => $cfg->{node}->{server},
             listen => $cfg->{node}->{listen},
         },
         api => {
