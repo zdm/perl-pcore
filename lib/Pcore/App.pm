@@ -51,14 +51,7 @@ around run => sub ( $orig, $self ) {
         $self->{node} = Pcore::Node->new( {
             type     => ref $self,
             requires => $requires,
-            server   => do {
-                if ( $self->{app_cfg}->{node}->{server}->{connect} ) {
-                    $self->{app_cfg}->{node}->{server}->{connect};
-                }
-                else {
-                    Pcore::Node::Server->new( $self->{app_cfg}->{node}->{server} );
-                }
-            },
+            server   => $self->{app_cfg}->{node}->{server},
             listen   => $self->{app_cfg}->{node}->{listen},
             on_event => do {
                 if ( $self->can('NODE_ON_EVENT') ) {

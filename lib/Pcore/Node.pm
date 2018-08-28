@@ -1,7 +1,7 @@
 package Pcore::Node;
 
 use Pcore -class, -res;
-use Pcore::Util::Scalar qw[weaken refaddr is_ref is_blessed_ref is_plain_coderef];
+use Pcore::Util::Scalar qw[weaken refaddr is_ref is_blessed_ref is_plain_coderef is_plain_hashref];
 use Pcore::HTTP::Server;
 use Pcore::Node::Server;
 use Pcore::Node::Proc;
@@ -9,7 +9,7 @@ use Pcore::WebSocket::pcore;
 use Pcore::Util::UUID qw[uuid_v4_str];
 
 has type     => ( required => 1 );
-has server   => ();                  # InstanceOf['Pcore::Node::Server'] || $uri, if not specified - local server will be created
+has server   => ();                  # InstanceOf['Pcore::Node::Server'], $uri, HashRef, if not specified - local server will be created
 has listen   => ();
 has requires => ();                  # HashRef, required nodes types
 
@@ -77,34 +77,26 @@ sub BUILD ( $self, $args ) {
 
     $self->_run_http_server;
 
-    if ( defined $self->{server} ) {
+    # remote server
+    if ( defined $self->{server} && ( !is_ref $self->{server} || ( is_blessed_ref $self->{server} && $self->{server}->isa('Pcore::Util::URI') ) ) ) {
+        $self->{_server_is_remote} = 1;
+        $self->{server_is_online}  = 0;
 
-        # local server
-        if ( ref $self->{server} eq 'Pcore::Node::Server' ) {
-            $self->{_server_is_remote} = 0;
-            $self->{server_is_online}  = 1;
+        # convert to uri object
+        $self->{server} = P->uri( $self->{server}, base => 'ws:' ) if !is_ref $self->{server};
 
-            $self->{server}->register_node( $self, $self->{id}, $self->_node_data );
-        }
-
-        # remote server
-        else {
-            $self->{_server_is_remote} = 1;
-            $self->{server_is_online}  = 0;
-
-            # convert to uri object
-            $self->{server} = P->uri( $self->{server}, base => 'ws:' ) if !is_ref $self->{server};
-
-            $self->_connect_to_remote_server;
-        }
+        $self->_connect_to_remote_server;
     }
 
-    # create local server instance
+    # local server
     else {
-        $self->{server} = Pcore::Node::Server->new;
-
         $self->{_server_is_remote} = 0;
         $self->{server_is_online}  = 1;
+
+        # create local server if not instance of Pcore::Node::Server
+        if ( ref $self->{server} ne 'Pcore::Node::Server' ) {
+            $self->{server} = Pcore::Node::Server->new( $self->{server} // () );
+        }
 
         $self->{server}->register_node( $self, $self->{id}, $self->_node_data );
     }
@@ -789,7 +781,7 @@ sub rpc_call ( $self, $type, $method, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 535                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 527                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
