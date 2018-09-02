@@ -25,7 +25,6 @@ has wait_online_timeout => ();        # default wait_online timeout, false - wai
 has id               => ( sub {uuid_v4_str}, init_arg => undef );    # my node id
 has is_online        => ( init_arg                    => undef );    # node status
 has server_is_online => ( init_arg                    => undef );    # node server status
-has token            => ( init_arg                    => undef );    # from listen uri, generated automatically if not defined
 
 has _has_requires     => ( init_arg => undef );
 has _server_is_remote => ( init_arg => undef );
@@ -63,9 +62,10 @@ sub BUILD ( $self, $args ) {
     };
 
     # resolve listen
-    $self->{listen} = P->net->resolve_listen( $self->{listen}, 'ws:' ) if !is_ref $self->{listen};
+    $self->{listen} = P->uri( $self->{listen}, base => 'ws:', listen => 1 ) if !is_ref $self->{listen};
 
-    $self->{token} = $self->{listen}->username || P->uuid->uuid_v4_str;
+    # generate token
+    $self->{listen}->username(uuid_v4_str) if !defined $self->{listen}->{username};
 
     # init node status
     $self->{is_online} = $self->{_has_requires} ? 0 : 1;
@@ -104,25 +104,11 @@ sub BUILD ( $self, $args ) {
     return;
 }
 
-# TODO use uri method to insert token
 sub _node_data ($self) {
-    $self->{_node_data} //= do {
-        my $listen = $self->{listen};
-
-        # TODO use uri method to insert token
-        my $connect = $listen->{scheme} ? "$listen->{scheme}://" : '//';
-        $connect .= "$self->{token}@" if defined $self->{token};
-        if ( my $host = "$listen->{host}" ) {
-            $connect .= "$host:" . $listen->connect_port . '/';
-        }
-        else {
-            $connect .= $listen->{path}->to_string;
-        }
-
-        {   id     => $self->{id},
-            type   => $self->{type},
-            listen => $connect,
-        };
+    $self->{_node_data} //= {
+        id     => $self->{id},
+        type   => $self->{type},
+        listen => !$self->{listen},
     };
 
     $self->{_node_data}->{is_online} = $self->{is_online};
@@ -223,7 +209,7 @@ sub _run_http_server ($self) {
 
                             return;
                         }
-                        elsif ( $self->{token} && $token ne $self->{token} ) {
+                        elsif ( defined $self->{listen}->{username} && $token ne $self->{listen}->{username} ) {
                             $h->disconnect;
 
                             return;
@@ -699,7 +685,7 @@ sub run_node ( $self, @nodes ) {
 
     my $server = do {
         if ( ref $self->{server} eq 'Pcore::Node::Server' ) {
-            $self->{server}->{connect};
+            $self->{server}->{listen};
         }
         else {
             $self->{server};
@@ -775,7 +761,7 @@ sub rpc_call ( $self, $type, $method, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 527                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 513                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

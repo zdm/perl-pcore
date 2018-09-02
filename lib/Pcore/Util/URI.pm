@@ -415,13 +415,12 @@ sub query_params_utf8 ($self) {
     return from_uri_query_utf8 $self->{query};
 }
 
-# TODO check, that this method is really required
 sub connect ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     if ( defined $self->{host} ) {
-        return $self->{host}, $self->{port};
+        return $self->{host}, $self->{port} || $self->{default_port};
     }
     else {
-        return 'unix:/', $self->{path}->to_uri;
+        return 'unix:/', $self->{path}->to_string;
     }
 
     return;
@@ -470,11 +469,11 @@ sub to_nginx_upstream_server ($self) {
 # proxy_pass http://unix:/tmp/backend.socket:/uri/
 # TODO
 sub to_nginx ( $self, $scheme = 'http' ) {
-    if ( $self->scheme eq 'unix' ) {
-        return $scheme . q[://unix:] . $self->path;
+    if ( $self->{scheme} eq 'unix' ) {
+        return "$scheme://unix:$self->{path}";
     }
     else {
-        return $scheme . q[://] . ( $self->host || q[*] ) . ( $self->port ? q[:] . $self->port : '' );
+        return "$scheme://" . ( $self->{host} || '*' ) . ( $self->{port} ? ":$self->{port}" : '' );
     }
 }
 
@@ -586,14 +585,14 @@ sub canon ($self) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 116                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 568                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 567                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 18, 24, 71, 103,     | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |      | 117, 131, 150, 152,  |                                                                                                                |
 ## |      | 156, 159, 176, 319,  |                                                                                                                |
-## |      | 353, 370, 437, 440,  |                                                                                                                |
-## |      | 454, 477, 490, 492,  |                                                                                                                |
-## |      | 497, 527             |                                                                                                                |
+## |      | 353, 370, 436, 439,  |                                                                                                                |
+## |      | 453, 476, 489, 491,  |                                                                                                                |
+## |      | 496, 526             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 60                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|

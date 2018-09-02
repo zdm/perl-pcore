@@ -31,20 +31,11 @@ has _listen_socket => ( init_arg => undef );
 sub BUILD ( $self, $args ) {
 
     # parse listen
-    $self->{listen} = P->net->resolve_listen( $self->{listen}, 'tcp:' ) if !is_ref $self->{listen};
+    $self->{listen} = P->uri( $self->{listen}, base => 'tcp:', listen => 1 ) if !is_ref $self->{listen};
 
-    my $uri = $self->{listen};
+    $self->{_listen_socket} = AnyEvent::Socket::tcp_server( $self->{listen}->connect, Coro::unblock_sub { return $self->_on_accept(@_) }, sub { return $self->_on_prepare(@_) } );
 
-    if ( my $host = "$uri->{host}" ) {
-        $self->{_listen_socket} = AnyEvent::Socket::tcp_server( $host, $uri->connect_port, Coro::unblock_sub { return $self->_on_accept(@_) }, sub { return $self->_on_prepare(@_) } );
-    }
-    else {
-        my $path = $uri->{path}->to_string;
-
-        $self->{_listen_socket} = AnyEvent::Socket::tcp_server( 'unix/', $path, Coro::unblock_sub { return $self->_on_accept(@_) }, sub { return $self->_on_prepare(@_) } );
-
-        chmod oct 777, $path or die if index( $path, "\x00" ) == -1;
-    }
+    chmod( oct 777, $self->{listen}->{path} ) || die $! if defined $self->{listen}->{host} && substr( $self->{listen}->{path}, 0, 2 ) ne "/\x00";
 
     return;
 }
@@ -220,9 +211,9 @@ sub return_xxx ( $self, $h, $status, $close_connection = 1 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 56                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (32)                |
+## |    3 | 47                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (32)                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 46                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 38                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -12,12 +12,10 @@ has compression => 0;
 
 has id           => ( sub {uuid_v4_str}, init_arg => undef );
 has token        => ( init_arg                    => undef );    # take from listen or generste
-has connect      => ( init_arg                    => undef );    # connect url, including token
 has _http_server => ( init_arg                    => undef );    # InstanceOf['Pcore::HTTP::Server']
 has _nodes       => ( init_arg                    => undef );    # HashRef, node registry, node_id => {}
 has _nodes_h     => ( init_arg                    => undef );    # HashRef, connected nodes handles, node_id => $handle
 
-# TODO use uri method to insert token
 sub BUILD ( $self, $args ) {
     weaken $self;
 
@@ -70,19 +68,9 @@ sub BUILD ( $self, $args ) {
         }
     );
 
-    my $listen = $self->{listen} = $self->{_http_server}->{listen};
+    $self->{listen} = $self->{_http_server}->{listen};
 
-    $self->{token} = $listen->username || uuid_v4_str;
-
-    # TODO use uri method to insert token
-    $self->{connect} = $listen->{scheme} ? "$listen->{scheme}://" : '//';
-    $self->{connect} .= "$self->{token}@" if defined $self->{token};
-    if ( my $host = "$listen->{host}" ) {
-        $self->{connect} .= "$host:" . $listen->connect_port . '/';
-    }
-    else {
-        $self->{connect} .= $listen->{path}->to_string;
-    }
+    $self->{listen}->username(uuid_v4_str) if !defined $self->{listen}->{username};
 
     return;
 }
@@ -158,7 +146,7 @@ sub _on_update ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 90                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 78                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

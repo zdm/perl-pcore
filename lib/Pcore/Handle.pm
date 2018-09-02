@@ -122,26 +122,12 @@ around new => sub ( $orig, $self, $uri, @args ) {
 
         $self = $self->$orig(@args);
 
-        my $connect = do {
-            my $host = "$uri->{host}";
-
-            if ($host) {
-                $self->{peername} //= $host;
-
-                [ $host, $uri->connect_port ];
-            }
-            else {
-                [ 'unix/', $uri->{path}->to_string ];
-            }
-        };
-
         my $bind_error;
 
         my $cv = P->cv;
 
         AnyEvent::Socket::tcp_connect(
-            $connect->[0],
-            $connect->[1],
+            $uri->connect,
             sub ( $fh = undef, $host = undef, $port = undef, $retry = undef ) {
                 if ($fh) {
                     if ($bind_error) {
@@ -785,13 +771,13 @@ sub read_http_chunked_data ( $self, %args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 491                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
+## |    3 | 477                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 681                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
+## |    3 | 667                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 742                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 728                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 362                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 348                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
