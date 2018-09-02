@@ -14,36 +14,23 @@ use overload
   q[cmp]  => sub { return !$_[2] ? $_[0]->canon cmp $_[1] : $_[1] cmp $_[0]->canon },
   fallback => 1;
 
-# http://tools.ietf.org/html/rfc3986#section-2.2
-const our $UNRESERVED          => join '', 0 .. 9, 'a' .. 'z', 'A' .. 'Z', q[-._~];
-const our $RESERVED_GEN_DELIMS => q[:/?#[]@];
-const our $RESERVED_SUB_DELIMS => q[!$&'()*+,;=];
-const our $UNSAFE              => do {
-    my $safe = { map { $_ => 1 } split //sm, $UNRESERVED . $RESERVED_GEN_DELIMS . $RESERVED_SUB_DELIMS . '%' };
-
-    join '', grep { !$safe->{$_} } map {chr} 0 .. 255;
-};
-
-has scheme    => ( is => 'ro' );    # unescaped, utf8
-has authority => ();                # escaped
-has path      => ();                # object
-has query     => ();                # escaped
-has fragment  => ();                # escaped
-
-has userinfo => ();                 # escaped
-has username => ();                 # unescaped, utf8
-has password => ();                 # unescaped, utf8
-
-has host_port => ();                # escaped
-has host      => ();                # object
-has port      => ();                # int
-
-has path_query => ();               # escaped
+has scheme     => ( is => 'ro' );    # unescaped, utf8
+has authority  => ();                # escaped
+has path       => ();                # object
+has query      => ();                # escaped
+has fragment   => ();                # escaped
+has userinfo   => ();                # escaped
+has username   => ();                # unescaped, utf8
+has password   => ();                # unescaped, utf8
+has host_port  => ();                # escaped
+has host       => ();                # object
+has port       => ();                # int
+has path_query => ();                # escaped
 
 has default_port => ();
 
-has to_string     => ();            # escaped
-has _canon        => ();            # escaped
+has to_string     => ();             # escaped
+has _canon        => ();             # escaped
 has _userinfo_b64 => ();
 
 around new => sub ( $orig, $self, $uri, %args ) {
@@ -600,22 +587,19 @@ sub canon ($self) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (39)                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 64                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 51                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 116                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 103                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 586                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 573                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 18, 24, 71, 103,     | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 117, 131, 145, 147,  |                                                                                                                |
-## |      | 151, 154, 197, 340,  |                                                                                                                |
-## |      | 374, 391, 455, 458,  |                                                                                                                |
-## |      | 472, 495, 508, 510,  |                                                                                                                |
-## |      | 515, 545             |                                                                                                                |
+## |    2 | 47, 164              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 60, 177              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 20                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    2 | 58, 90, 104, 118,    | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      | 132, 134, 138, 141,  |                                                                                                                |
+## |      | 184, 327, 361, 378,  |                                                                                                                |
+## |      | 442, 445, 459, 482,  |                                                                                                                |
+## |      | 495, 497, 502, 532   |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
