@@ -731,8 +731,7 @@ use Inline(
 # define SAFE_SCHEME        DIGIT ALPHA "+-."               // ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
 # define SAFE_USERINFO      UNRESERVED SUB_DELIMS ":"       // *( unreserved / pct-encoded / sub-delims / ":" )
 # define SAFE_PATH          PCHAR "@/"                      // *( pchar / "/" ), we encode ":" for better compatibility
-# define SAFE_QUERY         PCHAR "/?"                      // *( pchar / "/" / "?" )
-# define SAFE_FRAGMENT      PCHAR "/?"                      // *( pchar / "/" / "?" )
+# define SAFE_QUERY_FRAG    PCHAR "/?"                      // *( pchar / "/" / "?" )
 
 typedef struct {
     char inited;
@@ -740,10 +739,10 @@ typedef struct {
     const char* safe;
 } URIEscapeMap;
 
-static URIEscapeMap map_uri_component = { .safe = SAFE_URI_COMPONENT };
-static URIEscapeMap map_uri_scheme    = { .safe = SAFE_SCHEME };
-static URIEscapeMap map_uri_path      = { .safe = SAFE_PATH };
-static URIEscapeMap map_uri_query     = { .safe = SAFE_QUERY };
+static URIEscapeMap map_uri_component  = { .safe = SAFE_URI_COMPONENT };
+static URIEscapeMap map_uri_scheme     = { .safe = SAFE_SCHEME };
+static URIEscapeMap map_uri_path       = { .safe = SAFE_PATH };
+static URIEscapeMap map_uri_query_frag = { .safe = SAFE_QUERY_FRAG };
 
 static URIEscapeMap map_hexdigit   = { .safe = "0123456789abcdefABCDEF" };
 static URIEscapeMap map_unreserved = { .safe = UNRESERVED };
@@ -871,7 +870,7 @@ SV *to_uri_query_frag ( SV *uri ) {
 
     if ( !map_unreserved.inited ) __init_map(&map_unreserved);
 
-    if ( !map_uri_query.inited ) __init_map(&map_uri_query);
+    if ( !map_uri_query_frag.inited ) __init_map(&map_uri_query_frag);
 
     /* call fetch() if a tied variable to populate the sv */
     SvGETMAGIC(uri);
@@ -938,7 +937,7 @@ SV *to_uri_query_frag ( SV *uri ) {
         }
 
         // character is allowed, copy as is
-        else if ( map_uri_query.map[ src[i] ] ) {
+        else if ( map_uri_query_frag.map[ src[i] ] ) {
             dst[dlen++] = src[i];
         }
 
