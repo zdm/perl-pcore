@@ -126,7 +126,7 @@ around new => sub ( $orig, $self, $uri, @args ) {
 
         my $cv = P->cv;
 
-        AnyEvent::Socket::tcp_connect(
+        &AnyEvent::Socket::tcp_connect(                                                                    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
             $uri->connect,
             sub ( $fh = undef, $host = undef, $port = undef, $retry = undef ) {
                 if ($fh) {

@@ -183,11 +183,9 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
     # generate websocket key
     my $sec_websocket_key = to_b64 rand 100_000, q[];
 
-    my $request_path = $uri->path->to_uri . ( $uri->query ? q[?] . $uri->query : q[] );
-
     my @headers = (    #
-        "GET $request_path HTTP/1.1",
-        'Host:' . $uri->host,
+        "GET @{[$uri->path_query]} HTTP/1.1",
+        'Host:' . ( $uri->{host} // '' ),
         "User-Agent:Pcore-HTTP/$Pcore::VERSION",
         'Upgrade:websocket',
         'Connection:upgrade',
@@ -633,15 +631,17 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 147                  | * Subroutine "connect" with high complexity score (25)                                                         |
-## |      | 373                  | * Subroutine "__on_connect" with high complexity score (28)                                                    |
-## |      | 543                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
+## |      | 147                  | * Subroutine "connect" with high complexity score (24)                                                         |
+## |      | 371                  | * Subroutine "__on_connect" with high complexity score (28)                                                    |
+## |      | 541                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 259, 265, 315        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 257, 263, 313        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 487, 489, 491        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 485, 487, 489        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 46, 559              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 46, 557              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 188                  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

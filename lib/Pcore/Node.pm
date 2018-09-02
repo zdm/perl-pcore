@@ -108,7 +108,7 @@ sub _node_data ($self) {
     $self->{_node_data} //= {
         id     => $self->{id},
         type   => $self->{type},
-        listen => !$self->{listen},
+        listen => $self->{listen},
     };
 
     $self->{_node_data}->{is_online} = $self->{is_online};

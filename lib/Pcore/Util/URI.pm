@@ -133,11 +133,6 @@ around new => sub ( $orig, $self, $uri, %args ) {
     }
     else {
         $self->_set_authority($authority);
-
-        # resolve "*" port
-        if ( $self->{port} eq '*' && $args{listen} ) {
-            $self->{port} = get_free_port $self->{host};
-        }
     }
 
     # path
@@ -157,6 +152,32 @@ around new => sub ( $orig, $self, $uri, %args ) {
 
     # ser fragment, if fragment is not empty
     $self->_set_fragment($fragment) if $fragment ne '';
+
+    if ( $args{listen} ) {
+
+        # host is defined, resolve port
+        if ( defined $self->{host} ) {
+
+            # resolve listen port
+            $self->{port} = get_free_port $self->{host} if !$self->{port} || $self->{port} eq '*';
+        }
+
+        # host and path are not defined
+        elsif ( !$self->{path} || $self->{path} eq '/' ) {
+
+            # for windows use TCP loopback
+            if ($MSWIN) {
+                $self->{host} = P->host('127.0.0.1');
+
+                $self->{port} = get_free_port $self->{host} if !$self->{port} || $self->{port} eq '*';
+            }
+
+            # for linux use abstract UDS
+            else {
+                $self->{path} = P->path( "/\x00" . uuid_v4_str, from_uri => 1 );
+            }
+        }
+    }
 
     # build uri
     $self->to_string;
@@ -420,10 +441,8 @@ sub connect ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
         return $self->{host}, $self->{port} || $self->{default_port};
     }
     else {
-        return 'unix:/', $self->{path}->to_string;
+        return 'unix/', $self->{path}->to_string;
     }
-
-    return;
 }
 
 sub connect_port ($self) {
@@ -579,22 +598,22 @@ sub canon ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (31)                               |
+## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (39)                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 64                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 116                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 567                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 586                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 18, 24, 71, 103,     | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 117, 131, 150, 152,  |                                                                                                                |
-## |      | 156, 159, 176, 319,  |                                                                                                                |
-## |      | 353, 370, 436, 439,  |                                                                                                                |
-## |      | 453, 476, 489, 491,  |                                                                                                                |
-## |      | 496, 526             |                                                                                                                |
+## |      | 117, 131, 145, 147,  |                                                                                                                |
+## |      | 151, 154, 197, 340,  |                                                                                                                |
+## |      | 374, 391, 455, 458,  |                                                                                                                |
+## |      | 472, 495, 508, 510,  |                                                                                                                |
+## |      | 515, 545             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 60                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 60, 177              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 20                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

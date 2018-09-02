@@ -332,12 +332,10 @@ sub _request ($args) {
     return $res;
 }
 
-# TODO use uri method to get request path
 sub _write_headers ( $h, $args, $res ) {
     my $request_path;
 
-    # TODO use uri method to get request path
-    $request_path = $res->{url}->path->to_uri . ( $res->{url}->query ? q[?] . $res->{url}->query : q[] );
+    $request_path = $res->{url}->path_query;
 
     my $headers = q[];
 
@@ -706,7 +704,7 @@ sub _get_on_progress_cb (%args) {
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 138                  | * Subroutine "request" with high complexity score (22)                                                         |
 ## |      | 251                  | * Subroutine "_request" with high complexity score (21)                                                        |
-## |      | 476                  | * Subroutine "_read_data" with high complexity score (47)                                                      |
+## |      | 474                  | * Subroutine "_read_data" with high complexity score (47)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 89                   | CodeLayout::ProhibitQuotedWordLists - List of quoted literal words                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
