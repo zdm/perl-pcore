@@ -15,7 +15,7 @@ our $EXPORT = {
     XML   => [qw[to_xml from_xml]],
     INI   => [qw[to_ini from_ini]],
     B64   => [qw[to_b64 to_b64_url from_b64 from_b64_url]],
-    URI   => [qw[to_uri to_uri_component to_uri_scheme to_uri_path from_uri from_uri_utf8 from_uri_query from_uri_query_utf8 to_uri_pct]],
+    URI   => [qw[to_uri to_uri_component to_uri_scheme to_uri_path to_uri_query_frag from_uri from_uri_utf8 from_uri_query from_uri_query_utf8]],
     XOR   => [qw[to_xor from_xor]],
     CONST => [qw[$DATA_ENC_B64 $DATA_ENC_HEX $DATA_COMPRESS_ZLIB $DATA_CIPHER_DES]],
     TYPE  => [qw[$DATA_TYPE_PERL $DATA_TYPE_JSON $DATA_TYPE_CBOR $DATA_TYPE_YAML $DATA_TYPE_XML $DATA_TYPE_INI]],
@@ -743,8 +743,10 @@ typedef struct {
 static URIEscapeMap map_uri_component = { .safe = SAFE_URI_COMPONENT };
 static URIEscapeMap map_uri_scheme    = { .safe = SAFE_SCHEME };
 static URIEscapeMap map_uri_path      = { .safe = SAFE_PATH };
+static URIEscapeMap map_uri_query     = { .safe = SAFE_QUERY };
 
-static URIEscapeMap map_hexdigit = { .safe = "0123456789abcdefABCDEF" };
+static URIEscapeMap map_hexdigit   = { .safe = "0123456789abcdefABCDEF" };
+static URIEscapeMap map_unreserved = { .safe = UNRESERVED };
 
 static const char* escape_tbl[256] = {
     "%00","%01","%02","%03","%04","%05","%06","%07","%08","%09","%0a","%0b","%0c","%0d","%0e","%0f",
@@ -765,14 +767,54 @@ static const char* escape_tbl[256] = {
     "%f0","%f1","%f2","%f3","%f4","%f5","%f6","%f7","%f8","%f9","%fa","%fb","%fc","%fd","%fe","%ff",
 };
 
-SV *__to_uri ( SV *uri, URIEscapeMap *type ) {
-    if ( !type->inited ) {
-        type->inited = 1;
+static void __init_map ( URIEscapeMap *map ) {
+    map->inited = 1;
 
-        for( int i = 0; type->safe[i] != '\0'; i++ ) {
-            type->map[ type->safe[i] ] = 1;
-        }
+    for( int i = 0; map->safe[i] != '\0'; i++ ) {
+        map->map[ map->safe[i] ] = 1;
     }
+}
+
+static void __init_hexdigit () {
+    map_hexdigit.inited = 1;
+
+    for( int i = 0; i < 256; i++ ) {
+        map_hexdigit.map[i] = 0xFF;
+    }
+
+    // 0 .. 9
+    map_hexdigit.map[48] = 0;
+    map_hexdigit.map[49] = 1;
+    map_hexdigit.map[50] = 2;
+    map_hexdigit.map[51] = 3;
+    map_hexdigit.map[52] = 4;
+    map_hexdigit.map[53] = 5;
+    map_hexdigit.map[54] = 6;
+    map_hexdigit.map[55] = 7;
+    map_hexdigit.map[56] = 8;
+    map_hexdigit.map[57] = 9;
+
+    // A .. Z
+    map_hexdigit.map[65] = 10;
+    map_hexdigit.map[66] = 11;
+    map_hexdigit.map[67] = 12;
+    map_hexdigit.map[68] = 13;
+    map_hexdigit.map[69] = 14;
+    map_hexdigit.map[70] = 15;
+
+    // a .. z
+    map_hexdigit.map[97] = 10;
+    map_hexdigit.map[98] = 11;
+    map_hexdigit.map[99] = 12;
+    map_hexdigit.map[100] = 13;
+    map_hexdigit.map[101] = 14;
+    map_hexdigit.map[102] = 15;
+
+    return;
+}
+
+static SV *__to_uri ( SV *uri, URIEscapeMap *type ) {
+    if ( !type->inited ) __init_map(type);
 
     /* call fetch() if a tied variable to populate the sv */
     SvGETMAGIC(uri);
@@ -824,42 +866,100 @@ SV *to_uri_path (SV *uri) {
     return __to_uri( uri, &map_uri_path );
 }
 
-SV *from_uri (SV *uri) {
-    if ( !map_hexdigit.inited ) {
-        map_hexdigit.inited = 1;
+SV *to_uri_query_frag ( SV *uri ) {
+    if ( !map_hexdigit.inited ) __init_hexdigit();
 
-        for( int i = 0; i < 256; i++ ) {
-            map_hexdigit.map[i] = 0xFF;
+    if ( !map_unreserved.inited ) __init_map(&map_unreserved);
+
+    if ( !map_uri_query.inited ) __init_map(&map_uri_query);
+
+    /* call fetch() if a tied variable to populate the sv */
+    SvGETMAGIC(uri);
+
+    /* check for undef */
+    if ( uri == &PL_sv_undef ) return newSV(0);
+
+    U8 *src;
+    size_t slen;
+
+    /* copy the sv without the magic struct */
+    src = SvPV_nomg_const(uri, slen);
+
+    /* create result SV */
+    SV *result = newSV( slen * 3 + 1 );
+    SvPOK_on(result);
+
+    size_t dlen = 0;
+    U8 *dst = (U8 *)SvPV_nolen(result);
+
+    for ( size_t i = 0; i < slen; i++ ) {
+
+        // "%" character
+        if ( src[i] == '%' ) {
+            if ( i + 2 < slen ) {
+                const unsigned char v1 = map_hexdigit.map[ (unsigned char) src[ i + 1 ] ];
+                const unsigned char v2 = map_hexdigit.map[ (unsigned char) src[ i + 2 ] ];
+
+                // valid pct sequence
+                if ( (v1 | v2) != 0xFF) {
+
+                    // decode %xx
+                    const unsigned char c = (v1 << 4) | v2;
+
+                    // char is unreserved, store as char
+                    if ( map_unreserved.map[c] ) {
+                        dst[ dlen++ ] = c;
+                    }
+
+                    // char is reserved, store as %xx seq.
+                    else {
+                        memcpy( &dst[dlen], escape_tbl[c], 3 );
+
+                        dlen += 3;
+                    }
+
+                    i += 2;
+                }
+
+                // invalid pct seq., just escape "%"
+                else {
+                    memcpy( &dst[dlen], escape_tbl[ 0x25 ], 3 );
+
+                    dlen += 3;
+                }
+            }
+
+            // escape "%"
+            else {
+                memcpy( &dst[dlen], escape_tbl[ 0x25 ], 3 );
+
+                dlen += 3;
+            }
         }
 
-        // 0 .. 9
-        map_hexdigit.map[48] = 0;
-        map_hexdigit.map[49] = 1;
-        map_hexdigit.map[50] = 2;
-        map_hexdigit.map[51] = 3;
-        map_hexdigit.map[52] = 4;
-        map_hexdigit.map[53] = 5;
-        map_hexdigit.map[54] = 6;
-        map_hexdigit.map[55] = 7;
-        map_hexdigit.map[56] = 8;
-        map_hexdigit.map[57] = 9;
+        // character is allowed, copy as is
+        else if ( map_uri_query.map[ src[i] ] ) {
+            dst[dlen++] = src[i];
+        }
 
-        // A .. Z
-        map_hexdigit.map[65] = 10;
-        map_hexdigit.map[66] = 11;
-        map_hexdigit.map[67] = 12;
-        map_hexdigit.map[68] = 13;
-        map_hexdigit.map[69] = 14;
-        map_hexdigit.map[70] = 15;
+        // character is not allowed, percent encode
+        else{
+            memcpy( &dst[dlen], escape_tbl[ src[i] ], 3 );
 
-        // a .. z
-        map_hexdigit.map[97] = 10;
-        map_hexdigit.map[98] = 11;
-        map_hexdigit.map[99] = 12;
-        map_hexdigit.map[100] = 13;
-        map_hexdigit.map[101] = 14;
-        map_hexdigit.map[102] = 15;
+            dlen += 3;
+        }
     }
+
+    dst[dlen] = '\0'; /*  for sure; */
+
+    /* set the current length of resutl */
+    SvCUR_set(result, dlen);
+
+    return result;
+}
+
+SV *from_uri (SV *uri) {
+    if ( !map_hexdigit.inited ) __init_hexdigit();
 
     /* call fetch() if a tied variable to populate the sv */
     SvGETMAGIC(uri);
@@ -920,68 +1020,14 @@ C
     ccflagsex  => '-Wall -Wextra -Ofast',
     prototypes => 'ENABLE',
     prototype  => {
-        to_uri_component => '$',
-        to_uri_scheme    => '$',
-        to_uri_path      => '$',
-        from_uri         => '$',
-        from_uri_utf8    => '$',
+        to_uri_component  => '$',
+        to_uri_scheme     => '$',
+        to_uri_path       => '$',
+        to_uri_query_frag => '$',
+        from_uri          => '$',
+        from_uri_utf8     => '$',
     },
 );
-
-# TODO
-# unreserved / pct-encoded / sub-delims / ":" / "@" / "/" / "?"
-# TODO fix only unreserved bytes
-sub to_uri_pct ($str) {
-    state $unreserved = { map { $_ => 1 } split //sm, q[0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-._~] };
-
-    state $allowed = { map { $_ => 1 } split //sm, q[0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-._~] . q[!$&'()*+,;=] . q[:@] . q[/?] };
-
-    # - encode disallowed symbol
-    # - copy allowed
-    # - %hexdigit - decode, encode, if not allowed
-    # - % - encode
-
-    encode_utf8 $str;
-
-    my $buf;
-
-    my @char = split //sm, $str;
-
-    for ( my $i = 0; $i <= $#char; $i++ ) {
-        if ( $allowed->{ $char[$i] } ) {
-            $buf .= $char[$i];
-        }
-        elsif ( $char[$i] eq '%' ) {
-            if ( $i + 2 <= $#char ) {
-                my $hex = $char[ $i + 1 ] . $char[ $i + 2 ];
-
-                if ( $hex =~ /[[:xdigit:]]{2}/sm ) {
-                    my $c = pack 'H*', $hex;
-
-                    if ( $unreserved->{$c} ) {
-                        $buf .= $c;
-                    }
-                    else {
-                        $buf .= '%' . lc $hex;
-                    }
-
-                    $i += 2;
-                }
-                else {
-                    $buf .= '%25';
-                }
-            }
-            else {
-                $buf .= '%25';
-            }
-        }
-        else {
-            $buf .= sprintf '%%%02x', ord $char[$i];
-        }
-    }
-
-    return $buf;
-}
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
@@ -998,9 +1044,7 @@ sub to_uri_pct ($str) {
 ## |      | 364, 417             | * Postfix control "for" used                                                                                   |
 ## |      | 625                  | * Postfix control "while" used                                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 643, 950             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 937                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    2 | 643                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
