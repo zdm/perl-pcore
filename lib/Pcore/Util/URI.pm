@@ -9,7 +9,7 @@ use Pcore::Util::UUID qw[uuid_v4_str];
 use Clone qw[];
 
 use overload
-  q[""]   => sub { return $_[0]->to_string },
+  q[""]   => sub { return $_[0]->{to_string} },
   q[bool] => sub { return 1 },
   q[cmp]  => sub { return !$_[2] ? $_[0]->canon cmp $_[1] : $_[1] cmp $_[0]->canon },
   fallback => 1;
@@ -588,7 +588,7 @@ sub canon ($self) {
 
 # SERIALIZE
 *TO_JSON = *TO_CBOR = sub ($self) {
-    return $self->to_string;
+    return $self->{to_string};
 };
 
 1;
