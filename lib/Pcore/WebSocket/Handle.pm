@@ -175,7 +175,7 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
     return $on_error->( $self, $h->{status}, $h->{reason} ) if !$h;
 
     # start TLS, only if TLS is required and TLS is not established yet
-    $h->starttls if $uri->is_secure && !exists $h->{tls};
+    $h->starttls if $uri->{is_secure} && !exists $h->{tls};
 
     # TLS error
     return $on_error->( $self, $h->{status}, $h->{reason} ) if !$h;

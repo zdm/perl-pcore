@@ -274,7 +274,7 @@ sub _request ($args) {
         $res->set_status( $h->{status}, $h->{reason} ) || last if !$h;
 
         # start TLS, only if TLS is required and TLS is not established yet
-        if ( $res->{url}->is_secure && !$h->{tls} ) {
+        if ( $res->{url}->{is_secure} && !$h->{tls} ) {
             $h->starttls;
 
             # start TLS error

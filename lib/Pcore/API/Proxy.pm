@@ -54,8 +54,8 @@ sub connect ( $self, $uri, @args ) {    ## no critic qw[Subroutines::ProhibitBui
     my $type;
 
     if ( $uri->is_http ) {
-        $type = 'http'  if !$uri->is_secure && $self->{is_http};
-        $type = 'https' if !$type           && $self->{is_https};
+        $type = 'http'  if !$uri->{is_secure} && $self->{is_http};
+        $type = 'https' if !$type             && $self->{is_https};
     }
 
     if ( !$type ) {
@@ -173,7 +173,7 @@ sub connect_socks4 ( $self, $uri, @args ) {
             return;
         },
         on_connect => sub ( $h, $host, $port, $retry ) {
-            $h->starttls('connect') if $self->{uri}->is_secure;
+            $h->starttls('connect') if $self->{uri}->{is_secure};
 
             AnyEvent::Socket::resolve_sockaddr $self->{uri}->host->name, $self->{uri}->connect_port, 'tcp', undef, undef, sub {
                 my @target = @_;
@@ -256,7 +256,7 @@ sub connect_socks5 ( $self, $uri, @args ) {
             return;
         },
         on_connect => sub ( $h, $host, $port, $retry ) {
-            $h->starttls('connect') if $self->{uri}->is_secure;
+            $h->starttls('connect') if $self->{uri}->{is_secure};
 
             # start handshake
             # no authentication or authenticate with username/password
