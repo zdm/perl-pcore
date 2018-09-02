@@ -30,18 +30,11 @@ sub resolve_sockaddr : prototype($$$$$$) ( $node, $service, $proto, $family, $ty
 
     if ( $node eq 'unix/' ) {
 
-        # error
-        return $cb->() if $family;
+        # error, socket path must be absolute
+        return $cb->() if $family || substr( $service, 0, 1 ) ne '/';
 
         # UDS socket
-        if ( $service =~ m[\A/?(\x00.+)]sm ) {
-            $service = $1;
-        }
-
-        # error, socket path must be absolute
-        elsif ( substr( $service, 0, 1 ) ne '/' ) {
-            return $cb->();
-        }
+        substr $service, 0, 1, '' if substr( $service, 0, 2 ) eq "/\x00";
 
         return $cb->( [ AF_UNIX, defined $type ? $type : SOCK_STREAM, 0, Socket::pack_sockaddr_un $service] );
     }
@@ -91,8 +84,8 @@ sub resolve_sockaddr : prototype($$$$$$) ( $node, $service, $proto, $family, $ty
 sub _tcp_bind : prototype($$$;$) ( $host, $service, $done, $prepare = undef ) {
 
     # hook for Linux abstract Unix Domain Sockets (UDS)
-    if ( defined $host && $host eq 'unix/' && $service =~ m[\A/?(\x00.+)]sm ) {
-        $service = $1;
+    if ( defined $host && $host eq 'unix/' && substr( $service, 0, 2 ) eq "/\x00" ) {
+        substr $service, 0, 1, '';
 
         state $ipn_uds = pack 'S', AF_UNIX;
 
@@ -129,7 +122,11 @@ sub _tcp_bind : prototype($$$;$) ( $host, $service, $done, $prepare = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 16, 23               | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 120                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 113                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 37, 88               | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 37, 87               | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
