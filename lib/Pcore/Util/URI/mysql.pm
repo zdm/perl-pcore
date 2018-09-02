@@ -1,8 +1,11 @@
-package Pcore::Util::URI::file;
+package Pcore::Util::URI::mysql;
 
 use Pcore -class;
 
 extends qw[Pcore::Util::URI];
+
+has default_port => 3306;
+has is_mysql     => 1;
 
 1;
 __END__
@@ -12,7 +15,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::URI::file
+Pcore::Util::URI::mysql
 
 =head1 SYNOPSIS
 

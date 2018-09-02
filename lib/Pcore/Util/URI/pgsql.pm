@@ -1,12 +1,11 @@
-package Pcore::Util::URI::wss;
+package Pcore::Util::URI::pgsql;
 
 use Pcore -class;
 
 extends qw[Pcore::Util::URI];
 
-has default_port => 443;
-has is_ws        => 1;
-has is_secure    => 1;
+has default_port => 5432;
+has is_pgsql     => 1;
 
 1;
 __END__
@@ -16,7 +15,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::URI::wss
+Pcore::Util::URI::pgsql
 
 =head1 SYNOPSIS
 
