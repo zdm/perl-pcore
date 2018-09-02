@@ -3,7 +3,7 @@ package Pcore::Util::Path;
 use Pcore -class;
 use Clone qw[];
 use Pcore::Util::Scalar qw[is_blessed_ref is_plain_arrayref];
-use Pcore::Util::URI;
+use Pcore::Util::Data qw[from_uri_utf8 to_uri_path];
 
 use overload    #
   q[""] => sub {
@@ -87,9 +87,7 @@ around new => sub ( $orig, $self, $path = q[], @ ) {
 
     # unescape and decode URI
     if ( $args{from_uri} && !ref $path_args->{path} ) {
-        $path_args->{path} = URI::Escape::XS::decodeURIComponent( $path_args->{path} );
-
-        utf8::decode( $path_args->{path} );
+        $path_args->{path} = from_uri_utf8 $path_args->{path};
     }
 
     # convert "\" to "/"
@@ -311,12 +309,7 @@ sub _build_to_uri ($self) {
 
     $uri .= $self->path;
 
-    utf8::encode($uri) if utf8::is_utf8($uri);
-
-    # http://tools.ietf.org/html/rfc3986#section-3.3
-    $uri =~ s/([$Pcore::Util::URI::ESCAPE_RE])/$Pcore::Util::URI::ESC_CHARS->{$1}/smg;
-
-    return $uri;
+    return to_uri_path $uri;
 }
 
 sub _build_encoded ($self) {
@@ -509,10 +502,10 @@ sub TO_DUMP {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 19                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 189                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_normalize_path_new' declared but   |
+## |    3 | 187                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_normalize_path_new' declared but   |
 ## |      |                      | not used                                                                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 192                  | RegularExpressions::ProhibitSingleCharAlternation - Use [/\\] instead of /|\\                                  |
+## |    1 | 190                  | RegularExpressions::ProhibitSingleCharAlternation - Use [/\\] instead of /|\\                                  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

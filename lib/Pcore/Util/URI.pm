@@ -299,7 +299,11 @@ sub clear_fragment ($self) {
 }
 
 sub query_params ($self) {
-    return P->data->from_uri_query( $self->query );
+    return from_uri_query $self->{query};
+}
+
+sub query_params_utf8 ($self) {
+    return from_uri_query_utf8 $self->{query};
 }
 
 # used to compose url for nginx proxy_pass directive

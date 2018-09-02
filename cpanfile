@@ -95,7 +95,6 @@ requires 'XML::Hash::XS';
 requires 'Crypt::CBC';
 requires 'Crypt::DES';
 requires 'Compress::Zlib';
-requires 'URI::Escape::XS';
 requires 'MIME::Base64';
 
 # Pcore::Util::Date

@@ -22,8 +22,8 @@ else {
         config => (
             directory         => $ENV->{INLINE_DIR},
             autoname          => 0,
-            clean_after_build => 1,
-            clean_build_area  => 1,
+            clean_after_build => 0,
+            clean_build_area  => 0,
         )
     );
 }
