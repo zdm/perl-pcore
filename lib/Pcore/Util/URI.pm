@@ -1,9 +1,11 @@
 package Pcore::Util::URI;
 
 use Pcore -class, -const;
+use Pcore::Util::Net qw[get_free_port];
 use Pcore::Util::Scalar qw[is_ref];
 use Pcore::Util::Data qw[:URI to_b64];
 use Pcore::Util::Text qw[decode_utf8 encode_utf8];
+use Pcore::Util::UUID qw[uuid_v4_str];
 use Clone qw[];
 
 use overload
@@ -45,6 +47,20 @@ has _canon        => ();            # escaped
 has _userinfo_b64 => ();
 
 around new => sub ( $orig, $self, $uri, %args ) {
+    if ( !defined $uri ) {
+        return if !$args{listen};
+
+        # for windows use TCP loopback
+        if ($MSWIN) {
+            $uri = '//127.0.0.1:*';
+        }
+
+        # for linux use abstract UDS
+        else {
+            $uri = "///\x00" . uuid_v4_str;
+        }
+    }
+
     my ( $scheme, $authority, $path, $query, $fragment ) = $uri =~ m[\A (?:([^:/?#]*):)? (?://([^/?#]*))? ([^?#]+)? (?:[?]([^#]*))? (?:[#](.*))? \z]smx;
 
     no warnings qw[uninitialized];
@@ -117,6 +133,11 @@ around new => sub ( $orig, $self, $uri, %args ) {
     }
     else {
         $self->_set_authority($authority);
+
+        # resolve "*" port
+        if ( $self->{port} eq '*' && $args{listen} ) {
+            $self->{port} = get_free_port $self->{host};
+        }
     }
 
     # path
@@ -559,22 +580,24 @@ sub canon ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (25)                               |
+## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (31)                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 48                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 64                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 100                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 116                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 547                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 568                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 16, 22, 55, 87, 101, | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      |  115, 129, 131, 135, |                                                                                                                |
-## |      |  138, 155, 298, 332, |                                                                                                                |
-## |      |  349, 416, 419, 433, |                                                                                                                |
-## |      |  456, 469, 471, 476, |                                                                                                                |
-## |      |  506                 |                                                                                                                |
+## |    2 | 18, 24, 71, 103,     | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      | 117, 131, 150, 152,  |                                                                                                                |
+## |      | 156, 159, 176, 319,  |                                                                                                                |
+## |      | 353, 370, 437, 440,  |                                                                                                                |
+## |      | 454, 477, 490, 492,  |                                                                                                                |
+## |      | 497, 527             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 18                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    2 | 60                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 20                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

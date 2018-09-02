@@ -1,8 +1,10 @@
 package Pcore::Util::Net;
 
-use Pcore;
+use Pcore -export;
 use Pcore::Util::Scalar qw[is_ref];
 use Pcore::Util::UUID qw[uuid_v4_str];
+
+our $EXPORT = [qw[hostname get_free_port]];
 
 sub hostname {
     state $hostname = do {
@@ -14,51 +16,7 @@ sub hostname {
     return $hostname;
 }
 
-# undef -> //127.0.0.1:rand-port, or ///\x00rand on linux
-# //0.0.0.0:90
-# //127.0.0.1:* - random port
-# /unix-socket-path - absolute unix socket path
-# unix-socket-path - relative unix socket path
-# \x00unix-socket-name - linux UDS socket
-sub resolve_listen ( $listen = undef, $base = undef ) {
-    return $listen if is_ref $listen;
-
-    if ( !defined $listen ) {
-
-        # for windows use TCP loopback
-        if ($MSWIN) {
-            return P->uri( '//127.0.0.1:' . get_free_port('127.0.0.1'), base => $base );
-        }
-
-        # for linux use abstract UDS
-        else {
-            return P->uri( "///\x00" . uuid_v4_str, base => $base );
-        }
-    }
-    else {
-        $listen =~ s[([^/:])?:[*]][$1 . ':' . get_free_port($1)]sme;
-
-        my $uri = P->uri( $listen, base => $base );
-
-        return $uri if $uri->{host} || ( $uri->{path} && $uri->{path} ne '/' );
-
-        my $userinfo = $uri->{userinfo} ? "$uri->{userinfo}@" : q[];
-
-        # for windows use TCP loopback
-        if ($MSWIN) {
-            return P->uri( "//${userinfo}127.0.0.1:" . get_free_port('127.0.0.1'), base => $base );
-        }
-
-        # for linux use abstract UDS
-        else {
-            return P->uri( "//${userinfo}/\x00" . uuid_v4_str, base => $base );
-        }
-    }
-
-    return $listen;
-}
-
-sub get_free_port ($ip = undef) {
+sub get_free_port : prototype(;$) ( $ip = undef ) {
     state $init = !!require Socket;
 
     if ($ip) {
@@ -90,7 +48,7 @@ sub get_free_port ($ip = undef) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 35, 54, 68           | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 26                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
