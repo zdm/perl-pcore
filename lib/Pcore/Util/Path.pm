@@ -303,13 +303,21 @@ sub _build_to_string ($self) {
 }
 
 sub _build_to_uri ($self) {
-    my $uri;
 
-    $uri .= q[/] if $self->volume;
+    # Relative Reference: https://tools.ietf.org/html/rfc3986#section-4.2
+    # A path segment that contains a colon character (e.g., "this:that")
+    # cannot be used as the first segment of a relative-path reference, as
+    # it would be mistaken for a scheme name.  Such a segment must be
+    # preceded by a dot-segment (e.g., "./this:that") to make a relative-
+    # path reference.
+    my $path = $self->{path};
 
-    $uri .= $self->path;
-
-    return to_uri_path $uri;
+    if ( $path =~ m[\A[^/]*:]sm ) {
+        return to_uri_path "./$path";
+    }
+    else {
+        return to_uri_path $path;
+    }
 }
 
 sub _build_encoded ($self) {

@@ -387,6 +387,17 @@ sub fragment ( $self, $val = undef ) {
 # UTIL
 sub clone ($self) { return Clone::clone($self) }
 
+sub has_scheme ($self)    { return defined $self->{scheme} }
+sub has_authority ($self) { return defined $self->{authority} }
+
+# TODO
+sub ia_abs ($self) {
+    ...;
+
+    return;
+}
+
+# TODO
 sub to_abs ( $self, $base ) {
     return $self->clone if defined $self->{scheme};
 
@@ -591,15 +602,15 @@ sub canon ($self) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 103                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 573                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 395, 584             | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 47, 164              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 58, 90, 104, 118,    | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |      | 132, 134, 138, 141,  |                                                                                                                |
 ## |      | 184, 327, 361, 378,  |                                                                                                                |
-## |      | 442, 445, 459, 482,  |                                                                                                                |
-## |      | 495, 497, 502, 532   |                                                                                                                |
+## |      | 453, 456, 470, 493,  |                                                                                                                |
+## |      | 506, 508, 513, 543   |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

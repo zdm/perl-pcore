@@ -730,7 +730,7 @@ use Inline(
 # define SAFE_URI_COMPONENT UNRESERVED                      // encode everything, same as encodeURIComponent
 # define SAFE_SCHEME        DIGIT ALPHA "+-."               // ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
 # define SAFE_USERINFO      UNRESERVED SUB_DELIMS ":"       // *( unreserved / pct-encoded / sub-delims / ":" )
-# define SAFE_PATH          UNRESERVED SUB_DELIMS "@" "/"   // *( pchar / "/" ), we encode ":" for better compatibility
+# define SAFE_PATH          PCHAR "/"                       // *( pchar / "/" )
 # define SAFE_QUERY_FRAG    PCHAR "/?"                      // *( pchar / "/" / "?" )
 
 typedef struct {

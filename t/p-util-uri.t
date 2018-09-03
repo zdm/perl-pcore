@@ -11,8 +11,8 @@ our $tests = [
     # parsing
     ['http://user:password@host:9999/path?query=123#fragment'] => 'http://user:password@host:9999/path?query=123#fragment',
     ['//host:9999/path/']                                      => '//host:9999/path/',
-    ['./path:path']                                            => 'path%3apath',
-    ['scheme:./path:path']                                     => 'scheme:path%3apath',
+    ['./path:path']                                            => './path:path',
+    ['scheme:./path:path']                                     => 'scheme:./path:path',
 
     # parsing with base
     [ '//host:9999/path/', base => 'http://' ]                     => 'http://host:9999/path/',
