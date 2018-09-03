@@ -9,9 +9,8 @@ use Pcore::Util::UUID qw[uuid_v4_str];
 use Clone qw[];
 
 use overload
-  q[""]   => sub { return $_[0]->{to_string} },
-  q[bool] => sub { return 1 },
-  q[cmp]  => sub { return !$_[2] ? $_[0]->canon cmp $_[1] : $_[1] cmp $_[0]->canon },
+  q[""]    => sub { return $_[0]->{to_string} },
+  q[bool]  => sub { return 1 },
   fallback => 1;
 
 has scheme     => ( is => 'ro' );    # unescaped, utf8
@@ -33,143 +32,189 @@ has to_string     => ();             # escaped
 has _canon        => ();             # escaped
 has _userinfo_b64 => ();
 
-around new => sub ( $orig, $self, $uri, %args ) {
-    if ( !defined $uri ) {
-        return if !$args{listen};
-
-        # for windows use TCP loopback
-        if ($MSWIN) {
-            $uri = '//127.0.0.1:*';
-        }
-
-        # for linux use abstract UDS
-        else {
-            $uri = "///\x00" . uuid_v4_str;
-        }
-    }
-
-    my ( $scheme, $authority, $path, $query, $fragment ) = $uri =~ m[\A (?:([^:/?#]*):)? (?://([^/?#]*))? ([^?#]+)? (?:[?]([^#]*))? (?:[#](.*))? \z]smx;
-
+around new => sub ( $orig, $self, $uri = undef, %args ) {
     no warnings qw[uninitialized];
 
     state $class = {};
 
-    # decode scheme, create object
-    if ( $scheme ne '' ) {
-        $scheme = from_uri_utf8 $scheme;
+    my $base;
 
-        $class->{$scheme} = eval { P->class->load( $scheme, ns => 'Pcore::Util::URI' ) } if !exists $class->{scheme};
+    if ( $uri eq '' ) {
+        if ( !$args{listen} ) {
+            if ( !defined $args{base} ) {
 
-        $self = bless {}, ( $class->{$scheme} // $self );
+                # return empty uri object
+                return $self->$orig;
+            }
+            else {
+                if ( is_ref $args{base} ) {
+                    $base = $args{base}->clone;
+                }
+                else {
+                    $base = P->uri( $args{base} );
+                }
 
-        $self->{scheme} = $scheme;
+                delete $base->@{qw[to_string _canon]};
+
+                # do not inherit fragment from the base uri
+                $base->{fragment} = undef;
+
+                $base->to_string;
+
+                return $base;
+            }
+        }
+
+        else {
+
+            # for windows use TCP loopback
+            if ($MSWIN) {
+                $uri = '//127.0.0.1:*';
+            }
+
+            # for linux use abstract UDS
+            else {
+                $uri = "///\x00" . uuid_v4_str;
+            }
+        }
+    }
+
+    my ( $scheme, $authority, $path, $query, $fragment );
+
+    # parse source uri
+    if ( is_ref $uri) {
+        return $uri->clone if !defined $args{base};
+
+        ( $scheme, $authority, $path, $query, $fragment ) = $uri->@{qw[scheme authority path query fragment]};
     }
     else {
-        $self = bless {}, $self;
+        ( $scheme, $authority, $path, $query, $fragment ) = $uri =~ m[\A (?:([^:/?#]*):)? (?://([^/?#]*))? ([^?#]+)? (?:[?]([^#]*))? (?:[#](.*))? \z]smx;
+    }
 
-        # https://tools.ietf.org/html/rfc3986#section-5
-        # if URI has no scheme and base URI is specified - merge with base URI
-        if ( my $base = $args{base} ) {
-            $base = P->uri($base) if !is_ref $base;
+    my $target;
+
+    # create empty target uri
+    if ( $scheme ne '' ) {
+
+        # decode scheme
+        $scheme = from_uri_utf8 $scheme;
+
+        # load target class if not loaded
+        $class->{$scheme} = eval { P->class->load( $scheme, ns => 'Pcore::Util::URI' ) } if !exists $class->{scheme};
+
+        $target = ( $class->{$scheme} // $self )->new;
+
+        $target->{scheme} = $scheme;
+    }
+    else {
+        if ( !defined $args{base} ) {
+            $target = $self->$orig;
+        }
+        else {
+            $base = is_ref $args{base} ? $args{base} : P->uri( $args{base} );
 
             # Pre-parse the Base URI: https://tools.ietf.org/html/rfc3986#section-5.2.1
             # base URI MUST contain scheme
             if ( defined $base->{scheme} ) {
+                $target = ( $class->{ $base->{scheme} } // $self )->new;
 
-                #Transform References:  https://tools.ietf.org/html/rfc3986#section-5.2.2
                 # inherit scheme from the base URI
-                $self->{scheme} = $base->{scheme};
+                $target->{scheme} = $base->{scheme};
+            }
+            else {
+                undef $base;
 
-                # inherit from the base URI only if has no own authority
-                if ( !defined $authority ) {
+                $target = $self->$orig;
+            }
+        }
+    }
 
-                    # inherit authority
-                    $authority = $base->{authority};
+    # merge with the base uri, only if has no own authority
+    if ( defined $base && !defined $authority ) {
 
-                    # if source path is empty (undef or "")
-                    if ( $path eq '' ) {
-                        $path = $base->{path};
+        # inherit authority
+        $authority = $base->{authority};
 
-                        $query = $base->{query} if !$query;
-                    }
+        # if source path is empty (undef or "")
+        if ( $path eq '' ) {
+            $path = $base->{path};
 
-                    # source path is not empty
-                    else {
+            $query = $base->{query} if !$query;
+        }
 
-                        # Merge Paths: https://tools.ietf.org/html/rfc3986#section-5.2.3
+        # source path is not empty
+        else {
 
-                        # If the base URI has a defined authority component and an empty path,
-                        # then return a string consisting of "/" concatenated with the reference's path
-                        if ( defined $base->{authority} ) {
-                            $path = P->path( $path, base => !defined $base->{path} || $base->{path} eq '' ? '/' : $base->{path}, from_uri => 1 );
-                        }
+            # Merge Paths: https://tools.ietf.org/html/rfc3986#section-5.2.3
+            # If the base URI has a defined authority component and an empty path,
+            # then return a string consisting of "/" concatenated with the reference's path
+            if ( defined $base->{authority} ) {
+                $path = P->path( $path, base => !defined $base->{path} || $base->{path} eq '' ? '/' : $base->{path}, from_uri => 1 );
+            }
 
-                        # otherwise, merge base + source paths
-                        else {
-                            $path = P->path( $path, base => $base->{path}, from_uri => 1 );
-                        }
-                    }
-                }
+            # otherwise, merge base + source paths
+            else {
+                $path = P->path( $path, base => $base->{path}, from_uri => 1 );
             }
         }
     }
 
     # authority is emtpy (undef or "")
     if ( $authority eq '' ) {
-        $self->{authority} = $authority;
+        $target->{authority} = $authority;
     }
     else {
-        $self->_set_authority($authority);
+        $target->_set_authority($authority);
     }
 
     # path
     if ( is_ref $path) {
-        $self->{path} = $path;
+        $target->{path} = $path;
     }
     else {
 
         # set path to '/' it has authority and path is empty
         $path = '/' if defined $authority && $path eq '';
 
-        $self->{path} = P->path( $path, from_uri => 1 ) if $path ne '';
+        $target->{path} = P->path( $path, from_uri => 1 ) if $path ne '';
     }
 
     # set query, if query is not empty
-    $self->_set_query($query) if $query ne '';
+    $target->_set_query($query) if $query ne '';
 
     # ser fragment, if fragment is not empty
-    $self->_set_fragment($fragment) if $fragment ne '';
+    $target->_set_fragment($fragment) if $fragment ne '';
 
     if ( $args{listen} ) {
 
         # host is defined, resolve port
-        if ( defined $self->{host} ) {
+        if ( defined $target->{host} ) {
 
             # resolve listen port
-            $self->{port} = get_free_port $self->{host} if !$self->{port} || $self->{port} eq '*';
+            $target->{port} = get_free_port $target->{host} if !$target->{port} || $target->{port} eq '*';
         }
 
         # host and path are not defined
-        elsif ( !$self->{path} || $self->{path} eq '/' ) {
+        elsif ( !$target->{path} || $target->{path} eq '/' ) {
 
             # for windows use TCP loopback
             if ($MSWIN) {
-                $self->{host} = P->host('127.0.0.1');
+                $target->{host} = P->host('127.0.0.1');
 
-                $self->{port} = get_free_port $self->{host} if !$self->{port} || $self->{port} eq '*';
+                $target->{port} = get_free_port $target->{host} if !$target->{port} || $target->{port} eq '*';
             }
 
             # for linux use abstract UDS
             else {
-                $self->{path} = P->path( "/\x00" . uuid_v4_str, from_uri => 1 );
+                $target->{path} = P->path( "/\x00" . uuid_v4_str, from_uri => 1 );
             }
         }
     }
 
     # build uri
-    $self->to_string;
+    $target->to_string;
 
-    return $self;
+    return $target;
 };
 
 sub authority ( $self, $val = undef ) {
@@ -390,18 +435,28 @@ sub clone ($self) { return Clone::clone($self) }
 sub has_scheme ($self)    { return defined $self->{scheme} }
 sub has_authority ($self) { return defined $self->{authority} }
 
-# TODO
-sub ia_abs ($self) {
-    ...;
+sub to_abs ( $self, $base ) {
+    my $wantarray = defined wantarray;
+
+    return $wantarray ? $self->clone : () if defined $self->{scheme};
+
+    $base = P->uri($base) if !is_ref $base;
+
+    if ( !defined $base->{scheme} ) {
+        die qq[Can't convert URI to absolute] if $wantarray;
+
+        return;
+    }
+
+    my $uri = P->uri( $self, base => $base );
+
+    return $uri if $wantarray;
+
+    bless $self, ref $uri;
+
+    $self->%* = $uri->%*;
 
     return;
-}
-
-# TODO
-sub to_abs ( $self, $base ) {
-    return $self->clone if defined $self->{scheme};
-
-    return P->uri( $self, base => $base );
 }
 
 sub path_query ($self) {
@@ -596,21 +651,22 @@ sub canon ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (39)                               |
+## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (49)                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 51                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 91                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 103                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 446                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 395, 584             | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 639                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 47, 164              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 42, 97, 139, 152,    | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      | 163, 177, 179, 183,  |                                                                                                                |
+## |      | 186, 229, 372, 406,  |                                                                                                                |
+## |      | 423, 508, 511, 525,  |                                                                                                                |
+## |      | 548, 561, 563, 568,  |                                                                                                                |
+## |      | 598                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 58, 90, 104, 118,    | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 132, 134, 138, 141,  |                                                                                                                |
-## |      | 184, 327, 361, 378,  |                                                                                                                |
-## |      | 453, 456, 470, 493,  |                                                                                                                |
-## |      | 506, 508, 513, 543   |                                                                                                                |
+## |    2 | 77, 209              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
