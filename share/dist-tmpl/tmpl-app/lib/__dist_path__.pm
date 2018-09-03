@@ -14,8 +14,7 @@ const our $API_ROLES => [ 'admin', 'user' ];
 
 const our $NODE_REQUIRES => {
     '<: $module_name :>::Node::Worker' => undef,
-
-    # '<: $module_name :>::Node::Log'    => undef,
+    '<: $module_name :>::Node::Log'    => undef,
 };
 
 sub NODE_ON_EVENT ( $self, $ev ) {
@@ -84,9 +83,9 @@ sub run ( $self ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 4, 5                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 9, 16, 55            | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 9, 16, 17, 54        | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 94                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 98 does not match the package declaration       |
+## |    1 | 93                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 97 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
