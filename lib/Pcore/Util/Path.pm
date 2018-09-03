@@ -312,7 +312,10 @@ sub _build_to_uri ($self) {
     # path reference.
     my $path = $self->{path};
 
-    if ( $path =~ m[\A[^/]*:]sm ) {
+    if ( $self->{volume} ) {
+        return to_uri_path "/$path";
+    }
+    elsif ( $path =~ m[\A[^/]*:]sm ) {
         return to_uri_path "./$path";
     }
     else {
