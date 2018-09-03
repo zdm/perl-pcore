@@ -100,7 +100,7 @@ around new => sub ( $orig, $self, $uri = undef, %args ) {
         $scheme = from_uri_utf8 $scheme;
 
         # load target class if not loaded
-        $class->{$scheme} = eval { P->class->load( $scheme, ns => 'Pcore::Util::URI' ) } if !exists $class->{scheme};
+        $class->{$scheme} = eval { P->class->load( $scheme, ns => 'Pcore::Util::URI' ) } if !exists $class->{$scheme};
 
         $target = ( $class->{$scheme} // $self )->new;
 
