@@ -1,6 +1,6 @@
 package Pcore::Util::Data;
 
-use Pcore -const, -export, -inline;
+use Pcore -const, -export;
 use Pcore::Util::Text qw[decode_utf8 encode_utf8 escape_scalar trim];
 use Pcore::Util::List qw[pairs];
 use Sort::Naturally qw[nsort];
@@ -631,92 +631,7 @@ sub to_xor ( $buf, $mask ) {
 
 *from_xor = \&to_xor;
 
-# URI
-sub to_uri : prototype($) ($data) {
-    return to_uri_component $data if !is_ref $data;
-
-    $data = $data->get_hash if is_blessed_ref $data && $data->isa('Pcore::Util::Hash::Multivalue');
-
-    my @res;
-
-    if ( is_plain_arrayref $data ) {
-        for ( my $i = 0; $i <= $data->$#*; $i += 2 ) {
-            push @res, join q[=], defined $data->[$i] ? to_uri_component $data->[$i] : q[], defined $data->[ $i + 1 ] ? to_uri_component $data->[ $i + 1 ] : ();
-        }
-    }
-    elsif ( is_plain_hashref $data) {
-        while ( my ( $k, $v ) = each $data->%* ) {
-            $k = to_uri_component $k;
-
-            if ( ref $v ) {
-
-                # value is ArrayRef
-                for my $v1 ( $v->@* ) {
-                    push @res, join q[=], $k, defined $v1 ? to_uri_component $v1 : ();
-                }
-            }
-            else {
-                push @res, join q[=], $k, defined $v ? to_uri_component $v : ();
-            }
-        }
-    }
-    else {
-        die 'Unsupported ref type';
-    }
-
-    return join q[&], @res;
-}
-
-# always return HashMultivalue
-sub from_uri_query : prototype($) ($uri) {
-    my $res = P->hash->multivalue;
-
-    my $hash = $res->get_hash;
-
-    for my $key ( split /&/sm, $_[0] ) {
-        my $val;
-
-        if ( ( my $idx = index $key, q[=] ) != -1 ) {
-            $val = substr $key, $idx, length $key, q[];
-
-            substr $val, 0, 1, q[];
-
-            $val = from_uri $val;
-        }
-
-        $key = from_uri $key;
-
-        push $hash->{$key}->@*, $val;
-    }
-
-    return $res;
-}
-
-sub from_uri_query_utf8 : prototype($) ($uri) {
-    my $res = P->hash->multivalue;
-
-    my $hash = $res->get_hash;
-
-    for my $key ( split /&/sm, $_[0] ) {
-        my $val;
-
-        if ( ( my $idx = index $key, q[=] ) != -1 ) {
-            $val = substr $key, $idx, length $key, q[];
-
-            substr $val, 0, 1, q[];
-
-            $val = from_uri_utf8 $val;
-        }
-
-        $key = from_uri_utf8 $key;
-
-        push $hash->{$key}->@*, $val;
-    }
-
-    return $res;
-}
-
-# NOTE https://tools.ietf.org/html/rfc3986#appendix-A
+# URI - NOTE https://tools.ietf.org/html/rfc3986#appendix-A
 use Inline(
     C => <<'C',
 
@@ -1028,6 +943,90 @@ C
     },
 );
 
+sub to_uri : prototype($) ($data) {
+    return to_uri_component $data if !is_ref $data;
+
+    $data = $data->get_hash if is_blessed_ref $data && $data->isa('Pcore::Util::Hash::Multivalue');
+
+    my @res;
+
+    if ( is_plain_arrayref $data ) {
+        for ( my $i = 0; $i <= $data->$#*; $i += 2 ) {
+            push @res, join q[=], defined $data->[$i] ? to_uri_component $data->[$i] : q[], defined $data->[ $i + 1 ] ? to_uri_component $data->[ $i + 1 ] : ();
+        }
+    }
+    elsif ( is_plain_hashref $data) {
+        while ( my ( $k, $v ) = each $data->%* ) {
+            $k = to_uri_component $k;
+
+            if ( ref $v ) {
+
+                # value is ArrayRef
+                for my $v1 ( $v->@* ) {
+                    push @res, join q[=], $k, defined $v1 ? to_uri_component $v1 : ();
+                }
+            }
+            else {
+                push @res, join q[=], $k, defined $v ? to_uri_component $v : ();
+            }
+        }
+    }
+    else {
+        die 'Unsupported ref type';
+    }
+
+    return join q[&], @res;
+}
+
+# always returns HashMultivalue
+sub from_uri_query : prototype($) ($uri) {
+    my $res = P->hash->multivalue;
+
+    my $hash = $res->get_hash;
+
+    for my $key ( split /&/sm, $_[0] ) {
+        my $val;
+
+        if ( ( my $idx = index $key, q[=] ) != -1 ) {
+            $val = substr $key, $idx, length $key, q[];
+
+            substr $val, 0, 1, q[];
+
+            $val = from_uri $val;
+        }
+
+        $key = from_uri $key;
+
+        push $hash->{$key}->@*, $val;
+    }
+
+    return $res;
+}
+
+sub from_uri_query_utf8 : prototype($) ($uri) {
+    my $res = P->hash->multivalue;
+
+    my $hash = $res->get_hash;
+
+    for my $key ( split /&/sm, $_[0] ) {
+        my $val;
+
+        if ( ( my $idx = index $key, q[=] ) != -1 ) {
+            $val = substr $key, $idx, length $key, q[];
+
+            substr $val, 0, 1, q[];
+
+            $val = from_uri_utf8 $val;
+        }
+
+        $key = from_uri_utf8 $key;
+
+        push $hash->{$key}->@*, $val;
+    }
+
+    return $res;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -1043,7 +1042,7 @@ C
 ## |      | 364, 417             | * Postfix control "for" used                                                                                   |
 ## |      | 625                  | * Postfix control "while" used                                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 643                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 954                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

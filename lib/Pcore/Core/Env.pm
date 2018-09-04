@@ -118,6 +118,36 @@ sub _configure_inc {
     return;
 }
 
+sub _init_inline ($self) {
+    if ( $self->{is_par} ) {
+        $INC{'Inline.pm'} = $INC{'Pcore/Core/Env.pm'};    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+
+        require XSLoader;
+
+        *Inline::import = sub {
+            my $caller = caller;
+
+            XSLoader::load $caller;
+
+            return;
+        };
+    }
+    else {
+        require Inline;
+
+        Inline->import(
+            config => (
+                directory         => $self->{INLINE_DIR},
+                autoname          => 0,
+                clean_after_build => 0,
+                clean_build_area  => 0,
+            )
+        );
+    }
+
+    return;
+}
+
 sub BUILD ( $self, $args ) {
     $self->{is_par} = $ENV{PAR_TEMP} ? 1 : 0;
 
@@ -130,6 +160,8 @@ sub BUILD ( $self, $args ) {
         mkdir "$self->{PCORE_USER_DIR}inline" || die qq[Error creating ""$self->{PCORE_USER_DIR}inline""] if !-d "$self->{PCORE_USER_DIR}inline";
         mkdir $self->{INLINE_DIR} || die qq[Error creating "$self->{INLINE_DIR}"] if !-d $self->{INLINE_DIR};
     }
+
+    $self->_init_inline;
 
     return;
 }
@@ -362,15 +394,15 @@ sub DESTROY ( $self ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 267                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 299                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 275                  | Subroutines::ProhibitExcessComplexity - Subroutine "DESTROY" with high complexity score (22)                   |
+## |    3 | 307                  | Subroutines::ProhibitExcessComplexity - Subroutine "DESTROY" with high complexity score (22)                   |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 284                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 316                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 322                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 354                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 349                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
+## |    2 | 381                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 102                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

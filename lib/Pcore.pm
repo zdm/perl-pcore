@@ -16,7 +16,6 @@ our $EXPORT_PRAGMA = {
     embedded => undef,    # run in embedded mode
     export   => undef,    # install standart import method
     forktmpl => undef,    # run fork template on startup
-    inline   => undef,    # package use Inline
     l10n     => undef,    # register package L10N domain
     res      => undef,    # export Pcore::Util::Result qw[res]
     role     => undef,    # package is a Moo role
@@ -93,11 +92,6 @@ sub import {
 
         # process -export pragma
         Pcore::Core::Exporter->import( -caller => $caller ) if $import->{pragma}->{export};
-
-        # process -inline pragma
-        if ( $import->{pragma}->{inline} ) {
-            state $INLINE_INIT = !!require Pcore::Core::Inline;
-        }
 
         # process -dist pragma
         $ENV->register_dist($caller) if $import->{pragma}->{dist};
@@ -455,15 +449,15 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 66                   | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 65                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 197, 226, 229, 233,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 265, 268, 273, 276,  |                                                                                                                |
-## |      | 301, 432             |                                                                                                                |
+## |    3 | 191, 220, 223, 227,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 259, 262, 267, 270,  |                                                                                                                |
+## |      | 295, 426             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 283                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
+## |    3 | 277                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 201                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 195                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

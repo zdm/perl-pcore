@@ -1,6 +1,6 @@
 package Pcore::Util::IDN;
 
-use Pcore -const, -inline, -export;
+use Pcore -const, -export;
 
 # https://libidn.gitlab.io/libidn2/manual/libidn2.html
 
