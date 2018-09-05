@@ -7,6 +7,7 @@ use if $MSWIN, 'Win32API::File';
 use Symbol;
 
 # TODO not working under windows if parent process killed in task manager
+# TODO "on_status" currently is not called from BUILD method, because $node is not defined
 sub run ( $type, $args ) {
     $ENV->scan_deps if $args->{scandeps};
 
@@ -21,7 +22,7 @@ sub run ( $type, $args ) {
         type     => $type,
         requires => ${"$type\::NODE_REQUIRES"},
 
-        # TODO urrently is not called from BUILD method, because $node is not defined
+        # TODO "on_status" currently is not called from BUILD method, because $node is not defined
         on_status => do {
             if ( $type->can('NODE_ON_STATUS') ) {
                 sub ( $self, $new_status, $old_status ) {
@@ -103,7 +104,7 @@ sub run ( $type, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 51                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 52                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
