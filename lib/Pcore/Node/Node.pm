@@ -20,12 +20,31 @@ sub run ( $type, $args ) {
         listen   => $args->{listen},
         type     => $type,
         requires => ${"$type\::NODE_REQUIRES"},
-        on_event => sub ( $self, $ev ) {
-            state $can = $node->can('NODE_ON_EVENT') ? 1 : 0;
 
-            $node->NODE_ON_EVENT($ev) if $can;
+        # TODO urrently is not called fron BUILD method, because $node is not defined
+        on_status => do {
+            if ( $type->can('NODE_ON_STATUS') ) {
+                sub ( $self, $new_status, $old_status ) {
 
-            return;
+                    # say sprintf '%s: %s ---> %s', $type, $Pcore::Node::NODE_STATUS_REASON->{$old_status}, $Pcore::Node::NODE_STATUS_REASON->{$new_status};
+                    # return;
+
+                    return if !defined $node;
+
+                    $node->NODE_ON_STATUS( $new_status, $old_status );
+
+                    return;
+                };
+            }
+        },
+        on_event => do {
+            if ( $type->can('NODE_ON_EVENT') ) {
+                sub ( $self, $ev ) {
+                    $node->NODE_ON_EVENT($ev);
+
+                    return;
+                };
+            }
         },
         on_rpc => sub ( $self, $req, $tx ) {
             my $method_name = "API_$tx->{method}";
@@ -88,7 +107,7 @@ sub run ( $type, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 36                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 55                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

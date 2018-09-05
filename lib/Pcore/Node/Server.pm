@@ -76,64 +76,95 @@ sub BUILD ( $self, $args ) {
 }
 
 sub register_node ( $self, $node_h, $node_id, $node_data, $is_remote = 0 ) {
-    $node_data->{is_online} //= 0;
+    my $node = $self->{_nodes}->{$node_id} = $node_data;
 
-    $self->{_nodes}->{$node_id} = $node_data;
+    my $requires = delete( $node_data->{requires} ) // {};
 
     $self->{_nodes_h}->{$node_id} = {
+        id        => $node_id,
+        requires  => $requires,
         is_remote => $is_remote,
         h         => $node_h,
     };
 
     weaken $self->{_nodes_h}->{$node_id}->{h};
 
-    $self->_on_update;
+    # prepare nodes table for send
+    if ( $requires->%* ) {
+        my $tbl = clone $self->{_nodes};
+
+        # remove this node from nodes table
+        delete $tbl->{$node_id};
+
+        # remove not required nodes
+        for my $id ( keys $tbl->%* ) {
+            delete $tbl->{$id} if !exists $requires->{ $tbl->{$id}->{type} };
+        }
+
+        $self->_send_rpc( $self->{_nodes_h}->{$node_id}, '_on_node_register', [ [ values $tbl->%* ] ] ) if $tbl->%*;
+    }
+
+    $self->_on_update( '_on_node_add', $node, clone $node );
 
     return;
 }
 
 sub remove_node ( $self, $node_id ) {
     if ( exists $self->{_nodes}->{$node_id} ) {
-        delete $self->{_nodes}->{$node_id};
+        my $node = delete $self->{_nodes}->{$node_id};
+
         delete $self->{_nodes_h}->{$node_id};
 
-        $self->_on_update;
+        $self->_on_update( '_on_node_remove', $node, $node_id );
     }
 
     return;
 }
 
-sub update_node_status ( $self, $node_id, $is_online ) {
+sub update_node_status ( $self, $node_id, $status ) {
     my $node = $self->{_nodes}->{$node_id};
 
     # node is unknown
     return if !defined $node;
 
-    $is_online //= 0;
-
     # node status was changed
-    if ( $node->{is_online} != $is_online ) {
-        $node->{is_online} = $is_online;
+    if ( $node->{status} != $status ) {
+        $node->{status} = $status;
 
-        $self->_on_update;
+        $self->_on_update( '_on_node_update', $node, $node_id, $status );
     }
 
     return;
 }
 
-sub _on_update ($self) {
+sub _on_update ( $self, $method, $updated_node, @data ) {
+    my $updated_node_id   = $updated_node->{id};
+    my $updated_node_type = $updated_node->{type};
+
     for my $node ( values $self->{_nodes_h}->%* ) {
-        next if !defined $node->{h};
 
-        # remote node
-        if ( $node->{is_remote} ) {
-            $node->{h}->rpc_call( 'update_node_table', $self->{_nodes} );
-        }
+        # do not send updates to myself
+        next if $node->{id} eq $updated_node_id;
 
-        # local node
-        else {
-            $node->{h}->_update_node_table( clone $self->{_nodes} );
-        }
+        # do not send updates, if node is not required
+        next if !exists $node->{requires}->{$updated_node_type};
+
+        $self->_send_rpc( $node, $method, \@data );
+    }
+
+    return;
+}
+
+sub _send_rpc ( $self, $node, $method, $data ) {
+
+    # remote node
+    if ( $node->{is_remote} ) {
+        $node->{h}->rpc_call( $method, $data->@* );
+    }
+
+    # local node
+    else {
+        $node->{h}->$method( $data->@* );
     }
 
     return;
