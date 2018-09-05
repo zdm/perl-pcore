@@ -26,7 +26,7 @@ sub run ( $type, $args ) {
             if ( $type->can('NODE_ON_STATUS') ) {
                 sub ( $self, $new_status, $old_status ) {
 
-                    # say sprintf '%s: %s ---> %s', $type, $Pcore::Node::NODE_STATUS_REASON->{$old_status}, $Pcore::Node::NODE_STATUS_REASON->{$new_status};
+                    # say sprintf '%s - %s: %s ---> %s', $type, $$, $Pcore::Node::NODE_STATUS_REASON->{$old_status}, $Pcore::Node::NODE_STATUS_REASON->{$new_status};
                     # return;
 
                     return if !defined $node;

@@ -39,10 +39,10 @@ has _on_event         => ( init_arg => undef );                      # on_event 
 
 # TODO
 has _nodes            => ( init_arg => undef );                      # ArrayRef, nodes table
-has _connected_nodes  => ( init_arg => undef );                      # HashRef, connected nodes, hashed by id
 has _connecting_nodes => ( init_arg => undef );                      # HashRef, connecting / reconnecting nodes
-has _ready_nodes      => ( init_arg => undef );                      # HashRef, READY nodes connections by node type
-has _online_nodes     => ( init_arg => undef );                      # HashRef, ONLINE nodes connections by node type
+has _all_conn         => ( init_arg => undef );                      # HashRef, connected nodes, hashed by id
+has _ready_conn       => ( init_arg => undef );                      # HashRef, READY nodes connections by node type
+has _online_conn      => ( init_arg => undef );                      # HashRef, ONLINE nodes connections by node type
 
 const our $NODE_STATUS_UNKNOWN    => -1;
 const our $NODE_STATUS_OFFLINE    => 0;                              # blocked
@@ -216,7 +216,7 @@ sub _on_node_add ( $self, $node, $check_status = 1 ) {
     $self->{_nodes}->{$node_id} = $node;
 
     # node was already connected, connections status was unknown, events listeners was disabled
-    if ( my $conn = $self->{_connected_nodes}->{$node_id} ) {
+    if ( my $conn = $self->{_all_conn}->{$node_id} ) {
 
         # sync status
         $conn->{status} = $node->{status};
@@ -253,7 +253,7 @@ sub _on_node_update ( $self, $node_id, $new_status ) {
     $node->{status} = $new_status;
 
     # node was already connected
-    if ( my $conn = $self->{_connected_nodes}->{$node_id} ) {
+    if ( my $conn = $self->{_all_conn}->{$node_id} ) {
         my $node_type = $node->{type};
 
         # remove connection from the "ready" pool
@@ -295,7 +295,7 @@ sub _on_node_remove ( $self, $node_id ) {
 
     # remove node connections
     # because we will not get node status updates anymore
-    if ( my $conn = delete $self->{_connected_nodes}->{$node_id} ) {
+    if ( my $conn = delete $self->{_all_conn}->{$node_id} ) {
 
         # force disconnect
         $conn->{h}->disconnect;
@@ -334,7 +334,7 @@ sub _check_wait_node ( $self, $node_type ) {
     # has no pending "wait_node" callbacks for this type
     return if !exists $self->{_wait_node_cb}->{$node_type};
 
-    my $online_nodes = $self->{_online_nodes}->{$node_type};
+    my $online_nodes = $self->{_online_conn}->{$node_type};
 
     # has no online nodes of this type
     return if !$online_nodes || !$online_nodes->@*;
@@ -354,7 +354,7 @@ sub _get_status ($self) {
 
     # for each required and connected node
     # calculate sum of noodes by type
-    for my $connection ( values $self->{_connected_nodes}->%* ) {
+    for my $connection ( values $self->{_all_conn}->%* ) {
 
         # skip not-required nodes
         next if !exists $self->{requires}->{ $connection->{type} };
@@ -521,7 +521,7 @@ sub _can_connect_node ( $self, $node_id, $check_connecting = 1 ) {
     return if !defined $node;
 
     # node is already connected
-    return if exists $self->{_connected_nodes}->{$node_id};
+    return if exists $self->{_all_conn}->{$node_id};
 
     # node is already in connecting phase
     return if $check_connecting && exists $self->{_connecting_nodes}->{$node_id};
@@ -663,7 +663,7 @@ sub _on_node_connect ( $self, $h ) {
     my $node = $self->{_nodes}->{$node_id};
 
     # get / add new node connection
-    my $conn = $self->{_connected_nodes}->{$node_id} //= {
+    my $conn = $self->{_all_conn}->{$node_id} //= {
         id     => $node_id,
         type   => $node_type,
         status => $NODE_STATUS_UNKNOWN,
@@ -711,11 +711,11 @@ sub _on_node_connect ( $self, $h ) {
 sub _on_node_disconnect ( $self, $h ) {
     my $node_id = $h->{node_id};
 
-    my $conn = $self->{_connected_nodes}->{$node_id};
+    my $conn = $self->{_all_conn}->{$node_id};
 
     # node was connected, and handle id is match connected node handle id
     if ( defined $conn && $conn->{h}->{id} eq $h->{id} ) {
-        delete $self->{_connected_nodes}->{$node_id};
+        delete $self->{_all_conn}->{$node_id};
 
         # remove connection from the "ready" pool
         if ( $conn->{status} == $NODE_STATUS_READY ) {
@@ -737,13 +737,13 @@ sub _on_node_disconnect ( $self, $h ) {
 sub _add_ready_conn ( $self, $conn ) {
 
     # add node connection to the ready pool
-    unshift $self->{_ready_nodes}->{ $conn->{type} }->@*, $conn->{h};
+    unshift $self->{_ready_conn}->{ $conn->{type} }->@*, $conn->{h};
 
     return;
 }
 
 sub _remove_ready_conn ( $self, $node_id, $node_type ) {
-    my $pool = $self->{_ready_nodes}->{$node_type};
+    my $pool = $self->{_ready_conn}->{$node_type};
 
     # remove node from online nodes
     for ( my $i = 0; $i <= $pool->$#*; $i++ ) {
@@ -763,21 +763,21 @@ sub _add_online_conn ( $self, $conn ) {
     $conn->{h}->resume_events;
 
     # add node connection to the online pool
-    unshift $self->{_online_nodes}->{ $conn->{type} }->@*, $conn->{h};
+    unshift $self->{_online_conn}->{ $conn->{type} }->@*, $conn->{h};
 
     return;
 }
 
 sub _remove_online_conn ( $self, $node_id, $node_type ) {
-    my $pool = $self->{_online_nodes}->{$node_type};
+    my $pool = $self->{_online_conn}->{$node_type};
 
     # remove node from online nodes
     for ( my $i = 0; $i <= $pool->$#*; $i++ ) {
         if ( $pool->[$i]->{node_id} eq $node_id ) {
-            splice $pool->@*, $i, 1;
+            my $h = splice $pool->@*, $i, 1;
 
             # suspend events listener
-            $pool->[$i]->suspend_events;
+            $h->suspend_events;
 
             last;
         }
@@ -787,9 +787,9 @@ sub _remove_online_conn ( $self, $node_id, $node_type ) {
 }
 
 sub online_nodes ( $self, $type ) {
-    return 0 if !$self->{_online_nodes}->{$type};
+    return 0 if !$self->{_online_conn}->{$type};
 
-    return scalar $self->{_online_nodes}->{$type}->@*;
+    return scalar $self->{_online_conn}->{$type}->@*;
 }
 
 sub wait_online ( $self, $timeout = undef ) {
@@ -957,15 +957,15 @@ sub run_node ( $self, @nodes ) {
 
 # TODO repeat to other node if node returns 1013 Try Again Later
 sub rpc_call ( $self, $type, $method, @args ) {
-    my $h = shift $self->{_online_nodes}->{$type}->@*;
+    my $h = shift $self->{_online_conn}->{$type}->@*;
 
     if ( defined $h ) {
-        push $self->{_online_nodes}->{$type}->@*, $h;
+        push $self->{_online_conn}->{$type}->@*, $h;
     }
     else {
-        $h = shift $self->{_ready_nodes}->{$type}->@*;
+        $h = shift $self->{_ready_conn}->{$type}->@*;
 
-        push $self->{_ready_nodes}->{$type}->@*, $h if defined $h;
+        push $self->{_ready_conn}->{$type}->@*, $h if defined $h;
     }
 
     if ( !defined $h ) {
