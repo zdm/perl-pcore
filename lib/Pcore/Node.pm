@@ -22,34 +22,33 @@ has compression         => 0;         # use websocket compression
 has pong_timeout        => 60 * 5;    # for websocket client
 has wait_online_timeout => ();        # default wait_online timeout, false - wait forever
 
-has id               => ( sub {uuid_v4_str}, init_arg => undef );    # my node id
-has is_online        => ( init_arg                    => undef );    # node online status
-has server_is_online => ( init_arg                    => undef );    # node server status
-has status           => ( init_arg                    => undef );    # node status
-
-has _has_requires     => ( init_arg => undef );
-has _server_is_remote => ( init_arg => undef );
-has _remote_server_h  => ( init_arg => undef );                      # remote node server connection handle
-has _http_server      => ( init_arg => undef );                      # InstanceOf['Pcore::HTTP::Server']
-has _wait_online_cb   => ( init_arg => undef );                      # HashRef, wait online callbacks, callback_id => sub
-has _wait_node_cb     => ( init_arg => undef );                      # HashRef, wait node callbacks by node type, callback_id => sub
-has _node_proc        => ( init_arg => undef );                      # HashRef, running nodes processes
-has _on_rpc           => ( init_arg => undef );                      # on_rpc callback wrapper
-has _on_event         => ( init_arg => undef );                      # on_event callback wrapper
+has id                => ( sub {uuid_v4_str}, init_arg => undef );    # my node id
+has is_online         => ( init_arg                    => undef );    # node online status
+has server_is_online  => ( init_arg                    => undef );    # node server status
+has status            => ( init_arg                    => undef );    # node status
+has _has_requires     => ( init_arg                    => undef );
+has _server_is_remote => ( init_arg                    => undef );
+has _remote_server_h  => ( init_arg                    => undef );    # remote node server connection handle
+has _http_server      => ( init_arg                    => undef );    # InstanceOf['Pcore::HTTP::Server']
+has _wait_online_cb   => ( init_arg                    => undef );    # HashRef, wait online callbacks, callback_id => sub
+has _wait_node_cb     => ( init_arg                    => undef );    # HashRef, wait node callbacks by node type, callback_id => sub
+has _node_proc        => ( init_arg                    => undef );    # HashRef, running nodes processes
+has _on_rpc           => ( init_arg                    => undef );    # on_rpc callback wrapper
+has _on_event         => ( init_arg                    => undef );    # on_event callback wrapper
 
 # TODO
-has _nodes            => ( init_arg => undef );                      # ArrayRef, nodes table
-has _connecting_nodes => ( init_arg => undef );                      # HashRef, connecting / reconnecting nodes
-has _all_conn         => ( init_arg => undef );                      # HashRef, connected nodes, hashed by id
-has _ready_conn       => ( init_arg => undef );                      # HashRef, READY nodes connections by node type
-has _online_conn      => ( init_arg => undef );                      # HashRef, ONLINE nodes connections by node type
+has _nodes       => ( init_arg => undef );                            # ArrayRef, nodes table
+has _conn_nodes  => ( init_arg => undef );                            # HashRef, connecting nodes
+has _all_conn    => ( init_arg => undef );                            # HashRef, connected nodes, hashed by id
+has _ready_conn  => ( init_arg => undef );                            # HashRef, READY nodes connections by node type
+has _online_conn => ( init_arg => undef );                            # HashRef, ONLINE nodes connections by node type
 
-const our $NODE_STATUS_UNKNOWN    => -1;
-const our $NODE_STATUS_OFFLINE    => 0;                              # blocked
-const our $NODE_STATUS_CONNECTING => 1;                              # blocked, connecting to required nodes
-const our $NODE_STATUS_CONNECTED  => 2;                              # blocked, connected to the all required nodes
-const our $NODE_STATUS_READY      => 3;                              # blocked, CONNECTED and all required nodes are in the CONNECTED state
-const our $NODE_STATUS_ONLINE     => 4;                              # unblocked, READY and all required nodes are in the READY or ONLINE state
+const our $NODE_STATUS_UNKNOWN    => 1;
+const our $NODE_STATUS_OFFLINE    => 2;                               # blocked
+const our $NODE_STATUS_CONNECTING => 3;                               # blocked, connecting to required nodes
+const our $NODE_STATUS_CONNECTED  => 4;                               # blocked, connected to the all required nodes
+const our $NODE_STATUS_READY      => 5;                               # blocked, all required nodes are in the CONNECTED state
+const our $NODE_STATUS_ONLINE     => 6;                               # unblocked, all required nodes are in the READY or ONLINE state
 
 const our $NODE_STATUS_REASON => {
     $NODE_STATUS_UNKNOWN    => 'unknown',
@@ -114,13 +113,49 @@ sub BUILD ( $self, $args ) {
             $self->{server} = Pcore::Node::Server->new( $self->{server} // () );
         }
 
-        $self->{server}->register_node( $self, $self->{id}, $self->_node_register_data );
+        $self->{server}->register_node( $self, $self->{id}, $self->_get_node_register_data );
     }
 
     return;
 }
 
-sub _node_register_data ($self) {
+sub _build__on_rpc ($self) {
+    return if !defined $self->{on_rpc};
+
+    weaken $self;
+
+    return sub ( $h, $req, $tx ) {
+        if ( !defined $self ) {
+            $req->( [ 1013, 'Node Destroyed' ] );
+        }
+        elsif ( $self->{status} < $NODE_STATUS_READY ) {
+            $req->( [ 1013, 'Node is Offline' ] );
+        }
+        else {
+            $self->{on_rpc}->( $self, $req, $tx );
+        }
+
+        return;
+    };
+}
+
+sub _build__on_event ($self) {
+    return if !defined $self->{on_event};
+
+    weaken $self;
+
+    return sub ( $h, $ev ) {
+        return if !defined $self;
+
+        if ( $self->{status} >= $NODE_STATUS_READY ) {
+            $self->{on_event}->( $self, $ev );
+        }
+
+        return;
+    };
+}
+
+sub _get_node_register_data ($self) {
     return {
         id       => $self->{id},
         type     => $self->{type},
@@ -130,6 +165,19 @@ sub _node_register_data ($self) {
     };
 }
 
+sub _get_bindings ( $self, $node_type ) {
+    return if !defined $self->{on_event};
+
+    if ( defined( my $requires = $self->{requires} ) ) {
+        return $requires->{$node_type} if exists $requires->{$node_type};
+
+        return $requires->{'*'} if exists $requires->{'*'};
+    }
+
+    return;
+}
+
+# CONNECT TO SERVER
 sub _connect_to_remote_server ($self) {
     state $RPC_METHOD = {
         _on_node_register => 1,
@@ -147,7 +195,7 @@ sub _connect_to_remote_server ($self) {
             $self->{server},
             compression   => $self->{compression},
             pong_timeout  => $self->{pong_timeout},
-            token         => [ $self->{server}->username, $self->{id}, $self->_node_register_data ],
+            token         => [ $self->{server}->username, $self->{id}, $self->_get_node_register_data ],
             on_disconnect => sub ($h) {
 
                 # node was destroyed
@@ -200,199 +248,372 @@ sub _connect_to_remote_server ($self) {
     return;
 }
 
-sub _on_node_register ( $self, $nodes ) {
-    for my $node ( $nodes->@* ) {
-        $self->_on_node_add( $node, 0 );
-    }
+# TODO on_bind
+sub _run_http_server ($self) {
+    weaken $self;
 
-    $self->_check_status;
+    $self->{_http_server} = Pcore::HTTP::Server->new(
+        listen     => $self->{listen},
+        on_request => sub ($req) {
+            if ( $req->is_websocket_connect_request ) {
+                my $h = Pcore::WebSocket::pcore->accept(
+                    $req,
+                    compression   => $self->{compression},
+                    on_disconnect => sub ($h) {
+
+                        # node was destroyed
+                        return if !defined $self;
+
+                        $self->_on_node_disconnect($h);
+
+                        return;
+                    },
+                    on_auth => sub ( $h, $token ) {
+
+                        # node was destroyed
+                        return if !defined $self;
+
+                        ( $token, $h->{node_id}, $h->{node_type} ) = $token->@*;
+
+                        # check authentication
+                        if ( defined $self->{listen}->{username} && $token ne $self->{listen}->{username} ) {
+                            $h->disconnect;
+
+                            return;
+                        }
+                        else {
+                            return res(200), $self->_get_bindings( $h->{node_type} );
+                        }
+                    },
+                    on_ready => sub ($h) {
+
+                        # node was destroyed
+                        return if !defined $self;
+
+                        $self->_on_node_connect($h);
+
+                        return;
+                    },
+
+                    # TODO
+                    on_bind  => sub ( $h, $binding ) { return 1 },
+                    on_event => $self->{_on_event},
+                    on_rpc   => $self->{_on_rpc},
+                );
+            }
+
+            return;
+        }
+    );
 
     return;
 }
 
-sub _on_node_add ( $self, $node, $check_status = 1 ) {
+# TODO on_bind
+sub _connect_node ( $self, $node_id, $check_connecting = 1 ) {
+    state $can_connect_node = sub ( $self, $node_id, $check_connecting = 1 ) {
+
+        # check, that node is known
+        my $node = $self->{_nodes}->{$node_id};
+
+        # return if node is unknown (was removed from nodes table)
+        return if !defined $node;
+
+        # node is already connected
+        return if exists $self->{_all_conn}->{$node_id};
+
+        return if $check_connecting && exists $self->{_conn_nodes}->{$node_id};
+
+        # cyclic deps
+        return if exists $node->{requires}->{ $self->{type} } && $self->{id} le $node_id;
+
+        return $node;
+    };
+
+    my $node = $can_connect_node->( $self, $node_id, $check_connecting );
+
+    # can't connect to the node
+    return if !defined $node;
+
+    $self->{_conn_nodes}->{$node_id} = 1;
+
+    $node->{listen} = P->uri( $node->{listen}, base => 'ws:' ) if !is_ref $node->{listen};
+
+    weaken $self;
+
+    Coro::async_pool {
+        my $h = Pcore::WebSocket::pcore->connect(
+            $node->{listen},
+            compression   => $self->{compression},
+            pong_timeout  => $self->{pong_timeout},
+            token         => [ $node->{listen}->username, $self->{id}, $self->{type} ],
+            bindings      => $self->_get_bindings( $node->{type} ) // undef,
+            node_id       => $node_id,
+            node_type     => $node->{type},
+            on_disconnect => sub ($h) {
+
+                # node was destroyed
+                return if !defined $self;
+
+                $self->_on_node_disconnect($h);
+
+                # can't connect to the node
+                if ( !defined $can_connect_node->( $self, $node_id ) ) {
+                    delete $self->{_conn_nodes}->{$node_id};
+
+                    return;
+                }
+
+                # reconnect to node
+                my $t;
+
+                $t = AE::timer $self->{reconnect_timeout}, 0, sub {
+                    undef $t;
+
+                    # node was destroyed
+                    return if !defined $self;
+
+                    $self->_connect_node( $node_id, 0 );
+
+                    return;
+                };
+
+                return;
+            },
+
+            # TODO
+            on_bind  => sub ( $h, $binding ) { return 1 },
+            on_event => $self->{_on_event},
+            on_rpc   => $self->{_on_rpc},
+        );
+
+        delete $self->{_conn_nodes}->{$node_id};
+
+        # connected to the node server
+        $self->_on_node_connect($h) if $h;
+
+        return;
+    };
+
+    return;
+}
+
+# NODE CONNECTION METHODS
+sub _on_node_connect ( $self, $h ) {
+    my $node_id   = $h->{node_id};
+    my $node_type = $h->{node_type};
+
+    # add connection if not already connected to this node id
+    if ( !exists $self->{_all_conn}->{$node_id} ) {
+        $self->{_all_conn}->{$node_id} = {
+            id     => $node_id,
+            type   => $node_type,
+            status => $NODE_STATUS_UNKNOWN,
+            h      => $h,
+        };
+
+        # required node was connected
+        $self->_update($node_id) if exists $self->{requires}->{$node_type};
+    }
+
+    return;
+}
+
+sub _on_node_disconnect ( $self, $h ) {
+    my $node_id = $h->{node_id};
+
+    my $conn = delete $self->{_all_conn}->{$node_id};
+
+    # required node was disconnected
+    $self->_update($node_id) if $conn && exists $self->{requires}->{ $conn->{type} };
+
+    return;
+}
+
+# NODE UPDATE METHODS
+sub _on_node_register ( $self, $nodes ) {
+    $self->{_nodes} = $nodes;
+
+    $self->_update;
+
+    return;
+}
+
+sub _on_node_add ( $self, $node ) {
     my $node_id = $node->{id};
 
     $self->{_nodes}->{$node_id} = $node;
 
-    # node was already connected, connections status was unknown, events listeners was disabled
-    if ( my $conn = $self->{_all_conn}->{$node_id} ) {
-
-        # sync status
-        $conn->{status} = $node->{status};
-
-        # add connection to the "ready" pool
-        if ( $node->{status} == $NODE_STATUS_READY ) {
-            $self->_add_ready_conn($conn);
-        }
-
-        # add connection to the "online" pool
-        elsif ( $node->{status} == $NODE_STATUS_ONLINE ) {
-            $self->_add_online_conn($conn);
-        }
-
-        $self->_check_status if $check_status;
-
-        $self->_check_wait_node( $node->{type} ) if $self->{_has_requires} && $node->{status} == $NODE_STATUS_ONLINE;
-    }
-
-    # node was not connected
-    else {
-
-        # try to connect to the remote node
-        $self->_connect_node( $node->{id} );
-    }
+    $self->_update($node_id);
 
     return;
 }
 
 sub _on_node_update ( $self, $node_id, $new_status ) {
-    my $node = $self->{_nodes}->{$node_id};
+    $self->{_nodes}->{$node_id}->{status} = $new_status;
 
-    # set new status
-    $node->{status} = $new_status;
-
-    # node was already connected
-    if ( my $conn = $self->{_all_conn}->{$node_id} ) {
-        my $node_type = $node->{type};
-
-        # remove connection from the "ready" pool
-        if ( $conn->{status} == $NODE_STATUS_READY ) {
-            $self->_remove_ready_conn( $node_id, $node_type );
-        }
-
-        # remove connection from the "online" pool
-        elsif ( $conn->{status} == $NODE_STATUS_ONLINE ) {
-            $self->_remove_online_conn( $node_id, $node_type );
-        }
-
-        # sync status
-        $conn->{status} = $new_status;
-
-        # add connection to the "ready" pool
-        if ( $new_status == $NODE_STATUS_READY ) {
-            $self->_add_ready_conn($conn);
-        }
-
-        # add connection to the "online" pool
-        elsif ( $new_status == $NODE_STATUS_ONLINE ) {
-            $self->_add_online_conn($conn);
-        }
-
-        $self->_check_status;
-
-        # node status changed to ONLINE
-        $self->_check_wait_node( $node->{type} ) if $self->{_has_requires} && $new_status == $NODE_STATUS_ONLINE;
-    }
+    $self->_update($node_id);
 
     return;
 }
 
 sub _on_node_remove ( $self, $node_id ) {
+    delete $self->{_nodes}->{$node_id};
 
-    # remove node from nodes table
-    my $node = delete $self->{_nodes}->{$node_id};
-
-    # remove node connections
-    # because we will not get node status updates anymore
-    if ( my $conn = delete $self->{_all_conn}->{$node_id} ) {
-
-        # force disconnect
-        $conn->{h}->disconnect;
-
-        # remove connection from the "ready" pool
-        if ( $conn->{status} == $NODE_STATUS_READY ) {
-            $self->_remove_ready_conn( $node_id, $conn->{type} );
-        }
-
-        # remove connection from the "online" pool
-        elsif ( $conn->{status} == $NODE_STATUS_ONLINE ) {
-            $self->_remove_online_conn( $node_id, $conn->{type} );
-        }
-
-        $self->_check_status;
-    }
+    $self->_update($node_id);
 
     return;
 }
 
-sub _check_status ($self) {
-    return if !$self->{_has_requires};
+sub _update ( $self, $node_id = undef ) {
+    state $remove_conn = sub ( $self, $node_id, $node_type, $status ) {
+        my $pool;
+
+        if ( $status == $NODE_STATUS_READY ) {
+            $pool = $self->{_ready_conn}->{$node_type};
+        }
+        elsif ( $status == $NODE_STATUS_ONLINE ) {
+            $pool = $self->{_online_conn}->{$node_type};
+        }
+        else {
+            return;
+        }
+
+        # remove node from online nodes
+        for ( my $i = 0; $i <= $pool->$#*; $i++ ) {
+            if ( $pool->[$i]->{node_id} eq $node_id ) {
+                my $h = splice $pool->@*, $i, 1;
+
+                # suspend events listener
+                $h->suspend_events if $status == $NODE_STATUS_ONLINE;
+
+                last;
+            }
+        }
+
+        return;
+    };
+
+    state $check_wait_node = sub ( $self, $node_type ) {
+
+        # has no pending "wait_node" callbacks for this type
+        return if !exists $self->{_wait_node_cb}->{$node_type};
+
+        my $online_nodes = $self->{_online_conn}->{$node_type};
+
+        # has no online nodes of this type
+        return if !$online_nodes || !$online_nodes->@*;
+
+        # call pending callbacks
+        for my $cb ( values delete( $self->{_wait_node_cb}->{$node_type} )->%* ) { $cb->() }
+
+        return;
+    };
+
+    state $update_node = sub ( $self, $node_id ) {
+        my $node = $self->{_nodes}->{$node_id};
+        my $conn = $self->{_all_conn}->{$node_id};
+
+        # hmm.., nothing to do
+        return if !defined $conn && !defined $node;
+
+        # node was added OR disconnected
+        if ( !defined $conn && defined $node ) {
+
+            # remove connection from the corresponded pool
+            $remove_conn->( $self, $node_id, $node->{type}, $node->{status} );
+
+            $self->_connect_node($node_id);
+        }
+
+        # node was removed from nodes table, remove node connection
+        elsif ( defined $conn && !defined $node ) {
+            my $node_type = $conn->{type};
+            my $status    = $conn->{status};
+
+            delete $self->{_all_conn}->{$node_id};
+
+            # remove connection from the corresponded pool
+            $remove_conn->( $self, $node_id, $node_type, $status );
+        }
+
+        # connection to the node established
+        # synchronize node status
+        else {
+            my $node_type  = $node->{type};
+            my $old_status = $conn->{status};
+            my $new_status = $node->{status};
+
+            # synchronize status
+            $conn->{status} = $new_status;
+
+            # remove connection from the corresponded pool
+            $remove_conn->( $self, $node_id, $node_type, $old_status );
+
+            # add connection to the corresponded pool
+            if ( $new_status == $NODE_STATUS_READY ) {
+                unshift $self->{_ready_conn}->{$node_type}->@*, $conn->{h};
+            }
+            elsif ( $new_status == $NODE_STATUS_ONLINE ) {
+                unshift $self->{_online_conn}->{$node_type}->@*, $conn->{h};
+
+                # enable event listeners
+                $conn->{h}->resume_events;
+
+                # check "wait_node" status changes
+                $check_wait_node->( $self, $node_type );
+            }
+        }
+
+        return;
+    };
+
+    if ( defined $node_id ) {
+        $update_node->( $self, $node_id );
+    }
+    else {
+        for my $node_id ( keys $self->{_nodes}->%* ) { $update_node->( $self, $node_id ) }
+    }
 
     # do nothing if in OFFLINE
     return if $self->{status} == $NODE_STATUS_OFFLINE;
 
+    # calc new node status
     my $new_status = $self->_get_status;
 
+    # update node status
     $self->_set_status($new_status);
 
     return;
 }
 
-sub _check_wait_node ( $self, $node_type ) {
-
-    # has no pending "wait_node" callbacks for this type
-    return if !exists $self->{_wait_node_cb}->{$node_type};
-
-    my $online_nodes = $self->{_online_conn}->{$node_type};
-
-    # has no online nodes of this type
-    return if !$online_nodes || !$online_nodes->@*;
-
-    # call pending callbacks
-    for my $cb ( values delete( $self->{_wait_node_cb}->{$node_type} )->%* ) { $cb->() }
-
-    return;
-}
-
 sub _get_status ($self) {
+
+    # node status is ONLINE if node has no requirements
     return $NODE_STATUS_ONLINE if !$self->{_has_requires};
 
-    my ( $processed_type_status, $total_connected_types, $total_status );
+    my $max_type_status = {};
 
-    state $READY_ONLINE = 100;
-
-    # for each required and connected node
-    # calculate sum of noodes by type
-    for my $connection ( values $self->{_all_conn}->%* ) {
+    for my $conn ( values $self->{_all_conn}->%* ) {
 
         # skip not-required nodes
-        next if !exists $self->{requires}->{ $connection->{type} };
+        next if !exists $self->{requires}->{ $conn->{type} };
 
-        # calc READY_ONLINE
-        if ( $connection->{status} >= $NODE_STATUS_READY && !$processed_type_status->{ $connection->{type} }->{$READY_ONLINE} ) {
-            $processed_type_status->{ $connection->{type} }->{$READY_ONLINE} = 1;
-
-            $total_status->{$READY_ONLINE}++;
-        }
-
-        # status for this type is already added
-        if ( !exists $processed_type_status->{ $connection->{type} }->{ $connection->{status} } ) {
-            $processed_type_status->{ $connection->{type} }->{ $connection->{status} } = 1;
-
-            $total_connected_types++;
-
-            $total_status->{ $connection->{status} }++;
-        }
+        # find max. status for each established conn. type
+        $max_type_status->{ $conn->{type} } = $conn->{status} if $conn->{status} > ( $max_type_status->{ $conn->{type} } //= -1 );
     }
 
-    my $total_required_types = $self->{requires}->%*;
+    # check, that all required connections types are established
+    # CONNECTING if total establised conns. types < total number of required conns.
+    return $NODE_STATUS_CONNECTING if $max_type_status->%* < $self->{requires}->%*;
 
-    no warnings qw[uninitialized];
+    # find minimal common status of all required connections
+    my $min_status = P->list->min( values $max_type_status->%* ) // -1;
 
-    # CONNECTING - not all required types are connected
-    return $NODE_STATUS_CONNECTING if $total_connected_types < $total_required_types;
+    return $NODE_STATUS_ONLINE if $min_status >= $NODE_STATUS_READY;
 
-    # ONLINE - all required types are in READY or ONLINE state
-    return $NODE_STATUS_ONLINE if $total_status->{$READY_ONLINE} == $total_required_types;
+    return $NODE_STATUS_READY if $min_status == $NODE_STATUS_CONNECTED;
 
-    # ONLINE - all required types are READY
-    return $NODE_STATUS_ONLINE if $total_status->{$NODE_STATUS_READY} == $total_required_types;
-
-    # READY - all required types are CONNECTED
-    return $NODE_STATUS_READY if $total_status->{$NODE_STATUS_CONNECTED} == $total_required_types;
-
-    # CONNECTED
     return $NODE_STATUS_CONNECTED;
 }
 
@@ -429,6 +650,7 @@ sub _set_status ( $self, $new_status ) {
     return;
 }
 
+# ONLINE / OFFLINE METHODS
 sub go_online ($self) {
     return if $self->{status} != $NODE_STATUS_OFFLINE;
 
@@ -447,345 +669,7 @@ sub go_offline ($self) {
     return;
 }
 
-# TODO on_bind
-sub _run_http_server ($self) {
-    weaken $self;
-
-    $self->{_http_server} = Pcore::HTTP::Server->new(
-        listen     => $self->{listen},
-        on_request => sub ($req) {
-            if ( $req->is_websocket_connect_request ) {
-                my $h = Pcore::WebSocket::pcore->accept(
-                    $req,
-                    compression   => $self->{compression},
-                    on_disconnect => sub ($h) {
-
-                        # node was destroyed
-                        return if !defined $self;
-
-                        $self->_on_node_disconnect($h);
-
-                        return;
-                    },
-                    on_auth => sub ( $h, $token ) {
-
-                        # node was destroyed
-                        return if !defined $self;
-
-                        ( $token, $h->{node_id}, $h->{node_type} ) = $token->@*;
-
-                        if ( exists $self->{_connecting_nodes}->{ $h->{node_id} } && $h->{node_id} le $self->{id} ) {
-                            $h->disconnect;
-
-                            return;
-                        }
-                        elsif ( defined $self->{listen}->{username} && $token ne $self->{listen}->{username} ) {
-                            $h->disconnect;
-
-                            return;
-                        }
-                        else {
-                            return res(200), $self->_get_bindings( $h->{node_type} );
-                        }
-                    },
-                    on_ready => sub ($h) {
-
-                        # node was destroyed
-                        return if !defined $self;
-
-                        $self->_on_node_connect($h);
-
-                        return;
-                    },
-
-                    # TODO
-                    on_bind  => sub ( $h, $binding ) { return 1 },
-                    on_event => $self->{_on_event},
-                    on_rpc   => $self->{_on_rpc},
-                );
-            }
-
-            return;
-        }
-    );
-
-    return;
-}
-
-sub _can_connect_node ( $self, $node_id, $check_connecting = 1 ) {
-
-    # check, that node is known
-    my $node = $self->{_nodes}->{$node_id};
-
-    # return if node is unknown (was removed from nodes table)
-    return if !defined $node;
-
-    # node is already connected
-    return if exists $self->{_all_conn}->{$node_id};
-
-    # node is already in connecting phase
-    return if $check_connecting && exists $self->{_connecting_nodes}->{$node_id};
-
-    return $node;
-}
-
-# TODO on_bind
-sub _connect_node ( $self, $node_id, $check_connecting = 1 ) {
-    my $node = $self->_can_connect_node( $node_id, $check_connecting );
-
-    # can't connect to the node
-    return if !defined $node;
-
-    # mark node as connecting
-    $self->{_connecting_nodes}->{$node_id} = 1;
-
-    $node->{listen} = P->uri( $node->{listen}, base => 'ws:' ) if !is_ref $node->{listen};
-
-    weaken $self;
-
-    Coro::async_pool {
-        my $h = Pcore::WebSocket::pcore->connect(
-            $node->{listen},
-            compression   => $self->{compression},
-            pong_timeout  => $self->{pong_timeout},
-            token         => [ $node->{listen}->username, $self->{id}, $self->{type} ],
-            bindings      => $self->_get_bindings( $node->{type} ) // undef,
-            node_id       => $node_id,
-            node_type     => $node->{type},
-            on_disconnect => sub ($h) {
-
-                # node was destroyed
-                return if !defined $self;
-
-                $self->_on_node_disconnect($h);
-
-                # can't connect to the node
-                if ( !defined $self->_can_connect_node( $node_id, 0 ) ) {
-
-                    # remove node from connecting nodes
-                    delete $self->{_connecting_nodes}->{$node_id};
-
-                    return;
-                }
-
-                # reconnect to node
-                my $t;
-
-                $t = AE::timer $self->{reconnect_timeout}, 0, sub {
-                    undef $t;
-
-                    # node was destroyed
-                    return if !defined $self;
-
-                    $self->_connect_node( $node_id, 0 );
-
-                    return;
-                };
-
-                return;
-            },
-
-            # TODO
-            on_bind  => sub ( $h, $binding ) { return 1 },
-            on_event => $self->{_on_event},
-            on_rpc   => $self->{_on_rpc},
-        );
-
-        # connected to the node server
-        if ($h) {
-
-            # remove node from connecting nodes
-            delete $self->{_connecting_nodes}->{$node_id};
-
-            # do not store connection if node was removed during connecting
-            # because we can't get node status updates
-            $self->_on_node_connect($h) if exists $self->{_nodes}->{$node_id};
-        }
-
-        return;
-    };
-
-    return;
-}
-
-sub _get_bindings ( $self, $node_type ) {
-    return if !defined $self->{on_event};
-
-    if ( defined( my $requires = $self->{requires} ) ) {
-        return $requires->{$node_type} if exists $requires->{$node_type};
-
-        return $requires->{'*'} if exists $requires->{'*'};
-    }
-
-    return;
-}
-
-sub _build__on_rpc ($self) {
-    return if !defined $self->{on_rpc};
-
-    weaken $self;
-
-    return sub ( $h, $req, $tx ) {
-        if ( !defined $self ) {
-            $req->( [ 1013, 'Node Destroyed' ] );
-        }
-        elsif ( $self->{status} < $NODE_STATUS_READY ) {
-            $req->( [ 1013, 'Node is Offline' ] );
-        }
-        else {
-            $self->{on_rpc}->( $self, $req, $tx );
-        }
-
-        return;
-    };
-}
-
-sub _build__on_event ($self) {
-    return if !defined $self->{on_event};
-
-    weaken $self;
-
-    return sub ( $h, $ev ) {
-        return if !defined $self;
-
-        if ( $self->{status} >= $NODE_STATUS_READY ) {
-            $self->{on_event}->( $self, $ev );
-        }
-
-        return;
-    };
-}
-
-sub _on_node_connect ( $self, $h ) {
-    my $node_id   = $h->{node_id};
-    my $node_type = $h->{node_type};
-
-    my $node = $self->{_nodes}->{$node_id};
-
-    # get / add new node connection
-    my $conn = $self->{_all_conn}->{$node_id} //= {
-        id     => $node_id,
-        type   => $node_type,
-        status => $NODE_STATUS_UNKNOWN,
-        h      => $h,
-    };
-
-    # node is exists in the nodes table, node status is known
-    if ( defined $node ) {
-
-        # set connection status
-        $conn->{status} = $node->{status};
-
-        # add connection to the "ready" pool
-        if ( $node->{status} == $NODE_STATUS_READY ) {
-            $conn->{h}->suspend_events;
-
-            $self->_add_ready_conn($conn);
-        }
-
-        # add connection to the "online" pool
-        elsif ( $node->{status} == $NODE_STATUS_ONLINE ) {
-            $self->_add_online_conn($conn);
-        }
-        else {
-
-            # suspend events listener
-            $h->suspend_events;
-        }
-
-        $self->_check_status;
-
-        $self->_check_wait_node($node_type) if $self->{_has_requires} && $node->{status} == $NODE_STATUS_ONLINE;
-    }
-
-    # node status unknown
-    else {
-
-        # suspend events listener
-        $h->suspend_events;
-    }
-
-    return;
-}
-
-sub _on_node_disconnect ( $self, $h ) {
-    my $node_id = $h->{node_id};
-
-    my $conn = $self->{_all_conn}->{$node_id};
-
-    # node was connected, and handle id is match connected node handle id
-    if ( defined $conn && $conn->{h}->{id} eq $h->{id} ) {
-        delete $self->{_all_conn}->{$node_id};
-
-        # remove connection from the "ready" pool
-        if ( $conn->{status} == $NODE_STATUS_READY ) {
-            $self->_remove_ready_conn( $node_id, $conn->{type} );
-        }
-
-        # remove connection from the "online" pool
-        elsif ( $conn->{status} == $NODE_STATUS_ONLINE ) {
-            $self->_remove_online_conn( $node_id, $conn->{type} );
-        }
-
-        # re-check status
-        $self->_check_status;
-    }
-
-    return;
-}
-
-sub _add_ready_conn ( $self, $conn ) {
-
-    # add node connection to the ready pool
-    unshift $self->{_ready_conn}->{ $conn->{type} }->@*, $conn->{h};
-
-    return;
-}
-
-sub _remove_ready_conn ( $self, $node_id, $node_type ) {
-    my $pool = $self->{_ready_conn}->{$node_type};
-
-    # remove node from online nodes
-    for ( my $i = 0; $i <= $pool->$#*; $i++ ) {
-        if ( $pool->[$i]->{node_id} eq $node_id ) {
-            splice $pool->@*, $i, 1;
-
-            last;
-        }
-    }
-
-    return;
-}
-
-sub _add_online_conn ( $self, $conn ) {
-
-    # resume events listener
-    $conn->{h}->resume_events;
-
-    # add node connection to the online pool
-    unshift $self->{_online_conn}->{ $conn->{type} }->@*, $conn->{h};
-
-    return;
-}
-
-sub _remove_online_conn ( $self, $node_id, $node_type ) {
-    my $pool = $self->{_online_conn}->{$node_type};
-
-    # remove node from online nodes
-    for ( my $i = 0; $i <= $pool->$#*; $i++ ) {
-        if ( $pool->[$i]->{node_id} eq $node_id ) {
-            my $h = splice $pool->@*, $i, 1;
-
-            # suspend events listener
-            $h->suspend_events;
-
-            last;
-        }
-    }
-
-    return;
-}
-
+# BLOCKING METHODS
 sub online_nodes ( $self, $type ) {
     return 0 if !$self->{_online_conn}->{$type};
 
@@ -825,7 +709,7 @@ sub wait_online ( $self, $timeout = undef ) {
 sub wait_node ( $self, $type, $timeout = undef ) {
 
     # only required nodes can be monitored
-    return if !$self->{_has_requires} || !exists $self->{requires}->{$type};
+    return 0 if !$self->{_has_requires} || !exists $self->{requires}->{$type};
 
     my $online_nodes = $self->online_nodes($type);
 
@@ -987,11 +871,14 @@ sub rpc_call ( $self, $type, $method, @args ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 203                  | * Private subroutine/method '_on_node_register' declared but not used                                          |
-## |      | 249                  | * Private subroutine/method '_on_node_update' declared but not used                                            |
-## |      | 291                  | * Private subroutine/method '_on_node_remove' declared but not used                                            |
+## |      | 434                  | * Private subroutine/method '_on_node_register' declared but not used                                          |
+## |      | 442                  | * Private subroutine/method '_on_node_add' declared but not used                                               |
+## |      | 452                  | * Private subroutine/method '_on_node_update' declared but not used                                            |
+## |      | 460                  | * Private subroutine/method '_on_node_remove' declared but not used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 749, 775             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    3 | 468                  | Subroutines::ProhibitExcessComplexity - Subroutine "_update" with high complexity score (24)                   |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 483                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

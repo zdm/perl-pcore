@@ -21,14 +21,10 @@ sub run ( $type, $args ) {
         type     => $type,
         requires => ${"$type\::NODE_REQUIRES"},
 
-        # TODO urrently is not called fron BUILD method, because $node is not defined
+        # TODO urrently is not called from BUILD method, because $node is not defined
         on_status => do {
             if ( $type->can('NODE_ON_STATUS') ) {
                 sub ( $self, $new_status, $old_status ) {
-
-                    # say sprintf '%s - %s: %s ---> %s', $type, $$, $Pcore::Node::NODE_STATUS_REASON->{$old_status}, $Pcore::Node::NODE_STATUS_REASON->{$new_status};
-                    # return;
-
                     return if !defined $node;
 
                     $node->NODE_ON_STATUS( $new_status, $old_status );
@@ -107,7 +103,7 @@ sub run ( $type, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 55                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 51                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

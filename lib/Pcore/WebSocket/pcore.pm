@@ -358,7 +358,7 @@ sub _reset ( $self, $status = undef ) {
     delete $self->{auth};
 
     # reset events listener
-    $self->{_listener}->unbind_all;
+    $self->{_listener}->unbind_all if defined $self->{_listener};
 
     $self->{is_ready} = 0;
     $self->{_conn_ver}++;

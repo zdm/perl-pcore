@@ -78,7 +78,7 @@ sub BUILD ( $self, $args ) {
 sub register_node ( $self, $node_h, $node_id, $node_data, $is_remote = 0 ) {
     my $node = $self->{_nodes}->{$node_id} = $node_data;
 
-    my $requires = delete( $node_data->{requires} ) // {};
+    my $requires = $node->{requires} //= {};
 
     $self->{_nodes_h}->{$node_id} = {
         id        => $node_id,
@@ -89,7 +89,7 @@ sub register_node ( $self, $node_h, $node_id, $node_data, $is_remote = 0 ) {
 
     weaken $self->{_nodes_h}->{$node_id}->{h};
 
-    # prepare nodes table for send
+    # prepare nodes table for send, only if registered node have requires
     if ( $requires->%* ) {
         my $tbl = clone $self->{_nodes};
 
@@ -101,9 +101,10 @@ sub register_node ( $self, $node_h, $node_id, $node_data, $is_remote = 0 ) {
             delete $tbl->{$id} if !exists $requires->{ $tbl->{$id}->{type} };
         }
 
-        $self->_send_rpc( $self->{_nodes_h}->{$node_id}, '_on_node_register', [ [ values $tbl->%* ] ] ) if $tbl->%*;
+        $self->_send_rpc( $self->{_nodes_h}->{$node_id}, '_on_node_register', [$tbl] ) if $tbl->%*;
     }
 
+    # send this node to all other registered nodes
     $self->_on_update( '_on_node_add', $node, clone $node );
 
     return;
