@@ -41,7 +41,8 @@ has _on_event         => ( init_arg => undef );                      # on_event 
 has _nodes            => ( init_arg => undef );                      # ArrayRef, nodes table
 has _connected_nodes  => ( init_arg => undef );                      # HashRef, connected nodes, hashed by id
 has _connecting_nodes => ( init_arg => undef );                      # HashRef, connecting / reconnecting nodes
-has _online_nodes     => ( init_arg => undef );                      # HashRef, READY or ONLINE nodes connections by node type
+has _ready_nodes      => ( init_arg => undef );                      # HashRef, READY nodes connections by node type
+has _online_nodes     => ( init_arg => undef );                      # HashRef, ONLINE nodes connections by node type
 
 const our $NODE_STATUS_UNKNOWN    => -1;
 const our $NODE_STATUS_OFFLINE    => 0;                              # blocked
@@ -214,13 +215,21 @@ sub _on_node_add ( $self, $node, $check_status = 1 ) {
 
     $self->{_nodes}->{$node_id} = $node;
 
-    # node was already connected, connections status was unknown
-    if ( my $connection = $self->{_connected_nodes}->{$node_id} ) {
+    # node was already connected, connections status was unknown, events listeners was disabled
+    if ( my $conn = $self->{_connected_nodes}->{$node_id} ) {
 
         # sync status
-        $connection->{status} = $node->{status};
+        $conn->{status} = $node->{status};
 
-        $self->_add_online_node_connection($connection) if $node->{status} >= $NODE_STATUS_READY;
+        # add connection to the "ready" pool
+        if ( $node->{status} == $NODE_STATUS_READY ) {
+            $self->_add_ready_conn($conn);
+        }
+
+        # add connection to the "online" pool
+        elsif ( $node->{status} == $NODE_STATUS_ONLINE ) {
+            $self->_add_online_conn($conn);
+        }
 
         $self->_check_status if $check_status;
 
@@ -237,30 +246,43 @@ sub _on_node_add ( $self, $node, $check_status = 1 ) {
     return;
 }
 
-sub _on_node_update ( $self, $node_id, $status ) {
+sub _on_node_update ( $self, $node_id, $new_status ) {
     my $node = $self->{_nodes}->{$node_id};
 
     # set new status
-    $node->{status} = $status;
+    $node->{status} = $new_status;
 
     # node was already connected
-    if ( my $connection = $self->{_connected_nodes}->{$node_id} ) {
+    if ( my $conn = $self->{_connected_nodes}->{$node_id} ) {
+        my $node_type = $node->{type};
+
+        # remove connection from the "ready" pool
+        if ( $conn->{status} == $NODE_STATUS_READY ) {
+            $self->_remove_ready_conn( $node_id, $node_type );
+        }
+
+        # remove connection from the "online" pool
+        elsif ( $conn->{status} == $NODE_STATUS_ONLINE ) {
+            $self->_remove_online_conn( $node_id, $node_type );
+        }
 
         # sync status
-        $connection->{status} = $status;
+        $conn->{status} = $new_status;
 
-        # node READY status was changed
-        if ( $status < $NODE_STATUS_READY ) {
-            $self->_remove_online_node_connection( $node_id, $node->{type} );
+        # add connection to the "ready" pool
+        if ( $new_status == $NODE_STATUS_READY ) {
+            $self->_add_ready_conn($conn);
         }
-        else {
-            $self->_add_online_node_connection($connection);
+
+        # add connection to the "online" pool
+        elsif ( $new_status == $NODE_STATUS_ONLINE ) {
+            $self->_add_online_conn($conn);
         }
 
         $self->_check_status;
 
         # node status changed to ONLINE
-        $self->_check_wait_node( $node->{type} ) if $self->{_has_requires} && $status == $NODE_STATUS_ONLINE;
+        $self->_check_wait_node( $node->{type} ) if $self->{_has_requires} && $new_status == $NODE_STATUS_ONLINE;
     }
 
     return;
@@ -273,13 +295,20 @@ sub _on_node_remove ( $self, $node_id ) {
 
     # remove node connections
     # because we will not get node status updates anymore
-    if ( my $connection = delete $self->{_connected_nodes}->{$node_id} ) {
+    if ( my $conn = delete $self->{_connected_nodes}->{$node_id} ) {
 
         # force disconnect
-        $connection->{h}->disconnect;
+        $conn->{h}->disconnect;
 
-        # remove node from online nodes
-        $self->_remove_online_node_connection( $node_id, $node->{type} ) if $node->{status} >= $NODE_STATUS_READY;
+        # remove connection from the "ready" pool
+        if ( $conn->{status} == $NODE_STATUS_READY ) {
+            $self->_remove_ready_conn( $node_id, $conn->{type} );
+        }
+
+        # remove connection from the "online" pool
+        elsif ( $conn->{status} == $NODE_STATUS_ONLINE ) {
+            $self->_remove_online_conn( $node_id, $conn->{type} );
+        }
 
         $self->_check_status;
     }
@@ -634,22 +663,29 @@ sub _on_node_connect ( $self, $h ) {
     my $node = $self->{_nodes}->{$node_id};
 
     # get / add new node connection
-    my $connection = $self->{_connected_nodes}->{$node_id} //= {
-        h      => $h,
+    my $conn = $self->{_connected_nodes}->{$node_id} //= {
+        id     => $node_id,
         type   => $node_type,
         status => $NODE_STATUS_UNKNOWN,
+        h      => $h,
     };
 
-    # node status known
+    # node is exists in the nodes table, node status is known
     if ( defined $node ) {
 
         # set connection status
-        $connection->{status} = $node->{status};
+        $conn->{status} = $node->{status};
 
-        if ( $node->{status} >= $NODE_STATUS_READY ) {
+        # add connection to the "ready" pool
+        if ( $node->{status} == $NODE_STATUS_READY ) {
+            $conn->{h}->suspend_events;
 
-            # add online connection
-            $self->_add_online_node_connection($connection);
+            $self->_add_ready_conn($conn);
+        }
+
+        # add connection to the "online" pool
+        elsif ( $node->{status} == $NODE_STATUS_ONLINE ) {
+            $self->_add_online_conn($conn);
         }
         else {
 
@@ -675,14 +711,21 @@ sub _on_node_connect ( $self, $h ) {
 sub _on_node_disconnect ( $self, $h ) {
     my $node_id = $h->{node_id};
 
-    my $connection = $self->{_connected_nodes}->{$node_id};
+    my $conn = $self->{_connected_nodes}->{$node_id};
 
     # node was connected, and handle id is match connected node handle id
-    if ( defined $connection && $connection->{h}->{id} eq $h->{id} ) {
+    if ( defined $conn && $conn->{h}->{id} eq $h->{id} ) {
         delete $self->{_connected_nodes}->{$node_id};
 
-        # remove node from online nodes
-        $self->_remove_online_node_connection( $node_id, $connection->{type} ) if $connection->{status} >= $NODE_STATUS_READY;
+        # remove connection from the "ready" pool
+        if ( $conn->{status} == $NODE_STATUS_READY ) {
+            $self->_remove_ready_conn( $node_id, $conn->{type} );
+        }
+
+        # remove connection from the "online" pool
+        elsif ( $conn->{status} == $NODE_STATUS_ONLINE ) {
+            $self->_remove_online_conn( $node_id, $conn->{type} );
+        }
 
         # re-check status
         $self->_check_status;
@@ -691,27 +734,50 @@ sub _on_node_disconnect ( $self, $h ) {
     return;
 }
 
-sub _add_online_node_connection ( $self, $connection ) {
+sub _add_ready_conn ( $self, $conn ) {
 
-    # resume events listener
-    $connection->{h}->resume_events;
-
-    # add node connection to the online list
-    unshift $self->{_online_nodes}->{ $connection->{type} }->@*, $connection->{h};
+    # add node connection to the ready pool
+    unshift $self->{_ready_nodes}->{ $conn->{type} }->@*, $conn->{h};
 
     return;
 }
 
-sub _remove_online_node_connection ( $self, $node_id, $node_type ) {
-    my $online_nodes = $self->{_online_nodes}->{$node_type};
+sub _remove_ready_conn ( $self, $node_id, $node_type ) {
+    my $pool = $self->{_ready_nodes}->{$node_type};
 
     # remove node from online nodes
-    for ( my $i = 0; $i <= $online_nodes->$#*; $i++ ) {
-        if ( $online_nodes->[$i]->{node_id} eq $node_id ) {
-            splice $online_nodes->@*, $i, 1;
+    for ( my $i = 0; $i <= $pool->$#*; $i++ ) {
+        if ( $pool->[$i]->{node_id} eq $node_id ) {
+            splice $pool->@*, $i, 1;
+
+            last;
+        }
+    }
+
+    return;
+}
+
+sub _add_online_conn ( $self, $conn ) {
+
+    # resume events listener
+    $conn->{h}->resume_events;
+
+    # add node connection to the online pool
+    unshift $self->{_online_nodes}->{ $conn->{type} }->@*, $conn->{h};
+
+    return;
+}
+
+sub _remove_online_conn ( $self, $node_id, $node_type ) {
+    my $pool = $self->{_online_nodes}->{$node_type};
+
+    # remove node from online nodes
+    for ( my $i = 0; $i <= $pool->$#*; $i++ ) {
+        if ( $pool->[$i]->{node_id} eq $node_id ) {
+            splice $pool->@*, $i, 1;
 
             # suspend events listener
-            $online_nodes->[$i]->suspend_events;
+            $pool->[$i]->suspend_events;
 
             last;
         }
@@ -893,6 +959,15 @@ sub run_node ( $self, @nodes ) {
 sub rpc_call ( $self, $type, $method, @args ) {
     my $h = shift $self->{_online_nodes}->{$type}->@*;
 
+    if ( defined $h ) {
+        push $self->{_online_nodes}->{$type}->@*, $h;
+    }
+    else {
+        $h = shift $self->{_ready_nodes}->{$type}->@*;
+
+        push $self->{_ready_nodes}->{$type}->@*, $h if defined $h;
+    }
+
     if ( !defined $h ) {
         my $res = res [ 404, qq[Node type "$type" is not available] ];
 
@@ -900,8 +975,6 @@ sub rpc_call ( $self, $type, $method, @args ) {
 
         return $cb ? $cb->($res) : $res;
     }
-
-    push $self->{_online_nodes}->{$type}->@*, $h;
 
     return $h->rpc_call( $method, @args );
 }
@@ -914,11 +987,11 @@ sub rpc_call ( $self, $type, $method, @args ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 202                  | * Private subroutine/method '_on_node_register' declared but not used                                          |
-## |      | 240                  | * Private subroutine/method '_on_node_update' declared but not used                                            |
-## |      | 269                  | * Private subroutine/method '_on_node_remove' declared but not used                                            |
+## |      | 203                  | * Private subroutine/method '_on_node_register' declared but not used                                          |
+## |      | 249                  | * Private subroutine/method '_on_node_update' declared but not used                                            |
+## |      | 291                  | * Private subroutine/method '_on_node_remove' declared but not used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 709                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 749, 775             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
