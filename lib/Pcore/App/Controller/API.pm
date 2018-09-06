@@ -23,14 +23,15 @@ sub run ( $self, $req ) {
     if ( $req->is_websocket_connect_request ) {
 
         # create connection and accept websocket connect request
-        Pcore::WebSocket::pcore->new(
+        my $h = Pcore::WebSocket::pcore->accept(
+            $req,
             max_message_size => $WS_MAX_MESSAGE_SIZE,
             compression      => $WS_COMPRESSION,
             on_auth          => sub ( $h, $token ) {
                 return $self->{app}->{api}->authenticate($token);
             },
-            on_subscribe => sub ( $h, $event ) {
-                return $self->on_subscribe_event( $h, $event );
+            on_bind => sub ( $h, $binding ) {
+                return $self->on_bind( $h, $binding );
             },
             on_event => sub ( $h, $ev ) {
                 return $self->on_event( $h, $ev );
@@ -40,7 +41,7 @@ sub run ( $self, $req ) {
 
                 return;
             }
-        )->accept($req);
+        );
     }
 
     # HTTP API request

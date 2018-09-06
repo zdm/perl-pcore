@@ -35,7 +35,7 @@ sub BUILD ( $self, $args ) {
 
     $self->{_listen_socket} = &AnyEvent::Socket::tcp_server( $self->{listen}->connect, Coro::unblock_sub { return $self->_on_accept(@_) }, sub { return $self->_on_prepare(@_) } );    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 
-    chmod( oct 777, $self->{listen}->{path} ) || die $! if defined $self->{listen}->{host} && substr( $self->{listen}->{path}, 0, 2 ) ne "/\x00";
+    chmod( oct 777, $self->{listen}->{path} ) || die $! if !defined $self->{listen}->{host} && substr( $self->{listen}->{path}, 0, 2 ) ne "/\x00";
 
     return;
 }
