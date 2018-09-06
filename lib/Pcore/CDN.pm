@@ -23,6 +23,18 @@ around new => sub ( $orig, $self, $args ) {
     return $self;
 };
 
+sub get_nginx_cfg($self) {
+    my @buf;
+
+    for my $buck ( $self->{bucket}->%* ) {
+        next if !$buck->{is_local};
+
+        push @buf, $buck->get_nginx_cfg;
+    }
+
+    return join $LF, @buf;
+}
+
 1;
 __END__
 =pod

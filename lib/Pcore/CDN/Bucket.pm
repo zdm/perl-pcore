@@ -6,7 +6,7 @@ use overload '&{}' => sub ( $self, @ ) {
   },
   fallback => 1;
 
-requires qw[get_url];
+requires qw[get_url get_nginx_cfg];
 
 1;
 __END__

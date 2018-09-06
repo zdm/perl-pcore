@@ -23,6 +23,10 @@ sub get_url ( $self, $path ) {
     return $self->{prefix} . $path;
 }
 
+sub get_nginx_cfg ($self) {
+    return;
+}
+
 1;
 __END__
 =pod
