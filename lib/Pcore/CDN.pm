@@ -1,6 +1,27 @@
 package Pcore::CDN;
 
 use Pcore -class;
+use overload '&{}' => sub ( $self, @ ) {
+    sub { $self->{bucket}->{ $self->{default} }->get_url(@_) }
+  },
+  fallback => 1;
+
+has bucket => ( init_arg => undef );
+has default => ();
+
+around new => sub ( $orig, $self, $args ) {
+    $self = $self->$orig;
+
+    $self->{default} = delete $args->{default};
+
+    while ( my ( $name, $cfg ) = each $args->%* ) {
+        $self->{bucket}->{$name} = P->class->load( $cfg->{type}, ns => 'Pcore::CDN::Bucket' )->new($cfg);
+
+        $self->{default} //= $name;
+    }
+
+    return $self;
+};
 
 1;
 __END__

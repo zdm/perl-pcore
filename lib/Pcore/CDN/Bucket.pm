@@ -1,6 +1,12 @@
 package Pcore::CDN::Bucket;
 
-use Pcore -class;
+use Pcore -role;
+use overload '&{}' => sub ( $self, @ ) {
+    return sub { $self->get_url(@_) }
+  },
+  fallback => 1;
+
+requires qw[get_url];
 
 1;
 __END__

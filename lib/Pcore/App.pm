@@ -5,6 +5,7 @@ use Pcore::Nginx;
 use Pcore::HTTP::Server;
 use Pcore::App::Router;
 use Pcore::App::API;
+use Pcore::CDN;
 
 has app_cfg => ( required => 1 );    # HashRef
 has devel => 0;                      # Bool
@@ -13,6 +14,7 @@ has server => ( init_arg => undef ); # InstanceOf ['Pcore::HTTP::Server']
 has router => ( init_arg => undef ); # InstanceOf ['Pcore::App::Router']
 has api    => ( init_arg => undef ); # Maybe [ ConsumerOf ['Pcore::App::API'] ]
 has node   => ( init_arg => undef ); # InstanceOf ['Pcore::Node']
+has cdn    => ( init_arg => undef ); # InstanceOf['Pcore::CDN']
 
 sub BUILD ( $self, $args ) {
 
@@ -24,6 +26,9 @@ sub BUILD ( $self, $args ) {
         app   => $self,
         hosts => $self->{app_cfg}->{router},
     } );
+
+    # create CDN object
+    $self->{cdn} = Pcore::CDN->new( $self->{app_cfg}->{cdn} ) if $self->{app_cfg}->{cdn};
 
     # create API object
     $self->{api} = Pcore::App::API->new($self);
