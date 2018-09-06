@@ -2,6 +2,7 @@ package Pcore::API::S3;
 
 use Pcore -class, -res;
 use Pcore::Util::Digest qw[sha256_hex hmac_sha256 hmac_sha256_hex];
+use Pcore::Util::Scalar qw[is_ref];
 
 has key      => ();
 has secret   => ();
@@ -155,6 +156,8 @@ sub upload ( $self, $path, $data, @args ) {
         region => $self->{region},
         @args,
     );
+
+    $data = \$data if !is_ref $data;
 
     return $self->_request(
         'PUT', %args,

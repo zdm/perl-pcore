@@ -257,7 +257,7 @@ sub _request ($args) {
     while () {
 
         # validate url
-        $res->set_status( $HANDLE_STATUS_PROTOCOL_ERROR, q[Invalid url scheme] ) || last if !$res->{url}->is_http;
+        $res->set_status( $HANDLE_STATUS_PROTOCOL_ERROR, q[Invalid url scheme] ) || last if !$res->{url}->{is_http};
 
         # connect
         my $h = P->handle(

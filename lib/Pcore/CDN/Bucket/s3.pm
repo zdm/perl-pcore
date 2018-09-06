@@ -10,8 +10,10 @@ has region   => ( required => 1 );
 has endpoint => ( required => 1 );
 has key      => ( required => 1 );
 has secret   => ( required => 1 );
+has service  => 's3';
 
 has prefix => ( init_arg => undef );
+has s3     => ( init_arg => undef );    # InstanceOf['Pcore::API::S3']
 
 sub BUILD ( $self, $args ) {
     $self->{prefix} = "https://$self->{bucket}.$self->{region}.$self->{endpoint}";
@@ -25,6 +27,18 @@ sub get_url ( $self, $path ) {
 
 sub get_nginx_cfg ($self) {
     return;
+}
+
+sub s3 ($self) {
+    if ( !exists $self->{s3} ) {
+        $self->{s3} = Pcore::API::S3->new( $self->%{qw[key secret bucket region endpoint service]} );
+    }
+
+    return $self->{s3};
+}
+
+sub write ( $self, $path, $data ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+    return $self->s3->upload( $path, $data );
 }
 
 1;

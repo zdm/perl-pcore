@@ -23,6 +23,8 @@ around new => sub ( $orig, $self, $args ) {
     return $self;
 };
 
+sub bucket ( $self, $name ) { return $self->{bucket}->{$name} }
+
 sub get_nginx_cfg($self) {
     my @buf;
 
