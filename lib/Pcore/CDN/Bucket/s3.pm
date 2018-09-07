@@ -37,8 +37,8 @@ sub s3 ($self) {
     return $self->{s3};
 }
 
-sub write ( $self, $path, $data ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    return $self->s3->upload( $path, $data );
+sub write ( $self, $path, $data, @args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+    return $self->s3->upload( $path, $data, @args );
 }
 
 1;

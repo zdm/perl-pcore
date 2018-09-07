@@ -291,7 +291,9 @@ sub _request ($args) {
         _read_headers( $h, $args, $res ) || last;
 
         # read response data
-        _read_data( $h, $args, $res ) || last;
+        if ( $args->{method} ne 'HEAD' ) {
+            _read_data( $h, $args, $res ) || last;
+        }
 
         # TODO process persistent
 
@@ -703,8 +705,8 @@ sub _get_on_progress_cb (%args) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 138                  | * Subroutine "request" with high complexity score (22)                                                         |
-## |      | 251                  | * Subroutine "_request" with high complexity score (21)                                                        |
-## |      | 474                  | * Subroutine "_read_data" with high complexity score (47)                                                      |
+## |      | 251                  | * Subroutine "_request" with high complexity score (22)                                                        |
+## |      | 476                  | * Subroutine "_read_data" with high complexity score (47)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 89                   | CodeLayout::ProhibitQuotedWordLists - List of quoted literal words                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|

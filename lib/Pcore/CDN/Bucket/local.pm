@@ -4,7 +4,7 @@ use Pcore -class;
 
 with qw[Pcore::CDN::Bucket];
 
-has is_local => 1;
+has is_local => ( 1, init_arg => undef );
 
 sub get_url ( $self, $path ) {
     return $path;
