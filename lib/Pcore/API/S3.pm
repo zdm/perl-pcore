@@ -301,12 +301,6 @@ sub get_all_bucket_content ( $self, @args ) {
     return $cv ? $cv->recv : ();
 }
 
-# TODO
-sub sync ( $self, $tree, $target_path ) {
-    return;
-}
-
-# NOTE $path MUST be absolute
 sub upload ( $self, $path, $data, @args ) {
     my $cb = is_plain_coderef $_[-1] ? pop @args : ();
 
@@ -371,7 +365,6 @@ sub get_metadata ( $self, $path, @args ) {
     return $self->_req($args);
 }
 
-# TODO remove all bu prefix
 sub remove ( $self, $path, @args ) {
     my $cb = is_plain_coderef $_[-1] ? pop @args : ();
 
