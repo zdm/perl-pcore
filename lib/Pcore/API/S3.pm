@@ -5,6 +5,8 @@ use Pcore::Util::Digest qw[sha256_hex hmac_sha256 hmac_sha256_hex];
 use Pcore::Util::Scalar qw[is_ref is_plain_coderef];
 use Pcore::Util::Data qw[to_uri_query from_xml];
 use Pcore::Util::Scalar qw[weaken];
+use Pcore::Util::File::Tree;
+use Pcore::Util::Term::Progress;
 use IO::Compress::Gzip qw[gzip];
 
 has key         => ();
@@ -14,7 +16,8 @@ has region      => ();
 has service     => 's3';
 has endpoint    => 'digitaloceanspaces.com';
 has gzip        => 2;                          # 1 - yes, 2 - auto
-has max_threads => 50;
+has max_threads => 10;
+has max_retries => 3;
 
 has _queue   => ();
 has _threads => 0;
@@ -120,7 +123,7 @@ sub _req1 ( $self, $args ) {
     $args->{headers}->{'X-Amz-Date'}           = $date_iso08601;
     $args->{headers}->{'X-Amz-Content-Sha256'} = $data_hash if $data_hash;
 
-    my $canon_req = "$args->{method}\n$uri->{path}\n$uri->{query}\n";
+    my $canon_req = "$args->{method}\n" . $uri->{path}->to_uri . "\n$uri->{query}\n";
 
     my @signed_headers;
 
@@ -143,7 +146,11 @@ sub _req1 ( $self, $args ) {
     my $sign_key = hmac_sha256 'aws4_request', $k_service;
     my $signature = hmac_sha256_hex $string_to_sign, $sign_key;
 
-    return P->http->request(
+    # max retries number
+    my $retry = $self->{max_retries};
+
+  REDO:
+    my $res = P->http->request(
         method  => $args->{method},
         url     => $uri,
         headers => [
@@ -153,6 +160,11 @@ sub _req1 ( $self, $args ) {
         ],
         data => $args->{data},
     );
+
+    # retry on connection error or TLS error
+    goto REDO if ( $res == 590 || $res == 591 ) && --$retry;
+
+    return $res;
 }
 
 sub get_buckets ( $self, @args ) {
@@ -241,7 +253,7 @@ sub get_bucket_content ( $self, @args ) {
                 for my $key ( keys $res->{data}->{ListBucketResult}->%* ) {
                     if ( $key eq 'Contents' ) {
                         for my $item ( $res->{data}->{ListBucketResult}->{$key}->@* ) {
-                            $data->{ $item->{Key}->[0]->{content} } = {
+                            $data->{ '/' . $item->{Key}->[0]->{content} } = {
                                 path          => '/' . $item->{Key}->[0]->{content},
                                 etag          => $item->{ETag}->[0]->{content} =~ s/"//smgr,
                                 last_modified => $item->{LastModified}->[0]->{content},
@@ -324,6 +336,7 @@ sub upload ( $self, $path, $data, @args ) {
         mime    => undef,
         cache   => undef,
         gzip    => $self->{gzip},
+        etag    => undef,
         @args,
         method => 'PUT',
         path   => $path,
@@ -335,16 +348,22 @@ sub upload ( $self, $path, $data, @args ) {
     if ( $args->{gzip} && $args->{gzip} == 2 ) {
         my ($suffix) = $path =~ /[.]([^.]+)\z/sm;
 
-        $args->{gzip} = 0 if !$suffix || !$GZIP->{$suffix};
+        $args->{gzip} = 0 if !$suffix || !$GZIP->{ lc $suffix };
     }
 
     if ( $args->{gzip} ) {
-        gzip is_ref $data ? $data : \$data, \my $buf1 or die q[Failed to gzip data];
+        gzip is_ref $data ? $data : \$data, \my $buf1, time => 0, level => 9 or die q[Failed to gzip data];
 
         $buf = \$buf1;
     }
     else {
         $buf = is_ref $data ? $data : \$data;
+    }
+
+    if ( defined $args->{etag} && $args->{etag} eq P->digest->md5_hex( $buf->$* ) ) {
+        my $res = res 304;
+
+        return $cb ? $cb->($res) : $res;
     }
 
     $args->{data} = $buf;
@@ -356,8 +375,6 @@ sub upload ( $self, $path, $data, @args ) {
         $args->{cache} ? ( 'Cache-Control'    => $args->{cache} ) : (),
         $args->{gzip}  ? ( 'Content-Encoding' => 'gzip' )         : (),
     };
-
-    say dump $args->{headers};
 
     return $self->_req($args);
 }
@@ -477,6 +494,96 @@ XML
     return $self->_req($args);
 }
 
+sub sync ( $self, $libs, @args ) {
+    my %args = (
+        prefix => undef,    # must be relative
+        @args
+    );
+
+    $args{prefix} //= '';
+
+    my $tree = Pcore::Util::File::Tree->new;
+
+    my ( $error, $stat );
+
+    # load libs, add files
+    for my $lib ( $libs->@* ) {
+        P->class->load($lib);
+
+        my $storage = $ENV->{share}->get_storage( $lib =~ s/::/-/smgr, 'www' );
+
+        $tree->add_dir( "$storage/$args{prefix}", "/$args{prefix}" ) if -d "$storage/$args{prefix}";
+    }
+
+    my $remote_files = $self->get_all_bucket_content( prefix => $args{prefix} )->{data};
+
+    # upload
+    if ( $tree->{files}->%* ) {
+        my $cv = P->cv->begin;
+
+        say 'Uploading files ...';
+
+        my $progress = Pcore::Util::Term::Progress::get_indicator( network => 0, total => scalar $tree->{files}->%*, value => 0 );
+
+        for my $file ( values $tree->{files}->%* ) {
+            $cv->begin;
+
+            # upload file
+            $self->upload(
+                $file->{path},
+                $file->content,
+                cache => 'public, max-age=30672000',
+                etag  => exists $remote_files->{ $file->{path} } ? $remote_files->{ $file->{path} }->{etag} : undef,
+                sub ($res) {
+                    $error++ if !$res && $res != 304;
+
+                    $stat->{$res}++;
+
+                    $cv->end;
+
+                    $progress->update( value => $progress->{value} + 1 );
+
+                    return;
+                }
+            );
+        }
+
+        $cv->end->recv;
+    }
+
+    # remove
+    if ( my @to_remove = grep { !exists $tree->{files}->{$_} } keys $remote_files->%* ) {
+        say 'Removing files ...';
+
+        my $progress = Pcore::Util::Term::Progress::get_indicator( network => 0, total => scalar @to_remove, value => 0 );
+
+        my $cv = P->cv->begin;
+
+        for my $path (@to_remove) {
+            $cv->begin;
+
+            $self->remove(
+                $path,
+                sub ($res) {
+                    $cv->end;
+
+                    $error++ if !$res;
+
+                    $stat->{$res}++;
+
+                    $progress->update( value => $progress->{value} + 1 );
+
+                    return;
+                }
+            );
+        }
+
+        $cv->end->recv;
+    }
+
+    return res $error ? 500 : 200, $stat;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -484,8 +591,8 @@ XML
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 112, 230, 231, 232,  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 233                  |                                                                                                                |
+## |    2 | 115, 242, 243, 244,  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      | 245, 503             |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
