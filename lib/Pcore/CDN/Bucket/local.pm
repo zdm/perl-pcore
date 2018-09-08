@@ -4,10 +4,15 @@ use Pcore -class;
 
 with qw[Pcore::CDN::Bucket];
 
+has lib => ();
+
 has is_local => ( 1, init_arg => undef );
 
 sub BUILD ( $self, $args ) {
     $self->{prefix} = '';
+
+    # load libs
+    for my $lib ( $self->{lib}->@* ) { P->class->load($lib) }
 
     return;
 }
@@ -18,7 +23,15 @@ sub BUILD ( $self, $args ) {
 sub get_nginx_cfg ($self) {
     my @buf;
 
-    my $locations = $ENV->{share}->get_storage('www');
+    my $locations;
+
+    for my $lib ( $self->{lib}->@* ) {
+        my $storage = $ENV->{share}->get_storage( $lib =~ s/::/-/smgr, 'www' );
+
+        next if !$storage || !-d "$storage/static";
+
+        push $locations->@*, $storage;
+    }
 
     # add_header    Cache-Control "public, private, must-revalidate, proxy-revalidate";
 
@@ -48,9 +61,9 @@ TXT
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 10                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 12                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 25                   | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 38                   | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
