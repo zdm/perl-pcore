@@ -62,7 +62,7 @@ sub get_resources ( $self, @resources ) {
 sub _get_res_fa ( $self, $ver = undef ) {
     $ver ||= 'v5.3.1';
 
-    return [qq[<link rel="stylesheet" href="@{[ $self->("/static/fa-$ver/css/all.css") ]}" integrity="" crossorigin="anonymous" />]];
+    return [qq[<link rel="stylesheet" href="@{[ $self->("/static/fa-$ver/css/all.min.css") ]}" integrity="" crossorigin="anonymous" />]];
 }
 
 # TODO
