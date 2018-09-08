@@ -6,8 +6,10 @@ with qw[Pcore::CDN::Bucket];
 
 has is_local => ( 1, init_arg => undef );
 
-sub get_url ( $self, $path ) {
-    return $path;
+sub BUILD ( $self, $args ) {
+    $self->{prefix} = '';
+
+    return;
 }
 
 # TODO maybe create local temp bucket automatically
@@ -46,7 +48,9 @@ TXT
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 23                   | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 10                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 25                   | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

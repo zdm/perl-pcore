@@ -21,10 +21,6 @@ sub BUILD ( $self, $args ) {
     return;
 }
 
-sub get_url ( $self, $path ) {
-    return $self->{prefix} . $path;
-}
-
 sub get_nginx_cfg ($self) {
     return;
 }

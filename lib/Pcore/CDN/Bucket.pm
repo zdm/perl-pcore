@@ -6,7 +6,11 @@ use overload '&{}' => sub ( $self, @ ) {
   },
   fallback => 1;
 
-requires qw[get_url get_nginx_cfg];
+requires qw[get_nginx_cfg];
+
+has prefix => ( init_arg => undef );
+
+sub get_url ( $self, $path ) { return $self->{prefix} . $path }
 
 1;
 __END__
