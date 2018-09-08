@@ -27,15 +27,13 @@ const our $S3_ACL_READ_ONLY    => 0;
 const our $S3_ACL_FULL_CONTROL => 1;
 
 our $GZIP = {
-    html  => 1,
-    js    => 1,
-    css   => 1,
-    gif   => 1,
-    eot   => 1,
-    svg   => 1,
-    ttf   => 1,
-    woff  => 0,
-    woff2 => 0,
+    'text/html'                     => 1,
+    'application/javascript'        => 1,
+    'text/css'                      => 1,
+    'image/gif'                     => 1,
+    'application/vnd.ms-fontobject' => 1,    # .eot
+    'image/svg+xml'                 => 1,    # .svg
+    'application/font-sfnt'         => 1,    # .ttf, .otf
 };
 
 sub DESTROY ($self) {
@@ -345,11 +343,11 @@ sub upload ( $self, $path, $data, @args ) {
 
     my $buf;
 
-    if ( $args->{gzip} && $args->{gzip} == 2 ) {
-        my ($suffix) = $path =~ /[.]([^.]+)\z/sm;
+    $path = P->path($path);
 
-        $args->{gzip} = 0 if !$suffix || !$GZIP->{ lc $suffix };
-    }
+    $args->{mime} //= $path->mime_type;
+
+    $args->{gzip} = 0 if $args->{gzip} && $args->{gzip} == 2 && !$GZIP->{ $args->{mime} };
 
     if ( $args->{gzip} ) {
         gzip is_ref $data ? $data : \$data, \my $buf1, time => 0, level => 9 or die q[Failed to gzip data];
@@ -591,8 +589,8 @@ sub sync ( $self, $libs, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 115, 242, 243, 244,  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 245, 503             |                                                                                                                |
+## |    2 | 113, 240, 241, 242,  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      | 243, 501             |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

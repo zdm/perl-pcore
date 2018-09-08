@@ -4,8 +4,6 @@ use Pcore -role;
 
 with qw[Pcore::App::Controller];
 
-eval { require Pcore::Resources };
-
 sub run ( $self, $req ) {
     if ( $req->{path_tail}->is_file ) {
         $self->return_static($req);
@@ -32,16 +30,6 @@ TXT
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 7                    | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
