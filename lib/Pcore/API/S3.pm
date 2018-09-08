@@ -5,21 +5,34 @@ use Pcore::Util::Digest qw[sha256_hex hmac_sha256 hmac_sha256_hex];
 use Pcore::Util::Scalar qw[is_ref is_plain_coderef];
 use Pcore::Util::Data qw[to_uri_query from_xml];
 use Pcore::Util::Scalar qw[weaken];
+use IO::Compress::Gzip qw[gzip];
 
-has key      => ();
-has secret   => ();
-has bucket   => ();
-has region   => ();
-has service  => 's3';
-has endpoint => 'digitaloceanspaces.com';
-
+has key         => ();
+has secret      => ();
+has bucket      => ();
+has region      => ();
+has service     => 's3';
+has endpoint    => 'digitaloceanspaces.com';
+has gzip        => 2;                          # 1 - yes, 2 - auto
 has max_threads => 50;
-has _queue      => ();
-has _threads    => 0;
-has _signal     => sub { Coro::Signal->new };
+
+has _queue   => ();
+has _threads => 0;
+has _signal  => sub { Coro::Signal->new };
 
 const our $S3_ACL_READ_ONLY    => 0;
 const our $S3_ACL_FULL_CONTROL => 1;
+
+our $GZIP = {
+    js    => 1,
+    css   => 1,
+    gif   => 1,
+    eot   => 1,
+    svg   => 1,
+    ttf   => 1,
+    woff  => 0,
+    woff2 => 0,
+};
 
 sub DESTROY ($self) {
     if ( ${^GLOBAL_PHASE} ne 'DESTRUCT' ) {
@@ -309,22 +322,41 @@ sub upload ( $self, $path, $data, @args ) {
         private => 0,
         mime    => undef,
         cache   => undef,
+        gzip    => $self->{gzip},
         @args,
         method => 'PUT',
         path   => $path,
         cb     => $cb,
     };
 
-    my $buf = is_ref $data ? $data : \$data;
+    my $buf;
+
+    if ( $args->{gzip} && $args->{gzip} == 2 ) {
+        my ($suffix) = $path =~ /[.]([^.]+)\z/sm;
+
+        $args->{gzip} = 0 if !$suffix || !$GZIP->{$suffix};
+    }
+
+    if ( $args->{gzip} ) {
+        gzip is_ref $data ? $data : \$data, \my $buf1 or die q[Failed to gzip data];
+
+        $buf = \$buf1;
+    }
+    else {
+        $buf = is_ref $data ? $data : \$data;
+    }
 
     $args->{data} = $buf;
 
     $args->{headers} = {
         'Content-Length' => length $buf->$*,
-        $args->{mime}  ? ( 'Content-Type'  => $args->{mime} )  : (),
-        $args->{cache} ? ( 'Cache-Control' => $args->{cache} ) : (),
-        'X-Amz-Acl' => $args->{private} ? 'private' : 'public-read',
+        'X-Amz-Acl'      => $args->{private} ? 'private' : 'public-read',
+        $args->{mime}  ? ( 'Content-Type'     => $args->{mime} )  : (),
+        $args->{cache} ? ( 'Cache-Control'    => $args->{cache} ) : (),
+        $args->{gzip}  ? ( 'Content-Encoding' => 'gzip' )         : (),
     };
+
+    say dump $args->{headers};
 
     return $self->_req($args);
 }
@@ -451,8 +483,8 @@ XML
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 98, 216, 217, 218,   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 219                  |                                                                                                                |
+## |    2 | 111, 229, 230, 231,  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      | 232                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
