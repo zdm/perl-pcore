@@ -70,10 +70,10 @@ sub update_all ( $self ) {
 
         undef $TLD;
 
-        say 'done';
+        say $res;
     }
     else {
-        say 'error';
+        say $res;
 
         return 0;
     }
@@ -126,10 +126,10 @@ sub update_all ( $self ) {
 
         undef $PUB_SUFFIX;
 
-        say 'done';
+        say $res;
     }
     else {
-        say 'error';
+        say $res;
 
         return 0;
     }
