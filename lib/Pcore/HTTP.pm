@@ -5,6 +5,7 @@ use Pcore::Util::Scalar qw[is_ref is_glob is_plain_coderef is_blessed_ref is_cod
 use Pcore::Handle qw[:ALL];
 use Pcore::HTTP::Response;
 use Pcore::HTTP::Cookies;
+use Pcore::API::Proxy qw[:PROXY_TYPE];
 
 our $EXPORT = {
     METHODS => [],
@@ -159,7 +160,7 @@ sub request {
         tls_ctx         => $TLS_CTX_HIGH,
         bind_ip         => undef,
         read_size       => undef,
-        proxy           => undef,
+        proxy           => undef,           # string or InstanceOf['Pcore::API::Proxy']
 
         headers => undef,
         data    => undef,
@@ -259,16 +260,29 @@ sub _request ($args) {
         # validate url
         $res->set_status( $HANDLE_STATUS_PROTOCOL_ERROR, q[Invalid url scheme] ) || last if !$res->{url}->{is_http};
 
-        # connect
-        my $h = P->handle(
-            $res->{url},
-            persistent      => $args->{persistent},
+        my $h;
+
+        my @connect_args = (
             connect_timeout => $args->{connect_timeout},
             timeout         => $args->{timeout},
             tls_ctx         => $args->{tls_ctx},
             bind_ip         => $args->{bind_ip},
             defined $args->{read_size} ? ( read_size => $args->{read_size} ) : (),
         );
+
+        # connect
+        if ( defined $args->{proxy} ) {
+            $args->{proxy} = Pcore::API::Proxy->new( $args->{proxy} ) if !is_ref $args->{proxy};
+
+            $h = $args->{proxy}->connect( $res->{url}, @connect_args );
+        }
+        else {
+            $h = P->handle(
+                $res->{url},
+                persistent => $args->{persistent},
+                @connect_args
+            );
+        }
 
         # connect error
         $res->set_status( $h->{status}, $h->{reason} ) || last if !$h;
@@ -336,10 +350,16 @@ sub _request ($args) {
 
 sub _write_headers ( $h, $args, $res ) {
     my $request_path;
-
-    $request_path = $res->{url}->path_query;
-
     my $headers = q[];
+
+    if ( $h->{proxy_type} && $h->{proxy_type} == $PROXY_TYPE_HTTP ) {
+        $request_path = $res->{url}->{to_string};
+
+        $headers .= 'Proxy-Authorization:Basic ' . $h->{proxy}->{uri}->userinfo_b64 . $CRLF if $h->{proxy}->{uri}->{userinfo};
+    }
+    else {
+        $request_path = $res->{url}->path_query;
+    }
 
     # add "Host" header
     $headers .= 'Host:' . $res->{url}->host->name . $CRLF if !$args->{norm_headers}->{host};
@@ -363,11 +383,6 @@ sub _write_headers ( $h, $args, $res ) {
     if ( !$args->{persistent} ) {
         $headers .= 'Connection:close' . $CRLF;
     }
-
-    # TODO delete $args->{headers}->{PROXY_AUTHORIZATION};
-    # if ( $runtime->{h}->{proxy_type} && $runtime->{h}->{proxy_type} == $PROXY_TYPE_HTTP && $runtime->{h}->{proxy}->{uri}->userinfo ) {
-    #     $headers .= 'Proxy-Authorization:Basic ' . $runtime->{h}->{proxy}->{uri}->userinfo_b64 . $CRLF;
-    # }
 
     if ( $args->{cookies} && ( my $cookies = $args->{cookies}->get_cookies( $res->{url} ) ) ) {
         $headers .= 'Cookie:' . join( ';', $cookies->@* ) . $CRLF;
@@ -699,20 +714,20 @@ sub _get_on_progress_cb (%args) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 75                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 76                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 96                   | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 97                   | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 138                  | * Subroutine "request" with high complexity score (22)                                                         |
-## |      | 251                  | * Subroutine "_request" with high complexity score (22)                                                        |
-## |      | 476                  | * Subroutine "_read_data" with high complexity score (47)                                                      |
+## |      | 139                  | * Subroutine "request" with high complexity score (22)                                                         |
+## |      | 252                  | * Subroutine "_request" with high complexity score (25)                                                        |
+## |      | 491                  | * Subroutine "_read_data" with high complexity score (47)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 89                   | CodeLayout::ProhibitQuotedWordLists - List of quoted literal words                                             |
+## |    2 | 90                   | CodeLayout::ProhibitQuotedWordLists - List of quoted literal words                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 124                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 125                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 211                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 212                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
