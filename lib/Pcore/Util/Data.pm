@@ -931,7 +931,7 @@ SV *from_uri_utf8 (SV *uri) {
 }
 
 C
-    ccflagsex  => '-Wall -Wextra -Ofast',
+    ccflagsex  => '-Wall -Wextra -Ofast -std=c11',
     prototypes => 'ENABLE',
     prototype  => {
         to_uri_component  => '$',

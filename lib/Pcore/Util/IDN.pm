@@ -68,7 +68,7 @@ SV* domain_to_ascii ( char* domain, ... ) {
 C
     auto_include => q[# include "idn2.h"],
     libs         => $MSWIN ? '-lidn2' : '-l:libidn2.a',
-    ccflagsex    => '-Wall -Wextra -Ofast',
+    ccflagsex    => '-Wall -Wextra -Ofast -std=c11',
 );
 
 1;

@@ -21,7 +21,7 @@ bool write_console(void* handle, wchar_t* buff) {
     return WriteConsoleW(handle, buff, wcslen(buff), &write_size, NULL);
 }
 C
-    ccflagsex => '-Wall -Wextra -Ofast',
+    ccflagsex => '-Wall -Wextra -Ofast -std=c11',
 );
 
 my $ANSI_RE           = qr/\e.+?m/sm;
