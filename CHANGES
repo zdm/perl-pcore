@@ -1,3 +1,7 @@
+v0.73.1 2018-09-09T19:34:34Z
+ - use C -std=c11
+ - dockerfile
+
 v0.73.0 2018-09-09T18:52:02Z
  - websocket server response status fixed
  - websocket raw protocol fix
