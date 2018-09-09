@@ -36,6 +36,8 @@ our $GZIP = {
     'application/font-sfnt'         => 1,    # .ttf, .otf
 };
 
+#  NOTE https://developers.digitalocean.com/documentation/spaces/
+
 sub DESTROY ($self) {
     if ( ${^GLOBAL_PHASE} ne 'DESTRUCT' ) {
 
@@ -589,8 +591,8 @@ sub sync ( $self, $libs, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 113, 240, 241, 242,  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 243, 501             |                                                                                                                |
+## |    2 | 115, 242, 243, 244,  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      | 245, 503             |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
