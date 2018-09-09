@@ -12,7 +12,7 @@ sub BUILD ( $self, $args ) {
     $self->{prefix} = '';
 
     # load libs
-    for my $lib ( $self->{lib}->@* ) { P->class->load($lib) }
+    for my $lib ( $self->{lib}->@* ) { P->class->load( $lib =~ s/-/::/smgr ) }
 
     return;
 }
@@ -26,7 +26,7 @@ sub get_nginx_cfg ($self) {
     my $locations;
 
     for my $lib ( $self->{lib}->@* ) {
-        my $storage = $ENV->{share}->get_storage( $lib =~ s/::/-/smgr, 'www' );
+        my $storage = $ENV->{share}->get_storage( $lib, 'www' );
 
         next if !$storage || !-d "$storage/static";
 

@@ -506,9 +506,9 @@ sub sync ( $self, $libs, @args ) {
 
     # load libs, add files
     for my $lib ( $libs->@* ) {
-        P->class->load($lib);
+        P->class->load( $lib =~ s/-/::/smgr );
 
-        my $storage = $ENV->{share}->get_storage( $lib =~ s/::/-/smgr, 'www' );
+        my $storage = $ENV->{share}->get_storage( $lib, 'www' );
 
         $tree->add_dir( "$storage/$args{prefix}", "/$args{prefix}" ) if -d "$storage/$args{prefix}";
     }
