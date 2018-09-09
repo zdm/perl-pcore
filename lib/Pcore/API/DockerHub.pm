@@ -441,7 +441,7 @@ sub unlink_tag ( $self, $repo_id, $tag_name, $cb = undef ) {
 
     $cv->end;
 
-    return defined wantarray ? $cv->rev : ();
+    return defined wantarray ? $cv->recv : ();
 }
 
 # AUTOBUILD TAGS
