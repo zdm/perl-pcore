@@ -104,32 +104,45 @@ around new => sub ( $orig, $self, $uri, @args ) {
 
     # connect
     else {
+        my @connect;
 
-        # convert to URI object
-        $uri = P->uri( $uri, base => 'tcp:' ) if !is_ref $uri;
+        if ( is_plain_arrayref $uri) {
+            @connect = $uri->@*;
 
-        my $scheme = $uri->{scheme};
+            $self = $self->$orig(@args);
 
-        if ($scheme) {
-            if ( !exists $SCHEME_CACHE->{$scheme} ) {
-                my $class = eval { P->class->load( $scheme, ns => 'Pcore::Handle' ) };
+            $self->{peername} //= $connect[0];
+        }
+        else {
 
-                $SCHEME_CACHE->{$scheme} = $class;
+            # convert to URI object
+            $uri = P->uri( $uri, base => 'tcp:' ) if !is_ref $uri;
+
+            my $scheme = $uri->{scheme};
+
+            if ($scheme) {
+                if ( !exists $SCHEME_CACHE->{$scheme} ) {
+                    my $class = eval { P->class->load( $scheme, ns => 'Pcore::Handle' ) };
+
+                    $SCHEME_CACHE->{$scheme} = $class;
+                }
+
+                return $SCHEME_CACHE->{$scheme}->new( { @args, uri => $uri } ) if $SCHEME_CACHE->{$scheme};    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
             }
 
-            return $SCHEME_CACHE->{$scheme}->new( { @args, uri => $uri } ) if $SCHEME_CACHE->{$scheme};    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
+            $self = $self->$orig(@args);
+
+            $self->{peername} //= $uri->{host}->{name} if defined $uri->{host};
+
+            @connect = $uri->connect;
         }
-
-        $self = $self->$orig(@args);
-
-        $self->{peername} //= $uri->{host}->{name} if defined $uri->{host};
 
         my $bind_error;
 
         my $cv = P->cv;
 
-        &AnyEvent::Socket::tcp_connect(                                                                    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
-            $uri->connect,
+        &AnyEvent::Socket::tcp_connect(    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+            @connect,
             sub ( $fh = undef, $host = undef, $port = undef, $retry = undef ) {
                 if ($fh) {
                     if ($bind_error) {
@@ -773,13 +786,13 @@ sub read_http_chunked_data ( $self, %args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 479                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
+## |    3 | 492                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 669                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
+## |    3 | 682                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 730                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 743                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 350                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 363                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
