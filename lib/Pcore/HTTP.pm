@@ -375,8 +375,8 @@ sub _write_headers ( $h, $args, $res ) {
     }
 
     # add basic authorization
-    if ( my $userinfo_b64 = $res->{url}->userinfo_b64 ) {
-        $headers .= 'Authorization:Basic ' . $userinfo_b64 . $CRLF;
+    if ( $res->{url}->{userinfo} ) {
+        $headers .= 'Authorization:Basic ' . $res->{url}->userinfo_b64 . $CRLF;
     }
 
     # close connection, if not persistent
