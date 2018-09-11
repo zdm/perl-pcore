@@ -326,6 +326,8 @@ sub _request ($args) {
                 # change method to GET if original method was not "GET" or "HEAD"
                 $args->{method} = 'GET' if $args->{method} ne 'HEAD';
 
+                # TODO remove Content-Type header
+
                 # do not resend request data
                 delete $args->{data};
             }
@@ -721,7 +723,7 @@ sub _get_on_progress_cb (%args) {
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 139                  | * Subroutine "request" with high complexity score (22)                                                         |
 ## |      | 252                  | * Subroutine "_request" with high complexity score (25)                                                        |
-## |      | 491                  | * Subroutine "_read_data" with high complexity score (47)                                                      |
+## |      | 493                  | * Subroutine "_read_data" with high complexity score (47)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 90                   | CodeLayout::ProhibitQuotedWordLists - List of quoted literal words                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
