@@ -442,6 +442,7 @@ sub write ( $self, $buf, %args ) {    ## no critic qw[Subroutines::ProhibitBuilt
     return $total_bytes;
 }
 
+# args: timeout, http2
 sub starttls ( $self, %args ) {
     die q[TLS is already started] if $self->{tls};
 
@@ -462,6 +463,8 @@ sub starttls ( $self, %args ) {
     $ctx{SSL_startHandshake} = 0;
     $ctx{SSL_hostname}       = $ctx{SSL_verifycn_name} = $self->{peername};
     $ctx{SSL_dh}             = $DH_PARAM->{ delete $ctx{dh} } if $ctx{dh};
+
+    $ctx{SSL_npn_protocols} = ['h2'] if $args{http2};
 
     $self->{fh} = IO::Socket::SSL->start_SSL( $self->{fh}, %ctx );
 
@@ -786,11 +789,11 @@ sub read_http_chunked_data ( $self, %args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 492                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
+## |    3 | 495                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 682                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
+## |    3 | 685                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 743                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 746                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 363                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
