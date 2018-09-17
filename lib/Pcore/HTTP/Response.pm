@@ -17,6 +17,7 @@ has decoded_data   => ( is => 'lazy' );
 has tree           => ( is => 'lazy' );
 has redirects      => ();                 # ArrayRef of intermadiate redirects
 
+# TODO remove
 sub BUILDARGS ( $self, $args ) {
     return $args;
 }
@@ -28,7 +29,7 @@ sub _build_decoded_data ($self) {
 
     state $init = !!require HTTP::Message;
 
-    return HTTP::Message->new( [ 'Content-Type' => $self->{headers}->{CONTENT_TYPE} ], $self->{data}->$* )->decoded_content( raise_error => 1, ref => 1 );
+    return HTTP::Message->new( [ 'Content-Type' => $self->{headers}->{'content-type'} ], $self->{data}->$* )->decoded_content( raise_error => 1, ref => 1 );
 }
 
 sub _build_tree ($self) {

@@ -616,7 +616,6 @@ sub read_http_res_headers ( $self, %args ) {
     }
 }
 
-# TODO update HTTP::Parser::XS
 sub _parse_http_headers ( $self, $buf ) {
     my $res;
 
@@ -664,13 +663,6 @@ sub _parse_http_headers ( $self, $buf ) {
     #         $len = -1;
     #     }
     # }
-
-    if ( $res->{len} > 0 ) {
-
-        # repack headers
-        # TODO update HTTP::Parser::XS
-        $res->{headers} = { map { uc s/-/_/smgr, $res->{headers}->{$_} } keys $res->{headers}->%* };    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
-    }
 
     return $res;
 }
@@ -791,9 +783,9 @@ sub read_http_chunked_data ( $self, %args ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 495                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 685                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
+## |    3 | 677                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 746                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 738                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 363                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

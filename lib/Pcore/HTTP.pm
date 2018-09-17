@@ -250,10 +250,7 @@ sub request {
 
 # TODO process persistent
 sub _request ($args) {
-    my $res = Pcore::HTTP::Response->new( {
-        status => 0,
-        url    => $args->{url},
-    } );
+    my $res = bless { url => $args->{url} }, 'Pcore::HTTP::Response';
 
     while () {
 
@@ -334,11 +331,11 @@ sub _request ($args) {
 
             push $res->{redirects}->@*, $res;
 
-            $res = Pcore::HTTP::Response->new( {
-                status    => 0,
-                url       => P->uri( $res->{headers}->{LOCATION}, base => $args->{url} ),
+            $res = bless {
+                url       => $args->{url},
                 redirects => delete $res->{redirects},
-            } );
+              },
+              'Pcore::HTTP::Response';
         }
 
         # last request
@@ -456,14 +453,14 @@ sub _read_headers ( $h, $args, $res ) {
     }
 
     # parse SET_COOKIE header, add cookies
-    $args->{cookies}->parse_cookies( $res->{url}, $headers->{headers}->{SET_COOKIE} ) if $args->{cookies} && exists $headers->{headers}->{SET_COOKIE};
+    $args->{cookies}->parse_cookies( $res->{url}, $headers->{headers}->{'set-cookie'} ) if $args->{cookies} && exists $headers->{headers}->{'set-cookie'};
 
     # this is a redirect
-    $res->{is_redirect} = 1 if exists $headers->{headers}->{LOCATION} && exists $REDIRECT->{ $headers->{status} };
+    $res->{is_redirect} = 1 if exists $headers->{headers}->{location} && exists $REDIRECT->{ $headers->{status} };
 
     # clean and set content length
-    if ( exists $headers->{headers}->{CONTENT_LENGTH} ) {
-        my $content_len = $headers->{headers}->{CONTENT_LENGTH} =~ tr/ //r;
+    if ( exists $headers->{headers}->{'content-length'} ) {
+        my $content_len = $headers->{headers}->{'content-length'} =~ tr/ //r;
 
         $res->{content_length} = $content_len if $content_len !~ /[^\d]/sm;
     }
@@ -491,13 +488,13 @@ sub _read_headers ( $h, $args, $res ) {
 
 # TODO read until EOF???
 sub _read_data ( $h, $args, $res ) {
-    my $is_chunked = $res->{headers}->{TRANSFER_ENCODING} && $res->{headers}->{TRANSFER_ENCODING} =~ /\bchunked\b/smi;
+    my $is_chunked = $res->{headers}->{'transfer-encoding'} && $res->{headers}->{'transfer-encoding'} =~ /\bchunked\b/smi;
 
     my $decoder = do {
-        if ( $args->{decompress} && $res->{headers}->{CONTENT_ENCODING} ) {
+        if ( $args->{decompress} && $res->{headers}->{'content-encoding'} ) {
 
             # gzip, deflate
-            if ( $ENCODE_GZIP_DEFLATE && $res->{headers}->{CONTENT_ENCODING} =~ /\b(?:gzip|deflate)\b/smi ) {
+            if ( $ENCODE_GZIP_DEFLATE && $res->{headers}->{'content-encoding'} =~ /\b(?:gzip|deflate)\b/smi ) {
                 my $x = Compress::Raw::Zlib::Inflate->new( -AppendOutput => 1, -WindowBits => Compress::Raw::Zlib::WANT_GZIP_OR_ZLIB() );
 
                 sub ( $in_buf_ref, $out_buf_ref ) {
@@ -520,7 +517,7 @@ sub _read_data ( $h, $args, $res ) {
             }
 
             # brotli
-            elsif ( $ENCODE_BROTLI && $res->{headers}->{CONTENT_ENCODING} =~ /\bbr\b/smi ) {
+            elsif ( $ENCODE_BROTLI && $res->{headers}->{'content-encoding'} =~ /\bbr\b/smi ) {
                 my $x = IO::Uncompress::Brotli->create;
 
                 sub ( $in_buf_ref, $out_buf_ref ) {
@@ -723,7 +720,7 @@ sub _get_on_progress_cb (%args) {
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 139                  | * Subroutine "request" with high complexity score (22)                                                         |
 ## |      | 252                  | * Subroutine "_request" with high complexity score (25)                                                        |
-## |      | 493                  | * Subroutine "_read_data" with high complexity score (47)                                                      |
+## |      | 490                  | * Subroutine "_read_data" with high complexity score (47)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 90                   | CodeLayout::ProhibitQuotedWordLists - List of quoted literal words                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
