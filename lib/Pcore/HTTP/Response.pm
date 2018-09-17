@@ -17,11 +17,6 @@ has decoded_data   => ( is => 'lazy' );
 has tree           => ( is => 'lazy' );
 has redirects      => ();                 # ArrayRef of intermadiate redirects
 
-# TODO remove
-sub BUILDARGS ( $self, $args ) {
-    return $args;
-}
-
 sub _build_decoded_data ($self) {
     return if !$self->{data};
 
