@@ -207,24 +207,24 @@ sub request {
     }
 
     # serialize default headers
-    my ( $headers, $norm_headers );
+    my $norm_headers;
 
-    for ( my $i = 0; $i <= $args{headers}->$#*; $i += 2 ) {
-        $norm_headers->{ lc $args{headers}->[$i] } = 1;
+    # TODO clone
+    my @headers = $args{headers}->@*;
 
-        $headers .= $args{headers}->[$i] . ':' . $args{headers}->[ $i + 1 ] . $CRLF if defined $args{headers}->[ $i + 1 ];
-    }
+    # get normalized headers
+    for ( my $i = 0; $i <= $#headers; $i += 2 ) { $norm_headers->{ lc $headers[$i] } = 1 }
 
     # add "User-Agent" header
-    $headers .= 'User-Agent:' . $UA_PCORE . $CRLF if !$norm_headers->{'user-agent'};
+    push @headers, 'User-Agent' => $UA_PCORE if !$norm_headers->{'user-agent'};
 
     # add "Referer" header
-    $headers .= 'Referer:' . $args{url}->to_string . $CRLF if !$norm_headers->{referer};
+    push @headers, 'Referer' => $args{url}->to_string if !$norm_headers->{referer};
 
     # add "Accept-Encoding" header
-    $headers .= 'Accept-Encoding:' . $ACCEPT_ENCODING . $CRLF if !$norm_headers->{'accept-encoding'} && $args{accept_compressed};
+    push @headers, 'Accept-Encoding' => $ACCEPT_ENCODING if !$norm_headers->{'accept-encoding'} && $args{accept_compressed};
 
-    $args{headers}      = $headers;
+    $args{headers}      = \@headers;
     $args{norm_headers} = $norm_headers;
 
     if ( defined wantarray ) {
@@ -286,24 +286,36 @@ sub _request ($args) {
 
         # start TLS, only if TLS is required and TLS is not established yet
         if ( $res->{url}->{is_secure} && !$h->{tls} ) {
-            $h->starttls;
+            $h->starttls( http2 => $args->{http2} );
 
             # start TLS error
             $res->set_status( $h->{status}, $h->{reason} ) || last if !$h;
         }
 
-        # write request headers
-        _write_headers( $h, $args, $res ) || last;
+        # HTTP2 requirest
+        if ( $args->{http2} ) {
+            state $http2_init = !!require Protocol::HTTP2::Client;
 
-        # write request data
-        _write_data( $h, $args, $res ) || last if defined $args->{data};
+            # write request headers
+            _write_http2_request( $h, $args, $res ) || last;
+        }
 
-        # read response headers
-        _read_headers( $h, $args, $res ) || last;
+        # HTTP1 request
+        else {
 
-        # read response data
-        if ( $args->{method} ne 'HEAD' ) {
-            _read_data( $h, $args, $res ) || last;
+            # write request headers
+            _write_headers( $h, $args, $res ) || last;
+
+            # write request data
+            _write_data( $h, $args, $res ) || last if defined $args->{data};
+
+            # read response headers
+            _read_headers( $h, $args, $res ) || last;
+
+            # read response data
+            if ( $args->{method} ne 'HEAD' ) {
+                _read_data( $h, $args, $res ) || last;
+            }
         }
 
         # TODO process persistent
@@ -349,7 +361,8 @@ sub _request ($args) {
 
 sub _write_headers ( $h, $args, $res ) {
     my $request_path;
-    my $headers = q[];
+
+    my $headers = join q[], map {"$_->[0]:$_->[1]$CRLF"} grep { defined $_->[1] } P->list->pairs( $args->{headers}->@* );
 
     if ( $h->{proxy_type} && $h->{proxy_type} == $PROXY_TYPE_HTTP ) {
         $request_path = $res->{url}->{to_string};
@@ -361,7 +374,7 @@ sub _write_headers ( $h, $args, $res ) {
     }
 
     # add "Host" header
-    $headers .= 'Host:' . $res->{url}->host->name . $CRLF if !$args->{norm_headers}->{host};
+    $headers .= 'Host:' . $res->{url}->host->{name} . $CRLF if !$args->{norm_headers}->{host};
 
     # prepare content related headers
     if ( defined $args->{data} ) {
@@ -388,7 +401,7 @@ sub _write_headers ( $h, $args, $res ) {
     }
 
     # write headers
-    $h->write( "$args->{method} $request_path HTTP/1.1" . $CRLF . $args->{headers} . $headers . $CRLF );
+    $h->write( "$args->{method} $request_path HTTP/1.1" . $CRLF . $headers . $CRLF );
 
     # write error
     if ( !$h ) {
@@ -452,6 +465,11 @@ sub _read_headers ( $h, $args, $res ) {
         return;
     }
 
+    return _process_headers( $h, $args, $res, $headers );
+}
+
+sub _process_headers ( $h, $args, $res, $headers ) {
+
     # parse SET_COOKIE header, add cookies
     $args->{cookies}->parse_cookies( $res->{url}, $headers->{headers}->{'set-cookie'} ) if $args->{cookies} && exists $headers->{headers}->{'set-cookie'};
 
@@ -470,7 +488,7 @@ sub _read_headers ( $h, $args, $res ) {
     # store response headers
     $res->{headers} = $headers->{headers};
 
-    $res->{version} = "1.$headers->{minor_version}";
+    $res->{version} = $headers->{version};
 
     # call "on_headers" callback, do not call during redirects
     if ( !$res->{is_redirect} && $args->{on_headers} && !$args->{on_headers}->($res) ) {
@@ -706,6 +724,90 @@ sub _get_on_progress_cb (%args) {
     };
 }
 
+# HTTP2
+# TODO convert duplicated headers to ArrayRef
+sub _write_http2_request ( $h, $args, $res ) {
+    my $url = $res->{url};
+
+    my $http2 = Protocol::HTTP2::Client->new( upgrade => $url->{is_secure} ? 0 : 1 );
+
+    my @headers = $args->{headers}->@*;
+
+    if ( $args->{cookies} && ( my $cookies = $args->{cookies}->get_cookies($url) ) ) {
+        push @headers, Cookie => join ';', $cookies->@*;
+    }
+
+    my ( $http2_is_finished, $http2_headers, $http2_data );
+
+    $http2->request(
+
+        # HTTP/2 headers
+        ':scheme'    => $url->{scheme},
+        ':authority' => $url->{host}->{name},
+        ':path'      => $url->path_query,
+        ':method'    => $args->{method},
+
+        # HTTP/1.1 headers
+        headers => \@headers,
+
+        data => is_ref $args->{data} ? $args->{data}->$* : $args->{data},
+
+        # on_headers => sub          { say dump [ 'ON_HEADERS', \@_ ] },
+        # on_data    => sub          { say dump [ 'ON_DATA',    \@_ ] },
+
+        on_error => sub ($error) { $http2_is_finished = 1 },
+        on_done  => sub ( $headers, $data ) {
+            $http2_is_finished = 1;
+            $http2_headers     = $headers;
+            $http2_data        = $data;
+        },
+    );
+
+    # write request
+    while ( my $frame = $http2->next_frame ) {
+        $h->write($frame);
+
+        # write error
+        return $res->set_status( $h->{status}, $h->{reason} ) if !$h;
+    }
+
+    # TODO check upgrade header, read body if not upgaded
+    # if ( !$uri->{is_secure} ) {
+    #     my $headers = $h->read_http_res_headers;
+
+    #     say dump $headers;
+    # }
+
+  READ:
+    my $buf = $h->read;
+
+    # read error
+    return $res->set_status( $h->{status}, $h->{reason} ) if !$h;
+
+    $http2->feed( $buf->$* );
+
+    # write pending frames
+    while ( my $frame = $http2->next_frame ) { $h->write($frame) }
+
+    goto READ if !$http2_is_finished;
+
+    # TODO convert duplicated headers to ArrayRef
+    my $headers = { $http2_headers->@* };
+
+    _process_headers(
+        $h, $args, $res,
+        {   status  => delete $headers->{':status'},
+            reason  => undef,
+            version => '2.0',
+            headers => $headers,
+        }
+    );
+
+    $res->{data} = \$http2_data if defined $http2_data;
+
+    return 1;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -718,15 +820,15 @@ sub _get_on_progress_cb (%args) {
 ## |    3 | 97                   | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 139                  | * Subroutine "request" with high complexity score (22)                                                         |
-## |      | 252                  | * Subroutine "_request" with high complexity score (25)                                                        |
-## |      | 490                  | * Subroutine "_read_data" with high complexity score (47)                                                      |
+## |      | 139                  | * Subroutine "request" with high complexity score (21)                                                         |
+## |      | 252                  | * Subroutine "_request" with high complexity score (28)                                                        |
+## |      | 508                  | * Subroutine "_read_data" with high complexity score (47)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 90                   | CodeLayout::ProhibitQuotedWordLists - List of quoted literal words                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 125                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 212                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 216                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

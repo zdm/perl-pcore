@@ -621,6 +621,8 @@ sub _parse_http_headers ( $self, $buf ) {
 
     ( $res->{len}, $res->{minor_version}, $res->{status}, $res->{reason}, $res->{headers} ) = HTTP::Parser::XS::parse_http_response( $buf, HTTP::Parser::XS::HEADERS_AS_HASHREF );
 
+    $res->{version} = "1.$res->{minor_version}" if defined $res->{minor_version};
+
     # fallback to pure-perl parser in case of errors
     # TODO can be removed after this issue will be fixed - https://github.com/kazuho/p5-http-parser-xs/issues/10
     # NOTE http://www.bizcoder.com/everything-you-need-to-know-about-http-header-syntax-but-were-afraid-to-ask
@@ -783,9 +785,9 @@ sub read_http_chunked_data ( $self, %args ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 495                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 677                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
+## |    3 | 679                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 738                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 740                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 363                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
