@@ -298,7 +298,7 @@ sub _request ($args) {
         if ( $args->{http2} ) {
             state $http2_init = !!require Protocol::HTTP2::Client;
 
-            # write request headers
+            # perform HTTP2 request
             _http2_request( $h, $args, $res ) || last;
         }
 
@@ -346,7 +346,7 @@ sub _request ($args) {
             push $res->{redirects}->@*, $res;
 
             $res = bless {
-                url       => $args->{url},
+                url       => P->uri( $res->{headers}->{location}, base => $args->{url} ),
                 redirects => delete $res->{redirects},
               },
               'Pcore::HTTP::Response';
