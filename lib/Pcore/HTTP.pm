@@ -299,7 +299,7 @@ sub _request ($args) {
             state $http2_init = !!require Protocol::HTTP2::Client;
 
             # write request headers
-            _write_http2_request( $h, $args, $res ) || last;
+            _http2_request( $h, $args, $res ) || last;
         }
 
         # HTTP1 request
@@ -728,7 +728,7 @@ sub _get_on_progress_cb (%args) {
 
 # HTTP2
 # TODO "on_data"
-sub _write_http2_request ( $h, $args, $res ) {
+sub _http2_request ( $h, $args, $res ) {
     my $url = $res->{url};
 
     my $http2 = Protocol::HTTP2::Client->new( upgrade => $url->{is_secure} ? 0 : 1 );
@@ -817,12 +817,23 @@ sub _write_http2_request ( $h, $args, $res ) {
         return $res->set_status( $h->{status}, $h->{reason} ) if !$h;
     }
 
-    # TODO check upgrade header, read body if not upgaded
-    # if ( !$uri->{is_secure} ) {
-    #     my $headers = $h->read_http_res_headers;
+    # check upgrade header, read HTTP1 body if not upgaded
+    if ( !$url->{is_secure} ) {
 
-    #     say dump $headers;
-    # }
+        # read HTTP1 response headers
+        _read_headers( $h, $args, $res ) || return;
+
+        # request wasn't upgraded
+        if ( $res != 101 ) {
+
+            # read response data
+            if ( $args->{method} ne 'HEAD' ) {
+                _read_data( $h, $args, $res ) || return;
+            }
+
+            return 1;
+        }
+    }
 
   READ:
     my $buf = $h->read;
@@ -860,6 +871,7 @@ sub _write_http2_request ( $h, $args, $res ) {
 ## |      | 140                  | * Subroutine "request" with high complexity score (22)                                                         |
 ## |      | 254                  | * Subroutine "_request" with high complexity score (28)                                                        |
 ## |      | 510                  | * Subroutine "_read_data" with high complexity score (47)                                                      |
+## |      | 731                  | * Subroutine "_http2_request" with high complexity score (22)                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 90                   | CodeLayout::ProhibitQuotedWordLists - List of quoted literal words                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
