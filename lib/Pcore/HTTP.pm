@@ -1,7 +1,7 @@
 package Pcore::HTTP;
 
 use Pcore -const, -export;
-use Pcore::Util::Scalar qw[is_ref is_glob is_plain_coderef is_blessed_ref is_coderef is_plain_hashref];
+use Pcore::Util::Scalar qw[is_ref is_glob is_plain_coderef is_blessed_ref is_coderef is_plain_hashref is_plain_arrayref];
 use Pcore::Handle qw[:ALL];
 use Pcore::HTTP::Response;
 use Pcore::HTTP::Cookies;
@@ -725,7 +725,7 @@ sub _get_on_progress_cb (%args) {
 }
 
 # HTTP2
-# TODO convert duplicated headers to ArrayRef
+# TODO "on_data"
 sub _write_http2_request ( $h, $args, $res ) {
     my $url = $res->{url};
 
@@ -733,11 +733,12 @@ sub _write_http2_request ( $h, $args, $res ) {
 
     my @headers = $args->{headers}->@*;
 
+    # add cookies
     if ( $args->{cookies} && ( my $cookies = $args->{cookies}->get_cookies($url) ) ) {
         push @headers, Cookie => join ';', $cookies->@*;
     }
 
-    my ( $http2_is_finished, $http2_headers, $http2_data );
+    my $http2_is_finished;
 
     $http2->request(
 
@@ -752,14 +753,50 @@ sub _write_http2_request ( $h, $args, $res ) {
 
         data => is_ref $args->{data} ? $args->{data}->$* : $args->{data},
 
-        # on_headers => sub          { say dump [ 'ON_HEADERS', \@_ ] },
-        # on_data    => sub          { say dump [ 'ON_DATA',    \@_ ] },
+        on_headers => sub          ($http2_headers) {
+            my %headers;
 
-        on_error => sub ($error) { $http2_is_finished = 1 },
-        on_done  => sub ( $headers, $data ) {
+            for my $header ( P->list->pairs( $http2_headers->@* ) ) {
+                if ( !exists $headers{ $header->[0] } ) {
+                    $headers{ $header->[0] } = $header->[1];
+                }
+                else {
+                    $headers{ $header->[0] } = [ $headers{ $header->[0] } ] if !is_plain_arrayref $headers{ $header->[0] };
+
+                    push $headers{ $header->[0] }->@*, $header->[1];
+                }
+            }
+
+            $http2_is_finished = 1 unless _process_headers(
+                $h, $args, $res,
+                {   status  => delete $headers{':status'},
+                    reason  => undef,
+                    version => '2.0',
+                    headers => \%headers,
+                }
+            );
+
+            return;
+        },
+
+        # TODO "on_data" callback
+        # TODO decode compressed data
+        on_data => sub ( $data, $headers ) {
+            $res->{data}->$* .= $data;
+
+            return;
+        },
+        on_error => sub ($error) {
             $http2_is_finished = 1;
-            $http2_headers     = $headers;
-            $http2_data        = $data;
+
+            $res->set_status( $HANDLE_STATUS_PROTOCOL_ERROR, qq[HTTP2 protocol error: $error] );
+
+            return;
+        },
+        on_done => sub ( $headers, $data ) {
+            $http2_is_finished = 1;
+
+            return;
         },
     );
 
@@ -787,23 +824,14 @@ sub _write_http2_request ( $h, $args, $res ) {
     $http2->feed( $buf->$* );
 
     # write pending frames
-    while ( my $frame = $http2->next_frame ) { $h->write($frame) }
+    while ( my $frame = $http2->next_frame ) {
+        $h->write($frame);
+
+        # write error
+        return $res->set_status( $h->{status}, $h->{reason} ) if !$h;
+    }
 
     goto READ if !$http2_is_finished;
-
-    # TODO convert duplicated headers to ArrayRef
-    my $headers = { $http2_headers->@* };
-
-    _process_headers(
-        $h, $args, $res,
-        {   status  => delete $headers->{':status'},
-            reason  => undef,
-            version => '2.0',
-            headers => $headers,
-        }
-    );
-
-    $res->{data} = \$http2_data if defined $http2_data;
 
     return 1;
 }
