@@ -115,13 +115,13 @@ sub mirror ( $target, $url, @args ) {
 
     $args{buf_size} = 1;
 
-    $args{headers}->{IF_MODIFIED_SINCE} = P->date->from_epoch( [ stat $target ]->[9] )->to_http_date if !$args{no_cache} && -f $target;
+    $args{headers}->{'If-Modified-Since'} = P->date->from_epoch( [ stat $target ]->[9] )->to_http_date if !$args{no_cache} && -f $target;
 
     $args{on_finish} = sub ($res) {
         if ( $res->{status} == 200 ) {
             P->file->move( $res->{body}->path, $target );
 
-            if ( my $last_modified = $res->headers->{LAST_MODIFIED} ) {
+            if ( my $last_modified = $res->headers->{'Last-Modified'} ) {
                 my $mtime = P->date->parse($last_modified)->at_utc->epoch;
 
                 utime $mtime, $mtime, $target or die;
