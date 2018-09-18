@@ -767,7 +767,7 @@ sub _write_http2_request ( $h, $args, $res ) {
                 }
             }
 
-            $http2_is_finished = 1 unless _process_headers(
+            my $res = _process_headers(
                 $h, $args, $res,
                 {   status  => delete $headers{':status'},
                     reason  => undef,
@@ -776,7 +776,14 @@ sub _write_http2_request ( $h, $args, $res ) {
                 }
             );
 
-            return;
+            if ($res) {
+                return 1;
+            }
+            else {
+                $http2_is_finished = 1;
+
+                return;
+            }
         },
 
         # TODO "on_data" callback
@@ -784,7 +791,7 @@ sub _write_http2_request ( $h, $args, $res ) {
         on_data => sub ( $data, $headers ) {
             $res->{data}->$* .= $data;
 
-            return;
+            return 1;
         },
         on_error => sub ($error) {
             $http2_is_finished = 1;
