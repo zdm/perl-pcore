@@ -136,6 +136,7 @@ sub mirror ( $target, $url, @args ) {
     return request(%args);
 }
 
+# TODO HTTP2 accept_compressed
 sub request {
     my $cb = @_ % 2 ? pop : ();
 
@@ -222,7 +223,8 @@ sub request {
     push @headers, 'Referer' => $args{url}->to_string if !$norm_headers->{referer};
 
     # add "Accept-Encoding" header
-    push @headers, 'Accept-Encoding' => $ACCEPT_ENCODING if !$norm_headers->{'accept-encoding'} && $args{accept_compressed};
+    # TODO http2
+    push @headers, 'Accept-Encoding' => $ACCEPT_ENCODING if !$norm_headers->{'accept-encoding'} && $args{accept_compressed} && !$args{http2};
 
     $args{headers}      = \@headers;
     $args{norm_headers} = $norm_headers;
@@ -855,15 +857,15 @@ sub _write_http2_request ( $h, $args, $res ) {
 ## |    3 | 97                   | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 139                  | * Subroutine "request" with high complexity score (21)                                                         |
-## |      | 252                  | * Subroutine "_request" with high complexity score (28)                                                        |
-## |      | 508                  | * Subroutine "_read_data" with high complexity score (47)                                                      |
+## |      | 140                  | * Subroutine "request" with high complexity score (22)                                                         |
+## |      | 254                  | * Subroutine "_request" with high complexity score (28)                                                        |
+## |      | 510                  | * Subroutine "_read_data" with high complexity score (47)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 90                   | CodeLayout::ProhibitQuotedWordLists - List of quoted literal words                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 125                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 216                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 217                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
