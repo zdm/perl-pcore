@@ -211,7 +211,7 @@ sub request {
     my $norm_headers;
 
     # TODO clone
-    my @headers = $args{headers}->@*;
+    my @headers = defined $args{headers} ? $args{headers}->@* : ();
 
     # get normalized headers
     for ( my $i = 0; $i <= $#headers; $i += 2 ) { $norm_headers->{ lc $headers[$i] } = 1 }
@@ -868,7 +868,7 @@ sub _http2_request ( $h, $args, $res ) {
 ## |    3 | 97                   | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 140                  | * Subroutine "request" with high complexity score (22)                                                         |
+## |      | 140                  | * Subroutine "request" with high complexity score (23)                                                         |
 ## |      | 254                  | * Subroutine "_request" with high complexity score (28)                                                        |
 ## |      | 510                  | * Subroutine "_read_data" with high complexity score (47)                                                      |
 ## |      | 731                  | * Subroutine "_http2_request" with high complexity score (22)                                                  |
