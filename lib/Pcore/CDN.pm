@@ -99,17 +99,30 @@ sub _get_res_ext ( $self, $ver, $type, $theme, $default_theme, $debug = undef ) 
 }
 
 # TODO
-sub _get_res_amcharts ( $self, $ver = undef ) {
+sub _get_res_amcharts3 ( $self, $ver = undef ) {
     $ver ||= 'v3.21.13';
 
     return [ $self->("/static/amcharts-$ver/") ];
 }
 
 # TODO
-sub _get_res_ammap ( $self, $ver = undef ) {
+sub _get_res_ammap3 ( $self, $ver = undef ) {
     $ver ||= 'v3.21.13';
 
     return [ $self->("/static/ammap-$ver/") ];
+}
+
+# TODO
+sub _get_res_amcharts4 ( $self, $ver = undef ) {
+    $ver ||= 'v4.0.0.b51';
+
+    return [ $self->("/static/amcharts-$ver/") ];
+}
+
+sub _get_res_amcharts4_geodata ( $self, $ver = undef ) {
+    $ver ||= 'v4.0.11';
+
+    return [ $self->("/static/amcharts-geodata-$ver/") ];
 }
 
 1;
@@ -122,8 +135,10 @@ sub _get_res_ammap ( $self, $ver = undef ) {
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 62                   | * Private subroutine/method '_get_res_fa' declared but not used                                                |
 ## |      | 69                   | * Private subroutine/method '_get_res_ext' declared but not used                                               |
-## |      | 102                  | * Private subroutine/method '_get_res_amcharts' declared but not used                                          |
-## |      | 109                  | * Private subroutine/method '_get_res_ammap' declared but not used                                             |
+## |      | 102                  | * Private subroutine/method '_get_res_amcharts3' declared but not used                                         |
+## |      | 109                  | * Private subroutine/method '_get_res_ammap3' declared but not used                                            |
+## |      | 116                  | * Private subroutine/method '_get_res_amcharts4' declared but not used                                         |
+## |      | 122                  | * Private subroutine/method '_get_res_amcharts4_geodata' declared but not used                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 69                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
