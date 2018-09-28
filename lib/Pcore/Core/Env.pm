@@ -311,11 +311,8 @@ sub dist ( $self, $dist_name = undef ) {
     }
 }
 
-# TODO
 sub DESTROY ( $self ) {
     if ( $self->{SCANDEPS} ) {
-
-        say '---- store deps';
         my ( $fh, $index );
 
         if ( -f $self->{SCANDEPS} ) {
@@ -347,7 +344,7 @@ sub DESTROY ( $self ) {
 
                     $index->{$module} = undef;
 
-                    say qq[new deps found: $module];
+                    say "new dependency found: $module";
                 }
             }
         }
@@ -404,13 +401,13 @@ sub DESTROY ( $self ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 315                  | Subroutines::ProhibitExcessComplexity - Subroutine "DESTROY" with high complexity score (22)                   |
+## |    3 | 314                  | Subroutines::ProhibitExcessComplexity - Subroutine "DESTROY" with high complexity score (22)                   |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 326                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 323                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 364                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 361                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 391                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
+## |    2 | 388                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 116                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

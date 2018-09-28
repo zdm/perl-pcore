@@ -61,7 +61,7 @@ around new => sub ( $orig, $self, $type, % ) {
 
         my $res = $self->_handshake($fh_r);
 
-        $proc = bless { pid => $res->{pid} }, 'Pcore::Util::Sys::Proc';
+        $proc = bless { pid => $res->{pid}, kill_on_destroy => 0 }, 'Pcore::Util::Sys::Proc';
     }
 
     # run via run_proc
@@ -76,7 +76,7 @@ around new => sub ( $orig, $self, $type, % ) {
         };
 
         # create proc
-        $proc = P->sys->run_proc( [ $perl, "-MPcore::Node=$type" ], stdin => 1 );
+        $proc = P->sys->run_proc( [ $perl, "-MPcore::Node=$type" ], stdin => 1, kill_on_destroy => 0 );
 
         # send configuration to the proc STDIN
         $proc->{stdin}->write( unpack( 'H*', to_cbor($boot_args)->$* ) . $LF );
