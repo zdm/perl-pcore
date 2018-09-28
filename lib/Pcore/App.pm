@@ -102,6 +102,8 @@ around run => sub ( $orig, $self ) {
         say qq[Listen: $self->{app_cfg}->{server}->{listen}];
     }
 
+    $self->_init_reload if $self->{devel};
+
     say qq[App "@{[ref $self]}" started];
 
     return;
@@ -167,7 +169,104 @@ sub start_nginx ($self) {
     return;
 }
 
+# TODO monitor removed files
+use Pcore::Util::Scalar qw[is_ref];
+
+sub _init_reload ($self) {
+    state $files = {};
+    state $init  = 0;
+
+    my $ns = ref($self) . '::Ext' =~ s[::][/]smgr;
+
+    Coro::async {
+        while () {
+            my $changed;
+
+            my $cv = P->cv->begin;
+
+            # TODO monitor removed files
+
+            for my $inc_path ( grep { !is_ref $_ } @INC ) {
+                P->file->find(
+                    "$inc_path/$ns",
+                    abs => 1,
+                    dir => 0,
+                    sub ($path) {
+                        $cv->begin;
+
+                        IO::AIO::aio_stat(
+                            "$path",
+                            sub ($error) {
+                                die if $error;
+
+                                my $mtime = IO::AIO::st_mtime;
+
+                                if ( !exists $files->{$path} || $files->{$path} != $mtime ) {
+                                    $files->{$path} = $mtime;
+
+                                    $changed = 1;
+                                }
+
+                                $cv->end;
+
+                                return;
+                            }
+                        );
+
+                        return;
+                    }
+                );
+            }
+
+            $cv->end->recv;
+
+            if ( $changed && $init ) {
+                no warnings qw[once];
+
+                $Pcore::Ext::EXT     = undef;
+                $Pcore::Ext::APP     = undef;
+                $Pcore::Ext::SCANNED = 0;
+
+                eval { Pcore::Ext->scan( $self, ref($self) . '::Ext' ) };
+
+                if ($@) {
+                    $@->sendlog;
+
+                    say 'reload error';
+                }
+                else {
+                    for my $class ( values $self->{router}->{_class_instance_cache}->%* ) {
+                        if ( $class->does('Pcore::App::Controller::Ext') ) {
+                            $class->{_cache} = undef;
+                        }
+                    }
+
+                    say 'reload OK';
+                }
+            }
+
+            $init = 1;
+
+            Coro::AnyEvent::sleep 3;
+        }
+
+        return;
+    };
+
+    return;
+}
+
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 230                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
