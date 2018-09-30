@@ -9,7 +9,7 @@ use overload
   q[""]    => sub { $_[0]->{to_string} },
   fallback => 1;
 
-with qw[Pcore::Util::Result::Status Pcore::Util::Path1::Stat Pcore::Util::Path1::Poll];
+with qw[Pcore::Util::Result::Status Pcore::Util::Path1::Stat Pcore::Util::Path1::Dir Pcore::Util::Path1::Poll];
 
 has to_string => ();
 
