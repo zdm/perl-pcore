@@ -2,6 +2,7 @@ package Pcore::Util::Path1::Stat;
 
 use Pcore -role, -const;
 use Fcntl qw[:mode];
+use Clone qw[];
 
 const our $FILE_TEST_METHOD => {
     f => 'is_file',
@@ -17,7 +18,10 @@ use overload    #
   '-X' => sub {
     my $method = $FILE_TEST_METHOD->{ $_[1] };
 
-    return $_[0]->stat->$method;
+    delete $_[0]->{stat};
+    delete $_[0]->{_stat_type};
+
+    return $_[0]->$method;
   };
 
 # dev
@@ -34,27 +38,17 @@ use overload    #
 # btime
 # blksize
 # blocks
-has stat => ( init_arg => undef );    # HashRef
+has stat       => ( init_arg => undef );    # HashRef
+has _stat_type => ( init_arg => undef );
 
-sub stat ( $self, $cb = undef ) {     ## no critic qw[Subroutines: : ProhibitBuiltinHomonyms ] my $cv = defined wantarray ? P->cv : ();
+our $STAT_CB = {};
+
+sub stat ( $self, $cb = undef ) {           ## no critic qw[Subroutines: : ProhibitBuiltinHomonyms ] my $cv = defined wantarray ? P->cv : ();
     my $cv = defined wantarray ? P->cv : ();
 
-    IO::AIO::aio_stat $self->{to_string}, sub ($error) {
-        if ($error) {
-            $self->set_status( [ 500, $! ] );
+    say 'stat';
 
-            undef $self->{stat};
-        }
-        else {
-            $self->set_status(200);
-
-            my $stat->@{qw[dev ino mode nlink uid gid rdev size atime mtime ctime blksize blocks]} = stat _;
-
-            ( $stat->{atime}, $stat->{mtime}, $stat->{ctime}, $stat->{btime} ) = IO::AIO::st_xtime();
-
-            $self->{stat} = $stat;
-        }
-
+    my $on_finish = sub ($self) {
         $self = $cb->($self) if defined $cb;
 
         $cv->($self) if defined $cv;
@@ -62,45 +56,89 @@ sub stat ( $self, $cb = undef ) {     ## no critic qw[Subroutines: : ProhibitBui
         return;
     };
 
+    my $path = $self->{to_string};
+
+    push $STAT_CB->{$path}->@*, [ $self, $on_finish ];
+
+    return if $STAT_CB->{$path}->@* > 1;
+
+    IO::AIO::aio_stat $path, sub ($error) {
+        my $stat;
+
+        if ( !$error ) {
+            $stat->@{qw[dev ino mode nlink uid gid rdev size atime mtime ctime blksize blocks]} = stat _;
+
+            ( $stat->{atime}, $stat->{mtime}, $stat->{ctime}, $stat->{btime} ) = IO::AIO::st_xtime();
+        }
+
+        for my $cb ( delete( $STAT_CB->{$path} )->@* ) {
+            delete $cb->[0]->{_stat_type};
+
+            # ok
+            if ( defined $stat ) {
+                $cb->[0]->set_status(200);
+
+                $cb->[0]->{stat} = Clone::clone($stat);
+            }
+
+            # error
+            else {
+                $cb->[0]->set_status( [ 500, $! ] );
+
+                delete $cb->[0]->{stat};
+            }
+
+            $cb->[1]->( $cb->[0] );
+        }
+
+        return;
+    };
+
     return defined $cv ? $cv->recv : ();
 }
 
-# -f
-sub is_file ($self ) {
-    return defined $self->{stat} ? S_ISREG( $self->{stat}->{mode} ) || 0 : undef;
-}
+my $method_type = {
+    is_file => S_IFREG,
+    is_dir  => S_IFDIR,
+    is_lnk  => S_IFLNK,
+    is_blk  => S_IFBLK,
+    is_chr  => S_IFCHR,
+    is_fifo => S_IFIFO,
+    is_sock => S_IFSOCK,
+};
 
-# -d
-sub is_dir ($self ) {
-    return defined $self->{stat} ? S_ISDIR( $self->{stat}->{mode} ) || 0 : undef;
-}
+while ( my ( $method, $type ) = each $method_type->%* ) {
+    eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
+sub $method (\$self ) {
 
-# -l
-sub is_link ($self ) {
-    return defined $self->{stat} ? S_ISLNK( $self->{stat}->{mode} ) || 0 : undef;
-}
+    # stat type is not cached
+    if ( !defined \$self->{_stat_type} ) {
 
-# -b
-sub is_blk ($self ) {
-    return defined $self->{stat} ? S_ISBLK( $self->{stat}->{mode} ) || 0 : undef;
-}
+        # get stat
+        my \$res = !defined \$self->{stat} ? \$self->stat : ();
 
-# -c
-sub is_chr ($self ) {
-    return defined $self->{stat} ? S_ISCHR( $self->{stat}->{mode} ) || 0 : undef;
-}
+        # get stat error
+        return if !defined \$self->{stat};
 
-# -p
-sub is_fifo ($self ) {
-    return defined $self->{stat} ? S_ISFIFO( $self->{stat}->{mode} ) || 0 : undef;
-}
+        \$self->{_stat_type} = S_IFMT( \$self->{stat}->{mode} );
+    }
 
-# -S
-sub is_sock ($self ) {
-    return defined $self->{stat} ? S_ISSOCK( $self->{stat}->{mode} ) || 0 : undef;
+    return \$self->{_stat_type} == $type;
+}
+PERL
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 111                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

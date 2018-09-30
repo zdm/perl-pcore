@@ -40,7 +40,12 @@ sub read_dir ( $self, @ ) {
         IO::AIO::aio_readdirx "${base}/$path", $flags, sub ( $entries, $flags ) {
             if ( defined $entries ) {
                 for my $item ( $entries->@* ) {
-                    push $res->@*, bless { to_string => $args{abs} ? "$base/${path}$item->[0]" : "${path}$item->[0]" }, 'Pcore::Util::Path1';
+                    push $res->@*,
+                      bless {
+                        to_string => $args{abs} ? "$base/${path}$item->[0]" : "${path}$item->[0]",
+                        _stat_type => $item->[1],
+                      },
+                      'Pcore::Util::Path1';
 
                     $sub->("${path}$item->[0]/") if $args{recursive} && $item->[1] == IO::AIO::DT_DIR;
                 }
@@ -68,7 +73,7 @@ sub read_dir ( $self, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 57                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 62                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 12                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

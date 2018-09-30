@@ -23,18 +23,18 @@ sub clone ($self) {
     return Clone::clone($self);
 }
 
-sub TO_DUMP {
-    my $self = shift;
+# sub TO_DUMP {
+#     my $self = shift;
 
-    my $res;
-    my $tags;
+#     my $res;
+#     my $tags;
 
-    $res = qq[path: "$self->{to_string}"];
+#     $res = qq[path: "$self->{to_string}"];
 
-    # $res .= qq[\nMIME type: "] . $self->mime_type . q["] if $self->mime_type;
+#     # $res .= qq[\nMIME type: "] . $self->mime_type . q["] if $self->mime_type;
 
-    return $res, $tags;
-}
+#     return $res, $tags;
+# }
 
 1;
 __END__
