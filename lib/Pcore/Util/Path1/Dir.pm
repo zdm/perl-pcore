@@ -1,8 +1,21 @@
 package Pcore::Util::Path1::Dir;
 
-use Pcore -role;
+use Pcore -role, -const;
 use IO::AIO qw[];
 use Pcore::Util::Scalar qw[is_plain_coderef];
+use Fcntl qw[];
+
+const our $AIO_FCNTL_TYPE_MAP => {
+    IO::AIO::DT_UNKNOWN => undef,
+    IO::AIO::DT_FIFO    => Fcntl::S_IFIFO,
+    IO::AIO::DT_CHR     => Fcntl::S_IFCHR,
+    IO::AIO::DT_DIR     => Fcntl::S_IFDIR,
+    IO::AIO::DT_BLK     => Fcntl::S_IFBLK,
+    IO::AIO::DT_REG     => Fcntl::S_IFREG,
+    IO::AIO::DT_LNK     => Fcntl::S_IFLNK,
+    IO::AIO::DT_SOCK    => Fcntl::S_IFSOCK,
+    IO::AIO::DT_WHT     => -1,
+};
 
 sub read_dir ( $self, @ ) {
     my $cb = is_plain_coderef $_[-1] ? shift : ();
@@ -43,7 +56,7 @@ sub read_dir ( $self, @ ) {
                     push $res->@*,
                       bless {
                         to_string => $args{abs} ? "$base/${path}$item->[0]" : "${path}$item->[0]",
-                        _stat_type => $item->[1],
+                        _stat_type => $AIO_FCNTL_TYPE_MAP->{ $item->[1] },
                       },
                       'Pcore::Util::Path1';
 
@@ -73,9 +86,9 @@ sub read_dir ( $self, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 62                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 75                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 12                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 25                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

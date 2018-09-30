@@ -1,7 +1,7 @@
 package Pcore::Util::Path1::Stat;
 
 use Pcore -role, -const;
-use Fcntl qw[:mode];
+use Fcntl qw[];
 use Clone qw[];
 
 const our $FILE_TEST_METHOD => {
@@ -98,13 +98,13 @@ sub stat ( $self, $cb = undef ) {           ## no critic qw[Subroutines: : Prohi
 }
 
 my $method_type = {
-    is_file => S_IFREG,
-    is_dir  => S_IFDIR,
-    is_lnk  => S_IFLNK,
-    is_blk  => S_IFBLK,
-    is_chr  => S_IFCHR,
-    is_fifo => S_IFIFO,
-    is_sock => S_IFSOCK,
+    is_file => Fcntl::S_IFREG,
+    is_dir  => Fcntl::S_IFDIR,
+    is_lnk  => Fcntl::S_IFLNK,
+    is_blk  => Fcntl::S_IFBLK,
+    is_chr  => Fcntl::S_IFCHR,
+    is_fifo => Fcntl::S_IFIFO,
+    is_sock => Fcntl::S_IFSOCK,
 };
 
 while ( my ( $method, $type ) = each $method_type->%* ) {
@@ -120,7 +120,7 @@ sub $method (\$self ) {
         # get stat error
         return if !defined \$self->{stat};
 
-        \$self->{_stat_type} = S_IFMT( \$self->{stat}->{mode} );
+        \$self->{_stat_type} = Fcntl::S_IFMT( \$self->{stat}->{mode} );
     }
 
     return \$self->{_stat_type} == $type;
