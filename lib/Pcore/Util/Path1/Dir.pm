@@ -7,30 +7,73 @@ use Pcore::Util::Scalar qw[is_plain_coderef];
 sub read_dir ( $self, @ ) {
     my $cb = is_plain_coderef $_[-1] ? shift : ();
 
-    my $cv = defined wantarray ? P->cv : ();
+    my $wantarray = defined wantarray;
 
     my %args = (
         recursive => 0,
+        abs       => 0,
         @_[ 1 .. $#_ ]
     );
 
     # IO::AIO::READDIR_DENTS
     # IO::AIO::READDIR_DIRS_FIRST
     # IO::AIO::READDIR_STAT_ORDER
-    my $flags = IO::AIO::READDIR_DENTS | IO::AIO::READDIR_DIRS_FIRST;
+    my $flags = IO::AIO::READDIR_DENTS | IO::AIO::READDIR_DIRS_FIRST | IO::AIO::READDIR_STAT_ORDER;
 
-    IO::AIO::aio_readdirx $self->{to_string}, $flags, sub ( $res, $flags ) {
+    my $res;
+
+    my $cv = P->cv->begin( sub ($cv) {
         $res = $cb->($res) if defined $cb;
 
-        $cv->($res) if defined $cv;
+        $cv->($res) if $wantarray;
+
+        return;
+    } );
+
+    my $base = $self->{to_string};
+
+    my $read = sub ( $path ) {
+        $cv->begin;
+
+        my $sub = __SUB__;
+
+        IO::AIO::aio_readdirx "${base}/$path", $flags, sub ( $entries, $flags ) {
+            if ( defined $entries ) {
+                for my $item ( $entries->@* ) {
+                    push $res->@*, bless { to_string => $args{abs} ? "$base/${path}$item->[0]" : "${path}$item->[0]" }, 'Pcore::Util::Path1';
+
+                    $sub->("${path}$item->[0]/") if $args{recursive} && $item->[1] == IO::AIO::DT_DIR;
+                }
+            }
+
+            $cv->end;
+
+            return;
+        };
 
         return;
     };
 
-    return defined $cv ? $cv->recv : ();
+    $read->('');
+
+    $cv->end;
+
+    return $wantarray ? $cv->recv : ();
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    2 | 57                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 12                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
