@@ -5,6 +5,7 @@ use Fcntl qw[];
 use Clone qw[];
 
 const our $FILE_TEST_METHOD => {
+    e => 'is_exists',
     f => 'is_file',
     d => 'is_dir',
     l => 'is_link',
@@ -126,6 +127,12 @@ sub $method (\$self ) {
 PERL
 }
 
+sub is_exists ($self) {
+    my $res = !exists $self->{stat} ? $self->stat : ();
+
+    return exists $self->{stat};
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -133,7 +140,7 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 109                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 110                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
