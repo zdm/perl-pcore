@@ -46,8 +46,6 @@ our $STAT_CB = {};
 sub stat ( $self, $cb = undef ) {           ## no critic qw[Subroutines: : ProhibitBuiltinHomonyms ] my $cv = defined wantarray ? P->cv : ();
     my $cv = defined wantarray ? P->cv : ();
 
-    say 'stat';
-
     my $on_finish = sub ($self) {
         $self = $cb->($self) if defined $cb;
 
@@ -135,7 +133,7 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 111                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 109                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
