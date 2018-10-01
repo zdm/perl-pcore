@@ -2,6 +2,7 @@ package Pcore::Util::Path1::Dir;
 
 use Pcore -role;
 use Pcore::Util::Scalar qw[is_plain_coderef];
+use Fcntl qw[];
 
 # abs, recursive, dir, file
 sub read_dir ( $self, %args ) {
@@ -31,13 +32,13 @@ sub read_dir ( $self, %args ) {
 
             my $rel_dir = substr $dir, 1;
 
-            if ( -d $fpath ) {
+            if ( -f $fpath ) {
+                push $res->@*, "${prefix}${rel_dir}$path" if $args{file};
+            }
+            elsif ( -d _ ) {
                 push $res->@*, "${prefix}${rel_dir}$path" if $args{dir};
 
                 __SUB__->("${dir}$path/") if $args{recursive};
-            }
-            elsif ( -f _ ) {
-                push $res->@*, "${prefix}${rel_dir}$path" if $args{file};
             }
         }
 
@@ -56,7 +57,7 @@ sub read_dir ( $self, %args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 16                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 17                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
