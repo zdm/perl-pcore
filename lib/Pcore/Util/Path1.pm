@@ -1,15 +1,17 @@
 package Pcore::Util::Path1;
 
 use Pcore -class, -const, -res;
-use IO::AIO qw[];
-use AnyEvent::IO qw[];
 use Clone qw[];
 
 use overload
   q[""]    => sub { $_[0]->{to_string} },
   fallback => 1;
 
-with qw[Pcore::Util::Result::Status Pcore::Util::Path1::Stat Pcore::Util::Path1::Dir Pcore::Util::Path1::Poll];
+with qw[
+  Pcore::Util::Result::Status
+  Pcore::Util::Path1::Dir
+  Pcore::Util::Path1::Poll
+];
 
 has to_string => ();
 
@@ -21,6 +23,24 @@ around new => sub ( $orig, $self, $path ) {
 
 sub clone ($self) {
     return Clone::clone($self);
+}
+
+# TODO normalize path
+sub to_abs ( $self, $base = undef ) {
+    if ( substr( $self->{to_string}, 0, 1 ) eq '/' ) {
+        return defined wantarray ? $self->clone : ();
+    }
+
+    my $path = ( $base //= P->file->cwd ) . $self->{to_string};
+
+    if ( defined wantarray ) {
+        return P->path1($path);
+    }
+    else {
+        $self->{to_string} = $path;
+    }
+
+    return;
 }
 
 # sub TO_DUMP {

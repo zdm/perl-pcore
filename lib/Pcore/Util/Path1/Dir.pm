@@ -1,82 +1,52 @@
 package Pcore::Util::Path1::Dir;
 
-use Pcore -role, -const;
-use IO::AIO qw[];
+use Pcore -role;
 use Pcore::Util::Scalar qw[is_plain_coderef];
-use Fcntl qw[];
 
-const our $AIO_FCNTL_TYPE_MAP => {
-    IO::AIO::DT_UNKNOWN => undef,
-    IO::AIO::DT_FIFO    => Fcntl::S_IFIFO,
-    IO::AIO::DT_CHR     => Fcntl::S_IFCHR,
-    IO::AIO::DT_DIR     => Fcntl::S_IFDIR,
-    IO::AIO::DT_BLK     => Fcntl::S_IFBLK,
-    IO::AIO::DT_REG     => Fcntl::S_IFREG,
-    IO::AIO::DT_LNK     => Fcntl::S_IFLNK,
-    IO::AIO::DT_SOCK    => Fcntl::S_IFSOCK,
-    IO::AIO::DT_WHT     => -1,
-};
-
-sub read_dir ( $self, @ ) {
-    my $cb = is_plain_coderef $_[-1] ? shift : ();
-
-    my $wantarray = defined wantarray;
-
-    my %args = (
-        recursive => 0,
-        abs       => 0,
-        @_[ 1 .. $#_ ]
-    );
-
-    # IO::AIO::READDIR_DENTS
-    # IO::AIO::READDIR_DIRS_FIRST
-    # IO::AIO::READDIR_STAT_ORDER
-    my $flags = IO::AIO::READDIR_DENTS | IO::AIO::READDIR_DIRS_FIRST | IO::AIO::READDIR_STAT_ORDER;
-
+# abs, recursive, dir, file
+sub read_dir ( $self, %args ) {
     my $res;
 
-    my $cv = P->cv->begin( sub ($cv) {
-        $res = $cb->($res) if defined $cb;
+    $args{dir}  //= 1;
+    $args{file} //= 1;
 
-        $cv->($res) if $wantarray;
+    # must be without trailing '/'
+    my $base = $self->to_abs->{to_string};
 
-        return;
-    } );
+    my $prefix = $args{abs} ? $self->to_abs->{to_string} . '/' : '';
 
-    my $base = $self->{to_string};
+    my $read = sub ($dir) {
+        my $dir_path = "${base}$dir";
 
-    my $read = sub ( $path ) {
-        $cv->begin;
+        opendir my $dh, $dir_path or die qq[Can't open dir "$dir_path"];
 
-        my $sub = __SUB__;
+        my @paths = readdir $dh or die $!;
 
-        IO::AIO::aio_readdirx "${base}/$path", $flags, sub ( $entries, $flags ) {
-            if ( defined $entries ) {
-                for my $item ( $entries->@* ) {
-                    push $res->@*,
-                      bless {
-                        to_string => $args{abs} ? "$base/${path}$item->[0]" : "${path}$item->[0]",
-                        _stat_type => $AIO_FCNTL_TYPE_MAP->{ $item->[1] },
-                      },
-                      'Pcore::Util::Path1';
+        closedir $dh or die $!;
 
-                    $sub->("${path}$item->[0]/") if $args{recursive} && $item->[1] == IO::AIO::DT_DIR;
-                }
+        for my $path (@paths) {
+            next if $path eq '.' || $path eq '..';
+
+            my $fpath = "${dir_path}$path";
+
+            my $rel_dir = substr $dir, 1;
+
+            if ( -d $fpath ) {
+                push $res->@*, "${prefix}${rel_dir}$path" if $args{dir};
+
+                __SUB__->("${dir}$path/") if $args{recursive};
             }
-
-            $cv->end;
-
-            return;
-        };
+            elsif ( -f _ ) {
+                push $res->@*, "${prefix}${rel_dir}$path" if $args{file};
+            }
+        }
 
         return;
     };
 
-    $read->('');
+    $read->('/');
 
-    $cv->end;
-
-    return $wantarray ? $cv->recv : ();
+    return $res;
 }
 
 1;
@@ -86,9 +56,7 @@ sub read_dir ( $self, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 75                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 25                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    2 | 16                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
