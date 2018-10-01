@@ -60,7 +60,7 @@ sub poll ( $self, @ ) {
                 my $stat;
 
                 if ( -e $poll->{path} ) {
-                    $stat->{ $poll->{path} } = [ Time::HiRes::stat(_) ];
+                    $stat->{ $poll->{path} } = [ Time::HiRes::stat $poll->{path} ];
 
                     if ( -d _ && ( my $files = $poll->{path}->read_dir( abs => 1, recursive => 1, dir => 0 ) ) ) {
                         for my $file ( $files->@* ) {
