@@ -13,6 +13,12 @@ const our $POLL_REMOVED  => 3;
 
 our $EXPORT = { POLL => [qw[$POLL_CREATED $POLL_MODIFIED $POLL_REMOVED]] };
 
+# interval - poll interval
+# root - check and report root path itself
+# abs - return absolute or relative paths
+# recursive - scan root path recursive
+# dir - report dirs
+# files - report files
 sub poll ( $self, @ ) {
     state $POLL_INTERVAL = $DEFAULT_POLL_INTERVAL;
     state $POLL;
@@ -122,7 +128,7 @@ sub poll ( $self, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 16                   | Subroutines::ProhibitExcessComplexity - Subroutine "poll" with high complexity score (31)                      |
+## |    3 | 22                   | Subroutines::ProhibitExcessComplexity - Subroutine "poll" with high complexity score (31)                      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
