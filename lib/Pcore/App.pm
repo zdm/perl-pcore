@@ -1,12 +1,13 @@
 package Pcore::App;
 
 use Pcore -role;
+use Pcore::Util::Scalar qw[is_ref];
+use Pcore::Util::Path1::Poll qw[:POLL];
 use Pcore::Nginx;
 use Pcore::HTTP::Server;
 use Pcore::App::Router;
 use Pcore::App::API;
 use Pcore::CDN;
-use Pcore::Util::Path1::Poll qw[:POLL];
 
 has app_cfg => ( required => 1 );    # HashRef
 has devel => 0;                      # Bool
@@ -170,9 +171,6 @@ sub start_nginx ($self) {
     return;
 }
 
-# TODO monitor removed files
-use Pcore::Util::Scalar qw[is_ref];
-
 sub _init_reload ($self) {
     my $ext_ns = ref($self) . '::Ext' =~ s[::][/]smgr;
 
@@ -253,7 +251,7 @@ sub _init_reload ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 199, 222             | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 197, 220             | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
