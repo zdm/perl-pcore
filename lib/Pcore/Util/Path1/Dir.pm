@@ -13,7 +13,7 @@ sub read_dir ( $self, @ ) {
         is_dir      => 1,
         is_file     => 1,
         is_sock     => 1,
-        is_link     => undef,    # undef - do not check, 1 - add links, 0 - skip links
+        is_link     => undef,    # undef - do not check, 1 - add links only, 0 - skip links
         @_[ 1 .. $#_ ]
     );
 

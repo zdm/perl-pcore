@@ -30,7 +30,7 @@ sub poll ( $self, @ ) {
     my $poll = $POLL->{$path} = {
         root         => 1,                        # monitor root path
         recursive    => 1,                        # scan subdirs if root is dir
-        abs          => 0,
+        abs          => 0,                        # report absolute paths
         read_dir     => { @_[ 1 .. $#_ ] },
         path         => $path,
         interval     => $DEFAULT_POLL_INTERVAL,
@@ -47,8 +47,11 @@ sub poll ( $self, @ ) {
 
     # initial scan
     if ( -e $path ) {
+
+        # add root path
         $poll->{stat}->{$path} = [ Time::HiRes::stat($path) ] if $poll->{root};
 
+        # add child paths
         if ( $poll->{recursive} && -d _ && ( my $files = $path->read_dir( $poll->{read_dir}->%*, abs => 1 ) ) ) {
             for my $file ( $files->@* ) {
                 $poll->{stat}->{$file} = [ Time::HiRes::stat($file) ];
@@ -71,16 +74,18 @@ sub poll ( $self, @ ) {
 
                 $poll->{last_checked} = time;
 
-                say $poll->{path};
-
                 my $stat;
 
+                # scan
                 if ( -e $poll->{path} ) {
+
+                    # add root path
                     $stat->{ $poll->{path} } = [ Time::HiRes::stat $poll->{path} ] if $poll->{root};
 
-                    if ( $poll->{recursive} && -d _ && ( my $files = $poll->{path}->read_dir( $poll->{read_dir}->%*, abs => 1 ) ) ) {
-                        for my $file ( $files->@* ) {
-                            $stat->{$file} = [ Time::HiRes::stat($file) ];
+                    # add child paths
+                    if ( $poll->{recursive} && -d _ && ( my $paths = $poll->{path}->read_dir( $poll->{read_dir}->%*, abs => 1 ) ) ) {
+                        for my $path ( $paths->@* ) {
+                            $stat->{$path} = [ Time::HiRes::stat($path) ];
                         }
                     }
                 }
@@ -89,26 +94,35 @@ sub poll ( $self, @ ) {
 
                 my $root_len = $poll->{abs} ? undef : 1 + length $poll->{path};
 
-                for my $file ( keys $stat->%* ) {
-                    if ( exists $poll->{stat}->{$file} ) {
-                        push @changes, [ $poll->{abs} ? $file : substr( $file, $root_len ), $POLL_MODIFIED ] if $poll->{stat}->{$file}->[9] != $stat->{$file}->[9];
+                for my $path ( keys $stat->%* ) {
+
+                    # path is already exists
+                    if ( exists $poll->{stat}->{$path} ) {
+
+                        # last modify time was changed
+                        push @changes, [ $poll->{abs} ? $path : substr( $path, $root_len ), $POLL_MODIFIED ] if $poll->{stat}->{$path}->[9] != $stat->{$path}->[9];
                     }
+
+                    # new path was created
                     else {
-                        push @changes, [ $poll->{abs} ? $file : substr( $file, $root_len ), $POLL_CREATED ];
+                        push @changes, [ $poll->{abs} ? $path : substr( $path, $root_len ), $POLL_CREATED ];
                     }
 
-                    $poll->{stat}->{$file} = $stat->{$file};
+                    $poll->{stat}->{$path} = $stat->{$path};
                 }
 
-                # scan removed entries
-                for my $file ( keys $poll->{stat}->%* ) {
-                    if ( !exists $stat->{$file} ) {
-                        delete $poll->{stat}->{$file};
+                # scan removed paths
+                for my $path ( keys $poll->{stat}->%* ) {
 
-                        push @changes, [ $poll->{abs} ? $file : substr( $file, $root_len ), $POLL_REMOVED ];
+                    # path was removed
+                    if ( !exists $stat->{$path} ) {
+                        delete $poll->{stat}->{$path};
+
+                        push @changes, [ $poll->{abs} ? $path : substr( $path, $root_len ), $POLL_REMOVED ];
                     }
                 }
 
+                # call callback if has changes
                 $poll->{cb}->( \@changes ) if @changes;
             }
 
