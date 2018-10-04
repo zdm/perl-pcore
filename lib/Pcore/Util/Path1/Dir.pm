@@ -69,11 +69,7 @@ sub read_dir ( $self, @ ) {
                 $push = 0 if $stat == Fcntl::S_IFSOCK;
             }
 
-            if ($push) {
-                my $rel_dir = substr $dir, 1;
-
-                push $res->@*, "${prefix}${rel_dir}$path";
-            }
+            push $res->@*, $prefix . substr( $dir, 1 ) . $path if $push;
 
             if ( !$args{max_depth} || $depth < $args{max_depth} ) {
                 $stat //= ( stat $fpath )[2] & Fcntl::S_IFMT;
