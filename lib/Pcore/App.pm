@@ -173,54 +173,16 @@ sub start_nginx ($self) {
 use Pcore::Util::Scalar qw[is_ref];
 
 sub _init_reload ($self) {
-    state $files = {};
-    state $init  = 0;
-
     my $ns = ref($self) . '::Ext' =~ s[::][/]smgr;
 
-    Coro::async {
-        while () {
-            my $changed;
-
-            my $cv = P->cv->begin;
-
-            # TODO monitor removed files
-
-            for my $inc_path ( grep { !is_ref $_ } @INC ) {
-                P->file->find(
-                    "$inc_path/$ns",
-                    abs => 1,
-                    dir => 0,
-                    sub ($path) {
-                        $cv->begin;
-
-                        IO::AIO::aio_stat(
-                            "$path",
-                            sub ($error) {
-                                die if $error;
-
-                                my $mtime = IO::AIO::st_mtime;
-
-                                if ( !exists $files->{$path} || $files->{$path} != $mtime ) {
-                                    $files->{$path} = $mtime;
-
-                                    $changed = 1;
-                                }
-
-                                $cv->end;
-
-                                return;
-                            }
-                        );
-
-                        return;
-                    }
-                );
-            }
-
-            $cv->end->recv;
-
-            if ( $changed && $init ) {
+    for my $inc_path ( grep { !is_ref $_ } @INC ) {
+        P->path1("$inc_path/$ns")->poll(
+            scan_root  => 0,
+            scan_tree  => 1,
+            abs        => 0,
+            is_dir     => 0,
+            scan_depth => 0,
+            sub ($changes) {
                 no warnings qw[once];
 
                 $Pcore::Ext::EXT     = undef;
@@ -243,15 +205,11 @@ sub _init_reload ($self) {
 
                     say 'reload OK';
                 }
+
+                return;
             }
-
-            $init = 1;
-
-            Coro::AnyEvent::sleep 3;
-        }
-
-        return;
-    };
+        );
+    }
 
     return;
 }
@@ -263,7 +221,7 @@ sub _init_reload ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 230                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 192                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
