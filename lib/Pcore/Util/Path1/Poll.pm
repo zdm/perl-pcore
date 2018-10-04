@@ -16,9 +16,7 @@ our $EXPORT = { POLL => [qw[$POLL_CREATED $POLL_MODIFIED $POLL_REMOVED]] };
 # interval - poll interval
 # root - check and report root path itself
 # abs - return absolute or relative paths
-# recursive - scan root path recursive
-# dir - report dirs
-# files - report files
+# + read_dir options
 sub poll ( $self, @ ) {
     state $POLL_INTERVAL = $DEFAULT_POLL_INTERVAL;
     state $POLL;
@@ -27,31 +25,31 @@ sub poll ( $self, @ ) {
 
     my $cb = is_plain_coderef $_[-1] ? pop : ();
 
-    my %args = @_[ 1 .. $#_ ];
-
-    my $interval = $args{interval} || $DEFAULT_POLL_INTERVAL;
-
     my $path = $self->to_abs;
 
     my $poll = $POLL->{$path} = {
-        path      => $path,
-        interval  => $interval,
-        last      => 0,
-        cb        => $cb,
-        root      => $args{root},
-        abs       => $args{abs},
-        recursive => $args{recursive},
-        dir       => $args{dir},
-        file      => $args{file},
+        root         => 1,                        # monitor root path
+        recursive    => 1,                        # scan subdirs if root is dir
+        abs          => 0,
+        read_dir     => { @_[ 1 .. $#_ ] },
+        path         => $path,
+        interval     => $DEFAULT_POLL_INTERVAL,
+        last_checked => 0,
+        cb           => $cb,
     };
 
-    $POLL_INTERVAL = $interval if $interval < $POLL_INTERVAL;
+    $poll->{root}      = delete $poll->{read_dir}->{root}                                  if exists $poll->{read_dir}->{root};
+    $poll->{abs}       = delete $poll->{read_dir}->{abs}                                   if exists $poll->{read_dir}->{abs};
+    $poll->{recursive} = delete $poll->{read_dir}->{recursive}                             if exists $poll->{read_dir}->{recursive};
+    $poll->{interval}  = delete( $poll->{read_dir}->{interval} ) // $DEFAULT_POLL_INTERVAL if exists $poll->{read_dir}->{interval};
+
+    $POLL_INTERVAL = $poll->{interval} if $poll->{interval} < $POLL_INTERVAL;
 
     # initial scan
     if ( -e $path ) {
         $poll->{stat}->{$path} = [ Time::HiRes::stat($path) ] if $poll->{root};
 
-        if ( -d _ && ( my $files = $path->read_dir( abs => 1, recursive => $poll->{recursive}, dir => $poll->{dir}, file => $poll->{file} ) ) ) {
+        if ( $poll->{recursive} && -d _ && ( my $files = $path->read_dir( $poll->{read_dir}->%*, abs => 1 ) ) ) {
             for my $file ( $files->@* ) {
                 $poll->{stat}->{$file} = [ Time::HiRes::stat($file) ];
             }
@@ -69,9 +67,9 @@ sub poll ( $self, @ ) {
             Coro::AnyEvent::sleep $POLL_INTERVAL;
 
             for my $poll ( values $POLL->%* ) {
-                next if $poll->{last} + $poll->{interval} > time;
+                next if $poll->{last_checked} + $poll->{interval} > time;
 
-                $poll->{last} = time;
+                $poll->{last_checked} = time;
 
                 say $poll->{path};
 
@@ -80,7 +78,7 @@ sub poll ( $self, @ ) {
                 if ( -e $poll->{path} ) {
                     $stat->{ $poll->{path} } = [ Time::HiRes::stat $poll->{path} ] if $poll->{root};
 
-                    if ( -d _ && ( my $files = $poll->{path}->read_dir( abs => 1, recursive => $poll->{recursive}, dir => $poll->{dir}, file => $poll->{file} ) ) ) {
+                    if ( $poll->{recursive} && -d _ && ( my $files = $poll->{path}->read_dir( $poll->{read_dir}->%*, abs => 1 ) ) ) {
                         for my $file ( $files->@* ) {
                             $stat->{$file} = [ Time::HiRes::stat($file) ];
                         }
@@ -128,7 +126,7 @@ sub poll ( $self, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 22                   | Subroutines::ProhibitExcessComplexity - Subroutine "poll" with high complexity score (31)                      |
+## |    3 | 20                   | Subroutines::ProhibitExcessComplexity - Subroutine "poll" with high complexity score (36)                      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
