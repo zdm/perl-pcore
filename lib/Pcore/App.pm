@@ -6,6 +6,7 @@ use Pcore::HTTP::Server;
 use Pcore::App::Router;
 use Pcore::App::API;
 use Pcore::CDN;
+use Pcore::Util::Path1::Poll qw[:POLL];
 
 has app_cfg => ( required => 1 );    # HashRef
 has devel => 0;                      # Bool
@@ -173,37 +174,68 @@ sub start_nginx ($self) {
 use Pcore::Util::Scalar qw[is_ref];
 
 sub _init_reload ($self) {
-    my $ns = ref($self) . '::Ext' =~ s[::][/]smgr;
+    my $ext_ns = ref($self) . '::Ext' =~ s[::][/]smgr;
 
     for my $inc_path ( grep { !is_ref $_ } @INC ) {
-        P->path1("$inc_path/$ns")->poll(
+
+        # Ext reloader
+        P->path1("$inc_path/$ext_ns")->poll(
             scan_root  => 0,
             scan_tree  => 1,
             abs        => 0,
             is_dir     => 0,
             scan_depth => 0,
             sub ($changes) {
-                no warnings qw[once];
+                my $error;
 
-                $Pcore::Ext::EXT     = undef;
-                $Pcore::Ext::APP     = undef;
-                $Pcore::Ext::SCANNED = 0;
+                for my $change ( $changes->@* ) {
+                    next if $change->[1] == $POLL_REMOVED;
 
-                eval { Pcore::Ext->scan( $self, ref($self) . '::Ext' ) };
+                    my $module_path = "$ext_ns/$change->[0]";
+                    my $full_path   = "$inc_path/$module_path";
 
-                if ($@) {
-                    $@->sendlog;
+                    print "reloading ext module: $module_path ... ";
 
-                    say 'reload error';
+                    eval { Pcore::Ext->load_class( $module_path, $full_path, 1 ) };
+
+                    if ($@) {
+                        $error = 1;
+
+                        say 'ERROR';
+
+                        $@->sendlog;
+                    }
+                    else {
+                        say 'OK';
+                    }
                 }
-                else {
-                    for my $class ( values $self->{router}->{_class_instance_cache}->%* ) {
-                        if ( $class->does('Pcore::App::Controller::Ext') ) {
-                            $class->{_cache} = undef;
+
+                if ( !$error ) {
+                    no warnings qw[once];
+
+                    $Pcore::Ext::EXT     = undef;
+                    $Pcore::Ext::APP     = undef;
+                    $Pcore::Ext::SCANNED = 0;
+
+                    print 'rebuilding ext apps ... ';
+
+                    eval { Pcore::Ext->scan( $self, ref($self) . '::Ext' ) };
+
+                    if ($@) {
+                        say 'ERROR';
+
+                        $@->sendlog;
+                    }
+                    else {
+                        say 'OK';
+
+                        # clear app cache
+                        for my $class ( values $self->{router}->{_class_instance_cache}->%* ) {
+                            if ( $class->does('Pcore::App::Controller::Ext') ) {
+                                $class->{_cache} = undef;
+                            }
                         }
                     }
-
-                    say 'reload OK';
                 }
 
                 return;
@@ -221,7 +253,7 @@ sub _init_reload ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 192                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 199, 222             | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
