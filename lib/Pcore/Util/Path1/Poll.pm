@@ -25,14 +25,14 @@ sub poll ( $self, @ ) {
 
     my $cb = is_plain_coderef $_[-1] ? pop : ();
 
-    my $path = $self->to_abs;
+    my $root_path = $self->to_abs;
 
-    my $poll = $POLL->{$path} = {
+    my $poll = $POLL->{$root_path} = {
         root         => 1,                        # monitor root path
-        recursive    => 1,                        # scan subdirs if root is dir
+        recursive    => 1,                        # TODO                      # scan subdirs if root is dir
         abs          => 0,                        # report absolute paths
         read_dir     => { @_[ 1 .. $#_ ] },
-        path         => $path,
+        path         => $root_path,
         interval     => $DEFAULT_POLL_INTERVAL,
         last_checked => 0,
         cb           => $cb,
@@ -42,19 +42,24 @@ sub poll ( $self, @ ) {
     $poll->{abs}       = delete $poll->{read_dir}->{abs}                                   if exists $poll->{read_dir}->{abs};
     $poll->{recursive} = delete $poll->{read_dir}->{recursive}                             if exists $poll->{read_dir}->{recursive};
     $poll->{interval}  = delete( $poll->{read_dir}->{interval} ) // $DEFAULT_POLL_INTERVAL if exists $poll->{read_dir}->{interval};
+    $poll->{root_len}  = 1 + length $root_path;
 
     $POLL_INTERVAL = $poll->{interval} if $poll->{interval} < $POLL_INTERVAL;
 
     # initial scan
-    if ( -e $path ) {
+    if ( -e $root_path ) {
 
         # add root path
-        $poll->{stat}->{$path} = [ Time::HiRes::stat($path) ] if $poll->{root};
+        $poll->{stat}->{$root_path} = [ Time::HiRes::stat($root_path) ] if $poll->{root};
+
+        $poll->{rel_path}->{$root_path} = '' if !$poll->{abs};
 
         # add child paths
-        if ( $poll->{recursive} && -d _ && ( my $files = $path->read_dir( $poll->{read_dir}->%*, abs => 1 ) ) ) {
-            for my $file ( $files->@* ) {
-                $poll->{stat}->{$file} = [ Time::HiRes::stat($file) ];
+        if ( $poll->{recursive} && -d _ && ( my $paths = $root_path->read_dir( $poll->{read_dir}->%*, abs => 1 ) ) ) {
+            for my $path ( $paths->@* ) {
+                $poll->{stat}->{$path} = [ Time::HiRes::stat($path) ];
+
+                $poll->{rel_path}->{$path} = substr $path, $poll->{root_len} if !$poll->{abs};
             }
         }
     }
@@ -92,8 +97,6 @@ sub poll ( $self, @ ) {
 
                 my @changes;
 
-                my $root_len = $poll->{abs} ? undef : 1 + length $poll->{path};
-
                 # scan created / modified paths
                 for my $path ( keys $stat->%* ) {
 
@@ -102,13 +105,29 @@ sub poll ( $self, @ ) {
 
                         # last modify time was changed
                         if ( $poll->{stat}->{$path}->[9] != $stat->{$path}->[9] ) {
-                            push @changes, [ $poll->{abs} ? $path : substr( $path, $root_len ), $POLL_MODIFIED ];
+                            push @changes, [ $poll->{abs} ? $path : $poll->{rel_path}->{$path}, $POLL_MODIFIED ];
                         }
                     }
 
                     # new path was created
                     else {
-                        push @changes, [ $poll->{abs} ? $path : substr( $path, $root_len ), $POLL_CREATED ];
+                        if ( !$poll->{abs} ) {
+
+                            # root
+                            if ( $poll->{root_len} > length $path ) {
+                                $poll->{rel_path}->{$path} = '';
+                            }
+
+                            # child
+                            else {
+                                $poll->{rel_path}->{$path} = substr $path, $poll->{root_len};
+                            }
+
+                            push @changes, [ $poll->{rel_path}->{$path}, $POLL_CREATED ];
+                        }
+                        else {
+                            push @changes, [ $path, $POLL_CREATED ];
+                        }
                     }
 
                     $poll->{stat}->{$path} = $stat->{$path};
@@ -121,7 +140,7 @@ sub poll ( $self, @ ) {
                     if ( !exists $stat->{$path} ) {
                         delete $poll->{stat}->{$path};
 
-                        push @changes, [ $poll->{abs} ? $path : substr( $path, $root_len ), $POLL_REMOVED ];
+                        push @changes, [ $poll->{abs} ? $path : delete $poll->{rel_path}->{$path}, $POLL_REMOVED ];
                     }
                 }
 
@@ -143,7 +162,11 @@ sub poll ( $self, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 20                   | Subroutines::ProhibitExcessComplexity - Subroutine "poll" with high complexity score (36)                      |
+## |    3 | 20                   | Subroutines::ProhibitExcessComplexity - Subroutine "poll" with high complexity score (40)                      |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 117                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 55, 118              | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
