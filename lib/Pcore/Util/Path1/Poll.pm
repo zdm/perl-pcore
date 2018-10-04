@@ -94,6 +94,7 @@ sub poll ( $self, @ ) {
 
                 my $root_len = $poll->{abs} ? undef : 1 + length $poll->{path};
 
+                # scan created / modified paths
                 for my $path ( keys $stat->%* ) {
 
                     # path is already exists
