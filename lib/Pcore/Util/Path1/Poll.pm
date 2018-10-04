@@ -101,7 +101,9 @@ sub poll ( $self, @ ) {
                     if ( exists $poll->{stat}->{$path} ) {
 
                         # last modify time was changed
-                        push @changes, [ $poll->{abs} ? $path : substr( $path, $root_len ), $POLL_MODIFIED ] if $poll->{stat}->{$path}->[9] != $stat->{$path}->[9];
+                        if ( $poll->{stat}->{$path}->[9] != $stat->{$path}->[9] ) {
+                            push @changes, [ $poll->{abs} ? $path : substr( $path, $root_len ), $POLL_MODIFIED ];
+                        }
                     }
 
                     # new path was created
