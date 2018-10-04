@@ -13,10 +13,6 @@ const our $POLL_REMOVED  => 3;
 
 our $EXPORT = { POLL => [qw[$POLL_CREATED $POLL_MODIFIED $POLL_REMOVED]] };
 
-# interval - poll interval
-# root - check and report root path itself
-# abs - return absolute or relative paths
-# + read_dir options
 sub poll ( $self, @ ) {
     state $POLL_INTERVAL = $DEFAULT_POLL_INTERVAL;
     state $POLL;
@@ -28,8 +24,8 @@ sub poll ( $self, @ ) {
     my $root_path = $self->to_abs;
 
     my $poll = $POLL->{$root_path} = {
-        root         => 1,                        # monitor root path
-        recursive    => 1,                        # TODO                      # scan subdirs if root is dir
+        scan_root    => 1,                        # scan root path
+        scan_tree    => 1,                        # scan tree if root is dir
         abs          => 0,                        # report absolute paths
         read_dir     => { @_[ 1 .. $#_ ] },
         path         => $root_path,
@@ -38,9 +34,9 @@ sub poll ( $self, @ ) {
         cb           => $cb,
     };
 
-    $poll->{root}      = delete $poll->{read_dir}->{root}                                  if exists $poll->{read_dir}->{root};
+    $poll->{scan_root} = delete $poll->{read_dir}->{scan_root}                             if exists $poll->{read_dir}->{scan_root};
     $poll->{abs}       = delete $poll->{read_dir}->{abs}                                   if exists $poll->{read_dir}->{abs};
-    $poll->{recursive} = delete $poll->{read_dir}->{recursive}                             if exists $poll->{read_dir}->{recursive};
+    $poll->{scan_tree} = delete $poll->{read_dir}->{scan_tree}                             if exists $poll->{read_dir}->{scan_tree};
     $poll->{interval}  = delete( $poll->{read_dir}->{interval} ) // $DEFAULT_POLL_INTERVAL if exists $poll->{read_dir}->{interval};
     $poll->{root_len}  = 1 + length $root_path;
 
@@ -50,12 +46,12 @@ sub poll ( $self, @ ) {
     if ( -e $root_path ) {
 
         # add root path
-        $poll->{stat}->{$root_path} = [ Time::HiRes::stat($root_path) ] if $poll->{root};
+        $poll->{stat}->{$root_path} = [ Time::HiRes::stat($root_path) ] if $poll->{scan_root};
 
         $poll->{rel_path}->{$root_path} = '' if !$poll->{abs};
 
         # add child paths
-        if ( $poll->{recursive} && -d _ && ( my $paths = $root_path->read_dir( $poll->{read_dir}->%*, abs => 1 ) ) ) {
+        if ( $poll->{scan_tree} && -d _ && ( my $paths = $root_path->read_dir( $poll->{read_dir}->%*, abs => 1 ) ) ) {
             for my $path ( $paths->@* ) {
                 $poll->{stat}->{$path} = [ Time::HiRes::stat($path) ];
 
@@ -85,10 +81,10 @@ sub poll ( $self, @ ) {
                 if ( -e $poll->{path} ) {
 
                     # add root path
-                    $stat->{ $poll->{path} } = [ Time::HiRes::stat $poll->{path} ] if $poll->{root};
+                    $stat->{ $poll->{path} } = [ Time::HiRes::stat $poll->{path} ] if $poll->{scan_root};
 
                     # add child paths
-                    if ( $poll->{recursive} && -d _ && ( my $paths = $poll->{path}->read_dir( $poll->{read_dir}->%*, abs => 1 ) ) ) {
+                    if ( $poll->{scan_tree} && -d _ && ( my $paths = $poll->{path}->read_dir( $poll->{read_dir}->%*, abs => 1 ) ) ) {
                         for my $path ( $paths->@* ) {
                             $stat->{$path} = [ Time::HiRes::stat($path) ];
                         }
@@ -162,11 +158,11 @@ sub poll ( $self, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 20                   | Subroutines::ProhibitExcessComplexity - Subroutine "poll" with high complexity score (40)                      |
+## |    3 | 16                   | Subroutines::ProhibitExcessComplexity - Subroutine "poll" with high complexity score (40)                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 117                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 113                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 55, 118              | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 51, 114              | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
