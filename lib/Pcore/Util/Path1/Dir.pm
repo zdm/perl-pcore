@@ -8,7 +8,7 @@ sub read_dir ( $self, @ ) {
     my $res;
 
     my %args = (
-        scan_depth  => 1,
+        scan_depth  => 1,        # 0 - unlimited
         follow_link => 1,
         is_dir      => 1,
         is_file     => 1,
