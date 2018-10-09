@@ -115,7 +115,7 @@ sub _get_res_amcharts4_geodata ( $self, $ver = 'v4.0.11' ) {
     return [ $self->("/static/amcharts-geodata-$ver/") ];
 }
 
-sub _get_res_jquery ( $self, $ver = 'v3.3.1' ) {
+sub _get_res_jquery3 ( $self, $ver = 'v3.3.1' ) {
     return [qq[<script src="@{[ $self->("/static/jquery-$ver.min.js") ]}" integrity="" crossorigin="anonymous"></script>]];
 }
 
@@ -133,7 +133,7 @@ sub _get_res_jquery ( $self, $ver = 'v3.3.1' ) {
 ## |      | 105                  | * Private subroutine/method '_get_res_ammap3' declared but not used                                            |
 ## |      | 110                  | * Private subroutine/method '_get_res_amcharts4' declared but not used                                         |
 ## |      | 114                  | * Private subroutine/method '_get_res_amcharts4_geodata' declared but not used                                 |
-## |      | 118                  | * Private subroutine/method '_get_res_jquery' declared but not used                                            |
+## |      | 118                  | * Private subroutine/method '_get_res_jquery3' declared but not used                                           |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 67                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
