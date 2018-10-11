@@ -4,6 +4,11 @@ use Pcore -class, -export;
 use Pcore::Util::Scalar qw[is_ref];
 use Text::Xslate qw[];
 
+use overload '&{}' => sub ( $self, @ ) {
+    sub { $self->render(@_) }
+  },
+  fallback => 1;
+
 our $EXPORT = [qw[mark_raw unmark_raw]];
 
 has _renderer    => ( required => 1 );    # InstanceOf ['Text::Xslate']
