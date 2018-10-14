@@ -1,15 +1,10 @@
 package Pcore::CDN::Bucket::digitalocean;
 
 use Pcore -class;
-use Pcore::API::S3;
 
 extends qw[Pcore::CDN::Bucket::s3];
 
-has bucket => ( required => 1 );
-has region => ( required => 1 );
-has key    => ( required => 1 );
-has secret => ( required => 1 );
-has edge_default => 0;
+has edge_links => 0;    # generate edge links by default
 
 has service => ( 's3', init_arg => undef );
 has endpoint => ( 'digitaloceanspaces.com', init_arg => undef );
@@ -24,7 +19,7 @@ sub BUILD ( $self, $args ) {
 }
 
 sub get_url ( $self, $path ) {
-    if ( $self->{edge_default} ) {
+    if ( $self->{edge_links} ) {
         return $self->{prefix_edge} . $path;
     }
     else {

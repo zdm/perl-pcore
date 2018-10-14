@@ -71,14 +71,13 @@ sub write ( $self, $path, $data, @args ) {    ## no critic qw[Subroutines::Prohi
     return $self->{bucket}->{ $self->{default_write} }->write( $path, $data, @args );
 }
 
-# TODO
 sub get_nginx_cfg($self) {
     my @buf;
 
-    for my $buck ( $self->{bucket}->%* ) {
-        next if !$buck->{is_local};
+    for my $buckeet ( $self->{bucket}->%* ) {
+        next if !$bucket->{is_local};
 
-        push @buf, $buck->get_nginx_cfg;
+        push @buf, $bucket->get_nginx_cfg;
     }
 
     return join $LF, @buf;
