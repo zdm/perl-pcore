@@ -18,27 +18,9 @@ has prefix_edge => ( init_arg => undef );
 has s3          => ( init_arg => undef );    # InstanceOf['Pcore::API::S3']
 
 sub BUILD ( $self, $args ) {
-    $self->{prefix} = "https://$self->{bucket}.$self->{region}.$self->{endpoint}";
-
     $self->{prefix_edge} = "https://$self->{bucket}.$self->{region}.cdn.$self->{endpoint}";
 
     return;
-}
-
-sub get_nginx_cfg ($self) {
-    return;
-}
-
-sub s3 ($self) {
-    if ( !exists $self->{s3} ) {
-        $self->{s3} = Pcore::API::S3->new( $self->%{qw[key secret bucket region endpoint service]} );
-    }
-
-    return $self->{s3};
-}
-
-sub write ( $self, $path, $data, @args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    return $self->s3->upload( $path, $data, @args );
 }
 
 sub get_url ( $self, $path ) {
