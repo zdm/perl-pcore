@@ -9,9 +9,8 @@ has lib           => ( init_arg => undef );    # ArrayRef
 has default_write => ( init_arg => undef );
 has is_local => ( 1, init_arg => undef );
 
-# TODO "www"
 sub BUILD ( $self, $args ) {
-    $self->{prefix} = '';
+    $self->{prefix} = '/cdn';
 
     # load libs
     for my $lib ( $args->{lib}->@* ) {
@@ -33,7 +32,7 @@ sub BUILD ( $self, $args ) {
         else {
             P->class->load( $path =~ s/-/::/smgr );
 
-            $path = $ENV->{share}->get_storage( $path, 'www' );
+            $path = $ENV->{share}->get_storage( $path, 'cdn' );
 
             next if !$path;
         }
@@ -48,34 +47,22 @@ sub BUILD ( $self, $args ) {
     return;
 }
 
-# TODO maybe create local temp bucket automatically
-# P->file->mkpath( "$ENV->{DATA_DIR}share", mode => 'rwxr-xr-x' ) if !-e "$ENV->{DATA_DIR}share/";
-# $ENV->{share}->register_lib( 'autostars', "$ENV->{DATA_DIR}share/" );
+# add_header    Cache-Control "public, private, must-revalidate, proxy-revalidate";
 sub get_nginx_cfg ($self) {
     my @buf;
 
-    my $locations;
+    for ( my $i = 0; $i <= $self->{lib}->$#*; $i++ ) {
+        my $location = $i == 0 ? '/cdn/' : "\@$self->{lib}->[$i]->{path}";
 
-    for my $lib ( $self->{lib}->@* ) {
-        my $storage = $ENV->{share}->get_storage( $lib, 'www' );
+        my $next = $i < $self->{lib}->$#* ? "\@$self->{lib}->[$i + 1]->{path}" : '=404';
 
-        next if !$storage || !-d "$storage/static";
-
-        push $locations->@*, $storage;
-    }
-
-    # add_header    Cache-Control "public, private, must-revalidate, proxy-revalidate";
-
-    for ( my $i = 0; $i <= $locations->$#*; $i++ ) {
-        my $location = $i == 0 ? '/static/' : "\@$locations->[$i]";
-
-        my $next = $i < $locations->$#* ? "\@$locations->[$i + 1]" : '=404';
+        my $cache_control = $self->{lib}->[$i]->{cache} // 'no-cache';
 
         push @buf, <<"TXT";
     location $location {
-        add_header    Cache-Control "public, max-age=30672000";
-        root          $locations->[$i];
-        try_files     \$uri $next;
+        root          $self->{lib}->[$i]->{path};
+        try_files     /../\$uri $next;
+        add_header    Cache-Control "$cache_control";
     }
 TXT
     }
@@ -87,6 +74,7 @@ TXT
 
 # TODO check path
 # TODO async
+# set mode
 sub upload ( $self, $path, $data, @args ) {
     die q[Bucket has no default write location] if !$self->{default_write};
 
@@ -109,9 +97,7 @@ sub upload ( $self, $path, $data, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 14                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 69                   | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 54                   | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

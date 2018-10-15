@@ -100,8 +100,12 @@ sub upload ( $self, @ ) {
 sub get_nginx_cfg($self) {
     my @buf;
 
+    my $processed;
+
     for my $bucket ( $self->{bucket}->%* ) {
-        next if !$bucket->{is_local};
+        next if !$bucket->{is_local} || exists $processed->{ $bucket->{id} };
+
+        $processed->{ $bucket->{id} } = 1;
 
         push @buf, $bucket->get_nginx_cfg;
     }
