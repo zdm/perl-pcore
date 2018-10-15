@@ -53,6 +53,8 @@ around new => sub ( $orig, $self, $args ) {
 
 sub bucket ( $self, $name ) { return $self->{bucket}->{$name} }
 
+# $cdn->get_url($path);
+# $cdn->get_url( $bucket_name, $path );
 sub get_url ( $self, @ ) {
     my ( $bucket_name, $path ) = @_ == 2 ? ( 'default', $_[1] ) : ( $_[1], $_[2] );
 
