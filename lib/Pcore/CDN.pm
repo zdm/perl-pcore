@@ -1,22 +1,17 @@
 package Pcore::CDN;
 
 use Pcore -class;
-use Pcore::Util::Scalar qw[is_plain_arrayref];
+use Pcore::Util::Scalar qw[is_ref is_plain_arrayref];
 use overload '&{}' => sub ( $self, @ ) {
     sub { $self->get_url(@_) }
   },
   fallback => 1;
 
-has bucket        => ( init_arg => undef );
-has default_read  => ();
-has default_write => ();
-has resources     => ();                      # HashRef[CodeRef]
+has bucket => ( init_arg => undef );
+has resources => ();    # HashRef[CodeRef]
 
 around new => sub ( $orig, $self, $args ) {
     $self = $self->$orig;
-
-    $self->{default_read}  = delete $args->{default_read};
-    $self->{default_write} = delete $args->{default_write};
 
     # load resources
     if ( my $resources = delete $args->{resources} ) {
@@ -33,11 +28,24 @@ around new => sub ( $orig, $self, $args ) {
         }
     }
 
-    # load buckets
+    # create buckets
     while ( my ( $name, $cfg ) = each $args->%* ) {
+
+        # skip aliases
+        next if !is_ref $cfg;
+
         $self->{bucket}->{$name} = P->class->load( $cfg->{type}, ns => 'Pcore::CDN::Bucket' )->new($cfg);
 
-        $self->{default_read} //= $name;
+        $self->{bucket}->{default} //= $name;
+    }
+
+    # assign buckets aliases
+    while ( my ( $name, $target ) = each $args->%* ) {
+
+        # skip buckets
+        next if is_ref $target;
+
+        $self->{bucket}->{$name} = $self->{bucket}->{$target};
     }
 
     return $self;
@@ -45,11 +53,15 @@ around new => sub ( $orig, $self, $args ) {
 
 sub bucket ( $self, $name ) { return $self->{bucket}->{$name} }
 
-sub get_url ( $self, $path ) { return $self->{bucket}->{ $self->{default_read} }->get_url($path) }
+sub get_url ( $self, @ ) {
+    my ( $bucket_name, $path ) = @_ == 2 ? ( 'default', $_[1] ) : ( $_[1], $_[2] );
 
-sub get_script_tag ( $self, $path ) { return qq[<script src="@{[ $self->get_url($path) ]}" integrity="" crossorigin="anonymous"></script>] }
+    return $self->{bucket}->{$bucket_name}->get_url($path);
+}
 
-sub get_css_tag ( $self, $path ) { return qq[<link rel="stylesheet" href="@{[ $self->get_url($path) ]}" integrity="" crossorigin="anonymous" />] }
+sub get_script_tag ( $self, @args ) { return qq[<script src="@{[ $self->get_url(@args) ]}" integrity="" crossorigin="anonymous"></script>] }
+
+sub get_css_tag ( $self, @args ) { return qq[<link rel="stylesheet" href="@{[ $self->get_url(@args) ]}" integrity="" crossorigin="anonymous" />] }
 
 sub get_resources ( $self, @resources ) {
     my @res;
@@ -66,15 +78,25 @@ sub get_resources ( $self, @resources ) {
     return \@res;
 }
 
-# TODO write
-sub write ( $self, $path, $data, @args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    return $self->{bucket}->{ $self->{default_write} }->write( $path, $data, @args );
+# $cdn->write( $path, $data, %args );
+# $cdn->write( $bucket_name, $path, $data, %args );
+sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+    my ( $bucket_name, $path, $data, @args );
+
+    if ( @_ % 2 ) {
+        ( $bucket_name, $path, $data, @args ) = ( 'default', @_[ 1 .. $#_ ] );
+    }
+    else {
+        ( $bucket_name, $path, $data, @args ) = @_[ 1 .. $#_ ];
+    }
+
+    return $self->{bucket}->{$bucket_name}->write( $path, $data, @args );
 }
 
 sub get_nginx_cfg($self) {
     my @buf;
 
-    for my $buckeet ( $self->{bucket}->%* ) {
+    for my $bucket ( $self->{bucket}->%* ) {
         next if !$bucket->{is_local};
 
         push @buf, $bucket->get_nginx_cfg;

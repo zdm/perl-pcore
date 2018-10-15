@@ -85,7 +85,7 @@ TXT
 TXT
 }
 
-# TODO
+# TODO async
 sub write ( $self, $path, $data, @args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     die q[Bucket has no default write location] if !$self->{default_write};
 
