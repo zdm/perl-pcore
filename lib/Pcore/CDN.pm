@@ -1,7 +1,7 @@
 package Pcore::CDN;
 
 use Pcore -class;
-use Pcore::Util::Scalar qw[is_ref is_plain_arrayref];
+use Pcore::Util::Scalar qw[is_ref is_plain_arrayref is_plain_coderef];
 use overload '&{}' => sub ( $self, @ ) {
     sub { $self->get_url(@_) }
   },
@@ -56,7 +56,7 @@ sub bucket ( $self, $name ) { return $self->{bucket}->{$name} }
 sub get_url ( $self, @ ) {
     my ( $bucket_name, $path ) = @_ == 2 ? ( 'default', $_[1] ) : ( $_[1], $_[2] );
 
-    return $self->{bucket}->{$bucket_name}->get_url($path);
+    return $self->{bucket}->{ $bucket_name // 'default' }->get_url($path);
 }
 
 sub get_script_tag ( $self, @args ) { return qq[<script src="@{[ $self->get_url(@args) ]}" integrity="" crossorigin="anonymous"></script>] }
@@ -78,10 +78,12 @@ sub get_resources ( $self, @resources ) {
     return \@res;
 }
 
-# $cdn->write( $path, $data, %args );
-# $cdn->write( $bucket_name, $path, $data, %args );
-sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+# $cdn->upload( $path, $data, %args );
+# $cdn->upload( $bucket_name, $path, $data, %args );
+sub upload ( $self, @ ) {
     my ( $bucket_name, $path, $data, @args );
+
+    my $cb = is_plain_coderef $_[-1] ? pop : ();
 
     if ( @_ % 2 ) {
         ( $bucket_name, $path, $data, @args ) = ( 'default', @_[ 1 .. $#_ ] );
@@ -90,7 +92,7 @@ sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms
         ( $bucket_name, $path, $data, @args ) = @_[ 1 .. $#_ ];
     }
 
-    return $self->{bucket}->{$bucket_name}->write( $path, $data, @args );
+    return $self->{bucket}->{ $bucket_name // 'default' }->upload( $path, $data, @args, $cb || () );
 }
 
 sub get_nginx_cfg($self) {

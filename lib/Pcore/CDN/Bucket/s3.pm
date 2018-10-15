@@ -30,7 +30,7 @@ sub s3 ($self) {
 }
 
 # TODO async
-sub write ( $self, $path, $data, @args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+sub upload ( $self, $path, $data, @args ) {
     return $self->s3->upload( $path, $data, @args );
 }
 

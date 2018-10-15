@@ -6,7 +6,7 @@ use overload '&{}' => sub ( $self, @ ) {
   },
   fallback => 1;
 
-requires qw[write];
+requires qw[upload];
 
 has prefix => ( init_arg => undef );
 

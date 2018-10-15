@@ -85,8 +85,9 @@ TXT
 TXT
 }
 
+# TODO check path
 # TODO async
-sub write ( $self, $path, $data, @args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+sub upload ( $self, $path, $data, @args ) {
     die q[Bucket has no default write location] if !$self->{default_write};
 
     $path = P->path("$self->{default_write}/$path");
@@ -96,7 +97,7 @@ sub write ( $self, $path, $data, @args ) {    ## no critic qw[Subroutines::Prohi
 
     P->file->mkpath( $path->dirname, mode => 'rwxr-xr-x' ) || return res [ 500, qq[Can't create CDN path "$path", $!] ] if !-d $path->dirname;
 
-    P->file->write_bin( $path, $data );       # TODO or return res [ 500, qq[Can't write "$path", $!] ];
+    P->file->write_bin( $path, $data );    # TODO or return res [ 500, qq[Can't write "$path", $!] ];
 
     return res 200;
 }
