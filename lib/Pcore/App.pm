@@ -157,7 +157,7 @@ sub nginx_cfg ($self) {
 sub start_nginx ($self) {
     $self->{nginx} = Pcore::Nginx->new;
 
-    $self->{nginx}->add_vhost( 'vhost', $self->nginx_cfg ) if !$self->{nginx}->is_vhost_exists('vhost');
+    $self->{nginx}->add_vhost( 'vhost', $self->nginx_cfg );    # if !$self->{nginx}->is_vhost_exists('vhost');
 
     # SIGNUP -> nginx reload
     $SIG->{HUP} = AE::signal HUP => sub {

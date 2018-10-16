@@ -44,16 +44,15 @@ sub get_nginx_cfg ($self) {
     # cdn
     location <: $prefix :>/ {
         error_page 418 = @<: $libs[0] :>;
+        set $cache_control "<: $locations["/"] :>";
+        return 418;
 : for $locations.keys().sort() -> $location {
+: next if $location == "/"
 
         location <: $prefix :><: $location :> {
             set $cache_control "<: $locations[$location] :>";
             return 418;
         }
-: }
-: else {
-    set $cache_control "";
-    return 418;
 : }
     }
 :for $libs -> $path {
