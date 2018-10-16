@@ -83,7 +83,6 @@ sub _run_thread ($self) {
 
     my $coro = Coro::async_pool {
         while () {
-          REDO:
             last if !defined $self;
 
             if ( my $task = shift $self->{_queue}->@* ) {
@@ -91,7 +90,7 @@ sub _run_thread ($self) {
 
                 $task->{cb}->($res) if $task->{cb};
 
-                goto REDO;
+                next;
             }
 
             $self->{_signal}->wait;
@@ -496,7 +495,8 @@ XML
 
 sub sync ( $self, $libs, @args ) {
     my %args = (
-        prefix => undef,    # must be relative
+        prefix => undef,                        # must be relative
+        cache  => 'public, max-age=30672000',
         @args
     );
 
@@ -504,18 +504,22 @@ sub sync ( $self, $libs, @args ) {
 
     my $tree = Pcore::Util::File::Tree->new;
 
-    my ( $error, $stat );
-
     # load libs, add files
-    for my $lib ( $libs->@* ) {
-        P->class->load( $lib =~ s/-/::/smgr );
+    for my $path ( $libs->@* ) {
+        if ( $path !~ m[\A/]sm ) {
+            P->class->load( $path =~ s/-/::/smgr );
 
-        my $storage = $ENV->{share}->get_storage( $lib, 'www' );
+            $path = $ENV->{share}->get_storage( $path, 'cdn' );
 
-        $tree->add_dir( "$storage/$args{prefix}", "/$args{prefix}" ) if -d "$storage/$args{prefix}";
+            next if !$path;
+        }
+
+        $tree->add_dir( "$path/$args{prefix}", "/$args{prefix}" ) if -d "$path/$args{prefix}";
     }
 
     my $remote_files = $self->get_all_bucket_content( prefix => $args{prefix} )->{data};
+
+    my ( $error, $stat );
 
     # upload
     if ( $tree->{files}->%* ) {
@@ -532,7 +536,7 @@ sub sync ( $self, $libs, @args ) {
             $self->upload(
                 $file->{path},
                 $file->content,
-                cache => 'public, max-age=30672000',
+                cache => $args{cache},
                 etag  => exists $remote_files->{ $file->{path} } ? $remote_files->{ $file->{path} }->{etag} : undef,
                 sub ($res) {
                     $error++ if !$res && $res != 304;
@@ -591,8 +595,10 @@ sub sync ( $self, $libs, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 115, 242, 243, 244,  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 245, 503             |                                                                                                                |
+## |    2 | 114, 241, 242, 243,  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      | 244, 503             |                                                                                                                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 497                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

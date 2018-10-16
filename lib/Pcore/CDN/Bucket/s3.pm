@@ -33,6 +33,10 @@ sub upload ( $self, $path, $data, @args ) {
     return $self->s3->upload( $path, $data, @args );
 }
 
+sub sync ( $self, @args ) {
+    return $self->s3->sync(@args);
+}
+
 1;
 __END__
 =pod
