@@ -80,21 +80,30 @@ TMPL
 }
 
 # TODO check path
-# TODO async
-# set mode
 sub upload ( $self, $path, $data, @args ) {
+    my $cb = is_plain_coderef $_[-1] ? pop @args : ();
+
     die q[Bucket has no default write path] if !$self->{write_path};
+
+    state $on_finish = sub ( $cb, $res ) {
+        if ($cb) {
+            return $cb->($res);
+        }
+        else {
+            return $res;
+        }
+    };
 
     $path = P->path("$self->{write_path}/$path");
 
     # TODO check, that path is child
-    return res 404 if 0;
+    # return $on_finish->( $cb, res 404 );
 
     P->file->mkpath( $path->dirname, mode => 'rwxr-xr-x' ) || return res [ 500, qq[Can't create CDN path "$path", $!] ] if !-d $path->dirname;
 
-    P->file->write_bin( $path, $data );    # TODO or return res [ 500, qq[Can't write "$path", $!] ];
+    P->file->write_bin( $path, { mode => 'rw-r--r--' }, $data );    # TODO or return res [ 500, qq[Can't write "$path", $!] ];
 
-    return res 200;
+    return $on_finish->( $cb, res 200 );
 }
 
 1;

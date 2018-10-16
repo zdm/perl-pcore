@@ -29,7 +29,6 @@ sub s3 ($self) {
     return $self->{s3};
 }
 
-# TODO async
 sub upload ( $self, $path, $data, @args ) {
     return $self->s3->upload( $path, $data, @args );
 }
