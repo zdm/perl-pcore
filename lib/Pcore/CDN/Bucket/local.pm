@@ -5,7 +5,9 @@ use Pcore::Util::Scalar qw[is_plain_arrayref];
 
 with qw[Pcore::CDN::Bucket];
 
-has lib           => ( init_arg => undef );    # ArrayRef
+has locations => ();
+
+has libs          => ( init_arg => undef );    # ArrayRef
 has default_write => ( init_arg => undef );
 has is_local => ( 1, init_arg => undef );
 
@@ -13,19 +15,13 @@ sub BUILD ( $self, $args ) {
     $self->{prefix} = '/cdn';
 
     # load libs
-    for my $lib ( $args->{lib}->@* ) {
-        my ( $path, %cfg );
-
-        if ( is_plain_arrayref $lib) {
-            ( $path, %cfg ) = $lib->@*;
-        }
-        else {
-            $path = $lib;
-        }
+    for my $path ( $args->{libs}->@* ) {
 
         # $path is absolute
         if ( $path =~ m[\A/]sm ) {
             P->file->mkpath( $path, mode => 'rwxr-xr-x' ) || die qq[Can't create CDN path "$path", $!] if !-d $path;
+
+            $self->{default_write} //= $path;
         }
 
         # $path is dist name
@@ -37,39 +33,51 @@ sub BUILD ( $self, $args ) {
             next if !$path;
         }
 
-        $cfg{path} = "$path";
-
-        push $self->{lib}->@*, \%cfg;
-
-        $self->{default_write} = $cfg{path} if $cfg{default_write};
+        push $self->{libs}->@*, "$path";
     }
 
     return;
 }
 
-# add_header    Cache-Control "public, private, must-revalidate, proxy-revalidate";
 sub get_nginx_cfg ($self) {
-    my @buf;
+    my $tmpl = <<'TMPL';
+    # cdn
+    location <: $prefix :>/ {
+        error_page 418 = @<: $libs[0] :>;
+: for $locations.keys().sort() -> $location {
 
-    for ( my $i = 0; $i <= $self->{lib}->$#*; $i++ ) {
-        my $location = $i == 0 ? '/cdn/' : "\@$self->{lib}->[$i]->{path}";
-
-        my $next = $i < $self->{lib}->$#* ? "\@$self->{lib}->[$i + 1]->{path}" : '=404';
-
-        my $cache_control = $self->{lib}->[$i]->{cache} // 'no-cache';
-
-        push @buf, <<"TXT";
-    location $location {
-        root          $self->{lib}->[$i]->{path};
-        try_files     /../\$uri $next;
-        add_header    Cache-Control "$cache_control";
+        location <: $prefix :><: $location :> {
+            set $cache_control "<: $locations[$location] :>";
+            return 418;
+        }
+: }
+: else {
+    set $cache_control "";
+    return 418;
+: }
     }
-TXT
-    }
+:for $libs -> $path {
 
-    return <<"TXT";
-@{[join $LF, @buf]}
-TXT
+    location @<: $path :> {
+        root          <: $path :>;
+        add_header    Cache-Control $cache_control;
+: if ( $~path.is_last ) {
+        try_files     /../$uri =404;
+: }
+: else {
+        try_files     /../$uri @<: $~path.peek_next :>;
+: }
+    }
+: }
+TMPL
+
+    return P->tmpl->(
+        \$tmpl,
+        {   prefix    => $self->{prefix},
+            locations => $self->{locations},
+            libs      => $self->{libs},
+        }
+    )->$*;
 }
 
 # TODO check path
@@ -91,16 +99,6 @@ sub upload ( $self, $path, $data, @args ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    2 | 54                   | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

@@ -16,6 +16,7 @@ sub get_nginx_cfg ($self) {
     return;
 }
 
+# TODO
 sub return_static ( $self, $req ) {
     if ( $req->{path_tail} && $req->{path_tail}->is_file ) {
         if ( my $path = $ENV->{share}->get( 'www', $req->{path} . $req->{path_tail} ) ) {
