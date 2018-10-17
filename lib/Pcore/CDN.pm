@@ -97,6 +97,11 @@ sub upload ( $self, @ ) {
     return $self->{bucket}->{ $bucket_name // 'default' }->upload( $path, $data, @args, $cb || () );
 }
 
+# TODO
+sub sync ( $self, $from, $to ) {
+    return;
+}
+
 sub get_nginx_cfg($self) {
     my @buf;
 

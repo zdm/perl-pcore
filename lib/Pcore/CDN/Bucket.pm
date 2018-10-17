@@ -9,8 +9,7 @@ use overload '&{}' => sub ( $self, @ ) {
 
 requires qw[upload];
 
-has id     => sub {uuid_v1mc_str}, init_arg => undef;
-has prefix => ( init_arg => undef );
+has id => sub {uuid_v1mc_str}, init_arg => undef;
 
 sub get_url ( $self, $path ) { return $self->{prefix} . $path }
 

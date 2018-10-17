@@ -1,18 +1,18 @@
 package Pcore::CDN::Bucket::local;
 
 use Pcore -class, -res;
-use Pcore::Util::Scalar qw[is_plain_arrayref];
+use Pcore::Util::Scalar qw[is_plain_arrayref is_plain_coderef];
 
 with qw[Pcore::CDN::Bucket];
 
 has locations => ();
+has prefix    => ('/cdn');
 
 has libs       => ( init_arg => undef );    # ArrayRef
 has write_path => ( init_arg => undef );
 has is_local => ( 1, init_arg => undef );
 
 sub BUILD ( $self, $args ) {
-    $self->{prefix} = '/cdn';
 
     # load libs
     for my $path ( $args->{libs}->@* ) {
