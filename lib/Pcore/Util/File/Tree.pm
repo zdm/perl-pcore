@@ -4,29 +4,25 @@ use Pcore -class;
 use Pcore::Util::File::Tree::File;
 use Pcore::Util::Scalar qw[is_plain_coderef];
 
-has files => ( is => 'lazy', isa => HashRef [ InstanceOf ['Pcore::Util::File::Tree::File'] ], default => sub { {} }, init_arg => undef );
+has files => ( sub { {} }, init_arg => undef );    # HashRef [ InstanceOf ['Pcore::Util::File::Tree::File']
 
-sub add_dir ( $self, $dir, $root = undef ) {
-    $dir = P->path( $dir, is_dir => 1 )->realpath->to_string;
+sub add_dir ( $self, $dir, $location = undef, $meta = undef ) {
+    $location //= '';
 
-    my $files = $self->files;
+    $dir = P->path($dir)->realpath->to_string;
 
-    my $chdir_guard = P->file->chdir($dir);
+    my $files = P->path1($dir)->read_dir( scan_depth => 0, is_dir => 0 );
 
-    P->file->find(
-        q[.],
-        dir => 0,
-        sub ($path) {
-            $self->add_file( ( $root // q[] ) . $path->to_string, $dir . $path );
+    return if !$files;
 
-            return;
-        },
-    );
+    for my $file ( $files->@* ) {
+        $self->add_file( "${location}${file}", "${dir}${file}", $meta );
+    }
 
     return;
 }
 
-sub add_file ( $self, $path, $source ) {
+sub add_file ( $self, $path, $source, $meta = undef ) {
     my $file;
 
     if ( ref $source eq 'SCALAR' ) {
@@ -36,29 +32,31 @@ sub add_file ( $self, $path, $source ) {
         $file = Pcore::Util::File::Tree::File->new( { tree => $self, path => $path, source_path => $source } );
     }
 
-    $self->files->{$path} = $file;
+    $file->{meta} = $meta if defined $meta;
+
+    $self->{files}->{$path} = $file;
 
     return $file;
 }
 
 sub remove_file ( $self, $path ) {
-    delete $self->files->{$path};
+    delete $self->{files}->{$path};
 
     return;
 }
 
 sub move_file ( $self, $path, $target_path ) {
-    if ( my $file = delete $self->files->{$path} ) {
+    if ( my $file = delete $self->{files}->{$path} ) {
         $file->{path} = $target_path;
 
-        $self->files->{$target_path} = $file;
+        $self->{files}->{$target_path} = $file;
     }
 
     return;
 }
 
 sub move_tree ( $self, $source_path, $target_path ) {
-    for my $old_path ( keys $self->files->%* ) {
+    for my $old_path ( keys $self->{files}->%* ) {
         my $new_path;
 
         if ( is_plain_coderef $target_path ) {
@@ -79,7 +77,7 @@ sub move_tree ( $self, $source_path, $target_path ) {
 }
 
 sub find_file ( $self, $cb ) {
-    for my $file ( values $self->files->%* ) {
+    for my $file ( values $self->{files}->%* ) {
         $cb->($file);
     }
 
@@ -87,7 +85,7 @@ sub find_file ( $self, $cb ) {
 }
 
 sub render_tmpl ( $self, $tmpl_args ) {
-    for my $file ( values $self->files->%* ) {
+    for my $file ( values $self->{files}->%* ) {
         $file->render_tmpl($tmpl_args);
     }
 
@@ -100,12 +98,12 @@ sub write_to ( $self, $target_path, @ ) {
         splice @_, 2,
     );
 
-    for my $file ( values $self->files->%* ) {
+    for my $file ( values $self->{files}->%* ) {
         $file->write_to($target_path);
     }
 
     # write MANIFEST
-    P->file->write_bin( $target_path . q[/MANIFEST], [ sort 'MANIFEST', keys $self->files->%* ] ) if $args{manifest};
+    P->file->write_bin( $target_path . q[/MANIFEST], [ sort 'MANIFEST', keys $self->{files}->%* ] ) if $args{manifest};
 
     return;
 }
@@ -129,6 +127,16 @@ sub write_to_temp ( $self, @ ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    2 | 10                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

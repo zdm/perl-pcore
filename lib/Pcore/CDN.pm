@@ -97,9 +97,24 @@ sub upload ( $self, @ ) {
     return $self->{bucket}->{ $bucket_name // 'default' }->upload( $path, $data, @args, $cb || () );
 }
 
-# TODO
-sub sync ( $self, $from, $to ) {
-    return;
+sub sync ( $self, $local, $remote, @locations ) {
+    $local = $self->{bucket}->{$local};
+
+    my $local_locations = $local->{locations};
+
+    my $locations;
+
+    for my $location (@locations) {
+        my $match = '';
+
+        for my $loc_cache ( keys $local_locations->%* ) {
+            $match = $loc_cache if length $loc_cache > length $match && index( $location, $loc_cache ) == 0;
+        }
+
+        $locations->{$location} = $match ? $local_locations->{$match} : undef;
+    }
+
+    return $self->{bucket}->{$remote}->sync( $local->{libs}, $locations );
 }
 
 sub get_nginx_cfg($self) {
@@ -119,6 +134,16 @@ sub get_nginx_cfg($self) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    2 | 108                  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

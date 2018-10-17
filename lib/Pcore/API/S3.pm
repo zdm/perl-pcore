@@ -493,31 +493,40 @@ XML
     return $self->_req($args);
 }
 
-sub sync ( $self, $libs, @args ) {
-    my %args = (
-        prefix => undef,                        # must be relative
-        cache  => 'public, max-age=30672000',
-        @args
-    );
-
-    $args{prefix} //= '';
-
+sub sync ( $self, $roots, $locations ) {
     my $tree = Pcore::Util::File::Tree->new;
 
     # load libs, add files
-    for my $path ( $libs->@* ) {
-        if ( $path !~ m[\A/]sm ) {
-            P->class->load( $path =~ s/-/::/smgr );
+    for my $path ( $roots->@* ) {
+        for my $location ( sort { length $a <=> length $b } keys $locations->%* ) {
 
-            $path = $ENV->{share}->get_storage( $path, 'cdn' );
-
-            next if !$path;
+            $tree->add_dir( "$path/$location", $location, $locations->{$location} ? { 'Cache-Control' => $locations->{$location} } : () ) if -d "$path/$location";
         }
-
-        $tree->add_dir( "$path/$args{prefix}", "/$args{prefix}" ) if -d "$path/$args{prefix}";
     }
 
-    my $remote_files = $self->get_all_bucket_content( prefix => $args{prefix} )->{data};
+    my $remote_files;
+
+    # get remote files
+    {
+        my $cv = P->cv->begin;
+
+        for my $location ( keys $locations->%* ) {
+            $cv->begin;
+
+            $self->get_all_bucket_content(
+                prefix => $location =~ s[\A/][]smr,
+                sub ($res) {
+                    $remote_files->@{ keys $res->{data}->%* } = values $res->{data}->%*;
+
+                    $cv->end;
+
+                    return;
+                }
+            );
+        }
+
+        $cv->end->recv;
+    }
 
     my ( $error, $stat );
 
@@ -536,7 +545,7 @@ sub sync ( $self, $libs, @args ) {
             $self->upload(
                 $file->{path},
                 $file->content,
-                cache => $args{cache},
+                cache => $file->{meta}->{'Cache-Control'},
                 etag  => exists $remote_files->{ $file->{path} } ? $remote_files->{ $file->{path} }->{etag} : undef,
                 sub ($res) {
                     $error++ if !$res && $res != 304;
@@ -596,9 +605,7 @@ sub sync ( $self, $libs, @args ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    2 | 114, 241, 242, 243,  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 244, 503             |                                                                                                                |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 497                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |      | 244                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

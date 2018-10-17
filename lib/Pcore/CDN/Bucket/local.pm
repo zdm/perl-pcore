@@ -5,7 +5,7 @@ use Pcore::Util::Scalar qw[is_plain_arrayref is_plain_coderef];
 
 with qw[Pcore::CDN::Bucket];
 
-has locations => ();
+has locations => ();         # HashRef
 has prefix    => ('/cdn');
 
 has libs       => ( init_arg => undef );    # ArrayRef
