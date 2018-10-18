@@ -178,11 +178,11 @@ sub _init_reload ($self) {
 
         # Ext reloader
         P->path1("$inc_path/$ext_ns")->poll(
-            scan_root  => 0,
-            scan_tree  => 1,
-            abs        => 0,
-            is_dir     => 0,
-            scan_depth => 0,
+            scan_root => 0,
+            scan_tree => 1,
+            abs       => 0,
+            is_dir    => 0,
+            max_depth => 0,
             sub ($changes) {
                 my $error;
 

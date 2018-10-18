@@ -18,7 +18,7 @@ sub add_dir ( $self, $dir, $prefix = undef, $meta = undef ) {
 
     $dir = P->path($dir)->realpath->to_string;
 
-    my $files = P->path1($dir)->read_dir( scan_depth => 0, is_dir => 0 );
+    my $files = P->path1($dir)->read_dir( max_depth => 0, is_dir => 0 );
 
     return if !$files;
 

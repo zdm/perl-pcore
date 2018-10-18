@@ -8,7 +8,7 @@ sub read_dir ( $self, @ ) {
     my $res;
 
     my %args = (
-        scan_depth  => 1,        # 0 - unlimited
+        max_depth   => 1,        # 0 - unlimited
         follow_link => 1,
         is_dir      => 1,
         is_file     => 1,
@@ -73,7 +73,7 @@ sub read_dir ( $self, @ ) {
 
             push $res->@*, $prefix . substr( $dir, 1 ) . $path if $push;
 
-            if ( !$args{scan_depth} || $depth < $args{scan_depth} ) {
+            if ( !$args{max_depth} || $depth < $args{max_depth} ) {
                 $stat //= ( stat $fpath )[2] & Fcntl::S_IFMT;
 
                 if ( $stat == Fcntl::S_IFDIR ) {
