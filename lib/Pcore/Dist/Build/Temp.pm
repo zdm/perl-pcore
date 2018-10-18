@@ -51,8 +51,8 @@ sub run ( $self, $keep = 0 ) {
 sub _gather_files ($self) {
     my $tree = Pcore::Util::File::Tree->new;
 
-    for (qw[bin/ lib/ share/ t/ xt/]) {
-        $tree->add_dir( $self->dist->root . $_, $_ );
+    for my $dir (qw[bin/ lib/ share/ t/ xt/]) {
+        $tree->add_dir( $self->dist->root . $dir, $dir );
     }
 
     # relocate files, apply cpan_manifest_skip
@@ -116,8 +116,8 @@ sub _gather_files ($self) {
         return;
     } );
 
-    for (qw[CHANGES cpanfile LICENSE README.md]) {
-        $tree->add_file( $_, $self->dist->root . $_ );
+    for my $file (qw[CHANGES cpanfile LICENSE README.md]) {
+        $tree->add_file( $file, $self->dist->root . $file );
     }
 
     # add dist-id.json
