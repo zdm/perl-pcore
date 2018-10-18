@@ -22,7 +22,7 @@ sub read_dir ( $self, @ ) {
 
     return if !-d $base;
 
-    my $prefix = $args{abs} ? $self->to_abs->{to_string} . '/' : '';
+    my $prefix = $args{abs} ? "$base/" : '';
 
     my $read = sub ( $dir, $depth ) {
         my $dir_path = "${base}$dir";

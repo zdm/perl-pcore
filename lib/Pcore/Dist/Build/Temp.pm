@@ -63,7 +63,7 @@ sub _gather_files ($self) {
             my $skipped;
 
             for my $skip_re ( $cpan_manifest_skip->@* ) {
-                if ( $file->path =~ $skip_re ) {
+                if ( $file->{path} =~ $skip_re ) {
                     $skipped = 1;
 
                     $file->remove;
@@ -75,27 +75,27 @@ sub _gather_files ($self) {
             return if $skipped;
         }
 
-        if ( $file->path =~ m[\Abin/(.+)\z]sm ) {
+        if ( $file->{path} =~ m[\Abin/(.+)\z]sm ) {
 
             # relocate scripts from the /bin/ to /script/
             my $name = $1;
 
-            if ( $file->path !~ m[[.].+\z]sm ) {    # no extension
+            if ( $file->{path} !~ m[[.].+\z]sm ) {    # no extension
                 $file->move( 'script/' . $name );
             }
-            elsif ( $file->path =~ m[[.](?:pl|sh|cmd|bat)\z]sm ) {    # allowed extensions
+            elsif ( $file->{path} =~ m[[.](?:pl|sh|cmd|bat)\z]sm ) {    # allowed extensions
                 $file->move( 'script/' . $name );
             }
             else {
                 $file->remove;
             }
         }
-        elsif ( $file->path =~ m[\At/(.+)\z]sm && $file->path !~ m[[.]t\z]sm ) {
+        elsif ( $file->{path} =~ m[\At/(.+)\z]sm && $file->{path} !~ m[[.]t\z]sm ) {
 
             # olny *.t files are allowed in /t/ dir
             $file->remove;
         }
-        elsif ( $file->path =~ m[\Axt/(author|release|smoke)/(.+)\z]sm ) {
+        elsif ( $file->{path} =~ m[\Axt/(author|release|smoke)/(.+)\z]sm ) {
 
             # patch /xt/*/.t files and relocate to the /t/ dir
             my $test = $1;
@@ -103,7 +103,7 @@ sub _gather_files ($self) {
             my $name = $2;
 
             # add common header to /xt/*.t file
-            if ( $file->path =~ m[[.]t\z]sm ) {
+            if ( $file->{path} =~ m[[.]t\z]sm ) {
                 $file->move("t/$test-$name");
 
                 $self->_patch_xt( $file, $test );

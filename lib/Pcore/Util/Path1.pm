@@ -2,6 +2,7 @@ package Pcore::Util::Path1;
 
 use Pcore -class, -const, -res;
 use Clone qw[];
+use Cwd qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 use overload
   q[""]    => sub { $_[0]->{to_string} },
@@ -14,9 +15,25 @@ with qw[
 ];
 
 has to_string => ();
+has is_abs    => ();
+has volume    => ();
+
+has IS_PATH => ( 1, init_arg => undef );
 
 around new => sub ( $orig, $self, $path ) {
     $self = bless { to_string => $path }, __PACKAGE__;
+
+    if ($MSWIN) {
+        if ( $path =~ /\A([a-z]):/smi ) {
+            $self->{volume} = lc $1;
+            $self->{is_abs} = 1;
+        }
+    }
+    else {
+        if ( substr( $path, 0, 1 ) eq '/' ) {
+            $self->{is_abs} = 1;
+        }
+    }
 
     return $self;
 };
@@ -25,19 +42,23 @@ sub clone ($self) {
     return Clone::clone($self);
 }
 
-# TODO normalize path
 sub to_abs ( $self, $base = undef ) {
-    if ( substr( $self->{to_string}, 0, 1 ) eq '/' ) {
-        return defined wantarray ? $self->clone : ();
-    }
 
-    my $path = ( $base //= P->file->cwd ) . $self->{to_string};
+    # path is already absolute
+    return defined wantarray ? $self->clone : () if $self->{is_abs};
 
-    if ( defined wantarray ) {
-        return P->path1($path);
+    if ( !defined $base ) {
+        $base = Cwd::getcwd();
     }
     else {
-        $self->{to_string} = $path;
+        $base = $self->new($base)->to_abs->{to_string};
+    }
+
+    if ( defined wantarray ) {
+        return $self->new("$base/$self->{to_string}");
+    }
+    else {
+        $self->{to_string} = "$base/$self->{to_string}";
     }
 
     return;
@@ -57,6 +78,16 @@ sub to_abs ( $self, $base = undef ) {
 # }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    1 | 27                   | RegularExpressions::ProhibitEnumeratedClasses - Use named character classes ([a-z] vs. [[:lower:]])            |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
