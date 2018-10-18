@@ -144,7 +144,7 @@ PERL
 
     # remove /bin, /xt
     $tree->find_file( sub ($file) {
-        $file->remove if $file->path =~ m[\A(?:bin|xt)/]sm;
+        $file->remove if $file->{path} =~ m[\A(?:bin|xt)/]sm;
 
         return;
     } );
