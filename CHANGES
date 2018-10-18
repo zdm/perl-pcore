@@ -1,3 +1,7 @@
+v0.75.1 2018-10-18T05:58:51Z
+ - CA updated
+ - src is_binary fixed for zero file size
+
 v0.75.0 2018-10-18T05:17:32Z
  - scandeps cli removed
  - scandeps improved
