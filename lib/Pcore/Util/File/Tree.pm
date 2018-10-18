@@ -7,6 +7,8 @@ use Pcore::Util::Scalar qw[is_plain_coderef];
 has files => ( sub { {} }, init_arg => undef );    # HashRef [ InstanceOf ['Pcore::Util::File::Tree::File']
 
 sub add_dir ( $self, $dir, $prefix = undef, $meta = undef ) {
+    return if !-d $dir;
+
     if ( !defined $prefix ) {
         $prefix = '';
     }
@@ -138,7 +140,7 @@ sub write_to_temp ( $self, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 11, 13               | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 13, 15               | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

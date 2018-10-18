@@ -52,8 +52,6 @@ sub _gather_files ($self) {
     my $tree = Pcore::Util::File::Tree->new;
 
     for (qw[bin/ lib/ share/ t/ xt/]) {
-        next if !-d $self->dist->root . $_;
-
         $tree->add_dir( $self->dist->root . $_, $_ );
     }
 
@@ -277,9 +275,7 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 51                   | Subroutines::ProhibitExcessComplexity - Subroutine "_gather_files" with high complexity score (21)             |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 199                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 197                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
