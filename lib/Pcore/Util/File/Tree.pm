@@ -6,8 +6,13 @@ use Pcore::Util::Scalar qw[is_plain_coderef];
 
 has files => ( sub { {} }, init_arg => undef );    # HashRef [ InstanceOf ['Pcore::Util::File::Tree::File']
 
-sub add_dir ( $self, $dir, $location = undef, $meta = undef ) {
-    $location //= '';
+sub add_dir ( $self, $dir, $prefix = undef, $meta = undef ) {
+    if ( !defined $prefix ) {
+        $prefix = '';
+    }
+    elsif ( $prefix ne '' && substr( $prefix, -1, 1 ) ne '/' ) {
+        $prefix .= '/';
+    }
 
     $dir = P->path($dir)->realpath->to_string;
 
@@ -16,7 +21,7 @@ sub add_dir ( $self, $dir, $location = undef, $meta = undef ) {
     return if !$files;
 
     for my $file ( $files->@* ) {
-        $self->add_file( "${location}${file}", "${dir}${file}", $meta );
+        $self->add_file( "${prefix}${file}", "${dir}${file}", $meta );
     }
 
     return;
@@ -133,7 +138,7 @@ sub write_to_temp ( $self, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 10                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 11, 13               | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
