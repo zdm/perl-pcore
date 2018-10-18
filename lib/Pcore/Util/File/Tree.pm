@@ -83,14 +83,6 @@ sub move_tree ( $self, $source_path, $target_path ) {
     return;
 }
 
-sub find_file ( $self, $cb ) {
-    for my $file ( values $self->{files}->%* ) {
-        $cb->($file);
-    }
-
-    return;
-}
-
 sub render_tmpl ( $self, $tmpl_args ) {
     for my $file ( values $self->{files}->%* ) {
         $file->render_tmpl($tmpl_args);

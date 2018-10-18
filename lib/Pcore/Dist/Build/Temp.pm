@@ -58,7 +58,7 @@ sub _gather_files ($self) {
     # relocate files, apply cpan_manifest_skip
     my $cpan_manifest_skip = $self->dist->cfg->{cpan} && $self->dist->cfg->{cpan_manifest_skip} && $self->dist->cfg->{cpan_manifest_skip}->@* ? $self->dist->cfg->{cpan_manifest_skip} : undef;
 
-    $tree->find_file( sub ($file) {
+    for my $file ( values $tree->{files}->%* ) {
         if ($cpan_manifest_skip) {
             my $skipped;
 
@@ -72,7 +72,7 @@ sub _gather_files ($self) {
                 }
             }
 
-            return if $skipped;
+            last if $skipped;
         }
 
         if ( $file->{path} =~ m[\Abin/(.+)\z]sm ) {
@@ -112,9 +112,7 @@ sub _gather_files ($self) {
                 $file->remove;
             }
         }
-
-        return;
-    } );
+    }
 
     for my $file (qw[CHANGES cpanfile LICENSE README.md]) {
         $tree->add_file( $file, $self->dist->root . $file );
@@ -141,11 +139,9 @@ PERL
     $self->_patch_xt( $tree->add_file( 't/author-pod-syntax.t', \$t ), 'author' );
 
     # remove /bin, /xt
-    $tree->find_file( sub ($file) {
+    for my $file ( values $tree->{files}->%* ) {
         $file->remove if $file->{path} =~ m[\A(?:bin|xt)/]sm;
-
-        return;
-    } );
+    }
 
     return $tree;
 }
@@ -275,7 +271,9 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 197                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    3 | 51                   | Subroutines::ProhibitExcessComplexity - Subroutine "_gather_files" with high complexity score (22)             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 193                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
