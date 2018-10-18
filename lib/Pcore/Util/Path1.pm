@@ -21,6 +21,8 @@ has volume    => ();
 has IS_PATH => ( 1, init_arg => undef );
 
 around new => sub ( $orig, $self, $path ) {
+    $path = "$path";
+
     $self = bless { to_string => $path }, __PACKAGE__;
 
     if ($MSWIN) {
@@ -84,7 +86,7 @@ sub to_abs ( $self, $base = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 27                   | RegularExpressions::ProhibitEnumeratedClasses - Use named character classes ([a-z] vs. [[:lower:]])            |
+## |    1 | 29                   | RegularExpressions::ProhibitEnumeratedClasses - Use named character classes ([a-z] vs. [[:lower:]])            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
