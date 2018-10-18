@@ -62,7 +62,7 @@ sub _get_host_map ( $self, $host, $ns ) {
             $modules->{$index_module} = undef;
         }
 
-        for my $file ( ( P->path1("$path/$index_path")->read_dir( scan_depth => 0, is_dir => 0 ) // [] )->@* ) {
+        for my $file ( ( P->path1("$path/$index_path")->read_dir( max_depth => 0, is_dir => 0 ) // [] )->@* ) {
             $modules->{"$index_path/$file"} = undef if $file =~ /[.]pm\z/sm;
         }
     }
