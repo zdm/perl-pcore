@@ -61,6 +61,10 @@ on develop => sub {
     requires 'Filter::Crypto';
 };
 
+# Pcore::Handle::sqlite
+requires 'DBI',         v1.641.0;
+requires 'DBD::SQLite', v1.58.0;
+
 # Pcore::HTTP
 requires 'HTML::TreeBuilder::LibXML', v0.26.0;
 requires 'HTTP::Parser::XS',          v0.17.0;
