@@ -161,16 +161,16 @@ struct Tokens {
 
 SV *normalize_path (SV *path) {
 
-    /* call fetch() if a tied variable to populate the sv */
+    // call fetch() if a tied variable to populate the SV
     SvGETMAGIC(path);
 
-    /* check for undef */
+    // check for undef
     if ( path == &PL_sv_undef ) return newSV(0);
 
     U8 *src;
     size_t src_len;
 
-    /* copy the sv without the magic struct */
+    // copy the sv without the magic struct
     src = SvPV_nomg_const(path, src_len);
 
     struct Tokens tokens [ (src_len / 2) + 1 ];
