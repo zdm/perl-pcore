@@ -182,15 +182,31 @@ SV *normalize_path (SV *path) {
     U8 token[ src_len ];
     size_t token_len = 0;
 
-    U8 prefix;
     size_t prefix_len = 0;
     size_t i = 0;
+
+    // parse leading windows volume
+# ifdef WIN32
+    U8 prefix[3];
+
+    if ( src_len >= 2 && src[1] == ':' && ( src[2] == '/' || src[2] == '\\' ) && ( ( src[0] >= 97 && src[0] <= 122 ) || ( src[0] >= 65 && src[0] <= 90 ) ) ) {
+        prefix[0] = tolower(src[0]);
+        prefix[1] = ':';
+        prefix[2] = '/';
+        prefix_len = 3;
+        i = 3;
+    }
+
+    // parse leading "/"
+# else
+    U8 prefix;
 
     if (src[0] == '/' || src[0] == '\\') {
         prefix = '/';
         prefix_len = 1;
         i = 1;
     }
+# endif
 
     for ( i; i < src_len; i++ ) {
         int process_token = 0;
