@@ -7,7 +7,24 @@ use Pcore::Util::Data qw[from_uri_utf8 to_uri_path];
 use Pcore::Util::Scalar qw[is_blessed_hashref];
 
 use overload
-  q[""]    => sub { $_[0]->{to_string} },
+  q[""] => sub { $_[0]->{to_string} },
+  '.'   => sub ( $self, $str, $order ) {
+
+    # $str + $self
+    if ($order) {
+        return Pcore::Util::Path1->new("$str/$self->{to_string}");
+    }
+
+    # $self + $str
+    else {
+        if ( $self->{to_string} eq '' ) {
+            return Pcore::Util::Path1->new("./$str");
+        }
+        else {
+            return Pcore::Util::Path1->new("$self->{to_string}/$str");
+        }
+    }
+  },
   fallback => 1;
 
 with qw[
@@ -352,7 +369,7 @@ C
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 34                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 20, 51               | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
