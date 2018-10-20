@@ -307,7 +307,7 @@ SV *normalize_path (SV *path) {
 
         dst_pos += tokens[i].len;
 
-        // TODO
+        // add "/" if token is not last
         if (i < tokens_len) {
             dst[dst_pos++] = '/';
         }
