@@ -282,6 +282,7 @@ SV *normalize_path (SV *path) {
         memcpy(dst, &prefix, prefix_len);
     }
 
+    // join tokens
     for ( size_t i = 0; i < tokens_len; i++ ) {
         memcpy(dst + dst_pos, tokens[i].token, tokens[i].len);
         free(tokens[i].token);
