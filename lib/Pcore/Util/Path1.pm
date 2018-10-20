@@ -233,8 +233,9 @@ static SV *__normalize (U8 *src, size_t src_len) {
                     if (!tokens[tokens_len - 1].is_dots) {
                         skip_token = 1;
 
-                        tokens_len -= 1;
                         tokens_total_len -= tokens[tokens_len - 1].len;
+
+                        tokens_len -= 1;
                     }
                 }
 
