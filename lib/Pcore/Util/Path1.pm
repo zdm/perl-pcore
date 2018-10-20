@@ -159,20 +159,7 @@ struct Tokens {
     U8 *token;
 };
 
-SV *normalize_path (SV *path) {
-
-    // call fetch() if a tied variable to populate the SV
-    SvGETMAGIC(path);
-
-    // check for undef
-    if ( path == &PL_sv_undef ) return newSV(0);
-
-    U8 *src;
-    size_t src_len;
-
-    // copy the sv without the magic struct
-    src = SvPV_nomg_const(path, src_len);
-
+static SV *__normalize (U8 *src, size_t src_len) {
     struct Tokens tokens [ (src_len / 2) + 1 ];
 
     size_t tokens_len = 0;
@@ -323,10 +310,27 @@ SV *normalize_path (SV *path) {
     return result;
 }
 
+SV *_normalize (SV *path) {
+
+    // call fetch() if a tied variable to populate the SV
+    SvGETMAGIC(path);
+
+    // check for undef
+    if ( path == &PL_sv_undef ) return newSV(0);
+
+    U8 *src;
+    size_t src_len;
+
+    // copy the sv without the magic struct
+    src = SvPV_nomg_const(path, src_len);
+
+    return __normalize(src, src_len);
+}
+
 C
     ccflagsex  => '-Wall -Wextra -Ofast -std=c11',
     prototypes => 'ENABLE',
-    prototype  => { normalize_path => '$', },
+    prototype  => { _normalize => '$', },
 );
 
 1;
