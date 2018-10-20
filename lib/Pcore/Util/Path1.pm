@@ -40,18 +40,11 @@ around new => sub ( $orig, $self, $path = undef, %args ) {
         $path = "$path";
     }
 
-    $self = bless {}, $self;
-
-    # TODO
-    # set volume, is_abs
-
     if ( $args{from_uri} ) {
         $path = from_uri_utf8 $path;
     }
 
-    $self->{to_string} = _normalize($path);
-
-    return $self;
+    return bless _normalize($path), $self;
 };
 
 sub to_string ($self) {
@@ -156,7 +149,13 @@ struct Tokens {
     U8 *token;
 };
 
-static SV *__normalize (U8 *src, size_t src_len) {
+struct Result {
+    SV *is_abs;
+    SV *path;
+    SV *volume;
+};
+
+static struct Result __normalize (U8 *src, size_t src_len) {
     struct Tokens tokens [ (src_len / 2) + 1 ];
 
     size_t tokens_len = 0;
@@ -262,24 +261,24 @@ static SV *__normalize (U8 *src, size_t src_len) {
         }
     }
 
-    // calculate result length
-    size_t result_len = prefix_len + tokens_total_len;
+    // calculate path length
+    size_t path_len = prefix_len + tokens_total_len;
     if (tokens_len) {
-        result_len += tokens_len - 1;
+        path_len += tokens_len - 1;
     }
 
-    // create result SV
-    SV *result = newSV( result_len + 1 );
-    SvPOK_on(result);
+    // create path SV
+    SV *path = newSV( path_len + 1 );
+    SvPOK_on(path);
 
-    // set the current length of result
-    SvCUR_set( result, result_len );
+    // set the current length of path
+    SvCUR_set( path, path_len );
 
     // path is not empty
-    if (result_len) {
+    if (path_len) {
 
-        // get pointer to the result buffer
-        U8 *dst = (U8 *)SvPV_nolen(result);
+        // get pointer to the path SV buffer
+        U8 *dst = (U8 *)SvPV_nolen(path);
         size_t dst_pos = 0;
 
         // add prefix
@@ -301,9 +300,15 @@ static SV *__normalize (U8 *src, size_t src_len) {
             }
         }
 
-        // decode result to utf8
-        sv_utf8_decode(result);
+        // decode path to utf8
+        sv_utf8_decode(path);
     }
+
+    struct Result result;
+
+    result.is_abs = prefix_len ? newSV(1) : newSV(1);
+    result.path = path;
+    result.volume = newSV(1);
 
     return result;
 }
@@ -322,7 +327,16 @@ SV *_normalize (SV *path) {
     // copy the sv without the magic struct
     src = SvPV_nomg_const(path, src_len);
 
-    return __normalize(src, src_len);
+    struct Result result = __normalize(src, src_len);
+
+    HV *hash = newHV();
+    hv_store(hash, "is_abs", 6, result.is_abs, 0);
+    hv_store(hash, "to_string", 9, result.path, 0);
+    hv_store(hash, "volume", 6, result.volume, 0);
+
+    sv_2mortal((SV*)newRV_noinc((SV *)hash));
+
+    return newRV((SV *)hash);;
 }
 
 C
