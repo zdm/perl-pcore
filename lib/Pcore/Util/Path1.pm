@@ -149,6 +149,160 @@ sub volume ( $self, $volume = undef ) {
 #     return $res, $tags;
 # }
 
+use Inline(
+    C => <<'C',
+# include <string.h>
+
+struct Tokens {
+    size_t len;
+    int is_dots;
+    U8 *token;
+};
+
+SV *normalize_path (SV *path) {
+
+    /* call fetch() if a tied variable to populate the sv */
+    SvGETMAGIC(path);
+
+    /* check for undef */
+    if ( path == &PL_sv_undef ) return newSV(0);
+
+    U8 *src;
+    size_t src_len;
+
+    /* copy the sv without the magic struct */
+    src = SvPV_nomg_const(path, src_len);
+
+    // TODO round / 2
+    /* Tokens tokens[ slen ]; */
+    struct Tokens tokens [ src_len ];
+    size_t tokens_len = 0;
+    size_t tokens_total_len = 0;
+
+    U8 token[ src_len ];
+    size_t token_len = 0;
+
+    U8 prefix;
+    size_t prefix_len = 0;
+    size_t i = 0;
+
+    if (src[0] == '/' || src[0] == '\\') {
+        prefix = '/';
+        prefix_len = 1;
+        i = 1;
+    }
+
+    for ( i; i < src_len; i++ ) {
+        int process_token = 0;
+
+        // slash char
+        if ( src[i] == '/' || src[i] == '\\' ) {
+            process_token = 1;
+        }
+        else {
+
+            // add char to the current token
+            token[ token_len++ ] = src[i];
+
+            // last char
+            if (i + 1 == src_len) {
+                process_token = 1;
+            }
+        }
+
+        // current token is completed, process token
+        if (process_token && token_len) {
+            int skip_token = 0;
+            int is_dots = 0;
+
+            // skip "." token
+            if ( token_len == 1 && token[0] == '.' ) {
+                skip_token = 1;
+            }
+
+            // process ".." token
+            else if ( token_len == 2 && token[0] == '.' && token[1] == '.' ) {
+                is_dots = 1;
+
+                // has previous token
+                if (tokens_len) {
+
+                    // previous token is NOT "..", remove previous token
+                    if (!tokens[tokens_len - 1].is_dots) {
+                        skip_token = 1;
+
+                        tokens_len -= 1;
+                        tokens_total_len -= tokens[tokens_len - 1].len;
+                    }
+                }
+
+                // has no previous token
+                else {
+
+                    // path is absolute, skip ".." token
+                    if (prefix_len) {
+                        skip_token = 1;
+                    }
+                }
+            }
+
+            // store token
+            if (!skip_token) {
+                tokens[tokens_len].token = malloc(token_len);
+                memcpy(tokens[tokens_len].token, token, token_len);
+
+                tokens[tokens_len].len = token_len;
+                tokens[tokens_len].is_dots = is_dots;
+
+                tokens_total_len += token_len;
+                tokens_len++;
+            }
+
+            token_len = 0;
+        }
+    }
+
+    /* create result SV */
+    // TODO
+    size_t result_len = prefix_len + tokens_total_len + tokens_len - 1;
+    SV *result = newSV( result_len );
+    SvPOK_on(result);
+    /* set the current length of resutl */
+    SvCUR_set( result, result_len );
+
+    U8 *dst = (U8 *)SvPV_nolen(result);
+    size_t dst_pos = 0;
+
+    // add prefix
+    if (prefix_len) {
+        dst_pos += prefix_len;
+        memcpy(dst, &prefix, prefix_len);
+    }
+
+    for ( size_t i = 0; i < tokens_len; i++ ) {
+        memcpy(dst + dst_pos, tokens[i].token, tokens[i].len);
+        free(tokens[i].token);
+
+        dst_pos += tokens[i].len;
+
+        // TODO
+        if (i < tokens_len) {
+            dst[dst_pos++] = '/';
+        }
+    }
+
+    // decode to utf8
+    sv_utf8_decode(result);
+
+    return result;
+}
+
+C
+    ccflagsex  => '-Wall -Wextra -Ofast -std=c11',
+    prototypes => 'ENABLE',
+    prototype  => { normalize_path => '$', },
+);
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
