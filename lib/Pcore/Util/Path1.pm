@@ -262,14 +262,17 @@ SV *normalize_path (SV *path) {
         }
     }
 
-    /* create result SV */
-    // TODO
+    // TODO calculate result length
     size_t result_len = prefix_len + tokens_total_len + tokens_len - 1;
+
+    // create result SV
     SV *result = newSV( result_len );
     SvPOK_on(result);
-    /* set the current length of resutl */
+
+    // set the current length of result
     SvCUR_set( result, result_len );
 
+    // get pointer to the result buffer
     U8 *dst = (U8 *)SvPV_nolen(result);
     size_t dst_pos = 0;
 
