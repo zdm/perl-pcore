@@ -277,8 +277,11 @@ SV *normalize_path (SV *path) {
         }
     }
 
-    // TODO calculate result length
-    size_t result_len = prefix_len + tokens_total_len + tokens_len - 1;
+    // calculate result length
+    size_t result_len = prefix_len + tokens_total_len;
+    if (tokens_len) {
+        result_len += tokens_len - 1;
+    }
 
     // create result SV
     SV *result = newSV( result_len );
