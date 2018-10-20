@@ -284,37 +284,41 @@ SV *normalize_path (SV *path) {
     }
 
     // create result SV
-    SV *result = newSV( result_len );
+    SV *result = newSV( result_len + 1 );
     SvPOK_on(result);
 
     // set the current length of result
     SvCUR_set( result, result_len );
 
-    // get pointer to the result buffer
-    U8 *dst = (U8 *)SvPV_nolen(result);
-    size_t dst_pos = 0;
+    // path is not empty
+    if (result_len) {
 
-    // add prefix
-    if (prefix_len) {
-        dst_pos += prefix_len;
-        memcpy(dst, &prefix, prefix_len);
-    }
+        // get pointer to the result buffer
+        U8 *dst = (U8 *)SvPV_nolen(result);
+        size_t dst_pos = 0;
 
-    // join tokens
-    for ( size_t i = 0; i < tokens_len; i++ ) {
-        memcpy(dst + dst_pos, tokens[i].token, tokens[i].len);
-        free(tokens[i].token);
-
-        dst_pos += tokens[i].len;
-
-        // add "/" if token is not last
-        if (i < tokens_len) {
-            dst[dst_pos++] = '/';
+        // add prefix
+        if (prefix_len) {
+            dst_pos += prefix_len;
+            memcpy(dst, &prefix, prefix_len);
         }
-    }
 
-    // decode result to utf8
-    sv_utf8_decode(result);
+        // join tokens
+        for ( size_t i = 0; i < tokens_len; i++ ) {
+            memcpy(dst + dst_pos, tokens[i].token, tokens[i].len);
+            free(tokens[i].token);
+
+            dst_pos += tokens[i].len;
+
+            // add "/" if token is not last
+            if (i < tokens_len) {
+                dst[dst_pos++] = '/';
+            }
+        }
+
+        // decode result to utf8
+        sv_utf8_decode(result);
+    }
 
     return result;
 }
