@@ -175,7 +175,7 @@ SV *_normalize (SV *in) {
     // call fetch() if a tied variable to populate the SV
     SvGETMAGIC(in);
 
-    // check for undef
+    // TODO check for undef
     if ( in == &PL_sv_undef ) return newSV(0);
 
     U8 *src;
