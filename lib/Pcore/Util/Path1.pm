@@ -174,7 +174,6 @@ SV *normalize_path (SV *path) {
     src = SvPV_nomg_const(path, src_len);
 
     // TODO round / 2
-    /* Tokens tokens[ slen ]; */
     struct Tokens tokens [ src_len ];
     size_t tokens_len = 0;
     size_t tokens_total_len = 0;
