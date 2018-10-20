@@ -170,13 +170,20 @@ struct Tokens {
     U8 *token;
 };
 
-struct Result {
-    SV *is_abs;
-    SV *path;
-    SV *volume;
-};
+SV *_normalize (SV *in) {
 
-static struct Result __normalize (U8 *src, size_t src_len) {
+    // call fetch() if a tied variable to populate the SV
+    SvGETMAGIC(in);
+
+    // check for undef
+    if ( in == &PL_sv_undef ) return newSV(0);
+
+    U8 *src;
+    size_t src_len;
+
+    // copy the sv without the magic struct
+    src = SvPV_nomg_const(in, src_len);
+
     struct Tokens tokens [ (src_len / 2) + 1 ];
 
     size_t tokens_len = 0;
@@ -325,39 +332,14 @@ static struct Result __normalize (U8 *src, size_t src_len) {
         sv_utf8_decode(path);
     }
 
-    struct Result result;
-
-    result.is_abs = prefix_len ? newSV(1) : newSV(1);
-    result.path = path;
-    result.volume = newSV(1);
-
-    return result;
-}
-
-SV *_normalize (SV *path) {
-
-    // call fetch() if a tied variable to populate the SV
-    SvGETMAGIC(path);
-
-    // check for undef
-    if ( path == &PL_sv_undef ) return newSV(0);
-
-    U8 *src;
-    size_t src_len;
-
-    // copy the sv without the magic struct
-    src = SvPV_nomg_const(path, src_len);
-
-    struct Result result = __normalize(src, src_len);
-
     HV *hash = newHV();
-    hv_store(hash, "is_abs", 6, result.is_abs, 0);
-    hv_store(hash, "to_string", 9, result.path, 0);
-    hv_store(hash, "volume", 6, result.volume, 0);
+    hv_store(hash, "is_abs", 6, newSV(0), 0);
+    hv_store(hash, "to_string", 9, path, 0);
+    hv_store(hash, "volume", 6, newSV(0), 0);
 
     sv_2mortal((SV*)newRV_noinc((SV *)hash));
 
-    return newRV((SV *)hash);;
+    return newRV((SV *)hash);
 }
 
 C
