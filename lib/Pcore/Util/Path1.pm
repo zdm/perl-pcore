@@ -333,9 +333,9 @@ SV *_normalize (SV *in) {
     }
 
     HV *hash = newHV();
-    hv_store(hash, "is_abs", 6, newSV(0), 0);
+    hv_store(hash, "is_abs", 6, prefix_len ? newSVuv(1) : newSVuv(0), 0);
     hv_store(hash, "to_string", 9, path, 0);
-    hv_store(hash, "volume", 6, newSV(0), 0);
+    hv_store(hash, "volume", 6, prefix_len == 3 ? newSVpvn(&prefix, 1) : newSV(0), 0);
 
     sv_2mortal((SV*)newRV_noinc((SV *)hash));
 
