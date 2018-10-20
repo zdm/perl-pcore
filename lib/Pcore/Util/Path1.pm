@@ -295,7 +295,7 @@ SV *normalize_path (SV *path) {
         }
     }
 
-    // decode to utf8
+    // decode result to utf8
     sv_utf8_decode(result);
 
     return result;
