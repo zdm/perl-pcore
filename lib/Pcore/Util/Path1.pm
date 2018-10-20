@@ -7,8 +7,9 @@ use Pcore::Util::Data qw[from_uri_utf8 to_uri_path];
 use Pcore::Util::Scalar qw[is_blessed_hashref];
 
 use overload
-  q[""] => sub { $_[0]->{to_string} },
-  '.'   => sub ( $self, $str, $order ) {
+  q[""]  => sub { $_[0]->{to_string} },
+  'bool' => sub {1},
+  '.' => sub ( $self, $str, $order ) {
 
     # $str + $self
     if ($order) {
@@ -156,6 +157,9 @@ sub volume ( $self, $volume = undef ) {
 #     return $res, $tags;
 # }
 
+# TODO
+# single function
+# watch modification
 use Inline(
     C => <<'C',
 # include <string.h>
@@ -369,7 +373,7 @@ C
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 20, 51               | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 21, 52               | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
