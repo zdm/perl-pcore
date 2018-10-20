@@ -40,19 +40,16 @@ around new => sub ( $orig, $self, $path = undef, %args ) {
         $path = "$path";
     }
 
-    $self = bless { to_string => $path }, __PACKAGE__;
+    $self = bless {}, $self;
 
-    if ($MSWIN) {
-        if ( $path =~ /\A([a-z]):/smi ) {
-            $self->{volume} = lc $1;
-            $self->{is_abs} = 1;
-        }
+    # TODO
+    # set volume, is_abs
+
+    if ( $args{from_uri} ) {
+        $path = from_uri_utf8 $path;
     }
-    else {
-        if ( substr( $path, 0, 1 ) eq '/' ) {
-            $self->{is_abs} = 1;
-        }
-    }
+
+    $self->{to_string} = _normalize($path);
 
     return $self;
 };
@@ -342,8 +339,6 @@ C
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    2 | 34                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 46                   | RegularExpressions::ProhibitEnumeratedClasses - Use named character classes ([a-z] vs. [[:lower:]])            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
