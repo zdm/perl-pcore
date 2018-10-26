@@ -48,8 +48,10 @@ has _to_url => ( init_arg => undef );
 has IS_PCORE_PATH => ( 1, init_arg => undef );
 
 around new => sub ( $orig, $self, $path = undef, %args ) {
+    $self = ref $self if is_blessed_hashref $self;
+
     if ( !defined $path ) {
-        return bless { to_string => '' }, $self;
+        return bless {}, $self;
     }
 
     if ( is_blessed_hashref $path ) {
@@ -103,7 +105,6 @@ sub to_uri ($self) {
     return $self->{_to_uri};
 }
 
-# TODO error on empty path
 sub to_abs ( $self, $base = undef ) {
 
     # path is already absolute
@@ -117,18 +118,17 @@ sub to_abs ( $self, $base = undef ) {
     }
 
     if ( defined wantarray ) {
-        return $self->new("$base/$self->{to_string}");
+        return $self->new( "$base/" . ( $self->{to_string} // '' ) );
     }
     else {
-        $self->{to_string} = "$base/$self->{to_string}";
+        $self->{to_string} = "$base/" . ( $self->{to_string} // '' );
     }
 
     return;
 }
 
-# TODO error on empty path
 sub to_realpath ( $self ) {
-    my $realpath = Cwd::realpath( $self->{to_string} );
+    my $realpath = Cwd::realpath( $self->{to_string} // '.' );
 
     if ( defined wantarray ) {
         return $self->new($realpath);
@@ -213,7 +213,7 @@ C
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 21, 52               | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 21, 121, 124         | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
