@@ -53,7 +53,7 @@ around new => sub ( $orig, $self, $path = undef, %args ) {
     }
 
     if ( is_blessed_hashref $path ) {
-        return $path if $path->{IS_PCORE_PATH};
+        return $path->clone if $path->{IS_PCORE_PATH};
 
         $path = "$path";
     }
@@ -160,189 +160,41 @@ sub volume ( $self, $volume = undef ) {
 # TODO
 # single function
 # watch modification
+
 use Inline(
     C => <<'C',
-# include <string.h>
+# include "Pcore/Util/Path.h"
 
-struct Tokens {
-    size_t len;
-    int is_dots;
-    U8 *token;
-};
-
-SV *_normalize (SV *in) {
+SV *_normalize (SV *path) {
 
     // call fetch() if a tied variable to populate the SV
-    SvGETMAGIC(in);
+    SvGETMAGIC(path);
 
-    // TODO check for undef
-    if ( in == &PL_sv_undef ) return newSV(0);
+    U8 *buf = NULL;
+    size_t buf_len = 0;
 
-    U8 *src;
-    size_t src_len;
+    // check for undef
+    if ( path != &PL_sv_undef ) {
 
-    // copy the sv without the magic struct
-    src = SvPV_nomg_const(in, src_len);
-
-    struct Tokens tokens [ (src_len / 2) + 1 ];
-
-    size_t tokens_len = 0;
-    size_t tokens_total_len = 0;
-
-    U8 token[ src_len ];
-    size_t token_len = 0;
-
-    size_t prefix_len = 0;
-    size_t i = 0;
-
-    // parse leading windows volume
-# ifdef WIN32
-    U8 prefix[3];
-
-    if ( src_len >= 2 && src[1] == ':' && ( src[2] == '/' || src[2] == '\\' ) && ( ( src[0] >= 97 && src[0] <= 122 ) || ( src[0] >= 65 && src[0] <= 90 ) ) ) {
-        prefix[0] = tolower(src[0]);
-        prefix[1] = ':';
-        prefix[2] = '/';
-        prefix_len = 3;
-        i = 3;
+        // copy the sv without the magic struct
+        buf = SvPV_nomg_const(path, buf_len);
     }
 
-    // parse leading "/"
-# else
-    U8 prefix;
+    return normalize(buf, buf_len);
 
-    if (src[0] == '/' || src[0] == '\\') {
-        prefix = '/';
-        prefix_len = 1;
-        i = 1;
-    }
-# endif
+    /* Results res = normalize(buf, buf_len); */
 
-    for ( i; i < src_len; i++ ) {
-        int process_token = 0;
+    /* HV *hash = newHV(); */
+    /* hv_store(hash, "is_abs", 6, prefix_len ? newSVuv(1) : newSVuv(0), 0); */
+    /* hv_store(hash, "to_string", 9, path, 0); */
+    /* hv_store(hash, "volume", 6, prefix_len == 3 ? newSVpvn(&prefix, 1) : newSV(0), 0); */
 
-        // slash char
-        if ( src[i] == '/' || src[i] == '\\' ) {
-            process_token = 1;
-        }
-        else {
+    /* sv_2mortal((SV*)newRV_noinc((SV *)hash)); */
 
-            // add char to the current token
-            token[ token_len++ ] = src[i];
-
-            // last char
-            if (i + 1 == src_len) {
-                process_token = 1;
-            }
-        }
-
-        // current token is completed, process token
-        if (process_token && token_len) {
-            int skip_token = 0;
-            int is_dots = 0;
-
-            // skip "." token
-            if ( token_len == 1 && token[0] == '.' ) {
-                skip_token = 1;
-            }
-
-            // process ".." token
-            else if ( token_len == 2 && token[0] == '.' && token[1] == '.' ) {
-                is_dots = 1;
-
-                // has previous token
-                if (tokens_len) {
-
-                    // previous token is NOT "..", remove previous token
-                    if (!tokens[tokens_len - 1].is_dots) {
-                        skip_token = 1;
-
-                        tokens_total_len -= tokens[tokens_len - 1].len;
-
-                        tokens_len -= 1;
-                    }
-                }
-
-                // has no previous token
-                else {
-
-                    // path is absolute, skip ".." token
-                    if (prefix_len) {
-                        skip_token = 1;
-                    }
-                }
-            }
-
-            // store token
-            if (!skip_token) {
-                tokens[tokens_len].token = malloc(token_len);
-                memcpy(tokens[tokens_len].token, token, token_len);
-
-                tokens[tokens_len].len = token_len;
-                tokens[tokens_len].is_dots = is_dots;
-
-                tokens_total_len += token_len;
-                tokens_len++;
-            }
-
-            token_len = 0;
-        }
-    }
-
-    // calculate path length
-    size_t path_len = prefix_len + tokens_total_len;
-    if (tokens_len) {
-        path_len += tokens_len - 1;
-    }
-
-    // create path SV
-    SV *path = newSV( path_len + 1 );
-    SvPOK_on(path);
-
-    // set the current length of path
-    SvCUR_set( path, path_len );
-
-    // path is not empty
-    if (path_len) {
-
-        // get pointer to the path SV buffer
-        U8 *dst = (U8 *)SvPV_nolen(path);
-        size_t dst_pos = 0;
-
-        // add prefix
-        if (prefix_len) {
-            dst_pos += prefix_len;
-            memcpy(dst, &prefix, prefix_len);
-        }
-
-        // join tokens
-        for ( size_t i = 0; i < tokens_len; i++ ) {
-            memcpy(dst + dst_pos, tokens[i].token, tokens[i].len);
-            free(tokens[i].token);
-
-            dst_pos += tokens[i].len;
-
-            // add "/" if token is not last
-            if (i < tokens_len) {
-                dst[dst_pos++] = '/';
-            }
-        }
-
-        // decode path to utf8
-        sv_utf8_decode(path);
-    }
-
-    HV *hash = newHV();
-    hv_store(hash, "is_abs", 6, prefix_len ? newSVuv(1) : newSVuv(0), 0);
-    hv_store(hash, "to_string", 9, path, 0);
-    hv_store(hash, "volume", 6, prefix_len == 3 ? newSVpvn(&prefix, 1) : newSV(0), 0);
-
-    sv_2mortal((SV*)newRV_noinc((SV *)hash));
-
-    return newRV((SV *)hash);
+    /* return newRV((SV *)hash); */
 }
-
 C
+    inc        => '-I' . $ENV->{share}->get_storage( 'Pcore', 'include' ),
     ccflagsex  => '-Wall -Wextra -Ofast -std=c11',
     prototypes => 'ENABLE',
     prototype  => { _normalize => '$', },
