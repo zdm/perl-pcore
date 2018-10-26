@@ -18,12 +18,6 @@ PcoreUtilPath *normalize (U8 *buf, size_t buf_len) {
 
     // buf is not empty
     if (buf_len) {
-        size_t tokens_len = 0;
-        size_t tokens_total_len = 0;
-
-        U8 token[ buf_len ];
-        size_t token_len = 0;
-
         size_t prefix_len = 0;
         size_t i = 0;
 
@@ -58,6 +52,11 @@ PcoreUtilPath *normalize (U8 *buf, size_t buf_len) {
 # endif
 
         struct Tokens tokens [ (buf_len / 2) + 1 ];
+        size_t tokens_len = 0;
+        size_t tokens_total_len = 0;
+
+        U8 token[ buf_len ];
+        size_t token_len = 0;
 
         for ( i; i < buf_len; i++ ) {
             int process_token = 0;
@@ -72,9 +71,7 @@ PcoreUtilPath *normalize (U8 *buf, size_t buf_len) {
                 token[ token_len++ ] = buf[i];
 
                 // last char
-                if (i + 1 == buf_len) {
-                    process_token = 1;
-                }
+                if (i + 1 == buf_len) process_token = 1;
             }
 
             // current token is completed, process token
@@ -98,6 +95,7 @@ PcoreUtilPath *normalize (U8 *buf, size_t buf_len) {
                         if (!tokens[tokens_len - 1].is_dots) {
                             skip_token = 1;
 
+                            free(tokens[tokens_len - 1].token);
                             tokens_total_len -= tokens[tokens_len - 1].len;
 
                             tokens_len -= 1;
@@ -108,9 +106,7 @@ PcoreUtilPath *normalize (U8 *buf, size_t buf_len) {
                     else {
 
                         // path is absolute, skip ".." token
-                        if (prefix_len) {
-                            skip_token = 1;
-                        }
+                        if (prefix_len) skip_token = 1;
                     }
                 }
 
@@ -148,6 +144,7 @@ PcoreUtilPath *normalize (U8 *buf, size_t buf_len) {
             // join tokens
             for ( size_t i = 0; i < tokens_len; i++ ) {
                 memcpy(res->path + dst_pos, tokens[i].token, tokens[i].len);
+
                 free(tokens[i].token);
 
                 dst_pos += tokens[i].len;
