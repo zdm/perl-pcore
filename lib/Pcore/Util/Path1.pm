@@ -157,10 +157,6 @@ sub volume ( $self, $volume = undef ) {
 #     return $res, $tags;
 # }
 
-# TODO
-# single function
-# watch modification
-
 use Inline(
     C => <<'C',
 # include "Pcore/Util/Path.h"
@@ -180,18 +176,28 @@ SV *_normalize (SV *path) {
         buf = SvPV_nomg_const(path, buf_len);
     }
 
-    return normalize(buf, buf_len);
+    PcoreUtilPath *res = normalize(buf, buf_len);
 
-    /* Results res = normalize(buf, buf_len); */
+    HV *hash = newHV();
+    hv_store(hash, "is_abs", 6, newSVuv(res->is_abs), 0);
+    hv_store(hash, "volume", 6, res->volume_len ? newSVpvn(res->volume, res->volume_len) : newSV(0), 0);
 
-    /* HV *hash = newHV(); */
-    /* hv_store(hash, "is_abs", 6, prefix_len ? newSVuv(1) : newSVuv(0), 0); */
-    /* hv_store(hash, "to_string", 9, path, 0); */
-    /* hv_store(hash, "volume", 6, prefix_len == 3 ? newSVpvn(&prefix, 1) : newSV(0), 0); */
+    if (res->path_len) {
+        SV *path = newSVpvn(res->path, res->path_len);
+        sv_utf8_decode(path);
+        hv_store(hash, "to_string", 9, path, 0);
+    }
+    else {
+        hv_store(hash, "to_string", 9, newSV(0), 0);
+    }
 
-    /* sv_2mortal((SV*)newRV_noinc((SV *)hash)); */
+    free(res->path);
+    free(res->volume);
+    free(res);
 
-    /* return newRV((SV *)hash); */
+    sv_2mortal((SV*)newRV_noinc((SV *)hash));
+
+    return newRV((SV *)hash);
 }
 C
     inc        => '-I' . $ENV->{share}->get_storage( 'Pcore', 'include' ),
