@@ -250,7 +250,8 @@ sub BUILD1 ($self) {
 
     # scan deps
     if ( !$self->{is_par} && defined( my $dist = $self->{main_dist} ) ) {
-        if ( $dist->par_cfg && exists $dist->par_cfg->{ $self->{SCRIPT_NAME} && !$dist->par_cfg->{ $self->{SCRIPT_NAME} }->{disabled} } ) {
+        if ( $dist->par_cfg && exists $dist->par_cfg->{ $self->{SCRIPT_NAME} } && !$dist->par_cfg->{ $self->{SCRIPT_NAME} }->{disabled} ) {
+
             $self->set_scandeps( $dist->share_dir . "pardeps-$self->{SCRIPT_NAME}-@{[$^V->normal]}-$Config{archname}.json" );
         }
     }
@@ -403,13 +404,13 @@ sub DESTROY ( $self ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 183                  | * Subroutine "BUILD1" with high complexity score (21)                                                          |
-## |      | 314                  | * Subroutine "DESTROY" with high complexity score (22)                                                         |
+## |      | 315                  | * Subroutine "DESTROY" with high complexity score (22)                                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 323                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 324                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 361                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 362                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 388                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
+## |    2 | 389                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 116                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
