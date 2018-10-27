@@ -12,10 +12,11 @@ use Fcntl qw[:DEFAULT SEEK_END];
 
 has dist   => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'],       required => 1 );
 has script => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'], required => 1 );
-has release => ( is => 'ro', isa => Bool,    required => 1 );
-has crypt   => ( is => 'ro', isa => Bool,    required => 1 );
-has clean   => ( is => 'ro', isa => Bool,    required => 1 );
-has mod     => ( is => 'ro', isa => HashRef, required => 1 );
+has release => ( is => 'ro', isa => Bool, required => 1 );
+has crypt   => ( is => 'ro', isa => Bool, required => 1 );
+has clean   => ( is => 'ro', isa => Bool, required => 1 );
+has gui => ( required => 1 );
+has mod => ( is => 'ro', isa => HashRef, required => 1 );
 
 has tree           => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::File::Tree'], init_arg => undef );
 has par_suffix     => ( is => 'lazy', isa => Str,                                    init_arg => undef );
@@ -131,6 +132,42 @@ sub run ($self) {
     P->file->chmod( 'rwx------', $target_exe );
 
     say 'final binary size: ' . $BLACK . $ON_GREEN . q[ ] . add_num_sep( -s $target_exe ) . q[ ] . $RESET . ' bytes';
+
+    $self->_gui($target_exe) if $self->{gui} && $MSWIN;
+
+    return;
+}
+
+sub _gui ( $self, $file ) {
+    my ( $record, $magic, $signature, $offset, $size );
+
+    open my $exe, '+<', $file or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
+
+    binmode $exe or die $!;
+    seek $exe, 0, 0 or die $!;
+
+    # read IMAGE_DOS_HEADER structure
+    read $exe, $record, 64 or die $!;
+    ( $magic, $offset ) = unpack "Sx58L", $record;
+
+    die "$file is not an MSDOS executable file.\n" unless $magic == 0x5a4d;    # "MZ"
+
+    # read signature, IMAGE_FILE_HEADER and first WORD of IMAGE_OPTIONAL_HEADER
+    seek $exe, $offset, 0 or die $!;
+    read $exe, $record, 4 + 20 + 2 or die $!;
+
+    ( $signature, $size, $magic ) = unpack "Lx16Sx2S", $record;
+
+    die "PE header not found" unless $signature == 0x4550;                     # "PE\0\0"
+
+    die "Optional header is neither in NT32 nor in NT64 format"
+      unless ( $size == 224 && $magic == 0x10b )                               # IMAGE_NT_OPTIONAL_HDR32_MAGIC
+      || ( $size == 240 && $magic == 0x20b );                                  # IMAGE_NT_OPTIONAL_HDR64_MAGIC
+
+    # Offset 68 in the IMAGE_OPTIONAL_HEADER(32|64) is the 16 bit subsystem code
+    seek $exe, $offset + 4 + 20 + 68, 0 or die $!;
+    print $exe pack "S", 2;                                                    # IMAGE_WINDOWS
+    close $exe or die $!;
 
     return;
 }
@@ -527,17 +564,24 @@ sub _error ( $self, $msg ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 176                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 142                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "record"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 308                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 151, 159, 161, 163,  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |      | 169, 213             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 387                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_repack_parl' declared but not used |
+## |    3 | 345                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 398                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    3 | 424                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_repack_parl' declared but not used |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 482, 485             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    3 | 435                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 415, 421             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    2 | 161                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 519, 522             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 169                  | InputOutput::RequireBracedFileHandleWithPrint - File handle for "print" or "printf" is not braced              |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 452, 458             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

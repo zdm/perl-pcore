@@ -250,7 +250,7 @@ sub BUILD1 ($self) {
 
     # scan deps
     if ( !$self->{is_par} && defined( my $dist = $self->{main_dist} ) ) {
-        if ( $dist->par_cfg && exists $dist->par_cfg->{ $self->{SCRIPT_NAME} } ) {
+        if ( $dist->par_cfg && exists $dist->par_cfg->{ $self->{SCRIPT_NAME} && !$dist->par_cfg->{ $self->{SCRIPT_NAME} }->{disabled} } ) {
             $self->set_scandeps( $dist->share_dir . "pardeps-$self->{SCRIPT_NAME}-@{[$^V->normal]}-$Config{archname}.json" );
         }
     }
@@ -401,7 +401,9 @@ sub DESTROY ( $self ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 314                  | Subroutines::ProhibitExcessComplexity - Subroutine "DESTROY" with high complexity score (22)                   |
+## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
+## |      | 183                  | * Subroutine "BUILD1" with high complexity score (21)                                                          |
+## |      | 314                  | * Subroutine "DESTROY" with high complexity score (22)                                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 323                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
