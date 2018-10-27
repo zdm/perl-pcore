@@ -10,13 +10,13 @@ use Pcore::Src::File;
 use Config;
 use Fcntl qw[:DEFAULT SEEK_END];
 
-has dist   => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'],       required => 1 );
-has script => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'], required => 1 );
-has release => ( is => 'ro', isa => Bool, required => 1 );
-has crypt   => ( is => 'ro', isa => Bool, required => 1 );
-has clean   => ( is => 'ro', isa => Bool, required => 1 );
-has gui => ( required => 1 );
-has mod => ( is => 'ro', isa => HashRef, required => 1 );
+has dist    => ( required => 1 );    # InstanceOf ['Pcore::Dist']
+has script  => ( required => 1 );    # InstanceOf ['Pcore::Util::Path']
+has release => ( required => 1 );
+has crypt   => ( required => 1 );
+has clean   => ( required => 1 );
+has gui     => ( required => 1 );
+has mod     => ( required => 1 );    # HashRef
 
 has tree           => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::File::Tree'], init_arg => undef );
 has par_suffix     => ( is => 'lazy', isa => Str,                                    init_arg => undef );
@@ -33,19 +33,19 @@ sub _build_par_suffix ($self) {
 }
 
 sub _build_exe_filename ($self) {
-    my $filename = $self->script->filename_base;
+    my $filename = $self->{script}->filename_base;
 
     my @attrs;
 
-    if ( $self->release ) {
-        push @attrs, $self->dist->version;
+    if ( $self->{release} ) {
+        push @attrs, $self->{dist}->version;
     }
     else {
-        if ( $self->dist->id->{bookmark} ) {
-            push @attrs, $self->dist->id->{bookmark};
+        if ( $self->{dist}->id->{bookmark} ) {
+            push @attrs, $self->{dist}->id->{bookmark};
         }
         else {
-            push @attrs, $self->dist->id->{branch};
+            push @attrs, $self->{dist}->id->{branch};
         }
     }
 
@@ -56,13 +56,13 @@ sub _build_exe_filename ($self) {
 
 # TODO enable repack
 sub run ($self) {
-    say qq[\nBuilding ] . ( $self->crypt ? $BLACK . $ON_GREEN . ' crypted ' : $BOLD . $WHITE . $ON_RED . q[ not crypted ] ) . $RESET . q[ ] . $BLACK . $ON_GREEN . ( $self->clean ? ' clean ' : ' cached ' ) . $RESET . qq[ "@{[$self->exe_filename]}" for $Config{archname}$LF];
+    say qq[\nBuilding ] . ( $self->{crypt} ? $BLACK . $ON_GREEN . ' crypted ' : $BOLD . $WHITE . $ON_RED . q[ not crypted ] ) . $RESET . q[ ] . $BLACK . $ON_GREEN . ( $self->{clean} ? ' clean ' : ' cached ' ) . $RESET . qq[ "@{[$self->exe_filename]}" for $Config{archname}$LF];
 
     # add main script
-    $self->_add_perl_source( $self->script->realpath->to_string, 'script/main.pl' );
+    $self->_add_perl_source( $self->{script}->realpath->to_string, 'script/main.pl' );
 
     # add META.yml
-    $self->tree->add_file( 'META.yml', P->data->to_yaml( { par => { clean => 1 } } ) ) if $self->clean;
+    $self->tree->add_file( 'META.yml', P->data->to_yaml( { par => { clean => 1 } } ) ) if $self->{clean};
 
     # add modules
     print 'adding modules ... ';
@@ -125,7 +125,7 @@ sub run ($self) {
     # patch windows exe icon
     $self->_patch_icon("$repacked_path");
 
-    my $target_exe = $self->dist->root . 'data/' . $self->exe_filename;
+    my $target_exe = $self->{dist}->root . 'data/' . $self->exe_filename;
 
     P->file->move( $repacked_path, $target_exe );
 
@@ -186,14 +186,14 @@ sub _add_modules ($self) {
     my $not_found_modules;
 
     # add .pl, .pm
-    for my $module ( grep {/[.](?:pl|pm)\z/sm} keys $self->mod->%* ) {
+    for my $module ( grep {/[.](?:pl|pm)\z/sm} keys $self->{mod}->%* ) {
         my $found = $self->_add_module($module);
 
         push $not_found_modules->@*, $module if !$found;
     }
 
     # add .pc (part of some Win32API modules)
-    for my $module ( grep {/[.](?:pc)\z/sm} keys $self->mod->%* ) {
+    for my $module ( grep {/[.](?:pc)\z/sm} keys $self->{mod}->%* ) {
         my $found;
 
         for my $inc ( grep { !ref } @INC ) {
@@ -293,7 +293,7 @@ sub _add_shlib ($self) {
 }
 
 sub _add_module ( $self, $module ) {
-    $module = P->perl->module( $module, $self->dist->root . 'lib/' );
+    $module = P->perl->module( $module, $self->{dist}->root . 'lib/' );
 
     # module wasn't found
     return if !$module;
@@ -327,7 +327,7 @@ sub _process_main_modules ($self) {
     $self->_add_dist( $ENV->{pcore} );
 
     for my $main_mod ( keys $self->main_mod->%* ) {
-        next if $main_mod eq 'Pcore.pm' or $main_mod eq $self->dist->module->name;
+        next if $main_mod eq 'Pcore.pm' or $main_mod eq $self->{dist}->module->name;
 
         my $dist = Pcore::Dist->new($main_mod);
 
@@ -337,7 +337,7 @@ sub _process_main_modules ($self) {
     }
 
     # add current dist, should be added last to preserve share libs order
-    $self->_add_dist( $self->dist );
+    $self->_add_dist( $self->{dist} );
 
     return;
 }
@@ -369,7 +369,7 @@ sub _add_perl_source ( $self, $source, $target, $is_cpan_module = 0, $module = u
     } )->run->out_buffer;
 
     # crypt sources, do not crypt CPAN modules
-    if ( !$is_cpan_module && $self->crypt && ( !$module || $module ne 'Filter/Crypto/Decrypt.pm' ) ) {
+    if ( !$is_cpan_module && $self->{crypt} && ( !$module || $module ne 'Filter/Crypto/Decrypt.pm' ) ) {
         my $crypt = 1;
 
         # do not crypt modules, that belongs to the CPAN distribution
@@ -398,7 +398,7 @@ sub _add_perl_source ( $self, $source, $target, $is_cpan_module = 0, $module = u
 }
 
 sub _add_dist ( $self, $dist ) {
-    if ( $dist->name eq $self->dist->name ) {
+    if ( $dist->name eq $self->{dist}->name ) {
 
         # add main dist share
         $self->tree->add_dir( $dist->share_dir, 'share/' );
