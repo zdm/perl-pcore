@@ -7,7 +7,7 @@ struct Tokens {
     U8 *token;
 };
 
-PcoreUtilPath *parse (U8 *buf, size_t buf_len) {
+PcoreUtilPath *parse (const char *buf, size_t buf_len) {
     PcoreUtilPath *res = malloc(sizeof(PcoreUtilPath));
 
     res->is_abs = 0;

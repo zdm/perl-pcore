@@ -193,7 +193,7 @@ SV *_parse (SV *path) {
     // call fetch() if a tied variable to populate the SV
     SvGETMAGIC(path);
 
-    U8 *buf = NULL;
+    const char *buf = NULL;
     size_t buf_len = 0;
 
     // check for undef
@@ -240,7 +240,7 @@ C
     prototypes => 'ENABLE',
     prototype  => { _parse => '$', },
 
-    build_noisy => 0,
+    build_noisy => 1,
     force_build => 1,
 );
 
