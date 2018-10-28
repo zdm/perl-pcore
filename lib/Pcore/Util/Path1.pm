@@ -64,8 +64,19 @@ around new => sub ( $orig, $self, $path = undef, %args ) {
         $path = from_uri_utf8 $path;
     }
 
-    return bless _normalize($path), $self;
+    return bless _parse($path), $self;
 };
+
+# TODO
+sub _build_encoded_path ( $self, $path ) {
+    if ($MSWIN) {
+        state $enc = Encode::find_encoding($Pcore::WIN_ENC);
+
+        return $enc->encode( $path, Encode::FB_CROAK ) if utf8::is_utf8($path);
+    }
+
+    return $path;
+}
 
 sub to_string ($self) {
     if ( !exists $self->{to_string} ) {
@@ -161,7 +172,7 @@ use Inline(
     C => <<'C',
 # include "Pcore/Util/Path.h"
 
-SV *_normalize (SV *path) {
+SV *_parse (SV *path) {
 
     // call fetch() if a tied variable to populate the SV
     SvGETMAGIC(path);
@@ -176,7 +187,7 @@ SV *_normalize (SV *path) {
         buf = SvPV_nomg_const(path, buf_len);
     }
 
-    PcoreUtilPath *res = normalize(buf, buf_len);
+    PcoreUtilPath *res = parse(buf, buf_len);
 
     HV *hash = newHV();
     hv_store(hash, "is_abs", 6, newSVuv(res->is_abs), 0);
@@ -200,10 +211,12 @@ SV *_normalize (SV *path) {
     return newRV((SV *)hash);
 }
 C
-    inc        => '-I' . $ENV->{share}->get_storage( 'Pcore', 'include' ),
-    ccflagsex  => '-Wall -Wextra -Ofast -std=c11',
-    prototypes => 'ENABLE',
-    prototype  => { _normalize => '$', },
+    inc         => '-I' . $ENV->{share}->get_storage( 'Pcore', 'include' ),
+    ccflagsex   => '-Wall -Wextra -Ofast -std=c11',
+    prototypes  => 'ENABLE',
+    prototype   => { _parse => '$', },
+    build_noisy => 1,
+    force_build => 1,
 );
 
 1;
@@ -213,7 +226,7 @@ C
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 21, 121, 124         | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 21, 132, 135         | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

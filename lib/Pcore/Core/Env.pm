@@ -153,8 +153,10 @@ sub _init_inline ($self) {
             config => (
                 directory         => $self->{INLINE_DIR},
                 autoname          => 0,
-                clean_after_build => 0,
-                clean_build_area  => 0,
+                clean_after_build => 1,                     # clean up the current build area if the build was successful
+                clean_build_area  => 1,                     # clean up the old build areas within the entire Inline directory
+                force_build       => 0,                     # build (compile) the source code every time the program is run
+                build_noisy       => 0,                     #  dump build messages to the terminal rather than be silent about all the build details
             )
         );
     }
@@ -403,14 +405,14 @@ sub DESTROY ( $self ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 183                  | * Subroutine "BUILD1" with high complexity score (21)                                                          |
-## |      | 315                  | * Subroutine "DESTROY" with high complexity score (22)                                                         |
+## |      | 185                  | * Subroutine "BUILD1" with high complexity score (21)                                                          |
+## |      | 317                  | * Subroutine "DESTROY" with high complexity score (22)                                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 324                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 326                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 362                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 364                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 389                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
+## |    2 | 391                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 116                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
