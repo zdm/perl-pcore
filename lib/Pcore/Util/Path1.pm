@@ -9,7 +9,7 @@ use Pcore::Util::Scalar qw[is_blessed_hashref];
 use overload
   q[""]  => sub { $_[0]->{path} },
   'bool' => sub {1},
-  '.' => sub ( $self, $str, $order ) {
+  '.'    => sub {
 
     # $str + $self
     if ( $_[2] ) {
@@ -157,7 +157,7 @@ sub to_realpath ( $self ) {
 
 sub path ( $self, $path = undef ) {
     if ( @_ > 1 ) {
-
+        ...;
     }
 
     return $self->{path};
@@ -165,24 +165,22 @@ sub path ( $self, $path = undef ) {
 
 sub volume ( $self, $volume = undef ) {
     if ( @_ > 1 ) {
-
+        ...;
     }
 
     return;
 }
 
-# sub TO_DUMP {
-#     my $self = shift;
+sub TO_DUMP ( $self, @ ) {
+    my $res;
+    my $tags;
 
-#     my $res;
-#     my $tags;
+    $res = qq[path: "$self->{path}"];
 
-#     $res = qq[path: "$self->{path}"];
+    # $res .= qq[\nMIME type: "] . $self->mime_type . q["] if $self->mime_type;
 
-#     # $res .= qq[\nMIME type: "] . $self->mime_type . q["] if $self->mime_type;
-
-#     return $res, $tags;
-# }
+    return $res, $tags;
+}
 
 use Inline(
     C => <<'C',
@@ -252,6 +250,8 @@ C
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 25                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 160, 168             | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
