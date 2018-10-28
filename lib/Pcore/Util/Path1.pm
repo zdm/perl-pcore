@@ -29,7 +29,6 @@ use overload
   fallback => 1;
 
 with qw[
-  Pcore::Util::Result::Status
   Pcore::Util::Path::Dir
   Pcore::Util::Path::File
   Pcore::Util::Path::Poll
@@ -251,7 +250,7 @@ C
 ## |======+======================+================================================================================================================|
 ## |    3 | 25                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 160, 168             | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 159, 167             | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
