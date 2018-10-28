@@ -9,6 +9,8 @@ use Pcore::Util::Scalar qw[is_blessed_hashref];
 use overload
   q[""]  => sub { $_[0]->{path} },
   'bool' => sub {1},
+
+  # TODO empty
   '.' => sub ( $self, $str, $order ) {
 
     # $str + $self
@@ -25,6 +27,11 @@ use overload
             return Pcore::Util::Path1->new("$self->{path}/$str");
         }
     }
+  },
+  '-X' => sub {
+    state $map = { map { $_ => eval qq[sub { return -$_ \$_[0] }] } qw[r w x o R W X O e z s f d l p S b c t u g k T B M A C] };    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
+
+    return $map->{ $_[1] }->( ( $MSWIN ? $_[0]->encoded : $_[0]->{path} ) // '.' );
   },
   fallback => 1;
 
@@ -43,6 +50,7 @@ has suffix        => ();
 
 has is_abs => ();
 
+has _encoded => ();                     # utf8 encoded path
 has _to_url => ( init_arg => undef );
 
 has IS_PCORE_PATH => ( 1, init_arg => undef );
@@ -67,15 +75,27 @@ around new => sub ( $orig, $self, $path = undef, %args ) {
     return bless _parse($path), $self;
 };
 
-# TODO
-sub _build_encoded_path ( $self, $path ) {
-    if ($MSWIN) {
-        state $enc = Encode::find_encoding($Pcore::WIN_ENC);
-
-        return $enc->encode( $path, Encode::FB_CROAK ) if utf8::is_utf8($path);
+sub encoded ( $self ) {
+    if ( !$MSWIN ) {
+        return $self->{path};
     }
+    elsif ( !defined $self->{path} ) {
+        return;
+    }
+    else {
+        if ( !exists $self->{_encoded} ) {
+            state $enc = Encode::find_encoding($Pcore::WIN_ENC);
 
-    return $path;
+            if ( utf8::is_utf8 $self->{path} ) {
+                $self->{_encoded} = $enc->encode( $self->{path}, Encode::FB_CROAK );
+            }
+            else {
+                $self->{_encoded} = $self->{path};
+            }
+        }
+
+        return $self->{_encoded};
+    }
 }
 
 sub to_string ($self) {
@@ -90,6 +110,7 @@ sub clone ($self) {
     return Clone::clone($self);
 }
 
+# TODO empty
 sub to_uri ($self) {
     if ( !exists $self->{_to_uri} ) {
         my $path = $self->{path};
@@ -116,6 +137,7 @@ sub to_uri ($self) {
     return $self->{_to_uri};
 }
 
+# TODO empty
 sub to_abs ( $self, $base = undef ) {
 
     # path is already absolute
@@ -138,6 +160,7 @@ sub to_abs ( $self, $base = undef ) {
     return;
 }
 
+# TODO empty
 sub to_realpath ( $self ) {
     my $realpath = Cwd::realpath( $self->{path} // '.' );
 
@@ -211,12 +234,13 @@ SV *_parse (SV *path) {
     return newRV((SV *)hash);
 }
 C
-    inc         => '-I' . $ENV->{share}->get_storage( 'Pcore', 'include' ),
-    ccflagsex   => '-Wall -Wextra -Ofast -std=c11',
-    prototypes  => 'ENABLE',
-    prototype   => { _parse => '$', },
-    build_noisy => 1,
-    force_build => 1,
+    inc        => '-I' . $ENV->{share}->get_storage( 'Pcore', 'include' ),
+    ccflagsex  => '-Wall -Wextra -Ofast -std=c11',
+    prototypes => 'ENABLE',
+    prototype  => { _parse => '$', },
+
+    # build_noisy => 1,
+    # force_build => 1,
 );
 
 1;
@@ -226,7 +250,9 @@ C
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 21, 132, 135         | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    3 | 32                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 23, 154, 157         | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
