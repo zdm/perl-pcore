@@ -66,12 +66,7 @@ around new => sub ( $orig, $self, $path = undef, %args ) {
         $path = from_uri_utf8 $path;
     }
 
-    # TODO remove
-    my $hash = _parse($path);
-    $hash->{path} //= '.';
-    return bless $hash, $self;
-
-    # return bless _parse($path), $self;
+    return bless _parse($path), $self;
 };
 
 sub encoded ( $self ) {
@@ -212,16 +207,24 @@ SV *_parse (SV *path) {
 
     HV *hash = newHV();
     hv_store(hash, "is_abs", 6, newSVuv(res->is_abs), 0);
+
+    // path
+    SV *path_sv = newSVpvn(res->path, res->path_len);
+    sv_utf8_decode(path_sv);
+    hv_store(hash, "path", 4, path_sv, 0);
+
+    // volume
     hv_store(hash, "volume", 6, res->volume_len ? newSVpvn(res->volume, res->volume_len) : newSV(0), 0);
 
-    if (res->path_len) {
-        SV *path = newSVpvn(res->path, res->path_len);
-        sv_utf8_decode(path);
-        hv_store(hash, "path", 4, path, 0);
-    }
-    else {
-        hv_store(hash, "path", 4, newSV(0), 0);
-    }
+    // dirname
+    /* if (res->path_len) { */
+    /*     SV *path = newSVpvn(res->path, res->path_len); */
+    /*     sv_utf8_decode(path); */
+    /*     hv_store(hash, "path", 7, path, 0); */
+    /* } */
+    /* else { */
+    /*     hv_store(hash, "dirname", 7, newSV(0), 0); */
+    /* } */
 
     free(res->path);
     free(res->volume);
@@ -237,8 +240,8 @@ C
     prototypes => 'ENABLE',
     prototype  => { _parse => '$', },
 
-    # build_noisy => 1,
-    # force_build => 1,
+    build_noisy => 0,
+    force_build => 1,
 );
 
 1;

@@ -18,7 +18,7 @@ sub read_dir ( $self, @ ) {
     );
 
     # must be without trailing '/'
-    my $base = $self->to_abs->{to_string};
+    my $base = $self->to_abs->{path};
 
     return if !-d $base;
 
@@ -71,7 +71,7 @@ sub read_dir ( $self, @ ) {
                 $push = 0 if $stat == Fcntl::S_IFSOCK;
             }
 
-            push $res->@*, $prefix . substr( $dir, 1 ) . $path if $push;
+            push $res->@*, $self->new( $prefix . substr( $dir, 1 ) . $path ) if $push;
 
             if ( !$args{max_depth} || $depth < $args{max_depth} ) {
                 $stat //= ( stat $fpath )[2] & Fcntl::S_IFMT;

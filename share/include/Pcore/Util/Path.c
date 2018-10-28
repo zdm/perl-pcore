@@ -58,7 +58,7 @@ PcoreUtilPath *parse (U8 *buf, size_t buf_len) {
         U8 token[ buf_len ];
         size_t token_len = 0;
 
-        for ( i; i < buf_len; i++ ) {
+        for ( ; i < buf_len; i++ ) {
             int process_token = 0;
 
             // slash char
@@ -153,6 +153,12 @@ PcoreUtilPath *parse (U8 *buf, size_t buf_len) {
                 if (i < tokens_len) res->path[dst_pos++] = '/';
             }
         }
+    }
+
+    if (res->path_len == 0) {
+        res->path_len = 1;
+        res->path = malloc(1);
+        res->path[0] = '.';
     }
 
     return res;
