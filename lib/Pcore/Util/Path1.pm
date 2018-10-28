@@ -240,8 +240,8 @@ C
     prototypes => 'ENABLE',
     prototype  => { _parse => '$', },
 
-    build_noisy => 1,
-    force_build => 1,
+    # build_noisy => 1,
+    # force_build => 1,
 );
 
 1;

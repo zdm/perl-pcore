@@ -150,7 +150,7 @@ PcoreUtilPath *parse (const char *buf, size_t buf_len) {
                 dst_pos += tokens[i].len;
 
                 // add "/" if token is not last
-                if (i < tokens_len) res->path[dst_pos++] = '/';
+                if (i < tokens_len - 1) res->path[dst_pos++] = '/';
             }
         }
     }
