@@ -7,22 +7,22 @@ use Pcore::Util::Data qw[from_uri_utf8 to_uri_path];
 use Pcore::Util::Scalar qw[is_blessed_hashref];
 
 use overload
-  q[""]  => sub { $_[0]->{to_string} },
+  q[""]  => sub { $_[0]->{path} },
   'bool' => sub {1},
   '.' => sub ( $self, $str, $order ) {
 
     # $str + $self
     if ($order) {
-        return Pcore::Util::Path1->new("$str/$self->{to_string}");
+        return Pcore::Util::Path1->new("$str/$self->{path}");
     }
 
     # $self + $str
     else {
-        if ( $self->{to_string} eq '' ) {
+        if ( $self->{path} eq '' ) {
             return Pcore::Util::Path1->new("./$str");
         }
         else {
-            return Pcore::Util::Path1->new("$self->{to_string}/$str");
+            return Pcore::Util::Path1->new("$self->{path}/$str");
         }
     }
   },
@@ -34,7 +34,7 @@ with qw[
   Pcore::Util::Path1::Poll
 ];
 
-has to_string     => ();
+has path          => ();
 has volume        => ();
 has dirname       => ();
 has filename      => ();
@@ -79,11 +79,11 @@ sub _build_encoded_path ( $self, $path ) {
 }
 
 sub to_string ($self) {
-    if ( !exists $self->{to_string} ) {
+    if ( !exists $self->{path} ) {
 
     }
 
-    return $self->{to_string};
+    return $self->{path};
 }
 
 sub clone ($self) {
@@ -92,7 +92,7 @@ sub clone ($self) {
 
 sub to_uri ($self) {
     if ( !exists $self->{_to_uri} ) {
-        my $path = $self->{to_string};
+        my $path = $self->{path};
 
         # Relative Reference: https://tools.ietf.org/html/rfc3986#section-4.2
         # A path segment that contains a colon character (e.g., "this:that")
@@ -125,27 +125,27 @@ sub to_abs ( $self, $base = undef ) {
         $base = Cwd::getcwd();
     }
     else {
-        $base = $self->new($base)->to_abs->{to_string};
+        $base = $self->new($base)->to_abs->{path};
     }
 
     if ( defined wantarray ) {
-        return $self->new( "$base/" . ( $self->{to_string} // '' ) );
+        return $self->new( "$base/" . ( $self->{path} // '' ) );
     }
     else {
-        $self->{to_string} = "$base/" . ( $self->{to_string} // '' );
+        $self->{path} = "$base/" . ( $self->{path} // '' );
     }
 
     return;
 }
 
 sub to_realpath ( $self ) {
-    my $realpath = Cwd::realpath( $self->{to_string} // '.' );
+    my $realpath = Cwd::realpath( $self->{path} // '.' );
 
     if ( defined wantarray ) {
         return $self->new($realpath);
     }
     else {
-        $self->{to_string} = $realpath;
+        $self->{path} = $realpath;
 
         return;
     }
@@ -161,7 +161,7 @@ sub volume ( $self, $volume = undef ) {
 #     my $res;
 #     my $tags;
 
-#     $res = qq[path: "$self->{to_string}"];
+#     $res = qq[path: "$self->{path}"];
 
 #     # $res .= qq[\nMIME type: "] . $self->mime_type . q["] if $self->mime_type;
 
@@ -196,10 +196,10 @@ SV *_parse (SV *path) {
     if (res->path_len) {
         SV *path = newSVpvn(res->path, res->path_len);
         sv_utf8_decode(path);
-        hv_store(hash, "to_string", 9, path, 0);
+        hv_store(hash, "path", 4, path, 0);
     }
     else {
-        hv_store(hash, "to_string", 9, newSV(0), 0);
+        hv_store(hash, "path", 4, newSV(0), 0);
     }
 
     free(res->path);
