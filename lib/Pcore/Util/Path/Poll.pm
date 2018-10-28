@@ -1,4 +1,4 @@
-package Pcore::Util::Path1::Poll;
+package Pcore::Util::Path::Poll;
 
 use Pcore -role, -const, -export;
 use Pcore::Util::Scalar qw[is_plain_coderef];
@@ -173,7 +173,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::Path1::Poll
+Pcore::Util::Path::Poll
 
 =head1 SYNOPSIS
 

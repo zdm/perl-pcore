@@ -1,4 +1,4 @@
-package Pcore::Util::Path1::Dir;
+package Pcore::Util::Path::Dir;
 
 use Pcore -role;
 use Pcore::Util::Scalar qw[is_plain_coderef];
@@ -118,7 +118,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::Path1::Dir
+Pcore::Util::Path::Dir
 
 =head1 SYNOPSIS
 

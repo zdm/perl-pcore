@@ -9,36 +9,30 @@ use Pcore::Util::Scalar qw[is_blessed_hashref];
 use overload
   q[""]  => sub { $_[0]->{path} },
   'bool' => sub {1},
-
-  # TODO empty
   '.' => sub ( $self, $str, $order ) {
 
     # $str + $self
-    if ($order) {
-        return Pcore::Util::Path1->new("$str/$self->{path}");
+    if ( $_[2] ) {
+        return $_[0]->new("$_[1]/$_[0]->{path}");
     }
 
     # $self + $str
     else {
-        if ( $self->{path} eq '' ) {
-            return Pcore::Util::Path1->new("./$str");
-        }
-        else {
-            return Pcore::Util::Path1->new("$self->{path}/$str");
-        }
+        return $_[0]->new("$_[0]->{path}/$_[1]");
     }
   },
   '-X' => sub {
     state $map = { map { $_ => eval qq[sub { return -$_ \$_[0] }] } qw[r w x o R W X O e z s f d l p S b c t u g k T B M A C] };    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
 
-    return $map->{ $_[1] }->( ( $MSWIN ? $_[0]->encoded : $_[0]->{path} ) // '.' );
+    return $map->{ $_[1] }->( $MSWIN ? $_[0]->encoded : $_[0]->{path} );
   },
   fallback => 1;
 
 with qw[
   Pcore::Util::Result::Status
-  Pcore::Util::Path1::Dir
-  Pcore::Util::Path1::Poll
+  Pcore::Util::Path::Dir
+  Pcore::Util::Path::File
+  Pcore::Util::Path::Poll
 ];
 
 has path          => ();
@@ -59,7 +53,7 @@ around new => sub ( $orig, $self, $path = undef, %args ) {
     $self = ref $self if is_blessed_hashref $self;
 
     if ( !defined $path ) {
-        return bless {}, $self;
+        return bless { path => '.' }, $self;
     }
 
     if ( is_blessed_hashref $path ) {
@@ -72,15 +66,17 @@ around new => sub ( $orig, $self, $path = undef, %args ) {
         $path = from_uri_utf8 $path;
     }
 
-    return bless _parse($path), $self;
+    # TODO remove
+    my $hash = _parse($path);
+    $hash->{path} //= '.';
+    return bless $hash, $self;
+
+    # return bless _parse($path), $self;
 };
 
 sub encoded ( $self ) {
     if ( !$MSWIN ) {
         return $self->{path};
-    }
-    elsif ( !defined $self->{path} ) {
-        return;
     }
     else {
         if ( !exists $self->{_encoded} ) {
@@ -98,17 +94,9 @@ sub encoded ( $self ) {
     }
 }
 
-sub to_string ($self) {
-    if ( !exists $self->{path} ) {
+sub to_string ($self) { return $self->{path} }
 
-    }
-
-    return $self->{path};
-}
-
-sub clone ($self) {
-    return Clone::clone($self);
-}
+sub clone ($self) { return Clone::clone($self) }
 
 # TODO empty
 sub to_uri ($self) {
@@ -137,7 +125,6 @@ sub to_uri ($self) {
     return $self->{_to_uri};
 }
 
-# TODO empty
 sub to_abs ( $self, $base = undef ) {
 
     # path is already absolute
@@ -151,30 +138,41 @@ sub to_abs ( $self, $base = undef ) {
     }
 
     if ( defined wantarray ) {
-        return $self->new( "$base/" . ( $self->{path} // '' ) );
+        return $self->new("$base/$self->{path}");
     }
     else {
-        $self->{path} = "$base/" . ( $self->{path} // '' );
-    }
-
-    return;
-}
-
-# TODO empty
-sub to_realpath ( $self ) {
-    my $realpath = Cwd::realpath( $self->{path} // '.' );
-
-    if ( defined wantarray ) {
-        return $self->new($realpath);
-    }
-    else {
-        $self->{path} = $realpath;
+        $self->path("$base/$self->{path}");
 
         return;
     }
 }
 
+sub to_realpath ( $self ) {
+    my $realpath = Cwd::realpath( $self->{path} );
+
+    if ( defined wantarray ) {
+        return $self->new($realpath);
+    }
+    else {
+        $self->path($realpath);
+
+        return;
+    }
+}
+
+sub path ( $self, $path = undef ) {
+    if ( @_ > 1 ) {
+
+    }
+
+    return $self->{path};
+}
+
 sub volume ( $self, $volume = undef ) {
+    if ( @_ > 1 ) {
+
+    }
+
     return;
 }
 
@@ -250,9 +248,7 @@ C
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 32                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 23, 154, 157         | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    3 | 25                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
