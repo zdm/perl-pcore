@@ -11,9 +11,12 @@ const our $POLL_CREATED  => 1;
 const our $POLL_MODIFIED => 2;
 const our $POLL_REMOVED  => 3;
 
+const our $POLL_TYPE_TREE => 1;
+const our $POLL_TYPE_FILE => 2;
+
 our $EXPORT = { POLL => [qw[$POLL_CREATED $POLL_MODIFIED $POLL_REMOVED]] };
 
-sub poll ( $self, @ ) {
+sub poll_tree ( $self, @ ) {
     state $POLL_INTERVAL = $DEFAULT_POLL_INTERVAL;
     state $POLL;
     state $SIGNAL = Coro::Signal->new;
@@ -21,41 +24,26 @@ sub poll ( $self, @ ) {
 
     my $cb = is_plain_coderef $_[-1] ? pop : ();
 
-    my $root_path = $self->to_abs;
+    my $root = $self->to_abs;
 
-    my $poll = $POLL->{$root_path} = {
-        scan_root    => 1,                        # scan root path
-        scan_tree    => 1,                        # scan tree if root is dir
-        abs          => 0,                        # report absolute paths
+    my $poll = $POLL->{$root} = {
+        poll_type    => $POLL_TYPE_TREE,
         read_dir     => { @_[ 1 .. $#_ ] },
-        path         => $root_path,
-        interval     => $DEFAULT_POLL_INTERVAL,
+        root         => $root,
         last_checked => 0,
         cb           => $cb,
     };
 
-    $poll->{scan_root} = delete $poll->{read_dir}->{scan_root}                             if exists $poll->{read_dir}->{scan_root};
-    $poll->{abs}       = delete $poll->{read_dir}->{abs}                                   if exists $poll->{read_dir}->{abs};
-    $poll->{scan_tree} = delete $poll->{read_dir}->{scan_tree}                             if exists $poll->{read_dir}->{scan_tree};
-    $poll->{interval}  = delete( $poll->{read_dir}->{interval} ) // $DEFAULT_POLL_INTERVAL if exists $poll->{read_dir}->{interval};
+    $poll->{interval} = delete( $poll->{read_dir}->{interval} ) // $DEFAULT_POLL_INTERVAL;
 
     $POLL_INTERVAL = $poll->{interval} if $poll->{interval} < $POLL_INTERVAL;
 
     # initial scan
-    if ( -e $root_path ) {
+    if ( -d $poll->{root} && ( my $paths = $poll->{root}->read_dir( $poll->{read_dir}->%* ) ) ) {
+        for my $path ( $paths->@* ) {
+            my $path_abs_encoded = $path->{is_abs} ? $path->encoded : $poll->{root}->encoded . '/' . $path->encoded;
 
-        # add root path
-        $poll->{stat}->{$root_path} = [ Time::HiRes::stat($root_path) ] if $poll->{scan_root};
-
-        $poll->{rel_path}->{$root_path} = '' if !$poll->{abs};
-
-        # add child paths
-        if ( $poll->{scan_tree} && -d _ && ( my $paths = $root_path->read_dir( $poll->{read_dir}->%*, abs => 1 ) ) ) {
-            for my $path ( $paths->@* ) {
-                $poll->{stat}->{$path} = [ Time::HiRes::stat($path) ];
-
-                $poll->{rel_path}->{$path} = substr $path, $poll->{root_len} if !$poll->{abs};
-            }
+            $poll->{stat}->{$path_abs_encoded} = [ $path, [ Time::HiRes::stat($path_abs_encoded) ] ];
         }
     }
 
@@ -77,16 +65,11 @@ sub poll ( $self, @ ) {
                 my $stat;
 
                 # scan
-                if ( -e $poll->{path} ) {
+                if ( -d $poll->{root} && ( my $paths = $poll->{root}->read_dir( $poll->{read_dir}->%* ) ) ) {
+                    for my $path ( $paths->@* ) {
+                        my $path_abs_encoded = $path->{is_abs} ? $path->encoded : $poll->{root}->encoded . '/' . $path->encoded;
 
-                    # add root path
-                    $stat->{ $poll->{path} } = [ Time::HiRes::stat $poll->{path} ] if $poll->{scan_root};
-
-                    # add child paths
-                    if ( $poll->{scan_tree} && -d _ && ( my $paths = $poll->{path}->read_dir( $poll->{read_dir}->%*, abs => 1 ) ) ) {
-                        for my $path ( $paths->@* ) {
-                            $stat->{$path} = [ Time::HiRes::stat($path) ];
-                        }
+                        $stat->{$path_abs_encoded} = [ $path, [ Time::HiRes::stat($path_abs_encoded) ] ];
                     }
                 }
 
@@ -99,30 +82,14 @@ sub poll ( $self, @ ) {
                     if ( exists $poll->{stat}->{$path} ) {
 
                         # last modify time was changed
-                        if ( $poll->{stat}->{$path}->[9] != $stat->{$path}->[9] ) {
-                            push @changes, [ $poll->{abs} ? $path : $poll->{rel_path}->{$path}, $POLL_MODIFIED ];
+                        if ( $poll->{stat}->{$path}->[1]->[9] != $stat->{$path}->[1]->[9] ) {
+                            push @changes, [ $stat->{$path}->[0], $POLL_MODIFIED ];
                         }
                     }
 
                     # new path was created
                     else {
-                        if ( !$poll->{abs} ) {
-
-                            # root
-                            if ( $poll->{root_len} > length $path ) {
-                                $poll->{rel_path}->{$path} = '';
-                            }
-
-                            # child
-                            else {
-                                $poll->{rel_path}->{$path} = substr $path, $poll->{root_len};
-                            }
-
-                            push @changes, [ $poll->{rel_path}->{$path}, $POLL_CREATED ];
-                        }
-                        else {
-                            push @changes, [ $path, $POLL_CREATED ];
-                        }
+                        push @changes, [ $stat->{$path}->[0], $POLL_CREATED ];
                     }
 
                     $poll->{stat}->{$path} = $stat->{$path};
@@ -133,14 +100,14 @@ sub poll ( $self, @ ) {
 
                     # path was removed
                     if ( !exists $stat->{$path} ) {
-                        delete $poll->{stat}->{$path};
+                        push @changes, [ $poll->{stat}->{$path}->[0], $POLL_REMOVED ];
 
-                        push @changes, [ $poll->{abs} ? $path : delete $poll->{rel_path}->{$path}, $POLL_REMOVED ];
+                        delete $poll->{stat}->{$path};
                     }
                 }
 
                 # call callback if has changes
-                $poll->{cb}->( \@changes ) if @changes;
+                $poll->{cb}->( $poll->{root}, \@changes ) if @changes;
             }
 
             $SIGNAL->wait if !$POLL->%*;
@@ -157,11 +124,7 @@ sub poll ( $self, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 16                   | Subroutines::ProhibitExcessComplexity - Subroutine "poll" with high complexity score (40)                      |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 112                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 50, 113              | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    3 | 19                   | Subroutines::ProhibitExcessComplexity - Subroutine "poll_tree" with high complexity score (24)                 |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

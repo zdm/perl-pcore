@@ -177,13 +177,11 @@ sub _init_reload ($self) {
     for my $inc_path ( grep { !is_ref $_ } @INC ) {
 
         # Ext reloader
-        P->path1("$inc_path/$ext_ns")->poll(
-            scan_root => 0,
-            scan_tree => 1,
+        P->path1("$inc_path/$ext_ns")->poll_tree(
             abs       => 0,
             is_dir    => 0,
             max_depth => 0,
-            sub ($changes) {
+            sub ( $root, $changes ) {
                 my $error;
 
                 for my $change ( $changes->@* ) {
@@ -251,7 +249,7 @@ sub _init_reload ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 197, 220             | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 195, 218             | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

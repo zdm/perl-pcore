@@ -79,7 +79,7 @@ sub encoded ( $self ) {
             state $enc = Encode::find_encoding($Pcore::WIN_ENC);
 
             if ( utf8::is_utf8 $self->{path} ) {
-                $self->{_encoded} = $enc->encode( $self->{path}, Encode::FB_CROAK );
+                $self->{_encoded} = $enc->encode( $self->{path}, Encode::LEAVE_SRC & Encode::DIE_ON_ERR );
             }
             else {
                 $self->{_encoded} = $self->{path};
@@ -101,7 +101,7 @@ sub decode ( $self, $path ) {
     if ($MSWIN) {
         state $enc = Encode::find_encoding($Pcore::WIN_ENC);
 
-        return $enc->decode( $path, Encode::FB_CROAK );
+        return $enc->decode( $path, Encode::LEAVE_SRC & Encode::DIE_ON_ERR );
     }
     else {
         return decode_utf8 $path;
@@ -190,7 +190,7 @@ sub volume ( $self, $volume = undef ) {
     return;
 }
 
-sub TO_DUMP ( $self, @ ) {
+sub TO_DUMP1 ( $self, @ ) {
     my $res;
     my $tags;
 
