@@ -161,6 +161,13 @@ sub to_abs ( $self, $base = undef ) {
     }
 }
 
+# TODO
+sub to_rel ( $self, $base = undef ) {
+    ...;
+
+    return;
+}
+
 sub to_realpath ( $self ) {
     my $realpath = Cwd::realpath( $self->{path} );
 
@@ -268,7 +275,7 @@ C
 ## |======+======================+================================================================================================================|
 ## |    3 | 26                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 179, 187             | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 166, 186, 194        | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
