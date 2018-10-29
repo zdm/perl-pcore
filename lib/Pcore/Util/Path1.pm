@@ -36,17 +36,17 @@ with qw[
   Pcore::Util::Path::Poll
 ];
 
-has path          => ();
-has volume        => ();
-has dirname       => ();
-has filename      => ();
-has filename_base => ();
-has suffix        => ();
+has path          => ( required => 1 );
+has volume        => ( required => 1 );
+has dirname       => ( required => 1 );
+has filename      => ( required => 1 );
+has filename_base => ( required => 1 );
+has suffix        => ( required => 1 );
 
 has is_abs => ();
 
-has _encoded => ();                     # utf8 encoded path
-has _to_url => ( init_arg => undef );
+has _encoded => ( init_arg => undef );    # utf8 encoded path
+has _to_url  => ( init_arg => undef );
 
 has IS_PCORE_PATH => ( 1, init_arg => undef );
 
