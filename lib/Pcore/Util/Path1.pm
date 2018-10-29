@@ -30,6 +30,7 @@ use overload
   fallback => 1;
 
 with qw[
+  Pcore::Util::Path::MIME
   Pcore::Util::Path::Dir
   Pcore::Util::Path::File
   Pcore::Util::Path::Poll
@@ -345,9 +346,9 @@ C
 ## |======+======================+================================================================================================================|
 ## |    3 | 26                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 166                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 167                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 240, 258             | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 241, 259             | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
