@@ -1,7 +1,9 @@
 package Pcore::Util::Path::Poll;
 
 use Pcore -role, -const, -export;
-use Pcore::Util::Scalar qw[is_plain_coderef];
+use Pcore::Util::Path::Poll::Tree;
+use Pcore::Util::Path::Poll::File;
+use Pcore::Util::Scalar qw[weaken];
 use Time::HiRes qw[];
 use Coro::Signal qw[];
 
@@ -11,123 +13,74 @@ const our $POLL_CREATED  => 1;
 const our $POLL_MODIFIED => 2;
 const our $POLL_REMOVED  => 3;
 
-const our $POLL_TYPE_TREE => 1;
-const our $POLL_TYPE_FILE => 2;
-
 our $EXPORT = { POLL => [qw[$POLL_CREATED $POLL_MODIFIED $POLL_REMOVED]] };
 
+our $POLL_INTERVAL = $DEFAULT_POLL_INTERVAL;
+our $POLL          = {};
+our $SIGNAL        = Coro::Signal->new;
+our $THREAD;
+
 sub poll_tree ( $self, @ ) {
-    state $POLL_INTERVAL = $DEFAULT_POLL_INTERVAL;
-    state $POLL;
-    state $SIGNAL = Coro::Signal->new;
-    state $thread;
+    my $cb = pop;
 
-    my $cb = is_plain_coderef $_[-1] ? pop : ();
+    my $args = { @_[ 1 .. $#_ ] };
 
-    my $root = $self->to_abs;
+    my $poll = Pcore::Util::Path::Poll::Tree->new( {
+        root     => $self->to_abs,
+        cb       => $cb,
+        interval => delete( $args->{interval} ) // $DEFAULT_POLL_INTERVAL,
+        read_dir => $args,
+    } );
 
-    my $poll = $POLL->{$root} = {
-        poll_type    => $POLL_TYPE_TREE,
-        read_dir     => { @_[ 1 .. $#_ ] },
-        root         => $root,
-        last_checked => 0,
-        cb           => $cb,
-    };
+    return $self->_add_poll($poll);
+}
 
-    $poll->{interval} = delete( $poll->{read_dir}->{interval} ) // $DEFAULT_POLL_INTERVAL;
+sub poll_file ( $self, @ ) {
+    my $cb = pop;
 
+    my $args = { @_[ 1 .. $#_ ] };
+
+    my $poll = Pcore::Util::Path::Poll::File->new( {
+        root     => $self->to_abs,
+        cb       => $cb,
+        interval => $args->{interval} // $DEFAULT_POLL_INTERVAL,
+    } );
+
+    return $self->_add_poll($poll);
+}
+
+sub _add_poll ( $self, $poll ) {
     $POLL_INTERVAL = $poll->{interval} if $poll->{interval} < $POLL_INTERVAL;
 
-    # initial scan
-    if ( -d $poll->{root} && ( my $paths = $poll->{root}->read_dir( $poll->{read_dir}->%* ) ) ) {
-        for my $path ( $paths->@* ) {
-            my $path_abs_encoded = $path->{is_abs} ? $path->encoded : $poll->{root}->encoded . '/' . $path->encoded;
+    $POLL->{ $poll->{id} } = $poll;
 
-            $poll->{stat}->{$path_abs_encoded} = [ $path, [ Time::HiRes::stat($path_abs_encoded) ] ];
-        }
-    }
+    weaken $POLL->{ $poll->{id} } if defined wantarray;
 
-    if ($thread) {
+    if ($THREAD) {
         $SIGNAL->send if $SIGNAL->awaited;
+    }
+    else {
+        $THREAD = Coro::async {
+            while () {
+                Coro::AnyEvent::sleep $POLL_INTERVAL;
 
-        return;
+                for my $poll ( values $POLL->%* ) {
+                    next if $poll->{last_checked} + $poll->{interval} > time;
+
+                    $poll->{last_checked} = time;
+
+                    $poll->scan;
+                }
+
+                $SIGNAL->wait if !$POLL->%*;
+            }
+        };
     }
 
-    $thread = Coro::async {
-        while () {
-            Coro::AnyEvent::sleep $POLL_INTERVAL;
-
-            for my $poll ( values $POLL->%* ) {
-                next if $poll->{last_checked} + $poll->{interval} > time;
-
-                $poll->{last_checked} = time;
-
-                my $stat;
-
-                # scan
-                if ( -d $poll->{root} && ( my $paths = $poll->{root}->read_dir( $poll->{read_dir}->%* ) ) ) {
-                    for my $path ( $paths->@* ) {
-                        my $path_abs_encoded = $path->{is_abs} ? $path->encoded : $poll->{root}->encoded . '/' . $path->encoded;
-
-                        $stat->{$path_abs_encoded} = [ $path, [ Time::HiRes::stat($path_abs_encoded) ] ];
-                    }
-                }
-
-                my @changes;
-
-                # scan created / modified paths
-                for my $path ( keys $stat->%* ) {
-
-                    # path is already exists
-                    if ( exists $poll->{stat}->{$path} ) {
-
-                        # last modify time was changed
-                        if ( $poll->{stat}->{$path}->[1]->[9] != $stat->{$path}->[1]->[9] ) {
-                            push @changes, [ $stat->{$path}->[0], $POLL_MODIFIED ];
-                        }
-                    }
-
-                    # new path was created
-                    else {
-                        push @changes, [ $stat->{$path}->[0], $POLL_CREATED ];
-                    }
-
-                    $poll->{stat}->{$path} = $stat->{$path};
-                }
-
-                # scan removed paths
-                for my $path ( keys $poll->{stat}->%* ) {
-
-                    # path was removed
-                    if ( !exists $stat->{$path} ) {
-                        push @changes, [ $poll->{stat}->{$path}->[0], $POLL_REMOVED ];
-
-                        delete $poll->{stat}->{$path};
-                    }
-                }
-
-                # call callback if has changes
-                $poll->{cb}->( $poll->{root}, \@changes ) if @changes;
-            }
-
-            $SIGNAL->wait if !$POLL->%*;
-        }
-    };
-
-    return;
+    return $poll;
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 19                   | Subroutines::ProhibitExcessComplexity - Subroutine "poll_tree" with high complexity score (24)                 |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
