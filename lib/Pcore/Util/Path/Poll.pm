@@ -38,7 +38,6 @@ sub poll ( $self, @ ) {
     $poll->{abs}       = delete $poll->{read_dir}->{abs}                                   if exists $poll->{read_dir}->{abs};
     $poll->{scan_tree} = delete $poll->{read_dir}->{scan_tree}                             if exists $poll->{read_dir}->{scan_tree};
     $poll->{interval}  = delete( $poll->{read_dir}->{interval} ) // $DEFAULT_POLL_INTERVAL if exists $poll->{read_dir}->{interval};
-    $poll->{root_len}  = 1 + length $root_path;
 
     $POLL_INTERVAL = $poll->{interval} if $poll->{interval} < $POLL_INTERVAL;
 
@@ -160,9 +159,9 @@ sub poll ( $self, @ ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 16                   | Subroutines::ProhibitExcessComplexity - Subroutine "poll" with high complexity score (40)                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 113                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 112                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 51, 114              | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 50, 113              | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -71,11 +71,7 @@ sub read_dir ( $self, @ ) {
             if ($push) {
                 my $path = "$prefix/$dir/$file";
 
-                if ($MSWIN) {
-                    state $enc = Encode::find_encoding($Pcore::WIN_ENC);
-
-                    $path = $enc->decode( $path, Encode::FB_CROAK );
-                }
+                $path = $self->decode($path) if $MSWIN;
 
                 push $res->@*, $self->new($path);
             }
@@ -112,7 +108,7 @@ sub read_dir ( $self, @ ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 7                    | Subroutines::ProhibitExcessComplexity - Subroutine "read_dir" with high complexity score (30)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 101                  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 97                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 10                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

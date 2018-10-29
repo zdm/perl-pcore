@@ -5,6 +5,7 @@ use Clone qw[];
 use Cwd qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Pcore::Util::Data qw[from_uri_utf8 to_uri_path];
 use Pcore::Util::Scalar qw[is_blessed_hashref];
+use Pcore::Util::Text qw[encode_utf8 decode_utf8];
 
 use overload
   q[""]  => sub { $_[0]->{path} },
@@ -64,6 +65,9 @@ around new => sub ( $orig, $self, $path = undef, %args ) {
     if ( $args{from_uri} ) {
         $path = from_uri_utf8 $path;
     }
+    elsif ($MSWIN) {
+        $path = $self->decode($path);
+    }
 
     return bless _parse($path), $self;
 };
@@ -81,11 +85,26 @@ sub encoded ( $self ) {
             }
         }
         else {
-            $self->{_encoded} = P->text->encode_utf8( $self->{path} );
+            $self->{_encoded} = encode_utf8 $self->{path};
         }
     }
 
     return $self->{_encoded};
+}
+
+sub decode ( $self, $path ) {
+
+    # already decoded
+    return $path if utf8::is_utf8 $path;
+
+    if ($MSWIN) {
+        state $enc = Encode::find_encoding($Pcore::WIN_ENC);
+
+        return $enc->decode( $path, Encode::FB_CROAK );
+    }
+    else {
+        return decode_utf8 $path;
+    }
 }
 
 sub to_string ($self) { return $self->{path} }
@@ -248,9 +267,9 @@ C
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 25                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 26                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 159, 167             | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 178, 186             | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
