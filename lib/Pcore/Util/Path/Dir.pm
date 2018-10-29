@@ -5,7 +5,7 @@ use Pcore::Util::Scalar qw[is_plain_coderef];
 use Fcntl qw[];
 
 sub read_dir ( $self, @ ) {
-    my $res;
+    return if !-d $self;
 
     my %args = (
         max_depth   => 1,        # 0 - unlimited
@@ -17,33 +17,30 @@ sub read_dir ( $self, @ ) {
         @_[ 1 .. $#_ ]
     );
 
-    # must be without trailing '/'
-    my $base = $self->to_abs->{path};
+    my $abs_base = $self->to_abs->encoded;
 
-    return if !-d $base;
+    my $prefix = $args{abs} ? $abs_base : '.';
 
-    my $prefix = $args{abs} ? "$base/" : '';
+    my $res;
 
     my $read = sub ( $dir, $depth ) {
-        my $dir_path = "${base}$dir";
-
-        opendir my $dh, $dir_path or die qq[Can't open dir "$dir_path"];
+        opendir my $dh, "$abs_base/$dir" or die qq[Can't open dir "$abs_base/$dir"];
 
         my @paths = readdir $dh or die $!;
 
         closedir $dh or die $!;
 
-        for my $path (@paths) {
-            next if $path eq '.' || $path eq '..';
+        for my $file (@paths) {
+            next if $file eq '.' || $file eq '..';
 
-            my $fpath = "${dir_path}$path";
+            my $abs_path = "$abs_base/$dir/$file";
 
             my ( $stat, $lstat );
 
             my $push = 1;
 
             if ( defined $args{is_link} ) {
-                $lstat //= ( lstat $fpath )[2] & Fcntl::S_IFMT;
+                $lstat //= ( lstat $abs_path )[2] & Fcntl::S_IFMT;
 
                 if ( $lstat == Fcntl::S_IFLNK ) {
                     $push = 0 if !$args{is_link};
@@ -54,36 +51,46 @@ sub read_dir ( $self, @ ) {
             }
 
             if ( $push && !$args{is_file} ) {
-                $stat //= ( stat $fpath )[2] & Fcntl::S_IFMT;
+                $stat //= ( stat $abs_path )[2] & Fcntl::S_IFMT;
 
                 $push = 0 if $stat == Fcntl::S_IFREG;
             }
 
             if ( $push && !$args{is_dir} ) {
-                $stat //= ( stat $fpath )[2] & Fcntl::S_IFMT;
+                $stat //= ( stat $abs_path )[2] & Fcntl::S_IFMT;
 
                 $push = 0 if $stat == Fcntl::S_IFDIR;
             }
 
             if ( $push && !$args{is_sock} ) {
-                $stat //= ( stat $fpath )[2] & Fcntl::S_IFMT;
+                $stat //= ( stat $abs_path )[2] & Fcntl::S_IFMT;
 
                 $push = 0 if $stat == Fcntl::S_IFSOCK;
             }
 
-            push $res->@*, $self->new( $prefix . substr( $dir, 1 ) . $path ) if $push;
+            if ($push) {
+                my $path = "$prefix/$dir/$file";
+
+                if ($MSWIN) {
+                    state $enc = Encode::find_encoding($Pcore::WIN_ENC);
+
+                    $path = $enc->decode( $path, Encode::FB_CROAK );
+                }
+
+                push $res->@*, $self->new($path);
+            }
 
             if ( !$args{max_depth} || $depth < $args{max_depth} ) {
-                $stat //= ( stat $fpath )[2] & Fcntl::S_IFMT;
+                $stat //= ( stat $abs_path )[2] & Fcntl::S_IFMT;
 
                 if ( $stat == Fcntl::S_IFDIR ) {
                     if ( !$args{follow_link} ) {
-                        $lstat //= ( lstat $fpath )[2] & Fcntl::S_IFMT;
+                        $lstat //= ( lstat $abs_path )[2] & Fcntl::S_IFMT;
 
                         next if $lstat == Fcntl::S_IFLNK;
                     }
 
-                    __SUB__->( "${dir}$path/", $depth + 1 );
+                    __SUB__->( "$dir/$file", $depth + 1 );
                 }
             }
         }
@@ -91,7 +98,7 @@ sub read_dir ( $self, @ ) {
         return;
     };
 
-    $read->( '/', 1 );
+    $read->( '', 1 );
 
     return $res;
 }
@@ -103,9 +110,9 @@ sub read_dir ( $self, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 7                    | Subroutines::ProhibitExcessComplexity - Subroutine "read_dir" with high complexity score (29)                  |
+## |    3 | 7                    | Subroutines::ProhibitExcessComplexity - Subroutine "read_dir" with high complexity score (30)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 25                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 101                  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 10                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

@@ -69,11 +69,8 @@ around new => sub ( $orig, $self, $path = undef, %args ) {
 };
 
 sub encoded ( $self ) {
-    if ( !$MSWIN ) {
-        return $self->{path};
-    }
-    else {
-        if ( !exists $self->{_encoded} ) {
+    if ( !exists $self->{_encoded} ) {
+        if ($MSWIN) {
             state $enc = Encode::find_encoding($Pcore::WIN_ENC);
 
             if ( utf8::is_utf8 $self->{path} ) {
@@ -83,9 +80,12 @@ sub encoded ( $self ) {
                 $self->{_encoded} = $self->{path};
             }
         }
-
-        return $self->{_encoded};
+        else {
+            $self->{_encoded} = P->text->encode_utf8( $self->{path} );
+        }
     }
+
+    return $self->{_encoded};
 }
 
 sub to_string ($self) { return $self->{path} }
