@@ -181,9 +181,19 @@ sub to_realpath ( $self ) {
     }
 }
 
+sub _clear_cache ($self) {
+    delete $self->@{qw[_encoded _to_uri]};
+
+    return;
+}
+
 sub path ( $self, $path = undef ) {
     if ( @_ > 1 ) {
-        ...;
+        my $hash = _parse($path);
+
+        $self->@{ keys $hash->%* } = values $hash->%*;
+
+        $self->_clear_cache;
     }
 
     return $self->{path};
@@ -191,10 +201,21 @@ sub path ( $self, $path = undef ) {
 
 sub volume ( $self, $volume = undef ) {
     if ( @_ > 1 ) {
-        ...;
+        my $path;
+
+        if ( $self->{volume} ) {
+            $path = $self->{path};
+
+            substr $path, 0, 1, $volume;
+        }
+        else {
+            $path = "$volume:/$self->{path}";
+        }
+
+        $self->path($path);
     }
 
-    return;
+    return $self->{volume};
 }
 
 sub TO_DUMP1 ( $self, @ ) {
@@ -275,7 +296,7 @@ C
 ## |======+======================+================================================================================================================|
 ## |    3 | 26                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 166, 186, 194        | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 166                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
