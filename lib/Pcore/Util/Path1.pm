@@ -187,6 +187,7 @@ sub _clear_cache ($self) {
     return;
 }
 
+# SETTERS
 sub path ( $self, $path = undef ) {
     if ( @_ > 1 ) {
         my $hash = _parse($path);
@@ -216,6 +217,54 @@ sub volume ( $self, $volume = undef ) {
     }
 
     return $self->{volume};
+}
+
+sub dirname ( $self, $dirname = undef ) {
+    if ( @_ > 1 ) {
+        $self->path( defined $self->{filename} ? "$dirname/$self->{filename}" : $dirname );
+    }
+
+    return $self->{dirname};
+}
+
+sub filename ( $self, $filename = undef ) {
+    if ( @_ > 1 ) {
+        $self->path( defined $self->{dirname} ? "$self->{dirname}/$filename" : $filename );
+    }
+
+    return $self->{filename};
+}
+
+sub filename_base ( $self, $filename_base = undef ) {
+    if ( @_ > 1 ) {
+        my $path = '';
+
+        $path .= "$self->{dirname}/" if defined $self->{dirname};
+
+        $path .= $filename_base;
+
+        $path .= ".$self->{suffix}" if defined $self->{suffix};
+
+        $self->path($path);
+    }
+
+    return $self->{filename_base};
+}
+
+sub suffix ( $self, $suffix = undef ) {
+    if ( @_ > 1 ) {
+        die if !defined $self->{filename_base};
+
+        my $path = '';
+
+        $path .= "$self->{dirname}/" if defined $self->{dirname};
+
+        $path .= "$self->{filename_base}.$suffix";
+
+        $self->path($path);
+    }
+
+    return $self->{suffix};
 }
 
 sub TO_DUMP1 ( $self, @ ) {
@@ -297,6 +346,8 @@ C
 ## |    3 | 26                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 166                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 240, 258             | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
