@@ -15,6 +15,8 @@ typedef struct {
     char *volume;
 } PcoreUtilPath;
 
+void destroyPcoreUtilPath (PcoreUtilPath *path);
+
 PcoreUtilPath *parse (const char *buf, size_t buf_len);
 
 # include "Pcore/Util/Path.c"

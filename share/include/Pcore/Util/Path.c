@@ -7,6 +7,12 @@ struct Tokens {
     U8 *token;
 };
 
+void destroyPcoreUtilPath (PcoreUtilPath *path) {
+    free(path->path);
+    free(path->volume);
+    free(path);
+}
+
 PcoreUtilPath *parse (const char *buf, size_t buf_len) {
     PcoreUtilPath *res = malloc(sizeof(PcoreUtilPath));
 
@@ -33,9 +39,9 @@ PcoreUtilPath *parse (const char *buf, size_t buf_len) {
             i = 3;
 
             res->is_abs = 1;
-            res->volume_len = 3;
-            res->volume = malloc(3);
-            memcpy(res->volume, &prefix, 3);
+            res->volume_len = 1;
+            res->volume = malloc(1);
+            memcpy(res->volume, &prefix, 1);
         }
 
         // parse leading "/"

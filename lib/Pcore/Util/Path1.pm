@@ -243,9 +243,7 @@ SV *_parse (SV *path) {
     /*     hv_store(hash, "dirname", 7, newSV(0), 0); */
     /* } */
 
-    free(res->path);
-    free(res->volume);
-    free(res);
+    destroyPcoreUtilPath(res);
 
     sv_2mortal((SV*)newRV_noinc((SV *)hash));
 
