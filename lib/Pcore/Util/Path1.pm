@@ -49,6 +49,7 @@ has _to_url => ( init_arg => undef );
 
 has IS_PCORE_PATH => ( 1, init_arg => undef );
 
+# from_uri, from_mswin
 around new => sub ( $orig, $self, $path = undef, %args ) {
     $self = ref $self if is_blessed_hashref $self;
 
@@ -65,7 +66,7 @@ around new => sub ( $orig, $self, $path = undef, %args ) {
     if ( $args{from_uri} ) {
         $path = from_uri_utf8 $path;
     }
-    elsif ($MSWIN) {
+    elsif ( $args{from_mswin} ) {
         $path = $self->decode($path);
     }
 
@@ -269,7 +270,7 @@ C
 ## |======+======================+================================================================================================================|
 ## |    3 | 26                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 178, 186             | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 179, 187             | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
