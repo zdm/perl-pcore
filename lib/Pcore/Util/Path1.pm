@@ -312,14 +312,44 @@ SV *_parse (SV *path) {
     hv_store(hash, "volume", 6, res->volume_len ? newSVpvn(res->volume, res->volume_len) : newSV(0), 0);
 
     // dirname
-    /* if (res->path_len) { */
-    /*     SV *path = newSVpvn(res->path, res->path_len); */
-    /*     sv_utf8_decode(path); */
-    /*     hv_store(hash, "path", 7, path, 0); */
-    /* } */
-    /* else { */
-    /*     hv_store(hash, "dirname", 7, newSV(0), 0); */
-    /* } */
+    if (res->dirname_len) {
+        SV *sv = newSVpvn(res->dirname, res->dirname_len);
+        sv_utf8_decode(sv);
+        hv_store(hash, "dirname", 7, sv, 0);
+    }
+    else {
+        hv_store(hash, "dirname", 7, newSV(0), 0);
+    }
+
+    // filename
+    if (res->filename_len) {
+        SV *sv = newSVpvn(res->filename, res->filename_len);
+        sv_utf8_decode(sv);
+        hv_store(hash, "filename", 8, sv, 0);
+    }
+    else {
+        hv_store(hash, "filename", 8, newSV(0), 0);
+    }
+
+    // filename_base
+    if (res->filename_base_len) {
+        SV *sv = newSVpvn(res->filename_base, res->filename_base_len);
+        sv_utf8_decode(sv);
+        hv_store(hash, "filename_base", 13, sv, 0);
+    }
+    else {
+        hv_store(hash, "filename_base", 13, newSV(0), 0);
+    }
+
+    // suffix
+    if (res->suffix_len) {
+        SV *sv = newSVpvn(res->suffix, res->suffix_len);
+        sv_utf8_decode(sv);
+        hv_store(hash, "suffix", 6, sv, 0);
+    }
+    else {
+        hv_store(hash, "suffix", 6, newSV(0), 0);
+    }
 
     destroyPcoreUtilPath(res);
 

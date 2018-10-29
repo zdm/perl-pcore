@@ -8,19 +8,32 @@ struct Tokens {
 };
 
 void destroyPcoreUtilPath (PcoreUtilPath *path) {
-    free(path->path);
-    free(path->volume);
-    free(path);
+    Safefree(path->path);
+    Safefree(path->volume);
+    Safefree(path->dirname);
+    Safefree(path->filename);
+    Safefree(path->filename_base);
+    Safefree(path->suffix);
+    Safefree(path);
 }
 
 PcoreUtilPath *parse (const char *buf, size_t buf_len) {
-    PcoreUtilPath *res = malloc(sizeof(PcoreUtilPath));
+    PcoreUtilPath *res;
+    Newx(res, 1, PcoreUtilPath);
 
     res->is_abs = 0;
     res->path_len = 0;
     res->path = NULL;
     res->volume_len = 0;
     res->volume = NULL;
+    res->dirname_len = 0;
+    res->dirname = NULL;
+    res->filename_len = 0;
+    res->filename = NULL;
+    res->filename_base_len = 0;
+    res->filename_base = NULL;
+    res->suffix_len = 0;
+    res->suffix = NULL;
 
     // buf is not empty
     if (buf_len) {
@@ -40,8 +53,8 @@ PcoreUtilPath *parse (const char *buf, size_t buf_len) {
 
             res->is_abs = 1;
             res->volume_len = 1;
-            res->volume = malloc(1);
-            memcpy(res->volume, &prefix, 1);
+            Newx(res->volume, 1, char);
+            res->volume[0] = prefix[0];
         }
 
         // parse leading "/"
@@ -101,7 +114,7 @@ PcoreUtilPath *parse (const char *buf, size_t buf_len) {
                         if (!tokens[tokens_len - 1].is_dots) {
                             skip_token = 1;
 
-                            free(tokens[tokens_len - 1].token);
+                            Safefree(tokens[tokens_len - 1].token);
                             tokens_total_len -= tokens[tokens_len - 1].len;
 
                             tokens_len -= 1;
@@ -118,7 +131,7 @@ PcoreUtilPath *parse (const char *buf, size_t buf_len) {
 
                 // store token
                 if (!skip_token) {
-                    tokens[tokens_len].token = malloc(token_len);
+                    Newx(tokens[tokens_len].token, token_len, U8);
                     memcpy(tokens[tokens_len].token, token, token_len);
 
                     tokens[tokens_len].len = token_len;
@@ -138,7 +151,7 @@ PcoreUtilPath *parse (const char *buf, size_t buf_len) {
 
         // path is not empty
         if (res->path_len) {
-            res->path = malloc(res->path_len);
+            Newx(res->path, res->path_len, char);
             size_t dst_pos = 0;
 
             // add prefix
@@ -151,7 +164,7 @@ PcoreUtilPath *parse (const char *buf, size_t buf_len) {
             for ( size_t i = 0; i < tokens_len; i++ ) {
                 memcpy(res->path + dst_pos, tokens[i].token, tokens[i].len);
 
-                free(tokens[i].token);
+                Safefree(tokens[i].token);
 
                 dst_pos += tokens[i].len;
 
@@ -163,7 +176,7 @@ PcoreUtilPath *parse (const char *buf, size_t buf_len) {
 
     if (res->path_len == 0) {
         res->path_len = 1;
-        res->path = malloc(1);
+        Newx(res->path, 1, char);
         res->path[0] = '.';
     }
 
