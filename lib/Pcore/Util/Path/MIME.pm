@@ -4,47 +4,53 @@ use Pcore -role, -const;
 use Pcore::Util::Scalar qw[is_plain_arrayref is_plain_scalarref];
 
 has _mime_type     => ( init_arg => undef );
-has _mime_category => ( init_arg => undef );
+has _mime_tag      => ( init_arg => undef );
+has _mime_compress => ( init_arg => undef );
 
 # apache MIME types
 # http://svn.apache.org/viewvc/httpd/httpd/trunk/docs/conf/mime.types?view=co
-our $MIME_TYPES;
+our $MIME;
 
-const our @DEFAULT_MIME_TYPE => 'application/octet-stream';
+const our $DEFAULT_MIME_TYPE => 'application/octet-stream';
 
 around _clear_cache => sub ( $orig, $self ) {
-    delete $self->@{qw[_mime_type _mime_category]};
+    delete $self->@{qw[_mime_type _mime_tag _mime_compress]};
 
     return $self->$orig;
 };
 
 sub _load_mime_types {
-    unless ($MIME_TYPES) {
-        $MIME_TYPES = P->cfg->read( $ENV->{share}->get('data/mime.json') );
+    unless ($MIME) {
+        $MIME = P->cfg->read( $ENV->{share}->get('data/mime.yaml') );
 
-        # index MIME categories
-        for my $suffix ( keys $MIME_TYPES->{suffix}->%* ) {
-            my $type;
+        # index MIME types
+        for my $suffix ( keys $MIME->{suffix}->%* ) {
 
-            if ( is_plain_arrayref $MIME_TYPES->{suffix}->{$suffix} ) {
-                $type = $MIME_TYPES->{suffix}->{$suffix}->[0];
+            # convert to ArrayRef
+            $MIME->{suffix}->{$suffix} = [ $MIME->{suffix}->{$suffix}, [], undef ] if !is_plain_arrayref $MIME->{suffix}->{$suffix};
 
-                $MIME_TYPES->{category}->{$type} = $MIME_TYPES->{suffix}->{$suffix}->[1] if $MIME_TYPES->{suffix}->{$suffix}->[1];
+            $MIME->{suffix}->{$suffix}->[1] = [ $MIME->{suffix}->{$suffix}->[1] // () ] if !is_plain_arrayref $MIME->{suffix}->{$suffix}->[1];
 
-                $MIME_TYPES->{suffix}->{$suffix} = $type;
-            }
-            else {
-                $type = $MIME_TYPES->{suffix}->{$suffix};
-            }
+            my $type = $MIME->{suffix}->{$suffix}->[0];
 
-            if ( !$MIME_TYPES->{category}->{$type} && $type =~ m[\A(.+?)/]sm ) {
-                $MIME_TYPES->{category}->{$type} = $1;
-            }
+            # set mime type compress option
+            $MIME->{type}->{$type}->[1] = $MIME->{suffix}->{$suffix}->[2] if defined $MIME->{suffix}->{$suffix}->[2];
+
+            my $tags;
+
+            # extract tag from type
+            if ( $type =~ m[\A(.+?)/]sm ) { $tags->{$1} = 1 }
+
+            for my $tag ( $MIME->{suffix}->{$suffix}->[1]->@* ) { $tags->{$tag} = 1 }
+
+            $MIME->{type}->{$type}->[0]->@{ keys $tags->%* } = values $tags->%*;
+
+            $MIME->{suffix}->{$suffix}->[1] = $tags;
         }
 
         # compile shebang
-        for my $key ( keys $MIME_TYPES->{shebang}->%* ) {
-            $MIME_TYPES->{shebang}->{$key} = qr/$MIME_TYPES->{shebang}->{$key}/sm;
+        for my $key ( keys $MIME->{shebang}->%* ) {
+            $MIME->{shebang}->{$key} = qr/$MIME->{shebang}->{$key}/sm;
         }
     }
 
@@ -53,14 +59,14 @@ sub _load_mime_types {
 
 # shebang Bool or ScalarRef to file content
 sub mime_type ( $self, $shebang = undef ) {
-    _load_mime_types() if !defined $MIME_TYPES;
+    _load_mime_types() if !defined $MIME;
 
     if ( !exists $self->{_mime_type} ) {
         my $detected;
 
         # filename
         if ( my $filename = $self->{filename} ) {
-            if ( $self->{_mime_type} = $MIME_TYPES->{filename}->{$filename} ) {
+            if ( $self->{_mime_type} = $MIME->{filename}->{$filename} ) {
                 $detected = 1;
             }
         }
@@ -73,11 +79,13 @@ sub mime_type ( $self, $shebang = undef ) {
 
         # suffix
         if ( !$detected && ( my $suffix = $self->{suffix} ) ) {
-            if ( $self->{_mime_type} = ( $MIME_TYPES->{suffix}->{$suffix} // $MIME_TYPES->{suffix}->{ lc $suffix } ) ) {
+            if ( my $detected_suffix = ( $MIME->{suffix}->{$suffix} // $MIME->{suffix}->{ lc $suffix } ) ) {
                 $detected = 1;
+                $self->{_mime_type} = $detected_suffix->[0];
             }
         }
 
+        # shebang
         if ( !$detected && $shebang ) {
             my $buf_ref;
 
@@ -99,8 +107,8 @@ sub mime_type ( $self, $shebang = undef ) {
             }
 
             if ( $buf_ref && $buf_ref->$* =~ /\A(#!.+?)$/sm ) {
-                for my $mime_type ( keys $MIME_TYPES->{shebang}->%* ) {
-                    if ( $1 =~ $MIME_TYPES->{shebang}->{$mime_type} ) {
+                for my $mime_type ( keys $MIME->{shebang}->%* ) {
+                    if ( $1 =~ $MIME->{shebang}->{$mime_type} ) {
                         $detected = 1;
 
                         $self->{_mime_type} = $mime_type;
@@ -111,23 +119,44 @@ sub mime_type ( $self, $shebang = undef ) {
             }
         }
 
-        $self->{_mime_type} = undef if !$detected;
+        $self->{_mime_type} = $DEFAULT_MIME_TYPE if !$detected;
     }
 
     return $self->{_mime_type};
 }
 
-sub mime_category ($self) {
-    if ( !exists $self->{_mime_category} ) {
+sub mime_tag ($self) {
+    if ( !exists $self->{_mime_tag} ) {
         if ( my $mime_type = $self->mime_type ) {
-            $self->{_mime_category} = $MIME_TYPES->{category}->{$mime_type};
+            $self->{_mime_tag} = $MIME->{type}->{$mime_type}->[0];
         }
         else {
-            $self->{_mime_category} = undef;
+            $self->{_mime_tag} = {};
         }
     }
 
-    return $self->{_mime_category};
+    return $self->{_mime_tag};
+}
+
+sub mime_compress ($self) {
+    if ( !exists $self->{_mime_compress} ) {
+        my $compress;
+
+        # suffix
+        if ( my $suffix = $self->{suffix} ) {
+            if ( my $detected_suffix = ( $MIME->{suffix}->{$suffix} // $MIME->{suffix}->{ lc $suffix } ) ) {
+                $compress = $detected_suffix->[2];
+            }
+        }
+
+        if ( !defined $compress && ( my $mime_type = $self->mime_type ) ) {
+            $compress = $MIME->{type}->{$mime_type}->[1];
+        }
+
+        $self->{_mime_compress} = $compress;
+    }
+
+    return $self->{_mime_compress};
 }
 
 1;
