@@ -207,7 +207,28 @@ PcoreUtilPath *parse (const char *buf, size_t buf_len) {
                 dst_pos += tokens[i].len;
 
                 // add "/" if token is not last
-                if (i < tokens_len - 1) res->path[dst_pos++] = '/';
+                if (i < tokens_len - 1) {
+                    res->path[dst_pos++] = '/';
+                }
+
+                // last token
+                else {
+
+                    // last token is filename
+                    if (res->filename_len) {
+                        res->dirname_len = res->path_len - tokens[i].len - 1;
+                        Newx(res->dirname, res->dirname_len, char);
+                        memcpy(res->dirname, res->path, res->dirname_len);
+                    }
+
+                    // last token is not filename
+                    else {
+                        res->dirname_len = res->path_len;
+                        Newx(res->dirname, res->dirname_len, char);
+                        memcpy(res->dirname, res->path, res->dirname_len);
+                    }
+
+                }
             }
         }
     }
