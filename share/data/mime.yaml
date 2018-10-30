@@ -8,7 +8,6 @@ shebang:
 # extension: mime-type, category, compress
 suffix:
   3gp: video/3gpp
-  PL: ["text/x-script.perl-auto", "perl", 1]
   a: application/octet-stream
   ai: application/postscript
   aif: audio/x-aiff
@@ -115,6 +114,7 @@ suffix:
   pgm: image/x-portable-graymap
   pgp: application/pgp-encrypted
   pkg: application/octet-stream
+  PL: ["text/x-script.perl-auto", "perl", 1]
   pl: ["text/x-script.perl", "perl", 1]
   pm: ["text/x-script.perl-module", "perl", 1]
   png: image/png
