@@ -11,8 +11,6 @@ has _mime_compress => ( init_arg => undef );
 # http://svn.apache.org/viewvc/httpd/httpd/trunk/docs/conf/mime.types?view=co
 our $MIME;
 
-const our $DEFAULT_MIME_TYPE => 'application/octet-stream';
-
 around _clear_cache => sub ( $orig, $self ) {
     delete $self->@{qw[_mime_type _mime_tag _mime_compress]};
 
@@ -39,7 +37,7 @@ sub _load_mime_types {
             my $tags;
 
             # extract tag from type
-            if ( $type =~ m[\A(.+?)/]sm ) { $tags->{$1} = 1 }
+            for my $tag ( split m[/]sm, $type ) { $tags->{$tag} = 1 }
 
             for my $tag ( $MIME->{suffix}->{$suffix}->[1]->@* ) { $tags->{$tag} = 1 }
 
@@ -65,23 +63,14 @@ sub mime_type ( $self, $shebang = undef ) {
         my $detected;
 
         # filename
-        if ( my $filename = $self->{filename} ) {
-            if ( $self->{_mime_type} = $MIME->{filename}->{$filename} ) {
-                $detected = 1;
-            }
-        }
+        if ( defined( my $filename = $self->{filename} ) ) {
+            $detected = $MIME->{filename}->{$filename};
 
-        # path has no filename
-        else {
-            $detected = 1;
-            $self->{_mime_type} = undef;
-        }
-
-        # suffix
-        if ( !$detected && ( my $suffix = $self->{suffix} ) ) {
-            if ( my $detected_suffix = ( $MIME->{suffix}->{$suffix} // $MIME->{suffix}->{ lc $suffix } ) ) {
-                $detected = 1;
-                $self->{_mime_type} = $detected_suffix->[0];
+            # suffix
+            if ( !$detected && defined( my $suffix = $self->{suffix} ) ) {
+                if ( my $detected_suffix = ( $MIME->{suffix}->{$suffix} // $MIME->{suffix}->{ lc $suffix } ) ) {
+                    $detected = $detected_suffix->[0];
+                }
             }
         }
 
@@ -92,7 +81,7 @@ sub mime_type ( $self, $shebang = undef ) {
             if ( is_plain_scalarref $shebang ) {
                 $buf_ref = $shebang;
             }
-            elsif ( -f $self ) {
+            elsif ( defined $self->{filename} && -f $self ) {
 
                 # read first 50 bytes
                 P->file->read_bin(
@@ -119,7 +108,7 @@ sub mime_type ( $self, $shebang = undef ) {
             }
         }
 
-        $self->{_mime_type} = $DEFAULT_MIME_TYPE if !$detected;
+        $self->{_mime_type} = $detected;
     }
 
     return $self->{_mime_type};
