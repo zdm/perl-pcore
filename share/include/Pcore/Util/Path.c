@@ -129,7 +129,7 @@ PcoreUtilPath *parse (const char *buf, size_t buf_len) {
                 // store token
                 if (!skip_token) {
 
-                    // last token, and token is not "." or ".." or last char is not "/" or "\"
+                    // last token, and token is not "." or ".." or last char is not "/" or "\" - last token is filename
                     if (i + 1 == buf_len && !is_dots && buf[i] != '/' && buf[i] != '\\') {
                         res->filename_len = token_len;
                         Newx(res->filename, token_len, char);
@@ -138,21 +138,19 @@ PcoreUtilPath *parse (const char *buf, size_t buf_len) {
                         int has_suffix = 0;
 
                         // parse filename_base, suffix
-                        for (size_t i = token_len - 1; i >= 0; i--) {
+                        for (size_t i = token_len - 1; i > 0; i--) {
+
+                            // not-leading dot found
                             if (token[i] == '.') {
+                                has_suffix = 1;
 
-                                // has suffix
-                                if (i > 0 && i < token_len - 1) {
-                                    has_suffix = 1;
+                                res->suffix_len = token_len - i - 1;
+                                Newx(res->suffix, res->suffix_len, char);
+                                memcpy(res->suffix, token + i + 1, res->suffix_len);
 
-                                    res->suffix_len = token_len - i - 1;
-                                    Newx(res->suffix, res->suffix_len, char);
-                                    memcpy(res->suffix, token + i + 1, res->suffix_len);
-
-                                    res->filename_base_len = i;
-                                    Newx(res->filename_base, res->filename_base_len, char);
-                                    memcpy(res->filename_base, token, res->filename_base_len);
-                                }
+                                res->filename_base_len = i;
+                                Newx(res->filename_base, res->filename_base_len, char);
+                                memcpy(res->filename_base, token, res->filename_base_len);
 
                                 break;
                             }
