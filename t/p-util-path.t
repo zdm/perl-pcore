@@ -7,6 +7,12 @@ use Test::More;
 
 my $parse_tests = [    #
     [ undef,                                   path => '.',               dirname => '.',           filename => undef,  suffix => undef ],
+    [ '',                                      path => '.',               dirname => '.',           filename => undef,  suffix => undef ],
+    [ '.',                                     path => '.',               dirname => '.',           filename => undef,  suffix => undef ],
+    [ '..',                                    path => '..',              dirname => '..',          filename => undef,  suffix => undef ],
+    [ '/',                                     path => '/',               dirname => '/',           filename => undef,  suffix => undef ],
+    [ '/.',                                    path => '/',               dirname => '/',           filename => undef,  suffix => undef ],
+    [ '/..',                                   path => '/',               dirname => '/',           filename => undef,  suffix => undef ],
     [ 'aaa/bbb/1.pl',                          path => 'aaa/bbb/1.pl',    dirname => 'aaa/bbb',     filename => '1.pl', suffix => 'pl' ],
     [ '/aaa/bbb/1.pl',                         path => '/aaa/bbb/1.pl',   dirname => '/aaa/bbb',    filename => '1.pl', suffix => 'pl' ],
     [ '1.pl',                                  path => '1.pl',            dirname => '.',           filename => '1.pl', suffix => 'pl' ],
@@ -59,6 +65,16 @@ plan tests => $TESTS;
 done_testing $TESTS;
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    2 | 10                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
