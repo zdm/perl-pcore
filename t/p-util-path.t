@@ -26,12 +26,12 @@ for my $test ( $parse_tests->@* ) {
         $TESTS++;
 
         if ( !defined $args{$arg} ) {
-            ok( !defined $path->{$arg}, 'normalization' ) or printf qq[path: "%s", %s "%s" != "%s"\n], $path, $arg, $path->{$arg} // 'undef', 'undef';
+            ok( !defined $path->{$arg}, 'parse' ) or printf qq[path: "%s", %s "%s" != "%s"\n], $path, $arg, $path->{$arg} // 'undef', 'undef';
         }
         else {
             no warnings qw[uninitialized];
 
-            ok( $path->{$arg} eq $args{$arg}, 'normalization' ) or printf qq[path: "%s", %s "%s" != "%s"\n], $path, $arg, $path->{$arg} // 'undef', $args{$arg};
+            ok( $path->{$arg} eq $args{$arg}, 'parse' ) or printf qq[path: "%s", %s "%s" != "%s"\n], $path, $arg, $path->{$arg} // 'undef', $args{$arg};
         }
     }
 }
