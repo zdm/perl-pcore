@@ -98,9 +98,7 @@ sub mime_type ( $self, $shebang = undef ) {
             if ( $buf_ref && $buf_ref->$* =~ /\A(#!.+?)$/sm ) {
                 for my $mime_type ( keys $MIME->{shebang}->%* ) {
                     if ( $1 =~ $MIME->{shebang}->{$mime_type} ) {
-                        $detected = 1;
-
-                        $self->{_mime_type} = $mime_type;
+                        $detected = $mime_type;
 
                         last;
                     }
