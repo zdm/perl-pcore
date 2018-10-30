@@ -207,36 +207,39 @@ PcoreUtilPath *parse (const char *buf, size_t buf_len) {
                 dst_pos += tokens[i].len;
 
                 // add "/" if token is not last
-                if (i < tokens_len - 1) {
-                    res->path[dst_pos++] = '/';
+                if (i < tokens_len - 1) res->path[dst_pos++] = '/';
+            }
+
+            // path has filename, dirname = path - filename
+            if (res->filename_len) {
+                res->dirname_len = res->path_len - res->filename_len;
+                if (res->dirname_len > res->path_len) res->dirname_len--;
+
+                if(res->dirname_len) {
+                    Newx(res->dirname, res->dirname_len, char);
+                    Copy(res->path, res->dirname, res->dirname_len, char);
                 }
+            }
 
-                // last token
-                else {
-
-                    // last token is filename
-                    if (res->filename_len) {
-                        res->dirname_len = res->path_len - tokens[i].len - 1;
-                        Newx(res->dirname, res->dirname_len, char);
-                        memcpy(res->dirname, res->path, res->dirname_len);
-                    }
-
-                    // last token is not filename
-                    else {
-                        res->dirname_len = res->path_len;
-                        Newx(res->dirname, res->dirname_len, char);
-                        memcpy(res->dirname, res->path, res->dirname_len);
-                    }
-
-                }
+            // path has no filename, dirname = path
+            else {
+                res->dirname_len = res->path_len;
+                Newx(res->dirname, res->dirname_len, char);
+                Copy(res->path, res->dirname, res->dirname_len, char);
             }
         }
     }
 
-    if (res->path_len == 0) {
+    if (!res->path_len) {
         res->path_len = 1;
         Newx(res->path, 1, char);
         res->path[0] = '.';
+    }
+
+    if (!res->dirname_len) {
+        res->dirname_len = 1;
+        Newx(res->dirname, 1, char);
+        res->dirname[0] = '.';
     }
 
     return res;
