@@ -131,6 +131,44 @@ PcoreUtilPath *parse (const char *buf, size_t buf_len) {
 
                 // store token
                 if (!skip_token) {
+
+                    // last token, and token is not "." or ".." or last char is not "/" or "\"
+                    if (i + 1 == buf_len && !is_dots && buf[i] != '/' && buf[i] != '\\') {
+                        res->filename_len = token_len;
+                        Newx(res->filename, token_len, char);
+                        memcpy(res->filename, token, token_len);
+
+                        int has_suffix = 0;
+
+                        // parse filename_base, suffix
+                        for (size_t i = token_len - 1; i >= 0; i--) {
+                            if (token[i] == '.') {
+
+                                // has suffix
+                                if (i > 0 && i < token_len - 1) {
+                                    has_suffix = 1;
+
+                                    res->suffix_len = token_len - i - 1;
+                                    Newx(res->suffix, res->suffix_len, char);
+                                    memcpy(res->suffix, token + i + 1, res->suffix_len);
+
+                                    res->filename_base_len = i;
+                                    Newx(res->filename_base, res->filename_base_len, char);
+                                    memcpy(res->filename_base, token, res->filename_base_len);
+                                }
+
+                                break;
+                            }
+                        }
+
+                        // filename_base = filename if !has_suffix
+                        if (!has_suffix) {
+                            res->filename_base_len = token_len;
+                            Newx(res->filename_base, token_len, char);
+                            memcpy(res->filename_base, token, token_len);
+                        }
+                    }
+
                     Newx(tokens[tokens_len].token, token_len, U8);
                     memcpy(tokens[tokens_len].token, token, token_len);
 
