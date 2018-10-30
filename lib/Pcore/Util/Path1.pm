@@ -143,26 +143,23 @@ sub to_uri ($self) {
     return $self->{_to_uri};
 }
 
+# SETTERS
 sub to_abs ( $self, $base = undef ) {
 
     # path is already absolute
-    return defined wantarray ? $self->clone : () if $self->{is_abs};
+    return $self if $self->{is_abs};
 
     if ( !defined $base ) {
         $base = Cwd::getcwd();
+    }
+    elsif ( is_blessed_hashref $base && $base->{IS_PCORE_PATH} ) {
+        $base = $base->to_abs->{path};
     }
     else {
         $base = $self->new($base)->to_abs->{path};
     }
 
-    if ( defined wantarray ) {
-        return $self->new("$base/$self->{path}");
-    }
-    else {
-        $self->path("$base/$self->{path}");
-
-        return;
-    }
+    return $self->set_path("$base/$self->{path}");
 }
 
 # TODO
@@ -175,72 +172,86 @@ sub to_rel ( $self, $base = undef ) {
 sub to_realpath ( $self ) {
     my $realpath = Cwd::realpath( $self->{path} );
 
-    if ( defined wantarray ) {
-        return $self->new($realpath);
-    }
-    else {
-        $self->path($realpath);
-
-        return;
-    }
+    return $self->set_path($realpath);
 }
 
-sub _clear_cache ($self) {
-    delete $self->@{qw[_encoded _to_uri]};
+sub set_path ( $self, $path = undef ) {
+    my $hash = _parse($path);
 
-    return;
+    $self->@{ keys $hash->%* } = values $hash->%*;
+
+    $self->_clear_cache;
+
+    return $self;
 }
 
-# SETTERS
-sub path ( $self, $path = undef ) {
-    if ( @_ > 1 ) {
-        my $hash = _parse($path);
+sub set_volume ( $self, $volume = undef ) {
+    my $path;
 
-        $self->@{ keys $hash->%* } = values $hash->%*;
-
-        $self->_clear_cache;
-    }
-
-    return $self->{path};
-}
-
-sub volume ( $self, $volume = undef ) {
-    if ( @_ > 1 ) {
-        my $path;
-
+    # remove volume
+    if ( !$volume ) {
         if ( $self->{volume} ) {
+            $path = $self->{path};
+
+            substr $path, 0, 2, '';
+        }
+
+        # nothing to do
+        else {
+            return $self;
+        }
+    }
+
+    # set volume
+    else {
+        $volume = lc $volume;
+
+        # has volume
+        if ( $self->{volume} ) {
+
+            # nothing to do
+            return $self if $self->{volume} eq $volume;
+
+            # replace volume
             $path = $self->{path};
 
             substr $path, 0, 1, $volume;
         }
+
+        # add volume
         else {
             $path = "$volume:/$self->{path}";
         }
-
-        $self->path($path);
     }
 
-    return $self->{volume};
+    return $self->set_path($path);
 }
 
-sub dirname ( $self, $dirname = undef ) {
-    if ( @_ > 1 ) {
-        $self->path( defined $self->{filename} ? "$dirname/$self->{filename}" : $dirname );
+sub set_dirname ( $self, $dirname = undef ) {
+    if ( defined $dirname ) {
+        return $self->set_path( defined $self->{filename} ? "$dirname/$self->{filename}" : $dirname );
     }
-
-    return $self->{dirname};
-}
-
-sub filename ( $self, $filename = undef ) {
-    if ( @_ > 1 ) {
-        $self->path( defined $self->{dirname} ? "$self->{dirname}/$filename" : $filename );
+    else {
+        return $self->set_path( $self->{filename} );
     }
-
-    return $self->{filename};
 }
 
-sub filename_base ( $self, $filename_base = undef ) {
-    if ( @_ > 1 ) {
+sub set_filename ( $self, $filename = undef ) {
+    if ( defined $filename ) {
+        return $self->set_path( defined $self->{dirname} ? "$self->{dirname}/$filename" : $filename );
+    }
+    else {
+        return $self if !defined $self->{filename};
+
+        return $self->set_path( defined $self->{dirname} ? "$self->{dirname}/" : undef );
+    }
+}
+
+sub set_filename_base ( $self, $filename_base = undef ) {
+    if ( !defined $filename_base ) {
+        return $self->set_filename;
+    }
+    else {
         my $path = '';
 
         $path .= "$self->{dirname}/" if defined $self->{dirname};
@@ -249,26 +260,28 @@ sub filename_base ( $self, $filename_base = undef ) {
 
         $path .= ".$self->{suffix}" if defined $self->{suffix};
 
-        $self->path($path);
+        return $self->set_path($path);
     }
-
-    return $self->{filename_base};
 }
 
-sub suffix ( $self, $suffix = undef ) {
-    if ( @_ > 1 ) {
-        die if !defined $self->{filename_base};
+sub set_suffix ( $self, $suffix = undef ) {
+    return $self if !defined $self->{filename};
 
-        my $path = '';
+    my $path = '';
 
-        $path .= "$self->{dirname}/" if defined $self->{dirname};
+    $path .= "$self->{dirname}/" if defined $self->{dirname};
 
-        $path .= "$self->{filename_base}.$suffix";
+    $path .= $self->{filename_base};
 
-        $self->path($path);
-    }
+    $path .= ".$suffix" if defined $suffix && $suffix ne '';
 
-    return $self->{suffix};
+    return $self->set_path($path);
+}
+
+sub _clear_cache ($self) {
+    delete $self->@{qw[_encoded _to_uri]};
+
+    return;
 }
 
 sub TO_DUMP1 ( $self, @ ) {
@@ -379,9 +392,10 @@ C
 ## |======+======================+================================================================================================================|
 ## |    3 | 26                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 170                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 167                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 57, 244, 262         | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 57, 196, 255, 270,   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      | 276                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
