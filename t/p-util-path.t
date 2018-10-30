@@ -5,9 +5,42 @@ package main v0.1.0;
 use Pcore;
 use Test::More;
 
-our $TESTS = 74;
+my $parse_tests = [    #
+    [ undef,           path => '.',             dirname => '.',        filename => undef,  suffix => undef ],
+    [ 'aaa/bbb/1.pl',  path => 'aaa/bbb/1.pl',  dirname => 'aaa/bbb',  filename => '1.pl', suffix => 'pl' ],
+    [ '/aaa/bbb/1.pl', path => '/aaa/bbb/1.pl', dirname => '/aaa/bbb', filename => '1.pl', suffix => 'pl' ],
+    [ '1.pl',          path => '1.pl',          dirname => '.',        filename => '1.pl', suffix => 'pl' ],
+    [ '/1.pl',         path => '/1.pl',         dirname => '/',        filename => '1.pl', suffix => 'pl' ],
+    [ 'aaa/bbb/',      path => 'aaa/bbb',       dirname => 'aaa/bbb',  filename => undef,  suffix => undef ],
+    [ '/aaa/bbb/',     path => '/aaa/bbb',      dirname => '/aaa/bbb', filename => undef,  suffix => undef ],
+];
+
+our $TESTS = 0;
+
+for my $test ( $parse_tests->@* ) {
+    my $path = P->path1( shift $test->@* );
+
+    my %args = $test->@*;
+
+    for my $arg ( sort keys %args ) {
+        $TESTS++;
+
+        if ( !defined $args{$arg} ) {
+            ok( !defined $path->{$arg}, 'normalization' ) or printf qq[path: "%s", %s "%s" != "%s"\n], $path, $arg, $path->{$arg} // 'undef', 'undef';
+        }
+        else {
+            no warnings qw[uninitialized];
+
+            ok( $path->{$arg} eq $args{$arg}, 'normalization' ) or printf qq[path: "%s", %s "%s" != "%s"\n], $path, $arg, $path->{$arg} // 'undef', $args{$arg};
+        }
+    }
+}
 
 plan tests => $TESTS;
+done_testing $TESTS;
+
+1;
+__END__
 
 # normalization, without base
 ok( P->path(q[./aaa]) eq q[aaa], q[normalization_1] );
@@ -111,7 +144,7 @@ ok( P->path(q[../aaa])->suffix eq q[],      q[suffix_1] );
 ok( P->path(q[../.aaa])->suffix eq q[],     q[suffix_2] );
 ok( P->path(q[../..aaa])->suffix eq q[aaa], q[suffix_3] );
 
-done_testing $TESTS;
+# done_testing $TESTS;
 
 1;
 __END__

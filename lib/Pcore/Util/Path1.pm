@@ -54,8 +54,11 @@ has IS_PCORE_PATH => ( 1, init_arg => undef );
 around new => sub ( $orig, $self, $path = undef, %args ) {
     $self = ref $self if is_blessed_hashref $self;
 
-    if ( !defined $path ) {
-        return bless { path => '.' }, $self;
+    if ( !defined $path || $path eq '' || $path eq '.' ) {
+        return bless {
+            path    => '.',
+            dirname => '.',
+        }, $self;
     }
 
     if ( is_blessed_hashref $path ) {
@@ -364,7 +367,7 @@ C
     prototype  => { _parse => '$', },
 
     # build_noisy => 1,
-    # force_build => 1,
+    force_build => 1,
 );
 
 1;
@@ -376,9 +379,9 @@ C
 ## |======+======================+================================================================================================================|
 ## |    3 | 26                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 167                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 170                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 241, 259             | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 57, 244, 262         | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

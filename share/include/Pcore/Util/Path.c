@@ -213,7 +213,7 @@ PcoreUtilPath *parse (const char *buf, size_t buf_len) {
             // path has filename, dirname = path - filename
             if (res->filename_len) {
                 res->dirname_len = res->path_len - res->filename_len;
-                if (res->dirname_len > res->path_len) res->dirname_len--;
+                if (res->dirname_len > 1) res->dirname_len -= 1;
 
                 if(res->dirname_len) {
                     Newx(res->dirname, res->dirname_len, char);
@@ -232,13 +232,13 @@ PcoreUtilPath *parse (const char *buf, size_t buf_len) {
 
     if (!res->path_len) {
         res->path_len = 1;
-        Newx(res->path, 1, char);
+        Newx(res->path, res->path_len, char);
         res->path[0] = '.';
     }
 
     if (!res->dirname_len) {
         res->dirname_len = 1;
-        Newx(res->dirname, 1, char);
+        Newx(res->dirname, res->dirname_len, char);
         res->dirname[0] = '.';
     }
 
