@@ -8,7 +8,7 @@ shebang:
 # extension: mime-type, category, compress
 suffix:
   3gp: video/3gpp
-  PL: text/x-script.perl-auto
+  PL: ["text/x-script.perl-auto", "perl", 1]
   a: application/octet-stream
   ai: application/postscript
   aif: audio/x-aiff
@@ -25,7 +25,7 @@ suffix:
   bmp: image/bmp
   bz2: ["application/x-bzip2", "archive"]
   c: text/x-c
-  cab: application/vnd.ms-cab-compressed
+  cab: ["application/vnd.ms-cab-compressed", "archive"]
   cc: text/x-c
   chm: application/vnd.ms-htmlhelp
   class: application/octet-stream
@@ -33,7 +33,7 @@ suffix:
   conf: text/plain
   cpp: text/x-c
   crt: application/x-x509-ca-cert
-  css: ["text/css", "css", 1]
+  css: ["text/css", ~, 1]
   csv: text/csv
   cxx: text/x-c
   deb: application/x-debian-package
@@ -43,9 +43,9 @@ suffix:
   djvu: image/vnd.djvu
   dll: application/x-msdownload
   dmg: application/octet-stream
-  doc: ["application/msword", "word"]
-  docx: ["application/msword", "word"]
-  dot: ["application/msword", "word"]
+  doc: application/msword
+  docx: application/msword
+  dot: application/msword
   dtd: application/xml-dtd
   dvi: application/x-dvi
   ear: application/java-archive
@@ -60,25 +60,25 @@ suffix:
   for: text/x-fortran
   gem: application/octet-stream
   gemspec: text/x-script.ruby
-  gif: ["image/gif", "image", 1]
-  gz: ["application/x-gzip", "archive"]
+  gif: ["image/gif", ~, 1]
+  gz: ["application/x-gzip", "archive", 0]
   h: text/x-c
   hh: text/x-c
-  htm: ["text/html", "html", 1]
-  html: ["text/html", "html", 1]
+  htm: ["text/html", ~, 1]
+  html: ["text/html", ~, 1]
   ico: image/vnd.microsoft.icon
   ics: text/calendar
   ifb: text/calendar
   iso: application/octet-stream
-  jar: application/java-archive
-  java: text/x-java-source
-  javascript: ["application/javascript", "javascript", 1]
+  jar: ["application/java-archive", "java", 0]
+  java: ["text/x-java-source", "java"]
+  javascript: ["application/javascript", ~, 1]
   jnlp: application/x-java-jnlp-file
-  jpeg: ["image/jpeg", "image"]
-  jpg: ["image/jpeg", "image"]
-  js: ["application/javascript", "javascript", 1]
-  json: ["application/json", "json", 1]
-  log: ["text/plain", "text", 1]
+  jpeg: image/jpeg
+  jpg: image/jpeg
+  js: ["application/javascript", ~, 1]
+  json: ["application/json", ~, 1]
+  log: ["text/plain", ~, 1]
   m3u: audio/x-mpegurl
   m4v: video/mp4
   man: text/troff
@@ -109,22 +109,22 @@ suffix:
   p: text/x-pascal
   pas: text/x-pascal
   pbm: image/x-portable-bitmap
-  pdf: ["application/pdf", "pdf"]
+  pdf: application/pdf
   pem: application/x-x509-ca-cert
-  perl: text/x-script.perl-config
+  perl: ["text/x-script.perl-config", "perl", 1]
   pgm: image/x-portable-graymap
   pgp: application/pgp-encrypted
   pkg: application/octet-stream
-  pl: text/x-script.perl
-  pm: text/x-script.perl-module
+  pl: ["text/x-script.perl", "perl", 1]
+  pm: ["text/x-script.perl-module", "perl", 1]
   png: image/png
   pnm: image/x-portable-anymap
   ppm: image/x-portable-pixmap
-  pps: ["application/vnd.ms-powerpoint", "powerpoint"]
-  ppt: ["application/vnd.ms-powerpoint", "powerpoint"]
+  pps: ["application/vnd.ms-powerpoint", "mspowerpoint"]
+  ppt: ["application/vnd.ms-powerpoint", "mspowerpoint"]
   ps: application/postscript
   psd: image/vnd.adobe.photoshop
-  py: text/x-script.python
+  py: ["text/x-script.python", "python", 1]
   qt: video/quicktime
   ra: audio/x-pn-realaudio
   rake: text/x-script.ruby
@@ -144,12 +144,12 @@ suffix:
   sig: application/pgp-signature
   snd: audio/basic
   so: application/octet-stream
-  svg: ["image/svg+xml", "image", 1]
-  svgz: ["image/svg+xml", "image", 0]
+  svg: ["image/svg+xml", ~, 1]
+  svgz: ["image/svg+xml", ~, 0]
   swf: application/x-shockwave-flash
-  t: text/x-script.perl
+  t: ["text/x-script.perl", "perl", 1]
   tar: ["application/x-tar", "archive"]
-  tbz: ["application/x-bzip-compressed-tar", "archive"]
+  tbz: ["application/x-bzip-compressed-tar", "archive", 0]
   tcl: application/x-tcl
   tex: application/x-tex
   texi: application/x-texinfo
@@ -169,7 +169,7 @@ suffix:
   wma: audio/x-ms-wma
   wmv: video/x-ms-wmv
   wmx: video/x-ms-wmx
-  woff: application/font-woff
+  woff: ["application/font-woff", "font"]
   woff2: font/woff2
   wrl: model/vrml
   wsdl: application/wsdl+xml
@@ -183,4 +183,4 @@ suffix:
   xslt: application/xslt+xml
   yaml: text/yaml
   yml: text/yaml
-  zip: ["application/zip", "archive"]
+  zip: ["application/zip", "archive", 0]
