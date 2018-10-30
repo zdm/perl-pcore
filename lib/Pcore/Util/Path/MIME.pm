@@ -4,7 +4,7 @@ use Pcore -role, -const;
 use Pcore::Util::Scalar qw[is_plain_arrayref is_plain_scalarref];
 
 has _mime_type     => ( init_arg => undef );
-has _mime_tag      => ( init_arg => undef );
+has _mime_tags     => ( init_arg => undef );
 has _mime_compress => ( init_arg => undef );
 
 # apache MIME types
@@ -112,17 +112,17 @@ sub mime_type ( $self, $shebang = undef ) {
     return $self->{_mime_type};
 }
 
-sub mime_tag ($self) {
-    if ( !exists $self->{_mime_tag} ) {
+sub mime_tags ($self) {
+    if ( !exists $self->{_mime_tags} ) {
         if ( my $mime_type = $self->mime_type ) {
-            $self->{_mime_tag} = $MIME->{type}->{$mime_type}->[0];
+            $self->{_mime_tags} = $MIME->{type}->{$mime_type}->[0];
         }
         else {
-            $self->{_mime_tag} = {};
+            $self->{_mime_tags} = {};
         }
     }
 
-    return $self->{_mime_tag};
+    return $self->{_mime_tags};
 }
 
 sub mime_compress ($self) {
