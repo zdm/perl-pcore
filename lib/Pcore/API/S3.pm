@@ -26,16 +26,6 @@ has _signal  => sub { Coro::Signal->new };
 const our $S3_ACL_READ_ONLY    => 0;
 const our $S3_ACL_FULL_CONTROL => 1;
 
-our $GZIP = {
-    'text/html'                     => 1,
-    'application/javascript'        => 1,
-    'text/css'                      => 1,
-    'image/gif'                     => 1,
-    'application/vnd.ms-fontobject' => 1,    # .eot
-    'image/svg+xml'                 => 1,    # .svg
-    'application/font-sfnt'         => 1,    # .ttf, .otf
-};
-
 #  NOTE https://developers.digitalocean.com/documentation/spaces/
 
 sub DESTROY ($self) {
@@ -344,11 +334,11 @@ sub upload ( $self, $path, $data, @args ) {
 
     my $buf;
 
-    $path = P->path($path);
+    $path = P->path1($path);
 
     $args->{mime} //= $path->mime_type;
 
-    $args->{gzip} = 0 if $args->{gzip} && $args->{gzip} == 2 && !$GZIP->{ $args->{mime} };
+    $args->{gzip} = 0 if $args->{gzip} && $args->{gzip} == 2 && !$path->mime_compress;
 
     if ( $args->{gzip} ) {
         gzip is_ref $data ? $data : \$data, \my $buf1, time => 0, level => 9 or die q[Failed to gzip data];
@@ -604,8 +594,8 @@ sub sync ( $self, $roots, $locations ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 114, 241, 242, 243,  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 244                  |                                                                                                                |
+## |    2 | 104, 231, 232, 233,  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      | 234                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
