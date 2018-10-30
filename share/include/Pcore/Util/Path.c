@@ -37,14 +37,23 @@ PcoreUtilPath *parse (const char *buf, size_t buf_len) {
 
     // buf is not empty
     if (buf_len) {
+        U8 prefix[3];
         size_t prefix_len = 0;
         size_t i = 0;
 
-        // parse leading windows volume
-# ifdef WIN32
-        U8 prefix[3];
+        // parse leading "/"
+        if (buf[0] == '/' || buf[0] == '\\') {
+            prefix[0] = '/';
+            prefix_len = 1;
+            i = 1;
 
-        if ( buf_len >= 2 && buf[1] == ':' && ( buf[2] == '/' || buf[2] == '\\' ) && isalpha(buf[0]) ) {
+            res->is_abs = 1;
+        }
+
+# ifdef WIN32
+
+        // parse windows volume
+        else if ( buf_len >= 2 && buf[1] == ':' && ( buf[2] == '/' || buf[2] == '\\' ) && isalpha(buf[0]) ) {
             prefix[0] = tolower(buf[0]);
             prefix[1] = ':';
             prefix[2] = '/';
@@ -55,18 +64,6 @@ PcoreUtilPath *parse (const char *buf, size_t buf_len) {
             res->volume_len = 1;
             Newx(res->volume, 1, char);
             res->volume[0] = prefix[0];
-        }
-
-        // parse leading "/"
-# else
-        U8 prefix;
-
-        if (buf[0] == '/' || buf[0] == '\\') {
-            prefix = '/';
-            prefix_len = 1;
-            i = 1;
-
-            res->is_abs = 1;
         }
 # endif
 
