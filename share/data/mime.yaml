@@ -33,7 +33,7 @@ suffix:
   cpp: text/x-c
   crt: application/x-x509-ca-cert
   css: ["text/css", ~, 1]
-  csv: text/csv
+  csv: ["text/csv", ~. 1]
   cxx: text/x-c
   deb: application/x-debian-package
   der: application/x-x509-ca-cert
@@ -59,7 +59,7 @@ suffix:
   for: text/x-fortran
   gem: application/octet-stream
   gemspec: text/x-script.ruby
-  gif: ["image/gif", ~, 1]
+  gif: image/gif
   gz: ["application/x-gzip", "archive", 0]
   h: text/x-c
   hh: text/x-c
@@ -117,7 +117,7 @@ suffix:
   PL: ["text/x-script.perl-auto", "perl", 1]
   pl: ["text/x-script.perl", "perl", 1]
   pm: ["text/x-script.perl-module", "perl", 1]
-  png: image/png
+  png: ["image/png", ~, 1]
   pnm: image/x-portable-anymap
   ppm: image/x-portable-pixmap
   pps: ["application/vnd.ms-powerpoint", "mspowerpoint"]
@@ -146,7 +146,7 @@ suffix:
   so: application/octet-stream
   svg: ["image/svg+xml", ~, 1]
   svgz: ["image/svg+xml", ~, 0]
-  swf: application/x-shockwave-flash
+  swf: ["application/x-shockwave-flash", ~, 1]
   t: ["text/x-script.perl", "perl", 1]
   tar: ["application/x-tar", "archive"]
   tbz: ["application/x-bzip-compressed-tar", "archive", 0]
@@ -160,7 +160,7 @@ suffix:
   torrent: application/x-bittorrent
   tr: text/troff
   ttf: ["application/font-sfnt", "font", 1]
-  txt: text/plain
+  txt: ["text/plain", ~, 1]
   vcf: text/x-vcard
   vcs: text/x-vcalendar
   vrml: model/vrml
@@ -181,6 +181,6 @@ suffix:
   xpm: image/x-xpixmap
   xsl: application/xml
   xslt: application/xslt+xml
-  yaml: text/yaml
-  yml: text/yaml
+  yaml: ["text/yaml", ~, 1]
+  yml: ["text/yaml", ~, 1]
   zip: ["application/zip", "archive", 0]
