@@ -39,7 +39,7 @@ sub new ( $self, $app ) {
     if ( defined $app->{app_cfg}->{api}->{connect} ) {
         my $uri = P->uri( $app->{app_cfg}->{api}->{connect} );
 
-        if ( my $class = $scheme_class->{ $uri->scheme } ) {
+        if ( my $class = $scheme_class->{ $uri->{scheme} } ) {
             return P->class->load($class)->new( { app => $app } );
         }
         else {

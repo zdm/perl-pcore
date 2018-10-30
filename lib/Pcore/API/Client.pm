@@ -47,7 +47,7 @@ around BUILDARGS => sub ( $orig, $self, $uri, @ ) {
 
     $args{uri} = P->uri($uri);
 
-    $args{token} = $args{uri}->userinfo if !$args{token};
+    $args{token} = $args{uri}->{userinfo} if !$args{token};
 
     $args{_is_http} = $args{uri}->is_http;
 

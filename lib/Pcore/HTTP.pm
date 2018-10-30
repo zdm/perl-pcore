@@ -367,7 +367,7 @@ sub _write_headers ( $h, $args, $res ) {
     my $headers = join q[], map {"$_->[0]:$_->[1]$CRLF"} grep { defined $_->[1] } P->list->pairs( $args->{headers}->@* );
 
     if ( $h->{proxy_type} && $h->{proxy_type} == $PROXY_TYPE_HTTP ) {
-        $request_path = $res->{url}->{to_string};
+        $request_path = $res->{url}->{uri};
 
         $headers .= 'Proxy-Authorization:Basic ' . $h->{proxy}->{uri}->userinfo_b64 . $CRLF if $h->{proxy}->{uri}->{userinfo};
     }
@@ -376,7 +376,7 @@ sub _write_headers ( $h, $args, $res ) {
     }
 
     # add "Host" header
-    $headers .= 'Host:' . $res->{url}->host->{name} . $CRLF if !$args->{norm_headers}->{host};
+    $headers .= 'Host:' . $res->{url}->{host}->{name} . $CRLF if !$args->{norm_headers}->{host};
 
     # prepare content related headers
     if ( defined $args->{data} ) {
