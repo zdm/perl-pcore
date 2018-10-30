@@ -15,7 +15,7 @@ has bucket      => ();
 has region      => ();
 has service     => 's3';
 has endpoint    => 'digitaloceanspaces.com';
-has gzip        => 2;                          # 1 - yes, 2 - auto
+has compress    => 2;                          # 1 - yes, 2 - auto
 has max_threads => 10;
 has max_retries => 3;
 
@@ -320,12 +320,12 @@ sub upload ( $self, $path, $data, @args ) {
     my $cb = is_plain_coderef $_[-1] ? pop @args : ();
 
     my $args = {
-        bucket  => $self->{bucket},
-        private => 0,
-        mime    => undef,
-        cache   => undef,
-        gzip    => $self->{gzip},
-        etag    => undef,
+        bucket        => $self->{bucket},
+        private       => 0,
+        content_type  => undef,
+        cache_control => undef,
+        compress      => $self->{compress},
+        etag          => undef,
         @args,
         method => 'PUT',
         path   => $path,
@@ -336,11 +336,11 @@ sub upload ( $self, $path, $data, @args ) {
 
     $path = P->path1($path);
 
-    $args->{mime} //= $path->mime_type;
+    $args->{content_type} //= $path->mime_type;
 
-    $args->{gzip} = 0 if $args->{gzip} && $args->{gzip} == 2 && !$path->mime_compress;
+    $args->{compress} = 0 if $args->{compress} && $args->{compress} == 2 && !$path->mime_compress;
 
-    if ( $args->{gzip} ) {
+    if ( $args->{compress} ) {
         gzip is_ref $data ? $data : \$data, \my $buf1, time => 0, level => 9 or die q[Failed to gzip data];
 
         $buf = \$buf1;
@@ -360,9 +360,9 @@ sub upload ( $self, $path, $data, @args ) {
     $args->{headers} = {
         'Content-Length' => length $buf->$*,
         'X-Amz-Acl'      => $args->{private} ? 'private' : 'public-read',
-        $args->{mime}  ? ( 'Content-Type'     => $args->{mime} )  : (),
-        $args->{cache} ? ( 'Cache-Control'    => $args->{cache} ) : (),
-        $args->{gzip}  ? ( 'Content-Encoding' => 'gzip' )         : (),
+        $args->{content_type}  ? ( 'Content-Type'     => $args->{content_type} )  : (),
+        $args->{cache_control} ? ( 'Cache-Control'    => $args->{cache_control} ) : (),
+        $args->{compress}      ? ( 'Content-Encoding' => 'gzip' )                 : (),
     };
 
     return $self->_req($args);
@@ -535,8 +535,8 @@ sub sync ( $self, $roots, $locations ) {
             $self->upload(
                 $file->{path},
                 $file->content,
-                cache => $file->{meta}->{'Cache-Control'},
-                etag  => exists $remote_files->{ $file->{path} } ? $remote_files->{ $file->{path} }->{etag} : undef,
+                cache_control => $file->{meta}->{'Cache-Control'},
+                etag          => exists $remote_files->{ $file->{path} } ? $remote_files->{ $file->{path} }->{etag} : undef,
                 sub ($res) {
                     $error++ if !$res && $res != 304;
 
