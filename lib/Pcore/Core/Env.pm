@@ -9,24 +9,24 @@ use Pcore::Core::Env::Share;
 use Fcntl qw[LOCK_EX SEEK_SET];
 use Pcore::Util::Scalar qw[is_ref];
 
-has is_par => ( is => 'ro', isa => Bool, init_arg => undef );    # process run from PAR distribution
-has main_dist => ( is => 'ro', isa => Maybe      [ InstanceOf ['Pcore::Dist'] ], init_arg => undef );    # main dist
-has pcore     => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'],                init_arg => undef );    # pcore dist
-has share     => ( is => 'ro', isa => InstanceOf ['Pcore::Core::Env::Share'],    init_arg => undef );    # share object
-has _dist_idx     => ( is => 'ro',   isa => HashRef, init_arg => undef );                                # registered dists. index
-has cli           => ( is => 'ro',   isa => HashRef, init_arg => undef );                                # parsed CLI data
-has user_cfg_path => ( is => 'lazy', isa => Str,     init_arg => undef );
-has user_cfg      => ( is => 'lazy', isa => HashRef, init_arg => undef );                                # $HOME/.pcore/pcore.ini config
+has is_par        => ( init_arg => undef );                                 # process run from PAR distribution
+has main_dist     => ( init_arg => undef );                                 # Maybe [ InstanceOf ['Pcore::Dist'] ], main dist
+has pcore         => ( init_arg => undef );                                 # InstanceOf ['Pcore::Dist'], pcore dist
+has _dist_idx     => ( init_arg => undef );                                 # HashRef, registered dists. index
+has cli           => ( init_arg => undef );                                 # HashRef, parsed CLI data
+has user_cfg_path => ( is       => 'lazy', init_arg => undef );
+has user_cfg      => ( is       => 'lazy', init_arg => undef );             # $HOME/.pcore/pcore.ini config
+has share         => ( isa      => InstanceOf [''], init_arg => undef );    # share object TODO dies, if InstanceOf removed
 
 has PCORE_SHARE_DIR => ();
-has SYS_USER_DIR    => ();                                                                               # OS user profile dir
-has PCORE_USER_DIR  => ();                                                                               # SYS_USER_DIR/.pcore, pcore profile dir
+has SYS_USER_DIR    => ();                                                  # OS user profile dir
+has PCORE_USER_DIR  => ();                                                  # SYS_USER_DIR/.pcore, pcore profile dir
 has INLINE_DIR      => ();
 has START_DIR       => ();
 has SCRIPT_DIR      => ();
 has SCRIPT_NAME     => ();
-has SYS_TEMP_DIR    => ();                                                                               # OS temp dir
-has TEMP_DIR        => ();                                                                               # SYS_TEMP_DIR/temp-xxxx, random temp dir, created in SYS_TEMP_DIR
+has SYS_TEMP_DIR    => ();                                                  # OS temp dir
+has TEMP_DIR        => ();                                                  # SYS_TEMP_DIR/temp-xxxx, random temp dir, created in SYS_TEMP_DIR
 has DATA_DIR        => ();
 
 has SCANDEPS  => ();
@@ -35,7 +35,7 @@ has UID       => ();
 has GID       => ();
 
 # create $ENV object
-$ENV = __PACKAGE__->new;                                                                                 ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+$ENV = __PACKAGE__->new;                                                    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
 _normalize_inc();
 
@@ -447,7 +447,7 @@ sub DESTROY ( $self ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 399                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 185, 190             | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 19, 185, 190         | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 426                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
