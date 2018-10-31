@@ -19,6 +19,10 @@ const our $EXT_TYPE_MAP => {
 sub read ( $path, %args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my $type = delete $args{type};
 
+use Devel::StackTrace;
+say Devel::StackTrace->new->as_string;
+exit;
+
     die qq[Config file "$path" wasn't found.] if !-f $path;
 
     $type = $EXT_TYPE_MAP->{$1} if !$type && $path =~ /[.]([^.]+)\z/sm;
