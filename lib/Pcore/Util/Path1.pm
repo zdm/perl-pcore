@@ -345,6 +345,10 @@ sub _clear_cache ($self) {
     return;
 }
 
+*TO_JSON = *TO_CBOR = sub ($self) {
+    return $self->{path};
+};
+
 sub TO_DUMP1 ( $self, @ ) {
     my $res;
     my $tags;
