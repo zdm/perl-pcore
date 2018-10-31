@@ -170,11 +170,12 @@ sub BUILD ( $self, $args ) {
 
     $self->{SYS_USER_DIR} = $ENV{HOME} || $ENV{USERPROFILE};
 
-    $self->{PCORE_USER_DIR} = "$self->{SYS_USER_DIR}/.pcore/";
+    $self->{PCORE_USER_DIR} = "$self->{SYS_USER_DIR}/.pcore";
     mkdir $self->{PCORE_USER_DIR} || die qq[Error creating user dir "$self->{PCORE_USER_DIR}"] if !-d $self->{PCORE_USER_DIR};
+
     if ( !$self->{is_par} ) {
-        $self->{INLINE_DIR} = "$self->{PCORE_USER_DIR}inline/$Config{version}-$Config{archname}/";
-        mkdir "$self->{PCORE_USER_DIR}inline" || die qq[Error creating ""$self->{PCORE_USER_DIR}inline""] if !-d "$self->{PCORE_USER_DIR}inline";
+        $self->{INLINE_DIR} = "$self->{PCORE_USER_DIR}/inline/$Config{version}-$Config{archname}";
+        mkdir "$self->{PCORE_USER_DIR}/inline" || die qq[Error creating ""$self->{PCORE_USER_DIR}/inline""] if !-d "$self->{PCORE_USER_DIR}/inline";
         mkdir $self->{INLINE_DIR} || die qq[Error creating "$self->{INLINE_DIR}"] if !-d $self->{INLINE_DIR};
     }
 
@@ -204,14 +205,14 @@ sub BUILD ( $self, $args ) {
 }
 
 sub BUILD1 ($self) {
-    $self->{SYS_USER_DIR}   = P->path( $self->{SYS_USER_DIR} );
-    $self->{PCORE_USER_DIR} = P->path( $self->{PCORE_USER_DIR} );
-    $self->{INLINE_DIR}     = P->path( $self->{INLINE_DIR} ) if $self->{INLINE_DIR};
+    $self->{SYS_USER_DIR}   = P->path( $self->{SYS_USER_DIR} )->{path};
+    $self->{PCORE_USER_DIR} = P->path( $self->{PCORE_USER_DIR} )->{path};
+    $self->{INLINE_DIR}     = P->path( $self->{INLINE_DIR} )->{path} if $self->{INLINE_DIR};
 
     # init share
     $self->{share} = Pcore::Core::Env::Share->new;
 
-    $self->{START_DIR} = P->path->to_abs;
+    $self->{START_DIR} = P->path->to_abs->{path};
 
     if ( $Pcore::SCRIPT_PATH eq '-e' || $Pcore::SCRIPT_PATH eq '-' ) {
         $self->{SCRIPT_NAME} = '-e';
@@ -226,10 +227,10 @@ sub BUILD1 ($self) {
         $self->{SCRIPT_DIR}  = $path->{dirname};
     }
 
-    $self->{SCRIPT_PATH} = $self->{SCRIPT_DIR} . $self->{SCRIPT_NAME};
+    $self->{SCRIPT_PATH} = "$self->{SCRIPT_DIR}/$self->{SCRIPT_NAME}";
 
-    $self->{SYS_TEMP_DIR} = P->path( File::Spec->tmpdir );
-    $self->{TEMP_DIR} = P->file->tempdir( base => "$self->{SYS_TEMP_DIR}", lazy => 1 );
+    $self->{SYS_TEMP_DIR} = P->path( File::Spec->tmpdir )->{path};
+    $self->{TEMP_DIR} = P->file->tempdir( base => $self->{SYS_TEMP_DIR}, lazy => 1 );
 
     # find main dist
     if ( $self->{is_par} ) {
@@ -252,7 +253,7 @@ sub BUILD1 ($self) {
             $self->{DATA_DIR} = $self->{SCRIPT_DIR};
         }
         else {
-            $self->{DATA_DIR} = P->path("$dist->{root}/data");
+            $self->{DATA_DIR} = P->path("$dist->{root}/data")->{path};
             mkdir $self->{DATA_DIR} || die qq[Can't create "$self->{DATA_DIR}"] if !-d $self->{DATA_DIR};
         }
     }
@@ -438,16 +439,16 @@ sub DESTROY ( $self ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 206                  | * Subroutine "BUILD1" with high complexity score (23)                                                          |
-## |      | 350                  | * Subroutine "DESTROY" with high complexity score (22)                                                         |
+## |      | 207                  | * Subroutine "BUILD1" with high complexity score (23)                                                          |
+## |      | 351                  | * Subroutine "DESTROY" with high complexity score (22)                                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 359                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 360                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 397                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 398                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 19, 185, 190         | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 19, 186, 191         | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 424                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
+## |    2 | 425                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 117                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

@@ -196,7 +196,7 @@ sub compress ( $self, % ) {
     state $cache = do {
         require BerkeleyDB;
 
-        my $path = $ENV->{PCORE_USER_DIR} . 'perl-compress.bdb';
+        my $path = "$ENV->{PCORE_USER_DIR}/perl-compress.bdb";
 
         tie my %cache, 'BerkeleyDB::Hash', -Filename => $path, -Flags => BerkeleyDB::DB_CREATE();
 
