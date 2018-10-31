@@ -231,6 +231,7 @@ sub set_authority ( $self, $val = undef ) {
 }
 
 sub _get_authority ( $self ) {
+    no warnings qw[uninitialized];
 
     # build authority
     if ( !exists $self->{authority} ) {
@@ -644,15 +645,15 @@ sub canon ($self) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 92                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 440                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 441                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 628                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 629                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 43, 98, 140, 155,    | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |      | 169, 171, 175, 178,  |                                                                                                                |
-## |      | 220, 369, 401, 416,  |                                                                                                                |
-## |      | 497, 500, 514, 537,  |                                                                                                                |
-## |      | 550, 552, 557, 587   |                                                                                                                |
+## |      | 220, 370, 402, 417,  |                                                                                                                |
+## |      | 498, 501, 515, 538,  |                                                                                                                |
+## |      | 551, 553, 558, 588   |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 78, 201              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
