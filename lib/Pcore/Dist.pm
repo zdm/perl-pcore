@@ -39,19 +39,18 @@ around new => sub ( $orig, $self, $dist ) {
 
     my $module_name;
 
+	# if $dist contain .pm suffix - this is a full or related module name
     if ( substr( $dist, -3, 3 ) eq '.pm' ) {
-
-        # if $dist contain .pm suffix - this is a full or related module name
         $module_name = $dist;
     }
+
+	# if $dist doesn't contain .pm suffix, but contain ".", "/" or "\" - this is a path
     elsif ( $dist =~ m[[./\\]]sm ) {
 
-        # if $dist doesn't contain .pm suffix, but contain ".", "/" or "\" - this is a path
         # try find dist by path
         if ( my $root = $self->find_dist_root($dist) ) {
-say "$root/share";
-exit;
-            # path is a part of the dist
+
+			# path is a part of the dist
             return $self->$orig( {
                 root         => $root,
                 is_cpan_dist => 0,
@@ -64,9 +63,9 @@ exit;
             return;
         }
     }
-    else {
 
-        # otherwise $dist is a Package::Name
+	# otherwise $dist is a Package::Name
+    else {
         $module_name = $dist =~ s[(?:::|-)][/]smgr . '.pm';
     }
 
@@ -112,18 +111,18 @@ exit;
         return $self->$orig( {
             root         => undef,
             is_cpan_dist => 1,
-            share_dir    => $module_lib . "/auto/share/dist/$dist_name",
+            share_dir    => "$module_lib/auto/share/dist/$dist_name",
             module       => P->perl->module( $module_name, $module_lib ),
         } );
     }
-    elsif ( $self->dir_is_dist_root("$module_lib/../") ) {
+    elsif ( $self->dir_is_dist_root("$module_lib/..") ) {
         my $root = P->path1("$module_lib/..");
 
         # module is a dist
         return $self->$orig( {
             root         => $root,
             is_cpan_dist => 0,
-            share_dir    => $root . '/share',
+            share_dir    => "$root/share",
             module       => P->perl->module( $module_name, $module_lib ),
         } );
     }
