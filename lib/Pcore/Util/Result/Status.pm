@@ -11,10 +11,9 @@ use overload
   '@{}' => sub { [ $_[0]->{status}, $_[0]->{reason} ] },
   fallback => undef;
 
-has status => ( is => 'ro', isa => PositiveOrZeroInt, required => 1 );
-has reason => ( is => 'ro', isa => Str, required => 1 );
-
-has status_reason => ( is => 'ro', isa => Maybe [HashRef] );
+has status => ( required => 1 );
+has reason => ( required => 1 );
+has status_reason => ();    # HashRef
 
 # http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
 const our $STATUS_REASON => {

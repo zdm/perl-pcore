@@ -19,8 +19,6 @@ requires 'Sort::Naturally';
 
 # OOP
 requires 'Class::XSAccessor';
-requires 'Type::Tiny';
-requires 'Type::Tiny::XS';
 
 # AnyEvent
 requires 'EV',              v4.22.0;

@@ -18,9 +18,6 @@ has share         => ( init_arg => undef );                        # InstanceOf 
 has user_cfg_path => ( is       => 'lazy', init_arg => undef );
 has user_cfg      => ( is       => 'lazy', init_arg => undef );    # $HOME/.pcore/pcore.ini config
 
-# TODO dies, if InstanceOf removed
-my $c = InstanceOf [''];
-
 has PCORE_SHARE_DIR => ();
 has SYS_USER_DIR    => ();                                         # OS user profile dir
 has PCORE_USER_DIR  => ();                                         # SYS_USER_DIR/.pcore, pcore profile dir
@@ -442,18 +439,18 @@ sub DESTROY ( $self ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 210                  | * Subroutine "BUILD1" with high complexity score (23)                                                          |
-## |      | 354                  | * Subroutine "DESTROY" with high complexity score (22)                                                         |
+## |      | 207                  | * Subroutine "BUILD1" with high complexity score (23)                                                          |
+## |      | 351                  | * Subroutine "DESTROY" with high complexity score (22)                                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 363                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 360                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 401                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 398                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 22, 189, 194         | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 186, 191             | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 428                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
+## |    2 | 425                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 120                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 117                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

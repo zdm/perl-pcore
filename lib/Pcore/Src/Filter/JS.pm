@@ -13,32 +13,32 @@ sub decompress ( $self, % ) {
         splice @_, 1,
     );
 
-    return 0 if !length $self->buffer->$*;
+    return 0 if !length $self->{buffer}->$*;
 
     return 0 if $self->has_kolon;
 
     if ( 0 && $self->{file}->{path}->mime_type eq 'application/json' ) {
-        my $json = P->data->from_json( $self->buffer );
+        my $json = P->data->from_json( $self->{buffer} );
 
-        $self->buffer->$* = P->data->to_json( $json, readable => 1 )->$*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+        $self->{buffer}->$* = P->data->to_json( $json, readable => 1 )->$*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
     }
     else {
         my $js_beautify_args = $self->dist_cfg->{JS_BEAUTIFY} || $self->src_cfg->{JS_BEAUTIFY};
 
         my $temp = P->file->tempfile;
 
-        syswrite $temp, $self->buffer->$* or die;
+        syswrite $temp, $self->{buffer}->$* or die;
 
         my $proc = P->sys->run_proc( qq[js-beautify $js_beautify_args --replace "$temp"], win32_create_no_window => 1 )->wait;
 
-        $self->buffer->$* = P->file->read_bin( $temp->path )->$*;            ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+        $self->{buffer}->$* = P->file->read_bin( $temp->path )->$*;            ## no critic qw[Variables::RequireLocalizedPunctuationVars]
     }
 
     my $log;
 
     my $jshint_output;
 
-    if ( $args{js_hint} && length $self->buffer->$* ) {
+    if ( $args{js_hint} && length $self->{buffer}->$* ) {
         $jshint_output = $self->run_js_hint;
 
         if ( $jshint_output->{data}->@* ) {
@@ -64,9 +64,9 @@ sub decompress ( $self, % ) {
 
 sub compress ($self) {
     if ( 0 && $self->{file}->{path}->mime_type eq 'application/json' ) {
-        my $json = P->data->from_json( $self->buffer );
+        my $json = P->data->from_json( $self->{buffer} );
 
-        $self->buffer->$* = P->data->to_json( $json, readable => 0 )->$*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+        $self->{buffer}->$* = P->data->to_json( $json, readable => 0 )->$*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
     }
     else {
         state $init = !!require JavaScript::Packer;
@@ -90,9 +90,9 @@ sub obfuscate ($self) {
 }
 
 sub cut_log ($self) {
-    $self->buffer->$* =~ s[/[*] -----SOURCE FILTER LOG BEGIN-----.*-----SOURCE FILTER LOG END----- [*]/\n*][]sm;
+    $self->{buffer}->$* =~ s[/[*] -----SOURCE FILTER LOG BEGIN-----.*-----SOURCE FILTER LOG END----- [*]/\n*][]sm;
 
-    rcut_all $self->buffer->$*;
+    rcut_all $self->{buffer}->$*;
 
     return;
 }
@@ -103,11 +103,11 @@ sub _append_log ( $self, $log ) {
     if ($log) {
         encode_utf8 $log;
 
-        $self->buffer->$* .= qq[\n/* -----SOURCE FILTER LOG BEGIN-----\n *\n];
+        $self->{buffer}->$* .= qq[\n/* -----SOURCE FILTER LOG BEGIN-----\n *\n];
 
-        $self->buffer->$* .= $log;
+        $self->{buffer}->$* .= $log;
 
-        $self->buffer->$* .= qq[ *\n * -----SOURCE FILTER LOG END----- */];
+        $self->{buffer}->$* .= qq[ *\n * -----SOURCE FILTER LOG END----- */];
     }
 
     return;
@@ -120,7 +120,7 @@ sub run_js_hint ($self) {
 
     my $in_temp = P->file->tempfile;
 
-    syswrite $in_temp, $self->buffer->$* or die;
+    syswrite $in_temp, $self->{buffer}->$* or die;
 
     my $out_temp = $ENV->{TEMP_DIR} . 'tmp-jshint-' . int rand 99_999;
 

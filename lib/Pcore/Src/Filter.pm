@@ -2,42 +2,24 @@ package Pcore::Src::Filter;
 
 use Pcore -role;
 
-has file      => ( is => 'ro',   isa => InstanceOf ['Pcore::Src::File'], required => 1, weak_ref => 1 );
-has buffer    => ( is => 'ro',   isa => ScalarRef,                       required => 1 );
-has has_kolon => ( is => 'lazy', isa => Bool,                            init_arg => undef );
+has file      => ( required => 1 );                           # InstanceOf ['Pcore::Src::File'], weaken
+has buffer    => ( required => 1 );                           # ScalarRef
+has has_kolon => ( is       => 'lazy', init_arg => undef );
 
-sub src_cfg ($self) {
-    return Pcore::Src::File->cfg;
-}
+sub src_cfg ($self) { return Pcore::Src::File->cfg }
 
-sub dist_cfg ($self) {
-    return $self->file->dist_cfg;
-}
+sub dist_cfg ($self) { return $self->{file}->dist_cfg }
 
-sub decompress {
-    my $self = shift;
+sub decompress ($self) { return 0 }
 
-    return 0;
-}
+sub compress ($self) { return 0 }
 
-sub compress {
-    my $self = shift;
+sub obfuscate ($self) { return 0 }
 
-    return 0;
-}
+sub _build_has_kolon ($self) {
+    return 1 if $self->{buffer}->$* =~ /<: /sm;
 
-sub obfuscate {
-    my $self = shift;
-
-    return 0;
-}
-
-sub _build_has_kolon {
-    my $self = shift;
-
-    return 1 if $self->buffer->$* =~ /<: /sm;
-
-    return 1 if $self->buffer->$* =~ /^: /sm;
+    return 1 if $self->{buffer}->$* =~ /^: /sm;
 
     return 0;
 }

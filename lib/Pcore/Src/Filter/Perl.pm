@@ -39,19 +39,19 @@ sub decompress ( $self, % ) {
 
     # temporary conver source to the utf8
     # https://rt.cpan.org/Public/Bug/Display.html?id=32905
-    decode_utf8 $self->buffer->$*;
+    decode_utf8 $self->{buffer}->$*;
 
     Perl::Tidy::perltidy(
-        source      => $self->buffer,
-        destination => $self->buffer,
+        source      => $self->{buffer},
+        destination => $self->{buffer},
         stderr      => \$err,
         errorfile   => \$err,
-        logfile     => \$log,            # for verbose output only
+        logfile     => \$log,             # for verbose output only
         argv        => $perltidy_argv,
     );
 
     # convert source back to raw
-    encode_utf8 $self->buffer->$*;
+    encode_utf8 $self->{buffer}->$*;
 
     my $error_log;
 
@@ -65,7 +65,7 @@ sub decompress ( $self, % ) {
     elsif ( my $perl_critic_profile_name = $self->_get_perlcritic_profile_name( $args{perl_critic} ) ) {    # run perlcritic ONLY if no perltidy errors detected
         state $init1 = !!require Perl::Critic;
 
-        my @violations = eval { $self->_get_perlcritic_object($perl_critic_profile_name)->critique( $self->buffer ) };
+        my @violations = eval { $self->_get_perlcritic_object($perl_critic_profile_name)->critique( $self->{buffer} ) };
 
         # perlcritic exception
         if ($@) {
@@ -206,11 +206,11 @@ sub compress ( $self, % ) {
     # cut __END__ or __DATA__ sections
     my $data_section = q[];
 
-    if ( $self->buffer->$* =~ s/(\n__(END|DATA)__(?:\n.*|))\z//sm ) {
+    if ( $self->{buffer}->$* =~ s/(\n__(END|DATA)__(?:\n.*|))\z//sm ) {
         $data_section = $1 if $args{perl_compress_end_section} || $2 eq 'DATA';
     }
 
-    my $md5 = P->digest->md5_hex( $self->buffer->$* );
+    my $md5 = P->digest->md5_hex( $self->{buffer}->$* );
 
     my $key;
 
@@ -228,7 +228,7 @@ sub compress ( $self, % ) {
 
             my $transform = Perl::Strip->new( optimise_size => $optimise_size, keep_nl => $args{perl_compress_keep_ln} );
 
-            $cache->{$key} = rcut_all $transform->strip( $self->buffer->$* );
+            $cache->{$key} = rcut_all $transform->strip( $self->{buffer}->$* );
         }
     }
     else {
@@ -245,11 +245,11 @@ sub compress ( $self, % ) {
                 strip_log      => 0,                               # strip Log::Any log statements
             );
 
-            $cache->{$key} = rcut_all $transform->strip( $self->buffer->$* );
+            $cache->{$key} = rcut_all $transform->strip( $self->{buffer}->$* );
         }
     }
 
-    $self->buffer->$* = $cache->{$key} . $data_section;            ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+    $self->{buffer}->$* = $cache->{$key} . $data_section;          ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     return 0;
 }
@@ -266,13 +266,13 @@ sub _append_log ( $self, $log ) {
 
         # insert log befor __END__ or __DATA__ token
         # or append to end end or src
-        if ( $self->buffer->$* =~ /^__(END|DATA)__$/sm ) {
+        if ( $self->{buffer}->$* =~ /^__(END|DATA)__$/sm ) {
             my $section = $1;
 
-            $self->buffer->$* =~ s/^__${section}__$/${log}__${section}__/sm;
+            $self->{buffer}->$* =~ s/^__${section}__$/${log}__${section}__/sm;
         }
         else {
-            $self->buffer->$* .= $LF . $log;
+            $self->{buffer}->$* .= $LF . $log;
         }
     }
 
@@ -286,7 +286,7 @@ sub _get_perlcritic_profile_name ( $self, $profile ) {
         for my $name ( keys $self->src_cfg->{PERLCRITIC}->%* ) {
             next if !exists $self->src_cfg->{PERLCRITIC}->{$name}->{__autodetect__};
 
-            if ( $self->src_cfg->{PERLCRITIC}->{$name}->{__autodetect__}->( $self->buffer->$* ) ) {
+            if ( $self->src_cfg->{PERLCRITIC}->{$name}->{__autodetect__}->( $self->{buffer}->$* ) ) {
                 $profile = $name;
 
                 last;
@@ -339,16 +339,16 @@ sub _get_perlcritic_object ( $self, $name ) {
 sub _format_heredoc ($self) {
 
     # TODO PCORE-72
-    # parse heredocs in $self->buffer
+    # parse heredocs in $self->{buffer}
     # call correspondednt formatters
 
     return;
 }
 
 sub cut_log ($self) {
-    $self->buffer->$* =~ s/^## -----SOURCE FILTER LOG BEGIN-----.*?## -----SOURCE FILTER LOG END-----\n?//sm;    ## no critic qw[RegularExpressions::ProhibitComplexRegexes]
+    $self->{buffer}->$* =~ s/^## -----SOURCE FILTER LOG BEGIN-----.*?## -----SOURCE FILTER LOG END-----\n?//sm;    ## no critic qw[RegularExpressions::ProhibitComplexRegexes]
 
-    rcut_all $self->buffer->$*;
+    rcut_all $self->{buffer}->$*;
 
     return;
 }

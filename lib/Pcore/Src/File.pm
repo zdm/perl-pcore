@@ -6,27 +6,27 @@ use Pcore::Util::Scalar qw[is_path];
 
 require Pcore::Src;
 
-has action => ( is => 'ro', isa => Enum [ $Pcore::Src::SRC_DECOMPRESS, $Pcore::Src::SRC_COMPRESS, $Pcore::Src::SRC_OBFUSCATE ], required => 1 );
-has path => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'], required => 1 );
-has is_realpath => ( is => 'lazy', isa => Bool );
-has in_buffer   => ( is => 'lazy', isa => ScalarRef );
-has decode      => ( is => 'ro',   isa => Bool, default => 0 );
-has dry_run     => ( is => 'ro',   isa => Bool, default => 0 );
-has filter_args => ( is => 'ro',   isa => HashRef );
+has action      => ( required => 1 );         # Enum [ $Pcore::Src::SRC_DECOMPRESS, $Pcore::Src::SRC_COMPRESS, $Pcore::Src::SRC_OBFUSCATE ]
+has path        => ( required => 1 );         # InstanceOf ['Pcore::Util::Path']
+has is_realpath => ( is       => 'lazy' );    # Bool
+has in_buffer   => ( is       => 'lazy' );    # ScalarRef
+has decode      => ();                        # Bool
+has dry_run     => ();                        # Bool
+has filter_args => ();                        # HashRef
 
-has out_buffer  => ( is => 'lazy', isa => ScalarRef, init_arg => undef );
-has is_binary   => ( is => 'lazy', isa => Bool,      init_arg => undef );
-has was_changed => ( is => 'lazy', isa => Bool,      init_arg => undef );
-has severity    => ( is => 'rw',   isa => Int,       default  => 0, init_arg => undef );
-has severity_range => ( is => 'lazy', isa => Enum [ keys Pcore::Src::File->cfg->{SEVERITY_RANGE}->%* ], init_arg => undef );
+has out_buffer  => ( is => 'lazy', init_arg => undef );    # ScalarRef
+has is_binary   => ( is => 'lazy', init_arg => undef );    # Bool
+has was_changed => ( is => 'lazy', init_arg => undef );    # Bool
+has severity => ( 0, init_arg => undef );                  # Int
+has severity_range => ( is => 'lazy', init_arg => undef ); # Enum [ keys Pcore::Src::File->cfg->{SEVERITY_RANGE}->%* ]
 
-has _can_write => ( is => 'rw',   isa => Bool, default  => 0, init_arg => undef );
-has _in_size   => ( is => 'lazy', isa => Int,  init_arg => undef );
-has _in_md5    => ( is => 'lazy', isa => Str,  init_arg => undef );
-has _out_size  => ( is => 'lazy', isa => Int,  init_arg => undef );
-has _out_md5   => ( is => 'lazy', isa => Str,  init_arg => undef );
+has _can_write => ( init_arg => undef );
+has _in_size   => ( is       => 'lazy', init_arg => undef );
+has _in_md5    => ( is       => 'lazy', init_arg => undef );
+has _out_size  => ( is       => 'lazy', init_arg => undef );
+has _out_md5   => ( is       => 'lazy', init_arg => undef );
 
-has dist_cfg => ( is => 'lazy', isa => HashRef, init_arg => undef );
+has dist_cfg => ( is => 'lazy', init_arg => undef );
 
 # CLASS METHODS
 sub cfg ($self) {
@@ -53,7 +53,7 @@ sub BUILDARGS ( $self, $args ) {
 
 # METHODS
 sub _build_is_realpath ($self) {
-    return $self->path->to_realpath ? 1 : 0;
+    return $self->{path}->to_realpath ? 1 : 0;
 }
 
 sub _build_dist_cfg ($self) {
@@ -63,7 +63,7 @@ sub _build_dist_cfg ($self) {
 
     state $dists = {};
 
-    my $realpath = $self->is_realpath ? $self->path->to_abs : 0;
+    my $realpath = $self->is_realpath ? $self->{path}->to_abs : 0;
 
     if ($realpath) {
         my $dirname = $realpath->{dirname};
@@ -97,15 +97,15 @@ sub _build_in_buffer ($self) {
     my $res;
 
     eval {
-        $res = P->file->read_bin( $self->path );
+        $res = P->file->read_bin( $self->{path} );
 
-        $self->_can_write(1);
+        $self->{_can_write} = 1;
     };
 
     if ($@) {
-        $self->severity( Pcore::Src::File->cfg->{SEVERITY}->{OPEN} );
+        $self->{severity} = Pcore::Src::File->cfg->{SEVERITY}->{OPEN};
 
-        $self->_can_write(0);
+        $self->{_can_write} = 0;
 
         $res = \q[];
     }
@@ -153,7 +153,7 @@ sub _build_out_buffer ($self) {
     else {
         # check if buffer is binary
         if ( $self->is_binary ) {
-            $self->severity( Pcore::Src::File->cfg->{SEVERITY}->{BINARY} );
+            $self->{severity} = Pcore::Src::File->cfg->{SEVERITY}->{BINARY};
 
             return $self->in_buffer;
         }
@@ -162,10 +162,10 @@ sub _build_out_buffer ($self) {
         $buffer = $self->in_buffer->$*;
 
         # return, if has reading errors
-        return $self->in_buffer if $self->severity;
+        return $self->in_buffer if $self->{severity};
     }
 
-    if ( $self->decode ) {
+    if ( $self->{decode} ) {
         state $init = !!require Encode::Guess;
 
         # detect buffer encoding
@@ -175,7 +175,7 @@ sub _build_out_buffer ($self) {
 
         # appropriate encoding wasn't found
         unless ( ref $decoder ) {
-            $self->severity( Pcore::Src::File->cfg->{SEVERITY}->{ENCODING} );
+            $self->{severity} = Pcore::Src::File->cfg->{SEVERITY}->{ENCODING};
 
             return $self->in_buffer;
         }
@@ -184,7 +184,7 @@ sub _build_out_buffer ($self) {
         eval { $buffer = $decoder->decode( $buffer, Encode::FB_CROAK ) };
 
         if ($@) {
-            $self->severity( Pcore::Src::File->cfg->{SEVERITY}->{ENCODING} );
+            $self->{severity} = Pcore::Src::File->cfg->{SEVERITY}->{ENCODING};
 
             return $self->in_buffer;
         }
@@ -195,17 +195,17 @@ sub _build_out_buffer ($self) {
     }
 
     # detect filetype, require and run filter
-    if ( my $type = $self->detect_filetype( $self->path, \$buffer ) ) {
-        my $method = $self->action;
+    if ( my $type = $self->detect_filetype( $self->{path}, \$buffer ) ) {
+        my $method = $self->{action};
 
         my $filter_args = $type->{filter_args} // {};
 
-        P->hash->merge( $filter_args, $self->filter_args ) if $self->filter_args;
+        P->hash->merge( $filter_args, $self->{filter_args} ) if $self->{filter_args};
 
-        $self->severity( P->class->load( $type->{type}, ns => 'Pcore::Src::Filter' )->new( { file => $self, buffer => \$buffer } )->$method( $filter_args->%* ) );
+        $self->{severity} = P->class->load( $type->{type}, ns => 'Pcore::Src::Filter' )->new( { file => $self, buffer => \$buffer } )->$method( $filter_args->%* );
     }
 
-    if ( $self->action eq 'decompress' ) {
+    if ( $self->{action} eq 'decompress' ) {
 
         # clean buffer
         decode_eol $buffer;    # decode CRLF to internal \n representation
@@ -226,7 +226,7 @@ sub _build_out_buffer ($self) {
 
 sub _build_severity_range ($self) {
     for my $range ( reverse sort { Pcore::Src::File->cfg->{SEVERITY_RANGE}->{$a} <=> Pcore::Src::File->cfg->{SEVERITY_RANGE}->{$b} } keys Pcore::Src::File->cfg->{SEVERITY_RANGE}->%* ) {
-        if ( $self->severity >= Pcore::Src::File->cfg->{SEVERITY_RANGE}->{$range} ) {
+        if ( $self->{severity} >= Pcore::Src::File->cfg->{SEVERITY_RANGE}->{$range} ) {
             return $range;
         }
     }
@@ -242,12 +242,12 @@ sub run ($self) {
     $self->out_buffer;
 
     # write file, if it was physically read from disk
-    if ( $self->_can_write && !$self->dry_run && $self->was_changed ) {
+    if ( $self->{_can_write} && !$self->{dry_run} && $self->was_changed ) {
 
         # remove READ-ONLY attr under windows
-        chmod 0777, $self->path or 1 if $MSWIN;
+        chmod 0777, $self->{path} or 1 if $MSWIN;
 
-        P->file->write_bin( $self->path, $self->out_buffer );
+        P->file->write_bin( $self->{path}, $self->out_buffer );
     }
 
     return $self;

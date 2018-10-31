@@ -20,7 +20,6 @@ our $EXPORT_PRAGMA = {
     res      => undef,    # export Pcore::Util::Result qw[res]
     role     => undef,    # package is a Moo role
     sql      => undef,    # export Pcore::Handle::DBI::Const qw[:TYPES]
-    types    => undef,    # export types
 };
 
 our $EMBEDDED    = 0;       # Pcore::Core used in embedded mode
@@ -134,37 +133,7 @@ sub import {
                 Pcore::Core::OOP::Role->import($caller);
             }
         }
-
-        # export types
-        _import_types($caller) if $import->{pragma}->{types};
     }
-
-    return;
-}
-
-sub _import_types ($caller) {
-    state $init = do {
-        local $ENV{PERL_TYPES_STANDARD_STRICTNUM} = 0;    # 0 - Num = LaxNum, 1 - Num = StrictNum
-
-        require Pcore::Core::Types;
-        require Types::TypeTiny;
-        require Types::Standard;
-        require Types::Common::Numeric;
-
-        # require Types::Common::String;
-        # require Types::Encodings();
-        # require Types::XSD::Lite();
-
-        1;
-    };
-
-    Types::TypeTiny->import( { into => $caller }, qw[StringLike HashLike ArrayLike CodeLike TypeTiny] );
-
-    Types::Standard->import( { into => $caller }, ':types' );
-
-    Types::Common::Numeric->import( { into => $caller }, ':types' );
-
-    Pcore::Core::Types->import( { into => $caller }, ':types' );
 
     return;
 }
@@ -451,15 +420,15 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 65                   | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 64                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 191, 220, 223, 227,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 259, 262, 267, 270,  |                                                                                                                |
-## |      | 297, 428             |                                                                                                                |
+## |    3 | 160, 189, 192, 196,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 228, 231, 236, 239,  |                                                                                                                |
+## |      | 266, 397             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 278                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
+## |    3 | 247                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 195                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 164                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

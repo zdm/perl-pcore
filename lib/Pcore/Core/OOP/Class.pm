@@ -6,6 +6,7 @@ use Class::XSAccessor qw[];
 use Package::Stash::XS qw[];
 use Sub::Util qw[];       ## no critic qw[Modules::ProhibitEvilModules]
 use Data::Dumper qw[];    ## no critic qw[Modules::ProhibitEvilModules]
+use mro qw[];
 
 our %REG;
 
@@ -437,12 +438,12 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 157, 237, 250, 264,  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 286, 430             |                                                                                                                |
+## |    3 | 158, 238, 251, 265,  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 287, 431             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 164                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (24)             |
+## |    3 | 165                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (24)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 164                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 165                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

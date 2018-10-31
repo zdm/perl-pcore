@@ -13,24 +13,19 @@ const our $SRC_COMMIT     => 'commit';
 
 require Pcore::Src::File;
 
-has action => ( is => 'ro', isa => Enum [ $SRC_DECOMPRESS, $SRC_COMPRESS, $SRC_OBFUSCATE, $SRC_COMMIT ], required => 1 );
-has path => ( is => 'ro', isa => Maybe [Str] );
+has action => ( required => 1 );    # Enum [ $SRC_DECOMPRESS, $SRC_COMPRESS, $SRC_OBFUSCATE, $SRC_COMMIT ]
+has path => ();                     # Maybe [Str]
 
-# mandatory, if source path is idr
-has type => ( is => 'ro', isa => Enum [ map { lc $_->{type} } Pcore::Src::File->cfg->{FILE_TYPE}->@* ] );
+has type        => ();              # Enum [ map { lc $_->{type} } Pcore::Src::File->cfg->{FILE_TYPE}->@* ], mandatory, if source path is dir
+has filename    => ();              # Str, mandatory, if source is stdin
+has stdin_files => (0);             # read list of filenames from stdin
 
-# mandatory, if source is stdin
-has filename => ( is => 'ro', isa => Str );
+has dry_run     => ();              # Bool
+has interactive => ();              # Bool, print report to STDOUT
+has no_critic   => ();              # Bool, skip Perl::Critic filter
 
-# read list of filenames from stdin
-has stdin_files => ( is => 'ro', isa => Bool, default => 0 );
-
-has dry_run     => ( is => 'ro', isa => Bool, default => 0 );
-has interactive => ( is => 'rw', isa => Bool, default => 0 );    # print report to STDOUT
-has no_critic   => ( is => 'ro', isa => Bool, default => 0 );    # skip Perl::Critic filter
-
-has exit_code => ( is => 'rw', isa => Int, default => 0, init_arg => undef );
-has _total_report => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
+has exit_code => ( 0, init_arg => undef );
+has _total_report => ( init_arg => undef );    # HashRef
 
 # CLI
 sub CLI ($self) {
@@ -134,27 +129,27 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 
 # RUN
 sub run ($self) {
-    if ( $self->action eq 'commit' ) {
+    if ( $self->{action} eq 'commit' ) {
         $self->{action} = 'decompress';
 
         $self->{type} = 'perl';
     }
 
-    if ( !$self->path ) {    # STDIN mode
-        if ( $self->stdin_files ) {
+    if ( !defined $self->{path} ) {    # STDIN mode
+        if ( $self->{stdin_files} ) {
             $self->_source_stdin_files;
         }
         else {
-            $self->_throw_error(q["filename" is mandatory when source is STDIN]) if !$self->filename;
+            $self->_throw_error(q["filename" is mandatory when source is STDIN]) if !$self->{filename};
 
             $self->_source_stdin;
         }
     }
     else {
-        $self->_throw_error(q["path" should be readable]) if !-e $self->path;
+        $self->_throw_error(q["path" should be readable]) if !-e $self->{path};
 
-        if ( -d $self->path ) {    # directory mode
-            $self->_throw_error(q["type" is required when path is directory]) if !$self->type;
+        if ( -d $self->{path} ) {    # directory mode
+            $self->_throw_error(q["type" is required when path is directory]) if !$self->{type};
 
             $self->_source_dir;
         }
@@ -163,7 +158,7 @@ sub run ($self) {
         }
     }
 
-    return $self->exit_code;
+    return $self->{exit_code};
 }
 
 sub _source_stdin_files ($self) {
@@ -177,7 +172,7 @@ sub _source_stdin_files ($self) {
 
         my $type = Pcore::Src::File->detect_filetype($path);
 
-        next if !$type || lc $type->{type} ne $self->type;    # skip file, if file type isn't supported
+        next if !$type || lc $type->{type} ne $self->{type};    # skip file, if file type isn't supported
 
         push @paths_to_process, $path;
     }
@@ -185,10 +180,10 @@ sub _source_stdin_files ($self) {
     # process files
     $self->_process_files(
         \@paths_to_process,
-        {   action      => $self->action,
+        {   action      => $self->{action},
             is_realpath => 1,
-            dry_run     => $self->dry_run,
-            filter_args => { $self->no_critic ? ( perl_critic => 0 ) : () },
+            dry_run     => $self->{dry_run},
+            filter_args => { $self->{no_critic} ? ( perl_critic => 0 ) : () },
         }
     );
 
@@ -196,25 +191,25 @@ sub _source_stdin_files ($self) {
 }
 
 sub _source_stdin ($self) {
-    $self->interactive(0);
+    $self->{interactive} = 0;
 
     # read STDIN
     my $in_buffer = P->file->read_bin(*STDIN);
 
-    my $path = ref $self->filename ? $self->filename : P->path( $self->filename );
+    my $path = is_path $self->{filename} ? $self->{filename} : P->path( $self->{filename} );
 
     my $res = Pcore::Src::File->new( {
-        action      => $self->action,
+        action      => $self->{action},
         path        => $path->encoded,
         is_realpath => 0,
         in_buffer   => $in_buffer,
-        dry_run     => $self->dry_run,
+        dry_run     => $self->{dry_run},
     } )->run;
 
     $self->_set_exit_code( $res->severity_range_is('ERROR') ? Pcore::Src::File->cfg->{EXIT_CODES}->{SOURCE_ERROR} : Pcore::Src::File->cfg->{EXIT_CODES}->{SOURCE_VALID} );
 
     # write STDOUT
-    print $res->out_buffer->$*;
+    print $res->{out_buffer}->$*;
 
     return;
 }
@@ -224,10 +219,10 @@ sub _source_dir ($self) {
     # index files, calculate max_path_len
     my @paths_to_process;
 
-    for my $path ( ( P->path( $self->path )->read_dir( max_depth => 0, is_dir => 0 ) // [] )->@* ) {
+    for my $path ( ( P->path( $self->{path} )->read_dir( max_depth => 0, is_dir => 0 ) // [] )->@* ) {
         my $type = Pcore::Src::File->detect_filetype($path);
 
-        next if !$type || lc $type->{type} ne $self->type;    # skip file, if file type isn't supported
+        next if !$type || lc $type->{type} ne $self->{type};    # skip file, if file type isn't supported
 
         push @paths_to_process, $path;
     }
@@ -235,9 +230,9 @@ sub _source_dir ($self) {
     # process indexed files
     $self->_process_files(
         \@paths_to_process,
-        {   action      => $self->action,
+        {   action      => $self->{action},
             is_realpath => 1,
-            dry_run     => $self->dry_run,
+            dry_run     => $self->{dry_run},
         }
     );
 
@@ -246,10 +241,10 @@ sub _source_dir ($self) {
 
 sub _source_file ($self) {
     $self->_process_files(
-        [ $self->path ],
-        {   action      => $self->action,
+        [ $self->{path} ],
+        {   action      => $self->{action},
             is_realpath => 1,
-            dry_run     => $self->dry_run,
+            dry_run     => $self->{dry_run},
         }
     );
 
@@ -293,10 +288,10 @@ sub _process_files ( $self, $paths, $args ) {
 
         $self->_set_exit_code( $res->severity_range_is('ERROR') ? Pcore::Src::File->cfg->{EXIT_CODES}->{SOURCE_ERROR} : Pcore::Src::File->cfg->{EXIT_CODES}->{SOURCE_VALID} );
 
-        $self->_report_file( $res, $report_path, $max_len ) if $self->interactive;
+        $self->_report_file( $res, $report_path, $max_len ) if $self->{interactive};
     }
 
-    $self->_report_total if $self->interactive;
+    $self->_report_total if $self->{interactive};
 
     return;
 }
@@ -333,7 +328,7 @@ sub _report_file ( $self, $res, $report_path, $max_path_len ) {
         print $self->{tbl}->render_header;
     }
 
-    $self->_total_report->{changed_files}++ if $res->was_changed;
+    $self->{_total_report}->{changed_files}++ if $res->was_changed;
 
     my @row;
 
@@ -346,22 +341,22 @@ sub _report_file ( $self, $res, $report_path, $max_path_len ) {
     state $reversed_severity = { reverse Pcore::Src::File->cfg->{SEVERITY}->%* };
 
     if ( $res->severity_range_is('ERROR') ) {
-        $self->_total_report->{severity_range}->{error}++;
+        $self->{_total_report}->{severity_range}->{error}++;
 
         $severity = $BOLD . $WHITE . $ON_RED;
     }
     elsif ( $res->severity_range_is('WARNING') ) {
-        $self->_total_report->{severity_range}->{warning}++;
+        $self->{_total_report}->{severity_range}->{warning}++;
 
         $severity = $YELLOW;
     }
     else {
-        $self->_total_report->{severity_range}->{valid}++;
+        $self->{_total_report}->{severity_range}->{valid}++;
 
         $severity = $BOLD . $GREEN;
     }
 
-    $severity .= q[ ] . $res->severity_range . q[: ] . $res->severity . q[ - ] . $reversed_severity->{ $res->severity } . q[ ] . $RESET;
+    $severity .= ' ' . $res->severity_range . ": $res->{severity} - $reversed_severity->{ $res->{severity} } " . $RESET;
 
     push @row, $severity;
 
@@ -409,10 +404,10 @@ sub _report_total ($self) {
 
     print $tbl->render_header;
 
-    print $tbl->render_row( [ $BOLD . $GREEN . 'VALID' . $RESET, $BOLD . $GREEN . ( $self->_total_report->{severity_range}->{valid} // 0 ) . $RESET ] );
-    print $tbl->render_row( [ $YELLOW . 'WARNING' . $RESET, $YELLOW . ( $self->_total_report->{severity_range}->{warning} // 0 ) . $RESET ] );
-    print $tbl->render_row( [ $BOLD . $RED . 'ERROR' . $RESET, $BOLD . $RED . ( $self->_total_report->{severity_range}->{error} // 0 ) . $RESET ] );
-    print $tbl->render_row( [ 'Modified', $self->_total_report->{changed_files} // 0 ] );
+    print $tbl->render_row( [ $BOLD . $GREEN . 'VALID' . $RESET, $BOLD . $GREEN . ( $self->{_total_report}->{severity_range}->{valid} // 0 ) . $RESET ] );
+    print $tbl->render_row( [ $YELLOW . 'WARNING' . $RESET, $YELLOW . ( $self->{_total_report}->{severity_range}->{warning} // 0 ) . $RESET ] );
+    print $tbl->render_row( [ $BOLD . $RED . 'ERROR' . $RESET, $BOLD . $RED . ( $self->{_total_report}->{severity_range}->{error} // 0 ) . $RESET ] );
+    print $tbl->render_row( [ 'Modified', $self->{_total_report}->{changed_files} // 0 ] );
 
     print $tbl->finish;
 
@@ -424,9 +419,9 @@ sub _throw_error ( $self, $msg = 'Unknown error' ) {
 }
 
 sub _set_exit_code ( $self, $exit_code ) {
-    $self->exit_code($exit_code) if $exit_code > $self->exit_code;
+    $self->{exit_code} = $exit_code if $exit_code > $self->{exit_code};
 
-    return $self->exit_code;
+    return $self->{exit_code};
 }
 
 1;
@@ -436,9 +431,11 @@ sub _set_exit_code ( $self, $exit_code ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 304                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 299                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 276                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 271                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 359                  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
