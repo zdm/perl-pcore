@@ -2,6 +2,7 @@ package Pcore::Src::File;
 
 use Pcore -class;
 use Pcore::Util::Text qw[encode_utf8 decode_eol lcut_all rcut_all rtrim_multi remove_bom];
+use Pcore::Util::Scalar qw[is_path];
 
 require Pcore::Src;
 
@@ -35,7 +36,7 @@ sub cfg ($self) {
 }
 
 sub detect_filetype ( $self, $path, $buf_ref = undef ) {
-    $path = P->path($path);
+    $path = P->path1($path);
 
     if ( my $mime_type = $path->mime_type( $buf_ref // 1 ) ) {
         return Pcore::Src::File->cfg->{MIME_TYPE}->{$mime_type} if exists Pcore::Src::File->cfg->{MIME_TYPE}->{$mime_type};
@@ -45,7 +46,7 @@ sub detect_filetype ( $self, $path, $buf_ref = undef ) {
 }
 
 sub BUILDARGS ( $self, $args ) {
-    $args->{path} = P->path( $args->{path} ) if !ref $args->{path};
+    $args->{path} = P->path1( $args->{path} ) if !is_path $args->{path};
 
     return $args;
 }

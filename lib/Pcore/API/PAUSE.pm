@@ -16,7 +16,7 @@ sub _build__auth_header ($self) {
 sub upload ( $self, $path, $cb = undef ) {
     my $body;
 
-    $path = P->path($path);
+    $path = P->path1($path);
 
     my $boundary = P->random->bytes_hex(64);
 

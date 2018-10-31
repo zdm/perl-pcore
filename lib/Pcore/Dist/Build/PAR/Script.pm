@@ -220,7 +220,7 @@ sub _add_modules ($self) {
 sub _add_shlib ($self) {
     die q[Currently on MSWIN platform is supported] if !$MSWIN;
 
-    state $system_root = P->path( $ENV{SYSTEMROOT}, is_dir => 1 )->realpath;
+    state $system_root = P->path1( $ENV{SYSTEMROOT} )->to_abs;
 
     state $is_system_lib = sub ($path) {
         return $path =~ m[^\Q$system_root\E]smi ? 1 : 0;
@@ -278,7 +278,7 @@ sub _add_shlib ($self) {
 
     delete $dso->@{ keys $perl_dso->%* };
 
-    my $perl_path = P->path($^X);
+    my $perl_path = P->path1($^X);
 
     $dso->{ $perl_path->filename } = "$perl_path";
 
@@ -373,7 +373,7 @@ sub _add_perl_source ( $self, $source, $target, $is_cpan_module = 0, $module = u
         my $crypt = 1;
 
         # do not crypt modules, that belongs to the CPAN distribution
-        if ( !$is_cpan_module && ( my $dist = Pcore::Dist->new( P->path($source)->dirname ) ) ) {
+        if ( !$is_cpan_module && ( my $dist = Pcore::Dist->new( P->path1($source)->{dirname} ) ) ) {
             $crypt = 0 if $dist->cfg->{cpan};
         }
 

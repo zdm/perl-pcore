@@ -317,17 +317,17 @@ PERL
 
     $res->{dist_root} = $res->{temp}->path;
 
-    $res->{dist_lib} = P->path( "$res->{dist_root}/$args->{prefix}lib/", is_dir => 1 )->to_string;
+    $res->{dist_lib} = P->path1("$res->{dist_root}/$args->{prefix}lib/");
 
-    $res->{dist_module_path} = P->path("$res->{dist_root}/$args->{prefix}lib/$res->{module_name}")->to_string;
+    $res->{dist_module_path} = P->path1("$res->{dist_root}/$args->{prefix}lib/$res->{module_name}");
 
-    $res->{dist_share_dir} = P->path( "$res->{dist_root}/$args->{prefix}share/", is_dir => 1 )->to_string if $args->{dist_share_dir};
+    $res->{dist_share_dir} = P->path1("$res->{dist_root}/$args->{prefix}share/")->to_abs if $args->{dist_share_dir};
 
-    $res->{cpan_lib} = P->path( "$res->{dist_root}/$args->{prefix}$args->{cpan_lib}", is_dir => 1 )->to_string if $args->{cpan_lib};
+    $res->{cpan_lib} = P->path1("$res->{dist_root}/$args->{prefix}$args->{cpan_lib}") if $args->{cpan_lib};
 
-    $res->{cpan_module_path} = P->path("$res->{dist_root}/$args->{prefix}$args->{cpan_lib}/$res->{module_name}")->to_string if $args->{cpan_lib};
+    $res->{cpan_module_path} = P->path1("$res->{dist_root}/$args->{prefix}$args->{cpan_lib}/$res->{module_name}") if $args->{cpan_lib};
 
-    $res->{cpan_share_dir} = P->path( "$res->{dist_root}/$args->{prefix}$args->{cpan_lib}/auto/share/dist/$dist_name/", is_dir => 1 )->to_string if $args->{cpan_share_dir};
+    $res->{cpan_share_dir} = P->path1("$res->{dist_root}/$args->{prefix}$args->{cpan_lib}/auto/share/dist/$dist_name/") if $args->{cpan_share_dir};
 
     return $res;
 }

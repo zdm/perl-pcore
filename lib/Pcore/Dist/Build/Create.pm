@@ -29,7 +29,7 @@ sub BUILDARGS ( $self, $args ) {
 }
 
 sub _build_target_path ($self) {
-    return P->path( $self->base_path, is_dir => 1 )->realpath->to_string . lc $self->{dist_name};
+    return P->path1( $self->base_path )->to_abs . '/' . lc $self->{dist_name};
 }
 
 sub _build_tmpl_params ($self) {

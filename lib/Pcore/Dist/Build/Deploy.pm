@@ -42,7 +42,7 @@ sub _chmod ($self) {
 
     if ( !$MSWIN ) {
         for my $path ( ( P->path1('.')->read_dir( max_depth => 0 ) // [] )->@* ) {
-            $path = P->path($path);
+            $path = P->path1($path);
 
             # directory
             if ( -d $path ) {
@@ -125,11 +125,11 @@ sub _install ($self) {
         return;
     }
 
-    my $canon_dist_root = P->path( $self->dist->root )->canonpath;
+    my $canon_dist_root = P->path1( $self->dist->{root} );
 
     my $canon_bin_dir = "$canon_dist_root/bin";
 
-    my $pcore_lib_dir_canon = P->path("$canon_dist_root/../")->realpath->canonpath;
+    my $pcore_lib_dir_canon = P->path1("$canon_dist_root/../")->to_abs;
 
     if ($MSWIN) {
         if ( $self->dist->is_pcore ) {
@@ -152,7 +152,7 @@ sub _install ($self) {
             my @system_path;
 
             for my $path ( grep { $_ && !/\A\h+\z/sm } split /$Config{path_sep}/sm, Win32::TieRegistry->new('LMachine\SYSTEM\CurrentControlSet\Control\Session Manager\Environment')->GetValue('PATH') ) {
-                my $normal_path = P->path( $path, is_dir => 1 );
+                my $normal_path = P->path1( $path );
 
                 push @system_path, $path if $normal_path !~ m[\A\Q$canon_bin_dir\E/\z]sm;
             }

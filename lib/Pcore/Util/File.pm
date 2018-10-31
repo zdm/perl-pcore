@@ -7,12 +7,12 @@ use Cwd qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Config;
 
 sub cat_path {
-    return P->path( join q[/], splice @_, 1 );
+    return P->path1( join '/', splice @_, 1 );
 }
 
 # return cwd, symlinks are resolved
 sub cwd {
-    return P->path( Cwd::realpath(q[.]), is_dir => 1 );
+    return P->path1->to_abs;
 }
 
 sub chdir ($path) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
@@ -493,9 +493,9 @@ sub read_dir ( $path, % ) {
     }
 
     if ( $args{full_path} ) {
-        my $path = P->path( $path, is_dir => 1 );
+        my $path = P->path1( $path );
 
-        $files = [ map { $path . $_ } $files->@* ];
+        $files = [ map { "$path/$_" } $files->@* ];
     }
 
     closedir $dh or die;
@@ -616,7 +616,7 @@ sub temppath {
 
     goto REDO if -e $args{base} . q[/] . $filename;
 
-    return P->path( $args{base} . q[/] . $filename );
+    return P->path1( "$args{base}/$filename" );
 }
 
 # COPY / MOVE FILE
@@ -739,10 +739,10 @@ sub where ( $filename ) {
         for my $ext ( $pathext->@* ) {
             if ( -e "$path/${filename}${ext}" ) {
                 if ($wantarray) {
-                    push @res, P->path("$path/${filename}${ext}")->realpath;
+                    push @res, P->path1("$path/${filename}${ext}")->to_abs;
                 }
                 else {
-                    return P->path("$path/${filename}${ext}")->realpath;
+                    return P->path1("$path/${filename}${ext}")->to_abs;
                 }
             }
         }
@@ -769,7 +769,7 @@ sub untar ( $tar, $target, @ ) {
     for my $file ( $tar->get_files ) {
         next if !$file->is_file;
 
-        my $path = P->path( q[/] . $file->full_path )->to_string;
+        my $path = P->path1( '/' . $file->full_path );
 
         if ( $args{strip_component} ) {
             if ( !$strip_component ) {
@@ -777,13 +777,13 @@ sub untar ( $tar, $target, @ ) {
 
                 die q[Can't strip component, path is too short] if @labels < $args{strip_component};
 
-                $strip_component = P->path( q[/] . join( q[/], splice @labels, 0, $args{strip_component} + 1 ) )->to_string;
+                $strip_component = P->path1( '/' . join( '/', splice @labels, 0, $args{strip_component} + 1 ) );
             }
 
             die qq[Can't strip component "$strip_component" from path "$path"] if $path !~ s[\A$strip_component][]sm;
         }
 
-        my $target_path = P->path("$target/$path");
+        my $target_path = P->path1("$target/$path");
 
         P->file->mkpath( $target_path->dirname ) if !-e $target_path->dirname;
 

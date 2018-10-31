@@ -62,7 +62,7 @@ sub run ($self) {
         my $profile = $self->{dist}->par_cfg->{$script};
 
         $profile->{dist}    = $self->{dist};
-        $profile->{script}  = P->path( $self->{dist}->root . 'bin/' . $script );
+        $profile->{script}  = P->path1( "$self->{dist}->{root}/bin/$script" );
         $profile->{release} = $self->release;
         $profile->{crypt}   = $self->{crypt} if defined $self->{crypt};
         $profile->{clean}   = $self->{clean} if defined $self->{clean};

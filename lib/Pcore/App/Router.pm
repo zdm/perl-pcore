@@ -112,7 +112,7 @@ sub _get_host_map ( $self, $host, $ns ) {
 sub run ( $self, $req ) {
     my $env = $req->{env};
 
-    my $path = P->path( '/' . $env->{PATH_INFO} );
+    my $path = P->path1( '/' . $env->{PATH_INFO} );
 
     my $path_tail = $path->filename;
 
@@ -164,7 +164,7 @@ sub run ( $self, $req ) {
     $req->{app}       = $self->{app};
     $req->{host}      = $host;
     $req->{path}      = $path;
-    $req->{path_tail} = P->path($path_tail);
+    $req->{path_tail} = P->path1($path_tail);
 
     my $ctrl = $self->{_path_class_cache}->{$host}->{$path};
 

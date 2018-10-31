@@ -15,7 +15,7 @@ around new => sub ( $orig, $self, $args ) {
 sub run ($self) {
     my $chdir_guard = P->file->chdir( $self->dist->root );
 
-    my $wiki_path = P->path('wiki/')->realpath;
+    my $wiki_path = P->path1('wiki/')->to_abs;
 
     my $scm = Pcore::API::SCM->new($wiki_path);
 
@@ -29,9 +29,9 @@ sub run ($self) {
 
     # scan lib/ for .pm files
     for my $path ( ( P->path1('lib')->read_dir( max_depth => 0, is_dir => 0 ) // [] )->@* ) {
-        $path = P->path($path);
+        $path = P->path1($path);
 
-        if ( $path->suffix eq 'pm' ) {
+        if ( $path->{suffix} eq 'pm' ) {
             my $parser = Pod::Markdown->new(
                 perldoc_url_prefix       => $base_url,
                 perldoc_fragment_format  => 'pod_simple_html',    # CodeRef ( $self, $text )

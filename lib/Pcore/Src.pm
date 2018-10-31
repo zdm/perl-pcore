@@ -2,6 +2,7 @@ package Pcore::Src;
 
 use Pcore -class, -ansi, -const, -export;
 use Pcore::Util::Text qw[decode_utf8];
+use Pcore::Util::Scalar qw[is_path];
 
 our $EXPORT = { CONST => [qw[$SRC_DECOMPRESS $SRC_COMPRESS $SRC_OBFUSCATE $SRC_COMMIT]] };
 
@@ -172,7 +173,7 @@ sub _source_stdin_files ($self) {
     my @paths_to_process;
 
     for my $path ( $files->@* ) {
-        $path = P->path( $path, is_dir => 0 );
+        $path = P->path1( $path );
 
         my $type = Pcore::Src::File->detect_filetype($path);
 
@@ -200,7 +201,7 @@ sub _source_stdin ($self) {
     # read STDIN
     my $in_buffer = P->file->read_bin(*STDIN);
 
-    my $path = ref $self->filename ? $self->filename : P->path( $self->filename );
+    my $path = ref $self->filename ? $self->filename : P->path1( $self->filename );
 
     my $res = Pcore::Src::File->new( {
         action      => $self->action,
@@ -260,7 +261,7 @@ sub _process_files ( $self, $paths, $args ) {
 
     # find longest common prefix
     for my $path ( $paths->@* ) {
-        $path = P->path($path) if !ref $path;
+        $path = P->path1($path) if !is_path $path;
 
         my $dirname = $path->dirname;
 
