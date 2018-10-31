@@ -44,6 +44,7 @@ $ENV->BUILD1;
 
 _configure_inc();
 
+# TODO - remove??? check under windows
 sub _normalize_inc {
     my @inc;
 
@@ -60,7 +61,7 @@ sub _normalize_inc {
         # ignore non-exists path
         next if !-d $inc_path;
 
-        $inc_path = P->path( $inc_path, is_dir => 1 )->realpath->canonpath;
+        $inc_path = P->path1($inc_path)->to_abs->{path};
 
         # ignore already added path
         if ( !exists $inc_index->{$inc_path} ) {
@@ -178,13 +179,6 @@ sub BUILD ( $self, $args ) {
         mkdir $self->{INLINE_DIR} || die qq[Error creating "$self->{INLINE_DIR}"] if !-d $self->{INLINE_DIR};
     }
 
-    $self->_init_inline;
-
-    return;
-}
-
-sub BUILD1 ($self) {
-
     # find Pcore share dir
     my $pcore_path = $INC{'Pcore.pm'};
 
@@ -205,6 +199,12 @@ sub BUILD1 ($self) {
         die q[Pcore share dir can't be found.];
     }
 
+    $self->_init_inline;
+
+    return;
+}
+
+sub BUILD1 ($self) {
     $self->{SYS_USER_DIR}   = P->path( $self->{SYS_USER_DIR},   is_dir => 1 );
     $self->{PCORE_USER_DIR} = P->path( $self->{PCORE_USER_DIR}, is_dir => 1 );
     $self->{INLINE_DIR}     = P->path( $self->{INLINE_DIR},     is_dir => 1 ) if $self->{INLINE_DIR};
@@ -426,18 +426,18 @@ sub DESTROY ( $self ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 186                  | * Subroutine "BUILD1" with high complexity score (24)                                                          |
+## |      | 207                  | * Subroutine "BUILD1" with high complexity score (21)                                                          |
 ## |      | 338                  | * Subroutine "DESTROY" with high complexity score (22)                                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 347                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 385                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 192, 197             | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 186, 191             | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 412                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 117                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 118                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
