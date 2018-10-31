@@ -80,9 +80,9 @@ sub _configure_inc {
 
     my $inc_index;
 
-    # index @INC, resolve @INC paths, remove duplicates, preserve REF items
+    # index @INC, resolve @INC paths, remove duplicates, preserve Ref items
     for my $inc_path (@INC) {
-        if ( ref $inc_path ) {
+        if ( is_ref $inc_path ) {
             push @inc, $inc_path;
 
             next;
@@ -106,8 +106,8 @@ sub _configure_inc {
             my $dist_lib_path;
 
             # detect dist lib path
-            if ( $ENV->dist && !exists $inc_index->{ $ENV->dist->root . 'lib' } && -d $ENV->dist->root . 'lib/' ) {
-                $dist_lib_path = $ENV->dist->root . 'lib';
+            if ( $ENV->dist && !exists $inc_index->{ $ENV->dist->root . '/lib' } && -d $ENV->dist->root . '/lib' ) {
+                $dist_lib_path = $ENV->dist->root . '/lib';
 
                 $inc_index->{$dist_lib_path} = 1;
             }

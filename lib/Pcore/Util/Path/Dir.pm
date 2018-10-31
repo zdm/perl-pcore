@@ -45,7 +45,7 @@ sub parent ($self) {
     if ( !exists $self->{_dir_parent} ) {
         my $path = $self->{is_abs} ? $self : $self->clone->to_abs;
 
-        my $parent = $self->new("$self->{dirname}/..");
+        my $parent = $self->new("$self->{path}/..");
 
         $self->{_dir_parent} = $parent->is_root ? undef : $parent;
     }

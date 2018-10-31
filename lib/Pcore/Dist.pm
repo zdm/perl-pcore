@@ -2,7 +2,7 @@ package Pcore::Dist;
 
 use Pcore -class;
 use Config;
-use Pcore::Util::Scalar qw[is_ref];
+use Pcore::Util::Scalar qw[is_path];
 
 has root         => ( is => 'ro', required => 1 );                      # Maybe [Str], absolute path to the dist root
 has is_cpan_dist => ( is => 'ro', isa      => Bool, required => 1 );    # dist is installed as CPAN module, root is undefined
@@ -132,7 +132,7 @@ around new => sub ( $orig, $self, $dist ) {
 
 # CLASS METHODS
 sub find_dist_root ( $self, $path ) {
-    $path = P->path1($path) if !is_ref $path;
+    $path = P->path1($path) if !is_path $path;
 
     if ( !$self->dir_is_dist_root($path) ) {
         $path = $path->parent;
