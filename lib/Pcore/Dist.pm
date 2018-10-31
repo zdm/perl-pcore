@@ -49,7 +49,7 @@ around new => sub ( $orig, $self, $dist ) {
         # if $dist doesn't contain .pm suffix, but contain ".", "/" or "\" - this is a path
         # try find dist by path
         if ( my $root = $self->find_dist_root($dist) ) {
-
+exit;
             # path is a part of the dist
             return $self->$orig( {
                 root         => $root,
