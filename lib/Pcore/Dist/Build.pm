@@ -137,7 +137,7 @@ sub tgz ($self) {
 
     my $base_dir = $self->dist->name . q[-] . $self->dist->version;
 
-    for my $path ( P->path1($temp)->read_dir( max_depth => 0, is_dir => 0 )->@* ) {
+    for my $path ( P->path($temp)->read_dir( max_depth => 0, is_dir => 0 )->@* ) {
         my $mode;
 
         if ( $path =~ m[\A(script|t)/]sm ) {

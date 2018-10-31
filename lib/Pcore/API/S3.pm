@@ -334,7 +334,7 @@ sub upload ( $self, $path, $data, @args ) {
 
     my $buf;
 
-    $path = P->path1($path);
+    $path = P->path($path);
 
     $args->{content_type} //= $path->mime_type;
 

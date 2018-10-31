@@ -396,7 +396,7 @@ sub _help_class_abstract ( $self, $class = undef ) {
 }
 
 sub _help_usage_string ($self) {
-    my $usage = join q[ ], P->path1( $ENV->{SCRIPT_NAME} )->{filename}, $self->cmd_path->@*;
+    my $usage = join q[ ], P->path( $ENV->{SCRIPT_NAME} )->{filename}, $self->cmd_path->@*;
 
     if ( $self->is_cmd ) {
         $usage .= ' [COMMAND] [OPTION]...';

@@ -15,7 +15,7 @@ around new => sub ( $orig, $self, $args ) {
 sub run ($self) {
     my $chdir_guard = P->file->chdir( $self->dist->root );
 
-    my $wiki_path = P->path1('wiki/')->to_abs;
+    my $wiki_path = P->path('wiki')->to_abs;
 
     my $scm = Pcore::API::SCM->new($wiki_path);
 
@@ -28,9 +28,7 @@ sub run ($self) {
     my $toc = {};
 
     # scan lib/ for .pm files
-    for my $path ( ( P->path1('lib')->read_dir( max_depth => 0, is_dir => 0 ) // [] )->@* ) {
-        $path = P->path1($path);
-
+    for my $path ( ( P->path('lib')->read_dir( max_depth => 0, is_dir => 0 ) // [] )->@* ) {
         if ( $path->{suffix} eq 'pm' ) {
             my $parser = Pod::Markdown->new(
                 perldoc_url_prefix       => $base_url,
@@ -125,7 +123,7 @@ MD
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 95                   | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 93                   | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

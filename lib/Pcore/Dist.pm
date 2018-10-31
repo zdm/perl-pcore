@@ -33,7 +33,7 @@ around new => sub ( $orig, $self, $dist ) {
         return $self->$orig( {
             root         => undef,
             is_cpan_dist => 1,
-            share_dir    => P->path1( $ENV{PAR_TEMP} . '/inc/share' ),
+            share_dir    => P->path("$ENV{PAR_TEMP}/inc/share"),
         } );
     }
 
@@ -97,7 +97,7 @@ around new => sub ( $orig, $self, $dist ) {
     return if !$module_lib;
 
     # normalize module lib
-    $module_lib = P->path1($module_lib)->{path};
+    $module_lib = P->path($module_lib);
 
     # convert Module/Name.pm to Dist-Name
     my $dist_name = $module_name =~ s[/][-]smgr;
@@ -116,7 +116,7 @@ around new => sub ( $orig, $self, $dist ) {
         } );
     }
     elsif ( $self->dir_is_dist_root("$module_lib/..") ) {
-        my $root = P->path1("$module_lib/..");
+        my $root = P->path("$module_lib/..");
 
         # module is a dist
         return $self->$orig( {
@@ -130,7 +130,7 @@ around new => sub ( $orig, $self, $dist ) {
 
 # CLASS METHODS
 sub find_dist_root ( $self, $path ) {
-    $path = P->path1($path) if !is_path $path;
+    $path = P->path($path) if !is_path $path;
 
     if ( !$self->dir_is_dist_root($path) ) {
         $path = $path->parent;

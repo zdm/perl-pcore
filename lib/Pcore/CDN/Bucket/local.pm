@@ -94,7 +94,7 @@ sub upload ( $self, $path, $data, @args ) {
         }
     };
 
-    $path = P->path1("$self->{write_path}/$path");
+    $path = P->path("$self->{write_path}/$path");
 
     # TODO check, that path is child
     # return $on_finish->( $cb, res 404 );

@@ -62,7 +62,7 @@ sub _get_host_map ( $self, $host, $ns ) {
             $modules->{$index_module} = undef;
         }
 
-        for my $file ( ( P->path1("$path/$index_path")->read_dir( max_depth => 0, is_dir => 0 ) // [] )->@* ) {
+        for my $file ( ( P->path("$path/$index_path")->read_dir( max_depth => 0, is_dir => 0 ) // [] )->@* ) {
             $modules->{"$index_path/$file"} = undef if $file =~ /[.]pm\z/sm;
         }
     }
@@ -112,7 +112,7 @@ sub _get_host_map ( $self, $host, $ns ) {
 sub run ( $self, $req ) {
     my $env = $req->{env};
 
-    my $path = P->path1( '/' . $env->{PATH_INFO} );
+    my $path = P->path("/$env->{PATH_INFO}");
 
     my $path_tail = $path->filename;
 
@@ -164,7 +164,7 @@ sub run ( $self, $req ) {
     $req->{app}       = $self->{app};
     $req->{host}      = $host;
     $req->{path}      = $path;
-    $req->{path_tail} = P->path1($path_tail);
+    $req->{path_tail} = P->path($path_tail);
 
     my $ctrl = $self->{_path_class_cache}->{$host}->{$path};
 

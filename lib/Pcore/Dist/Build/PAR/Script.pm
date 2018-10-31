@@ -176,7 +176,7 @@ sub _add_modules ($self) {
 
     # add full unicore database
     for my $lib ( reverse @INC ) {
-        for my $path ( ( P->path1("$lib/unicore")->read_dir( max_depth => 0, abs => 1, is_dir => 0 ) // [] )->@* ) {
+        for my $path ( ( P->path("$lib/unicore")->read_dir( max_depth => 0, abs => 1, is_dir => 0 ) // [] )->@* ) {
             next if $path !~ /[.]p[lm]\z/sm;
 
             $self->_add_module($path);
@@ -220,7 +220,7 @@ sub _add_modules ($self) {
 sub _add_shlib ($self) {
     die q[Currently on MSWIN platform is supported] if !$MSWIN;
 
-    state $system_root = P->path1( $ENV{SYSTEMROOT} )->to_abs;
+    state $system_root = P->path( $ENV{SYSTEMROOT} )->to_abs;
 
     state $is_system_lib = sub ($path) {
         return $path =~ m[^\Q$system_root\E]smi ? 1 : 0;
@@ -278,7 +278,7 @@ sub _add_shlib ($self) {
 
     delete $dso->@{ keys $perl_dso->%* };
 
-    my $perl_path = P->path1($^X);
+    my $perl_path = P->path($^X);
 
     $dso->{ $perl_path->filename } = "$perl_path";
 
@@ -373,7 +373,7 @@ sub _add_perl_source ( $self, $source, $target, $is_cpan_module = 0, $module = u
         my $crypt = 1;
 
         # do not crypt modules, that belongs to the CPAN distribution
-        if ( !$is_cpan_module && ( my $dist = Pcore::Dist->new( P->path1($source)->{dirname} ) ) ) {
+        if ( !$is_cpan_module && ( my $dist = Pcore::Dist->new( P->path($source)->{dirname} ) ) ) {
             $crypt = 0 if $dist->cfg->{cpan};
         }
 

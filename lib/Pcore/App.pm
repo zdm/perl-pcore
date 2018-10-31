@@ -177,7 +177,7 @@ sub _init_reload ($self) {
     for my $inc_path ( grep { !is_ref $_ } @INC ) {
 
         # Ext reloader
-        P->path1("$inc_path/$ext_ns")->poll_tree(
+        P->path("$inc_path/$ext_ns")->poll_tree(
             abs       => 0,
             is_dir    => 0,
             max_depth => 0,

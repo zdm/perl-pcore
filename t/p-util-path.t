@@ -43,7 +43,7 @@ my $parse_tests = [    #
 ];
 
 for my $test ( $parse_tests->@* ) {
-    my $path = P->path1( shift $test->@* );
+    my $path = P->path( shift $test->@* );
 
     my %args = $test->@*;
 

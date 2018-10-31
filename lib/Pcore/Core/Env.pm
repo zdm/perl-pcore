@@ -60,7 +60,7 @@ sub _normalize_inc {
         # ignore non-exists path
         next if !-d $inc_path;
 
-        $inc_path = P->path1($inc_path)->to_abs->{path};
+        $inc_path = P->path($inc_path)->to_abs->{path};
 
         # ignore already added path
         if ( !exists $inc_index->{$inc_path} ) {
@@ -204,14 +204,14 @@ sub BUILD ( $self, $args ) {
 }
 
 sub BUILD1 ($self) {
-    $self->{SYS_USER_DIR}   = P->path1( $self->{SYS_USER_DIR} );
-    $self->{PCORE_USER_DIR} = P->path1( $self->{PCORE_USER_DIR} );
-    $self->{INLINE_DIR}     = P->path1( $self->{INLINE_DIR} ) if $self->{INLINE_DIR};
+    $self->{SYS_USER_DIR}   = P->path( $self->{SYS_USER_DIR} );
+    $self->{PCORE_USER_DIR} = P->path( $self->{PCORE_USER_DIR} );
+    $self->{INLINE_DIR}     = P->path( $self->{INLINE_DIR} ) if $self->{INLINE_DIR};
 
     # init share
     $self->{share} = Pcore::Core::Env::Share->new;
 
-    $self->{START_DIR} = P->path1->to_abs;
+    $self->{START_DIR} = P->path->to_abs;
 
     if ( $Pcore::SCRIPT_PATH eq '-e' || $Pcore::SCRIPT_PATH eq '-' ) {
         $self->{SCRIPT_NAME} = '-e';
@@ -220,7 +220,7 @@ sub BUILD1 ($self) {
     else {
         die qq[Cannot find current script "$Pcore::SCRIPT_PATH"] if !-f $Pcore::SCRIPT_PATH;
 
-        my $path = P->path1($Pcore::SCRIPT_PATH)->to_abs;
+        my $path = P->path($Pcore::SCRIPT_PATH)->to_abs;
 
         $self->{SCRIPT_NAME} = $path->{filename};
         $self->{SCRIPT_DIR}  = $path->{dirname};
@@ -228,7 +228,7 @@ sub BUILD1 ($self) {
 
     $self->{SCRIPT_PATH} = $self->{SCRIPT_DIR} . $self->{SCRIPT_NAME};
 
-    $self->{SYS_TEMP_DIR} = P->path1( File::Spec->tmpdir );
+    $self->{SYS_TEMP_DIR} = P->path( File::Spec->tmpdir );
     $self->{TEMP_DIR} = P->file->tempdir( base => "$self->{SYS_TEMP_DIR}", lazy => 1 );
 
     # find main dist
@@ -252,7 +252,7 @@ sub BUILD1 ($self) {
             $self->{DATA_DIR} = $self->{SCRIPT_DIR};
         }
         else {
-            $self->{DATA_DIR} = P->path1("$dist->{root}/data");
+            $self->{DATA_DIR} = P->path("$dist->{root}/data");
             mkdir $self->{DATA_DIR} || die qq[Can't create "$self->{DATA_DIR}"] if !-d $self->{DATA_DIR};
         }
     }
@@ -283,7 +283,7 @@ sub BUILD1 ($self) {
 
 # SYS_TEMP_DIR/.pcore
 sub get_pcore_sys_dir ($self) {
-    state $path = P->path1("$self->{SYS_TEMP_DIR}/.pcore");
+    state $path = P->path("$self->{SYS_TEMP_DIR}/.pcore");
 
     state $init = 0;
 

@@ -16,7 +16,7 @@ sub add_dir ( $self, $dir, $prefix = undef, $meta = undef ) {
         $prefix .= '/';
     }
 
-    $dir = P->path1($dir)->to_abs;
+    $dir = P->path($dir)->to_abs;
 
     my $files = $dir->read_dir( max_depth => 0, is_dir => 0 );
 

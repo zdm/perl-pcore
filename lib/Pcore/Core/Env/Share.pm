@@ -89,7 +89,7 @@ sub read_cfg ( $self, @args ) { return P->cfg->read( $self->get(@args) ) }
 sub write ( $self, $lib, $path, $file ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     die qq[share lib "$lib" is not exists] if !exists $self->{_lib_idx}->{$lib};
 
-    $path = P->path1("$self->{_lib_idx}->{$lib}/$path");
+    $path = P->path("$self->{_lib_idx}->{$lib}/$path");
 
     # create path
     P->file->mkpath( $path->{dirname} ) if !-d $path->{dirname};

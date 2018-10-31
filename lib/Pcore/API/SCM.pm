@@ -15,7 +15,7 @@ const our $SCM_TYPE_CLASS => {
 };
 
 sub new ( $self, $path ) {
-    $path = P->path1($path)->to_abs;
+    $path = P->path($path)->to_abs;
 
     my $class;
 

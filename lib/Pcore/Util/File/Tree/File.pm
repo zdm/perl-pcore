@@ -34,7 +34,7 @@ sub render_tmpl ( $self, $tmpl_args ) {
 }
 
 sub write_to ( $self, $target_path ) {
-    $target_path = P->path1("$target_path/$self->{path}");
+    $target_path = P->path("$target_path/$self->{path}");
 
     P->file->mkpath( $target_path->{dirname} );
 

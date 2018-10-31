@@ -7,13 +7,11 @@ use Cwd qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Config;
 
 sub cat_path {
-    return P->path1( join '/', splice @_, 1 );
+    return P->path( join '/', splice @_, 1 );
 }
 
 # return cwd, symlinks are resolved
-sub cwd {
-    return P->path1->to_abs;
-}
+sub cwd { return P->path->to_abs }
 
 sub chdir ($path) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     if ( defined wantarray ) {
@@ -493,9 +491,9 @@ sub read_dir ( $path, % ) {
     }
 
     if ( $args{full_path} ) {
-        my $path = P->path1( $path );
+        my $path = P->path($path);
 
-        $files = [ map { "$path/$_" } $files->@* ];
+        $files = [ map {"$path/$_"} $files->@* ];
     }
 
     closedir $dh or die;
@@ -616,7 +614,7 @@ sub temppath {
 
     goto REDO if -e $args{base} . q[/] . $filename;
 
-    return P->path1( "$args{base}/$filename" );
+    return P->path("$args{base}/$filename");
 }
 
 # COPY / MOVE FILE
@@ -739,10 +737,10 @@ sub where ( $filename ) {
         for my $ext ( $pathext->@* ) {
             if ( -e "$path/${filename}${ext}" ) {
                 if ($wantarray) {
-                    push @res, P->path1("$path/${filename}${ext}")->to_abs;
+                    push @res, P->path("$path/${filename}${ext}")->to_abs;
                 }
                 else {
-                    return P->path1("$path/${filename}${ext}")->to_abs;
+                    return P->path("$path/${filename}${ext}")->to_abs;
                 }
             }
         }
@@ -769,7 +767,7 @@ sub untar ( $tar, $target, @ ) {
     for my $file ( $tar->get_files ) {
         next if !$file->is_file;
 
-        my $path = P->path1( '/' . $file->full_path );
+        my $path = P->path( '/' . $file->full_path );
 
         if ( $args{strip_component} ) {
             if ( !$strip_component ) {
@@ -777,13 +775,13 @@ sub untar ( $tar, $target, @ ) {
 
                 die q[Can't strip component, path is too short] if @labels < $args{strip_component};
 
-                $strip_component = P->path1( '/' . join( '/', splice @labels, 0, $args{strip_component} + 1 ) );
+                $strip_component = P->path( '/' . join( '/', splice @labels, 0, $args{strip_component} + 1 ) );
             }
 
             die qq[Can't strip component "$strip_component" from path "$path"] if $path !~ s[\A$strip_component][]sm;
         }
 
-        my $target_path = P->path1("$target/$path");
+        my $target_path = P->path("$target/$path");
 
         P->file->mkpath( $target_path->dirname ) if !-e $target_path->dirname;
 
@@ -806,11 +804,11 @@ sub untar ( $tar, $target, @ ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 50                   | * Subroutine "calc_umask" with high complexity score (25)                                                      |
-## |      | 124                  | * Subroutine "calc_chmod" with high complexity score (25)                                                      |
-## |      | 250                  | * Subroutine "read_lines" with high complexity score (27)                                                      |
+## |      | 48                   | * Subroutine "calc_umask" with high complexity score (25)                                                      |
+## |      | 122                  | * Subroutine "calc_chmod" with high complexity score (25)                                                      |
+## |      | 248                  | * Subroutine "read_lines" with high complexity score (27)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 780                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 778                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

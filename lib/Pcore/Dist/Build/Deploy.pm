@@ -3,13 +3,13 @@ package Pcore::Dist::Build::Deploy;
 use Pcore -class;
 use Config;
 
-has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
+has dist => ( is => 'ro', required => 1 );    # InstanceOf ['Pcore::Dist']
 
-has install    => ( is => 'ro', isa => Bool, default => 0 );
-has devel      => ( is => 'ro', isa => Bool, default => 0 );
-has recommends => ( is => 'ro', isa => Bool, default => 0 );
-has suggests   => ( is => 'ro', isa => Bool, default => 0 );
-has verbose    => ( is => 'ro', isa => Bool, default => 0 );
+has install    => ( is => 'ro', default => 0 );
+has devel      => ( is => 'ro', default => 0 );
+has recommends => ( is => 'ro', default => 0 );
+has suggests   => ( is => 'ro', default => 0 );
+has verbose    => ( is => 'ro', default => 0 );
 
 # TODO under windows acquire superuser automatically with use Win32::RunAsAdmin qw[force];
 
@@ -41,8 +41,7 @@ sub _chmod ($self) {
     print 'chmod ... ';
 
     if ( !$MSWIN ) {
-        for my $path ( ( P->path1('.')->read_dir( max_depth => 0 ) // [] )->@* ) {
-            $path = P->path1($path);
+        for my $path ( ( P->path->read_dir( max_depth => 0 ) // [] )->@* ) {
 
             # directory
             if ( -d $path ) {
@@ -102,7 +101,7 @@ sub _deps ($self) {
 
 sub _build ($self) {
     eval {
-        for my $file ( ( P->path1( $self->dist->root . 'lib' )->read_dir( max_depth => 0, abs => 1, is_dir => 0 ) // [] )->@* ) {
+        for my $file ( ( P->path("$self->{dist}->{root}/lib")->read_dir( max_depth => 0, abs => 1, is_dir => 0 ) // [] )->@* ) {
             if ( $file =~ /[.]PL\z/sm ) {
                 my $res = P->sys->run_proc( [ $^X, $file, $file =~ s/[.]PL\z//smr ] );
 
@@ -125,11 +124,11 @@ sub _install ($self) {
         return;
     }
 
-    my $canon_dist_root = P->path1( $self->dist->{root} );
+    my $canon_dist_root = P->path( $self->{dist}->{root} );
 
     my $canon_bin_dir = "$canon_dist_root/bin";
 
-    my $pcore_lib_dir_canon = P->path1("$canon_dist_root/../")->to_abs;
+    my $pcore_lib_dir_canon = P->path("$canon_dist_root/../")->to_abs;
 
     if ($MSWIN) {
         if ( $self->dist->is_pcore ) {
@@ -152,7 +151,7 @@ sub _install ($self) {
             my @system_path;
 
             for my $path ( grep { $_ && !/\A\h+\z/sm } split /$Config{path_sep}/sm, Win32::TieRegistry->new('LMachine\SYSTEM\CurrentControlSet\Control\Session Manager\Environment')->GetValue('PATH') ) {
-                my $normal_path = P->path1( $path );
+                my $normal_path = P->path($path);
 
                 push @system_path, $path if $normal_path !~ m[\A\Q$canon_bin_dir\E/\z]sm;
             }
@@ -195,11 +194,11 @@ SH
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 104                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 103                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 123, 140, 145, 166   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 122, 139, 144, 165   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 154                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 153                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

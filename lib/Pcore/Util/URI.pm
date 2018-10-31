@@ -148,7 +148,7 @@ around new => sub ( $orig, $self, $uri = undef, %args ) {
         else {
 
             # merge paths: https://tools.ietf.org/html/rfc3986#section-5.2.3
-            $path = P->path1( $path, from_uri => 1 )->merge( $base->{path} );
+            $path = P->path( $path, from_uri => 1 )->merge( $base->{path} );
         }
     }
 
@@ -169,7 +169,7 @@ around new => sub ( $orig, $self, $uri = undef, %args ) {
         # set path to '/' it has authority and path is empty
         $path = '/' if defined $authority && $path eq '';
 
-        $target->{path} = P->path1( $path, from_uri => 1 ) if $path ne '';
+        $target->{path} = P->path( $path, from_uri => 1 ) if $path ne '';
     }
 
     # set query, if query is not empty
@@ -199,7 +199,7 @@ around new => sub ( $orig, $self, $uri = undef, %args ) {
 
             # for linux use abstract UDS
             else {
-                $target->{path} = P->path1( "/\x00" . uuid_v4_str );
+                $target->{path} = P->path( "/\x00" . uuid_v4_str );
             }
         }
     }
@@ -369,7 +369,7 @@ sub set_path ( $self, $val = undef ) {
 
     # $val is defined and not ''
     if ( $val ne '' ) {
-        my $path = P->path1( $val, from_uri => 1 );
+        my $path = P->path( $val, from_uri => 1 );
 
         # only abs path is allowed if uri has authority
         if ( defined $self->_get_authority ) {

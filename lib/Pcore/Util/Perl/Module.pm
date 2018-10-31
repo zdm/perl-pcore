@@ -40,7 +40,7 @@ around new => sub ( $orig, $self, $module, @inc ) {
         if ( -f $module ) {
 
             # module was found at full path
-            return $self->$orig( { path => P->path1($module)->to_abs->{path} } );
+            return $self->$orig( { path => P->path($module)->to_abs } );
         }
         else {
 
@@ -48,7 +48,7 @@ around new => sub ( $orig, $self, $module, @inc ) {
             for my $lib ( @inc, @INC ) {
                 next if ref $lib;
 
-                return $self->$orig( { lib => P->path1($lib)->to_abs->{path}, name => $module } ) if -f "$lib/$module";
+                return $self->$orig( { lib => P->path($lib)->to_abs, name => $module } ) if -f "$lib/$module";
             }
         }
     }
@@ -162,7 +162,7 @@ sub _build_version ($self) {
 sub _build_auto_deps ($self) {
     return unless my $name = $self->name;
 
-    $name = P->path1($name);
+    $name = P->path($name);
 
     return if $name->suffix eq 'pl';
 
@@ -172,7 +172,7 @@ sub _build_auto_deps ($self) {
 
     my $deps;
 
-    for my $lib ( map { P->path1($_) } "$ENV->{INLINE_DIR}/lib", @INC ) {
+    for my $lib ( map { P->path($_) } "$ENV->{INLINE_DIR}/lib", @INC ) {
         if ( -f "$lib/$auto_path" . $so_filename ) {
             $deps->{ $auto_path . $so_filename } = "$lib/$auto_path" . $so_filename;
 

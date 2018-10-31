@@ -68,7 +68,7 @@ sub _build_path ($self) {
 
     P->file->mkpath( $self->base . "/$dirname", mode => $self->mode );
 
-    return P->path1( $self->base . "/$dirname" )->to_abs;
+    return P->path( $self->base . "/$dirname" )->to_abs;
 }
 
 1;

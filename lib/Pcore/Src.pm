@@ -173,7 +173,7 @@ sub _source_stdin_files ($self) {
     my @paths_to_process;
 
     for my $path ( $files->@* ) {
-        $path = P->path1( $path );
+        $path = P->path($path);
 
         my $type = Pcore::Src::File->detect_filetype($path);
 
@@ -201,7 +201,7 @@ sub _source_stdin ($self) {
     # read STDIN
     my $in_buffer = P->file->read_bin(*STDIN);
 
-    my $path = ref $self->filename ? $self->filename : P->path1( $self->filename );
+    my $path = ref $self->filename ? $self->filename : P->path( $self->filename );
 
     my $res = Pcore::Src::File->new( {
         action      => $self->action,
@@ -224,7 +224,7 @@ sub _source_dir ($self) {
     # index files, calculate max_path_len
     my @paths_to_process;
 
-    for my $path ( ( P->path1( $self->path )->read_dir( max_depth => 0, is_dir => 0 ) // [] )->@* ) {
+    for my $path ( ( P->path( $self->path )->read_dir( max_depth => 0, is_dir => 0 ) // [] )->@* ) {
         my $type = Pcore::Src::File->detect_filetype($path);
 
         return if !$type || lc $type->{type} ne $self->type;    # skip file, if file type isn't supported
@@ -261,7 +261,7 @@ sub _process_files ( $self, $paths, $args ) {
 
     # find longest common prefix
     for my $path ( $paths->@* ) {
-        $path = P->path1($path) if !is_path $path;
+        $path = P->path($path) if !is_path $path;
 
         my $dirname = $path->{dirname};
 
@@ -436,9 +436,9 @@ sub _set_exit_code ( $self, $exit_code ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 303                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 304                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 275                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 276                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -20,7 +20,7 @@ with qw[Pcore::App::Controller];
 #         if ( my $path = $ENV->{share}->get( 'www', $req->{path} . $req->{path_tail} ) ) {
 #             my $data = P->file->read_bin($path);
 
-#             $path = P->path1($path);
+#             $path = P->path($path);
 
 #             $req->( 200, [ 'Content-Type' => $path->mime_type ], $data )->finish;
 #         }

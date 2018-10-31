@@ -36,7 +36,7 @@ sub init ($self) {
 
     # scan filesystem namespace, find and preload controllers
     for my $inc ( grep { !ref } @INC ) {
-        for my $file ( ( P->path1("$inc/$ns_path")->read_dir( max_depth => 0, is_dir => 0 ) // [] )->@* ) {
+        for my $file ( ( P->path("$inc/$ns_path")->read_dir( max_depth => 0, is_dir => 0 ) // [] )->@* ) {
 
             # .pm file
             if ( $file =~ s/[.]pm\z//sm ) {
