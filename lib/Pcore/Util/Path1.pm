@@ -77,6 +77,13 @@ around new => sub ( $orig, $self, $path = undef, %args ) {
 
         $path = "$path";
     }
+    elsif ( $path eq '/' ) {
+        return bless {
+            IS_PCORE_PATH => 1,
+            path          => '/',
+            dirname       => '/',
+        }, $self;
+    }
 
     if ( $args{from_uri} ) {
         $path = from_uri_utf8 $path;
@@ -188,6 +195,28 @@ sub to_abs ( $self, $base = undef ) {
     }
     else {
         $base = $self->new($base)->to_abs->{dirname};
+    }
+
+    if ( defined $self->{filename} ) {
+        return $self->set_path("$base/$self->{path}");
+    }
+    else {
+        return $self->set_path("$base/$self->{path}/");
+    }
+}
+
+sub merge ( $self, $base ) {
+
+    # path is absolute
+    return $self if $self->{is_abs};
+
+    return $self if !defined $base;
+
+    if ( is_blessed_hashref $base && $base->{IS_PCORE_PATH} ) {
+        $base = $base->{dirname};
+    }
+    else {
+        $base = $self->new($base)->{dirname};
     }
 
     if ( defined $self->{filename} ) {
@@ -428,10 +457,10 @@ C
 ## |======+======================+================================================================================================================|
 ## |    3 | 36                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 203                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 232                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 67, 152, 232, 291,   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 306, 312             |                                                                                                                |
+## |    2 | 67, 159, 261, 320,   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      | 335, 341             |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

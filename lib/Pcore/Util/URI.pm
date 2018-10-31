@@ -112,7 +112,7 @@ around new => sub ( $orig, $self, $uri = undef, %args ) {
             $target = $self->$orig;
         }
         else {
-            $base = is_ref $args{base} ? $args{base} : P->uri( $args{base} );
+            $base = is_blessed_hashref $args{base} && $args{base}->{IS_PCORE_URI} ? $args{base} : P->uri("$args{base}");
 
             # Pre-parse the Base URI: https://tools.ietf.org/html/rfc3986#section-5.2.1
             # base URI MUST contain scheme
@@ -138,7 +138,7 @@ around new => sub ( $orig, $self, $uri = undef, %args ) {
 
         # if source path is empty (undef or "")
         if ( $path eq '' ) {
-            $path = $base->{path};
+            $path = $base->{path}->clone;
 
             $query = $base->{query} if !$query;
         }
@@ -146,17 +146,8 @@ around new => sub ( $orig, $self, $uri = undef, %args ) {
         # source path is not empty
         else {
 
-            # Merge Paths: https://tools.ietf.org/html/rfc3986#section-5.2.3
-            # If the base URI has a defined authority component and an empty path,
-            # then return a string consisting of "/" concatenated with the reference's path
-            if ( defined $base->{authority} ) {
-                $path = P->path1( $path, from_uri => 1 )->to_abs( !defined $base->{path} || $base->{path} eq '' ? '/' : $base->{path} );
-            }
-
-            # otherwise, merge base + source paths
-            else {
-                $path = P->path1( $path, from_uri => 1 )->to_abs( $base->{path} );
-            }
+            # merge paths: https://tools.ietf.org/html/rfc3986#section-5.2.3
+            $path = P->path1( $path, from_uri => 1 )->merge( $base->{path} );
         }
     }
 
@@ -649,22 +640,21 @@ sub canon ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (49)                               |
+## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (46)                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 92                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 449                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 440                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 637                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 628                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 43, 98, 140, 153,    | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 164, 178, 180, 184,  |                                                                                                                |
-## |      | 187, 229, 378, 410,  |                                                                                                                |
-## |      | 425, 506, 509, 523,  |                                                                                                                |
-## |      | 546, 559, 561, 566,  |                                                                                                                |
-## |      | 596                  |                                                                                                                |
+## |    2 | 43, 98, 140, 155,    | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      | 169, 171, 175, 178,  |                                                                                                                |
+## |      | 220, 369, 401, 416,  |                                                                                                                |
+## |      | 497, 500, 514, 537,  |                                                                                                                |
+## |      | 550, 552, 557, 587   |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 78, 210              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 78, 201              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
