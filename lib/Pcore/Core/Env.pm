@@ -229,9 +229,9 @@ sub BUILD1 ($self) {
 
     $self->{SCRIPT_PATH} = $self->{SCRIPT_DIR} . $self->{SCRIPT_NAME};
 
-    $self->{SYS_TEMP_DIR} = P->path( File::Spec->tmpdir, is_dir => 1 )->to_string;
-    $self->{TEMP_DIR} = P->file->tempdir( base => $self->{SYS_TEMP_DIR}, lazy => 1 );
-    $self->{PCORE_SYS_DIR} = P->path( $self->{SYS_TEMP_DIR} . '.pcore/', is_dir => 1, lazy => 1 );
+    $self->{SYS_TEMP_DIR}  = P->path1( File::Spec->tmpdir );
+    $self->{TEMP_DIR}      = P->file->tempdir( base => "$self->{SYS_TEMP_DIR}", lazy => 1 );
+    $self->{PCORE_SYS_DIR} = P->path( "$self->{SYS_TEMP_DIR}/.pcore", is_dir => 1, lazy => 1 );
 
     # find main dist
     if ( $self->{is_par} ) {
