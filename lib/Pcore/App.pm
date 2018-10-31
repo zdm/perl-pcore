@@ -276,7 +276,7 @@ Pcore::App
                 'host2.com' => 'Test::App::App2',
             },
             api => {
-                connect => "sqlite:$ENV->{DATA_DIR}auth.sqlite",
+                connect => "sqlite:$ENV->{DATA_DIR}/auth.sqlite",
                 rpc => {
                     workers => undef,           # Maybe[Int]
                     argon   => {

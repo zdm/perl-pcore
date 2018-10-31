@@ -3,17 +3,16 @@ package Pcore::Util::Perl::Module;
 use Pcore -class;
 use Config;
 
-has name => ( is => 'lazy', isa => Maybe [Str] );    # Module/Name.pm
-has content => ( is => 'lazy', isa => ScalarRef );
+has name    => ( is => 'lazy' );    # Maybe [Str], Module/Name.pm
+has content => ( is => 'lazy' );    # ScalarRef
+has path    => ( is => 'lazy' );    # Maybe [Str], /absolute/path/to/lib/Module/Name.pm
+has lib     => ( is => 'lazy' );    # Maybe [Str], /absolute/path/to/lib/
 
-has path => ( is => 'lazy', isa => Maybe [Str] );    # /absolute/path/to/lib/Module/Name.pm
-has lib  => ( is => 'lazy', isa => Maybe [Str] );    # /absolute/path/to/lib/
-
-has is_cpan_module => ( is => 'lazy', isa => Bool, init_arg => undef );    # module has lib and lib is a part of pcore dist
-has is_crypted     => ( is => 'lazy', isa => Bool, init_arg => undef );    # module is crypted with Filter::Crypto
-has abstract => ( is => 'lazy', isa => Maybe [Str], init_arg => undef );   # abstract from POD
-has version => ( is => 'lazy', isa => Maybe [ InstanceOf ['version'] ], init_arg => undef );    # parsed version
-has auto_deps => ( is => 'lazy', isa => Maybe [HashRef], init_arg => undef );
+has is_cpan_module => ( is => 'lazy', init_arg => undef );    # module has lib and lib is a part of pcore dist
+has is_crypted     => ( is => 'lazy', init_arg => undef );    # module is crypted with Filter::Crypto
+has abstract       => ( is => 'lazy', init_arg => undef );    # abstract from POD
+has version        => ( is => 'lazy', init_arg => undef );    # Maybe [ InstanceOf ['version'] ], parsed version
+has auto_deps      => ( is => 'lazy', init_arg => undef );    # Maybe [HashRef]
 
 around new => sub ( $orig, $self, $module, @inc ) {
     if ( ref $module eq 'SCALAR' ) {
@@ -41,7 +40,7 @@ around new => sub ( $orig, $self, $module, @inc ) {
         if ( -f $module ) {
 
             # module was found at full path
-            return $self->$orig( { path => P->path($module)->realpath->to_string } );
+            return $self->$orig( { path => P->path1($module)->to_abs->{path} } );
         }
         else {
 
@@ -49,7 +48,7 @@ around new => sub ( $orig, $self, $module, @inc ) {
             for my $lib ( @inc, @INC ) {
                 next if ref $lib;
 
-                return $self->$orig( { lib => P->path( $lib, is_dir => 1 )->realpath->to_string, name => $module } ) if -f "$lib/$module";
+                return $self->$orig( { lib => P->path1($lib)->to_abs->{path}, name => $module } ) if -f "$lib/$module";
             }
         }
     }
@@ -212,9 +211,9 @@ sub clear ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 144                  | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 143                  | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 177                  | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 176                  | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

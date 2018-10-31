@@ -97,7 +97,7 @@ around new => sub ( $orig, $self, $dist ) {
     return if !$module_lib;
 
     # normalize module lib
-    $module_lib = P->path( $module_lib, is_dir => 1 )->to_string;
+    $module_lib = P->path1($module_lib)->{path};
 
     # convert Module/Name.pm to Dist-Name
     my $dist_name = $module_name =~ s[/][-]smgr;
