@@ -66,7 +66,7 @@ sub _build_dist_cfg ($self) {
     my $realpath = $self->is_realpath ? $self->path->to_abs : 0;
 
     if ($realpath) {
-        my $dirname = $realpath->dirname;
+        my $dirname = $realpath->{dirname};
 
         # find and cache dist root for path
         if ( !exists $path->{$dirname} ) {
@@ -260,7 +260,7 @@ sub run ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 98, 183              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 99, 184              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
