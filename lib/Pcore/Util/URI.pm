@@ -150,12 +150,12 @@ around new => sub ( $orig, $self, $uri = undef, %args ) {
             # If the base URI has a defined authority component and an empty path,
             # then return a string consisting of "/" concatenated with the reference's path
             if ( defined $base->{authority} ) {
-                $path = P->path( $path, base => !defined $base->{path} || $base->{path} eq '' ? '/' : $base->{path}, from_uri => 1 );
+                $path = P->path1( $path, from_uri => 1 )->to_abs( !defined $base->{path} || $base->{path} eq '' ? '/' : $base->{path} );
             }
 
             # otherwise, merge base + source paths
             else {
-                $path = P->path( $path, base => $base->{path}, from_uri => 1 );
+                $path = P->path1( $path, from_uri => 1 )->to_abs( $base->{path} );
             }
         }
     }
@@ -177,7 +177,7 @@ around new => sub ( $orig, $self, $uri = undef, %args ) {
         # set path to '/' it has authority and path is empty
         $path = '/' if defined $authority && $path eq '';
 
-        $target->{path} = P->path( $path, from_uri => 1 ) if $path ne '';
+        $target->{path} = P->path1( $path, from_uri => 1 ) if $path ne '';
     }
 
     # set query, if query is not empty
@@ -207,7 +207,7 @@ around new => sub ( $orig, $self, $uri = undef, %args ) {
 
             # for linux use abstract UDS
             else {
-                $target->{path} = P->path( "/\x00" . uuid_v4_str, from_uri => 1 );
+                $target->{path} = P->path1( "/\x00" . uuid_v4_str );
             }
         }
     }
@@ -376,7 +376,7 @@ sub set_path ( $self, $val = undef ) {
 
     # $val is defined and not ''
     if ( $val ne '' ) {
-        my $path = P->path( $val, from_uri => 1 );
+        my $path = P->path1( $val, from_uri => 1 );
 
         # only abs path is allowed if uri has authority
         if ( defined $self->_get_authority ) {

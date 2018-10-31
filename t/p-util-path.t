@@ -5,6 +5,8 @@ package main v0.1.0;
 use Pcore;
 use Test::More;
 
+our $TESTS = 0;
+
 my $parse_tests = [    #
     [ undef,                                   path => '.',               dirname => '.',           filename => undef,  suffix => undef ],
     [ '',                                      path => '.',               dirname => '.',           filename => undef,  suffix => undef ],
@@ -40,8 +42,6 @@ my $parse_tests = [    #
     ],
 ];
 
-our $TESTS = 0;
-
 for my $test ( $parse_tests->@* ) {
     my $path = P->path1( shift $test->@* );
 
@@ -61,6 +61,33 @@ for my $test ( $parse_tests->@* ) {
     }
 }
 
+my $concat_tests = [    #
+    [ '/aaa/bbb', 'ccc/ddd',  path => '/aaa/bbb/ccc/ddd', filename => 'ddd' ],
+    [ '/aaa/bbb', 'ccc/ddd/', path => '/aaa/bbb/ccc/ddd', filename => undef ],
+];
+
+for my $test ( $concat_tests->@* ) {
+    my $path1 = P->path1( shift $test->@* );
+    my $path2 = P->path1( shift $test->@* );
+
+    my $path = $path1 . $path2;
+
+    my %args = $test->@*;
+
+    for my $arg ( sort keys %args ) {
+        $TESTS++;
+
+        if ( !defined $args{$arg} ) {
+            ok( !defined $path->{$arg}, 'concat' ) or printf qq[path: "%s", %s "%s" != "%s"\n], $path, $arg, $path->{$arg} // 'undef', 'undef';
+        }
+        else {
+            no warnings qw[uninitialized];
+
+            ok( $path->{$arg} eq $args{$arg}, 'concat' ) or printf qq[path: "%s", %s "%s" != "%s"\n], $path, $arg, $path->{$arg} // 'undef', $args{$arg};
+        }
+    }
+}
+
 plan tests => $TESTS;
 done_testing $TESTS;
 
@@ -71,7 +98,7 @@ done_testing $TESTS;
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 10                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 12                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

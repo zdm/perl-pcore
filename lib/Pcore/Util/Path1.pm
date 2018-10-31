@@ -14,12 +14,22 @@ use overload
 
     # $str + $self
     if ( $_[2] ) {
-        return $_[0]->new("$_[1]/$_[0]->{path}");
+        if ( !defined $_[0]->{filename} ) {
+            return $_[0]->new("$_[1]/$_[0]->{path}/");
+        }
+        else {
+            return $_[0]->new("$_[1]/$_[0]->{path}");
+        }
     }
 
     # $self + $str
     else {
-        return $_[0]->new("$_[0]->{path}/$_[1]");
+        if ( is_blessed_hashref $_[1] && $_[1]->{IS_PCORE_PATH} && !defined $_[1]->{filename} ) {
+            return $_[0]->new("$_[0]->{path}/$_[1]->{path}/");
+        }
+        else {
+            return $_[0]->new("$_[0]->{path}/$_[1]");
+        }
     }
   },
   '-X' => sub {
@@ -56,8 +66,9 @@ around new => sub ( $orig, $self, $path = undef, %args ) {
 
     if ( !defined $path || $path eq '' || $path eq '.' ) {
         return bless {
-            path    => '.',
-            dirname => '.',
+            IS_PCORE_PATH => 1,
+            path          => '.',
+            dirname       => '.',
         }, $self;
     }
 
@@ -74,7 +85,11 @@ around new => sub ( $orig, $self, $path = undef, %args ) {
         $path = $self->decode($path);
     }
 
-    return bless _parse($path), $self;
+    $self = bless _parse($path), $self;
+
+    $self->{IS_PCORE_PATH} = 1;
+
+    return $self;
 };
 
 sub encoded ( $self ) {
@@ -119,7 +134,6 @@ sub clone ($self) { return Clone::clone($self) }
 # TODO empty
 sub to_uri ($self) {
     if ( !exists $self->{_to_uri} ) {
-        my $path = $self->{path};
 
         # Relative Reference: https://tools.ietf.org/html/rfc3986#section-4.2
         # A path segment that contains a colon character (e.g., "this:that")
@@ -129,14 +143,31 @@ sub to_uri ($self) {
         # path reference.
         # $path = "./$path" if $path =~ m[\A[^/]*:]sm;
 
-        if ( $self->{volume} ) {
-            $self->{_to_uri} = to_uri_path "/$path";
+        my $path = $self->{path};
+
+        if ( $path eq '/' ) {
+            $self->{_to_uri} = '/';
         }
-        elsif ( $path =~ m[\A[^/]*:]sm ) {
-            $self->{_to_uri} = to_uri_path "./$path";
+        elsif ( $path eq '.' ) {
+            $self->{_to_uri} = '';
         }
         else {
-            $self->{_to_uri} = to_uri_path $path;
+            if ( $self->{volume} ) {
+                $path = to_uri_path $path;
+
+                # encode ":" in volume name
+                substr $path, 1, 1, '%3A';
+
+                $self->{_to_uri} = $path;
+            }
+            elsif ( !$self->{is_abs} && $path =~ m[\A[^/]*:]sm ) {
+                $self->{_to_uri} = to_uri_path "./$path";
+            }
+            else {
+                $self->{_to_uri} = to_uri_path $path;
+            }
+
+            $self->{_to_uri} .= '/' if !defined $self->{filename} && substr( $self->{_to_uri}, -1, 1 ) ne '/';
         }
     }
 
@@ -153,13 +184,18 @@ sub to_abs ( $self, $base = undef ) {
         $base = Cwd::getcwd();
     }
     elsif ( is_blessed_hashref $base && $base->{IS_PCORE_PATH} ) {
-        $base = $base->to_abs->{path};
+        $base = $base->to_abs->{dirname};
     }
     else {
-        $base = $self->new($base)->to_abs->{path};
+        $base = $self->new($base)->to_abs->{dirname};
     }
 
-    return $self->set_path("$base/$self->{path}");
+    if ( defined $self->{filename} ) {
+        return $self->set_path("$base/$self->{path}");
+    }
+    else {
+        return $self->set_path("$base/$self->{path}/");
+    }
 }
 
 # TODO
@@ -390,12 +426,12 @@ C
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 26                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 36                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 167                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 203                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 57, 196, 255, 270,   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 276                  |                                                                                                                |
+## |    2 | 67, 152, 232, 291,   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      | 306, 312             |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
