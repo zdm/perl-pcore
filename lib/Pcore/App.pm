@@ -287,7 +287,7 @@ Pcore::App
                 },
             }
         },
-        devel => $ENV->cli->{opt}->{devel},
+        devel => $ENV->{cli}->{opt}->{devel},
     } );
 
     $app->run( sub ($res) {
