@@ -254,7 +254,8 @@ sub BUILD1 ($self) {
             $self->{DATA_DIR} = $self->{SCRIPT_DIR};
         }
         else {
-            $self->{DATA_DIR} = P->path( $dist->root . 'data/', is_dir => 1, lazy => 1 );
+            $self->{DATA_DIR} = P->path1( $dist->root . '/data' );
+            mkdir $self->{DATA_DIR} || die qq[Can't create "$self->{DATA_DIR}"] if !-d $self->{DATA_DIR};
         }
     }
     else {
@@ -426,16 +427,16 @@ sub DESTROY ( $self ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 207                  | * Subroutine "BUILD1" with high complexity score (21)                                                          |
-## |      | 338                  | * Subroutine "DESTROY" with high complexity score (22)                                                         |
+## |      | 207                  | * Subroutine "BUILD1" with high complexity score (23)                                                          |
+## |      | 339                  | * Subroutine "DESTROY" with high complexity score (22)                                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 347                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 348                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 385                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 386                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 186, 191             | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 412                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
+## |    2 | 413                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 118                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
