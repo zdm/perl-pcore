@@ -9,24 +9,27 @@ use Pcore::Core::Env::Share;
 use Fcntl qw[LOCK_EX SEEK_SET];
 use Pcore::Util::Scalar qw[is_ref];
 
-has is_par        => ( init_arg => undef );                                 # process run from PAR distribution
-has main_dist     => ( init_arg => undef );                                 # Maybe [ InstanceOf ['Pcore::Dist'] ], main dist
-has pcore         => ( init_arg => undef );                                 # InstanceOf ['Pcore::Dist'], pcore dist
-has _dist_idx     => ( init_arg => undef );                                 # HashRef, registered dists. index
-has cli           => ( init_arg => undef );                                 # HashRef, parsed CLI data
+has is_par        => ( init_arg => undef );                        # process run from PAR distribution
+has main_dist     => ( init_arg => undef );                        # Maybe [ InstanceOf ['Pcore::Dist'] ], main dist
+has pcore         => ( init_arg => undef );                        # InstanceOf ['Pcore::Dist'], pcore dist
+has _dist_idx     => ( init_arg => undef );                        # HashRef, registered dists. index
+has cli           => ( init_arg => undef );                        # HashRef, parsed CLI data
+has share         => ( init_arg => undef );                        # InstanceOf ['Pcore::Core::Env::Share'], share object
 has user_cfg_path => ( is       => 'lazy', init_arg => undef );
-has user_cfg      => ( is       => 'lazy', init_arg => undef );             # $HOME/.pcore/pcore.ini config
-has share         => ( isa      => InstanceOf [''], init_arg => undef );    # share object TODO dies, if InstanceOf removed
+has user_cfg      => ( is       => 'lazy', init_arg => undef );    # $HOME/.pcore/pcore.ini config
+
+# TODO dies, if InstanceOf removed
+my $c = InstanceOf [''];
 
 has PCORE_SHARE_DIR => ();
-has SYS_USER_DIR    => ();                                                  # OS user profile dir
-has PCORE_USER_DIR  => ();                                                  # SYS_USER_DIR/.pcore, pcore profile dir
+has SYS_USER_DIR    => ();                                         # OS user profile dir
+has PCORE_USER_DIR  => ();                                         # SYS_USER_DIR/.pcore, pcore profile dir
 has INLINE_DIR      => ();
 has START_DIR       => ();
 has SCRIPT_DIR      => ();
 has SCRIPT_NAME     => ();
-has SYS_TEMP_DIR    => ();                                                  # OS temp dir
-has TEMP_DIR        => ();                                                  # SYS_TEMP_DIR/temp-xxxx, random temp dir, created in SYS_TEMP_DIR
+has SYS_TEMP_DIR    => ();                                         # OS temp dir
+has TEMP_DIR        => ();                                         # SYS_TEMP_DIR/temp-xxxx, random temp dir, created in SYS_TEMP_DIR
 has DATA_DIR        => ();
 
 has SCANDEPS  => ();
@@ -35,7 +38,7 @@ has UID       => ();
 has GID       => ();
 
 # create $ENV object
-$ENV = __PACKAGE__->new;                                                    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+$ENV = __PACKAGE__->new;                                           ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
 _normalize_inc();
 
@@ -439,18 +442,18 @@ sub DESTROY ( $self ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 207                  | * Subroutine "BUILD1" with high complexity score (23)                                                          |
-## |      | 351                  | * Subroutine "DESTROY" with high complexity score (22)                                                         |
+## |      | 210                  | * Subroutine "BUILD1" with high complexity score (23)                                                          |
+## |      | 354                  | * Subroutine "DESTROY" with high complexity score (22)                                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 360                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 363                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 398                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 401                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 19, 186, 191         | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 22, 189, 194         | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 425                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
+## |    2 | 428                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 117                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 120                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
