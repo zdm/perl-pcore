@@ -66,7 +66,7 @@ sub get ( $self, @ ) {
     for my $lib_path ( $lib ? exists $self->{_lib_idx}->{$lib} ? $self->{_lib_idx}->{$lib} : () : $self->{_lib_path}->@* ) {
         my $root_path = $lib_path;
 
-        $root_path .= $root if $root;
+        $root_path .= "/$root" if $root;
 
         my $real_path = Cwd::realpath("$root_path/$path");
 
