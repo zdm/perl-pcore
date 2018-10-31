@@ -100,7 +100,7 @@ sub run ($self) {
     $files->move_tree( '\Alib/__dist_path__', 'lib/' . $self->{dist_name} =~ s[-][/]smgr );
 
     # rename dist cfg template
-    $files->move_file( "share/_dist_.$Pcore::Core::Const::DIST_CFG_TYPE", "share/dist.$Pcore::Core::Const::DIST_CFG_TYPE" );
+    $files->move_file( "share/_dist_.yaml", "share/dist.yaml" );
 
     $files->render_tmpl($tmpl_params);
 
@@ -157,6 +157,16 @@ sub _create_upstream_repo ($self) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 103                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

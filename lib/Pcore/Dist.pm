@@ -105,7 +105,7 @@ around new => sub ( $orig, $self, $dist ) {
     # remove .pm suffix
     substr $dist_name, -3, 3, q[];
 
-    if ( -f $module_lib . "auto/share/dist/$dist_name/dist.$Pcore::Core::Const::DIST_CFG_TYPE" ) {
+    if ( -f $module_lib . "auto/share/dist/$dist_name/dist.yaml" ) {
 
         # module is installed
         return $self->$orig( {
@@ -153,7 +153,7 @@ sub find_dist_root ( $self, $path ) {
 }
 
 sub dir_is_dist_root ( $self, $path ) {
-    return -f $path . "/share/dist.$Pcore::Core::Const::DIST_CFG_TYPE" ? 1 : 0;
+    return -f $path . "/share/dist.yaml" ? 1 : 0;
 }
 
 # BUILDERS
@@ -180,7 +180,7 @@ sub _build_module ($self) {
 }
 
 sub _build_cfg ($self) {
-    return P->cfg->read( $self->share_dir . "/dist.$Pcore::Core::Const::DIST_CFG_TYPE" );
+    return P->cfg->read( $self->share_dir . "/dist.yaml" );
 }
 
 sub _build_docker_cfg ($self) {
@@ -353,6 +353,8 @@ sub _build_docker ($self) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 108, 156             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 156, 183             | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

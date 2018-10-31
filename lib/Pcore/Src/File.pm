@@ -75,7 +75,7 @@ sub _build_dist_cfg ($self) {
         # load and cache dist config if path is related to some dist
         if ( $path->{$dirname} ) {
             if ( !exists $dists->{ $path->{$dirname} } ) {
-                my $dist_cfg = P->cfg->read( $path->{$dirname} . "share/dist.$Pcore::Core::Const::DIST_CFG_TYPE" );
+                my $dist_cfg = P->cfg->read( $path->{$dirname} . "share/dist.yaml" );
 
                 if ( exists $dist_cfg->{src} ) {
                     $dists->{ $path->{$dirname} } = $dist_cfg->{src};
@@ -259,6 +259,8 @@ sub run ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
+## |    3 | 78                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 98, 183              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
