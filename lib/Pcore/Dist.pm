@@ -49,12 +49,13 @@ around new => sub ( $orig, $self, $dist ) {
         # if $dist doesn't contain .pm suffix, but contain ".", "/" or "\" - this is a path
         # try find dist by path
         if ( my $root = $self->find_dist_root($dist) ) {
+say "$root/share";
 exit;
             # path is a part of the dist
             return $self->$orig( {
                 root         => $root,
                 is_cpan_dist => 0,
-                share_dir    => $root . '/share',
+                share_dir    => "$root/share",
             } );
         }
         else {
