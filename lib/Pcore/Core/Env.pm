@@ -307,9 +307,7 @@ sub set_scandeps ( $self, $path ) {
     return;
 }
 
-sub _build_user_cfg_path ($self) {
-    return "$self->{PCORE_USER_DIR}pcore.ini";
-}
+sub _build_user_cfg_path ($self) { return "$self->{PCORE_USER_DIR}pcore.ini" }
 
 sub _build_user_cfg ($self) {
     if ( !-f $self->user_cfg_path ) {
@@ -441,15 +439,15 @@ sub DESTROY ( $self ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 206                  | * Subroutine "BUILD1" with high complexity score (23)                                                          |
-## |      | 352                  | * Subroutine "DESTROY" with high complexity score (22)                                                         |
+## |      | 350                  | * Subroutine "DESTROY" with high complexity score (22)                                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 361                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 359                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 399                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 397                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 19, 185, 190         | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 426                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
+## |    2 | 424                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 117                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
