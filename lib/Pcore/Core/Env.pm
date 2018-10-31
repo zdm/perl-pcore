@@ -205,14 +205,14 @@ sub BUILD ( $self, $args ) {
 }
 
 sub BUILD1 ($self) {
-    $self->{SYS_USER_DIR}   = P->path( $self->{SYS_USER_DIR},   is_dir => 1 );
-    $self->{PCORE_USER_DIR} = P->path( $self->{PCORE_USER_DIR}, is_dir => 1 );
-    $self->{INLINE_DIR}     = P->path( $self->{INLINE_DIR},     is_dir => 1 ) if $self->{INLINE_DIR};
+    $self->{SYS_USER_DIR}   = P->path1( $self->{SYS_USER_DIR} );
+    $self->{PCORE_USER_DIR} = P->path1( $self->{PCORE_USER_DIR} );
+    $self->{INLINE_DIR}     = P->path1( $self->{INLINE_DIR} ) if $self->{INLINE_DIR};
 
     # init share
     $self->{share} = Pcore::Core::Env::Share->new;
 
-    $self->{START_DIR} = P->file->cwd->to_string;
+    $self->{START_DIR} = P->path1->to_abs;
 
     if ( $Pcore::SCRIPT_PATH eq '-e' || $Pcore::SCRIPT_PATH eq '-' ) {
         $self->{SCRIPT_NAME} = '-e';
@@ -221,10 +221,10 @@ sub BUILD1 ($self) {
     else {
         die qq[Cannot find current script "$Pcore::SCRIPT_PATH"] if !-f $Pcore::SCRIPT_PATH;
 
-        my $path = P->path($Pcore::SCRIPT_PATH)->realpath;
+        my $path = P->path1($Pcore::SCRIPT_PATH)->to_abs;
 
-        $self->{SCRIPT_NAME} = $path->filename;
-        $self->{SCRIPT_DIR}  = $path->dirname;
+        $self->{SCRIPT_NAME} = $path->{filename};
+        $self->{SCRIPT_DIR}  = $path->{dirname};
     }
 
     $self->{SCRIPT_PATH} = $self->{SCRIPT_DIR} . $self->{SCRIPT_NAME};
