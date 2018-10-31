@@ -63,7 +63,7 @@ sub _build_dist_cfg ($self) {
 
     state $dists = {};
 
-    my $realpath = $self->is_realpath ? $self->path->realpath : 0;
+    my $realpath = $self->is_realpath ? $self->path->to_abs : 0;
 
     if ($realpath) {
         my $dirname = $realpath->dirname;
