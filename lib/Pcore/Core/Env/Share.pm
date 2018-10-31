@@ -35,13 +35,13 @@ sub get_storage ( $self, @ ) {
     if ($lib) {
         die qq[share lib "$lib" does not exists] if !exists $self->{_lib_idx}->{$lib};
 
-        return -d $self->{_lib_idx}->{$lib} . $path ? $self->{_lib_idx}->{$lib} . $path : ();
+        return -d "$self->{_lib_idx}->{$lib}/$path" ? "$self->{_lib_idx}->{$lib}/$path" : ();
     }
     else {
         my @res;
 
         for my $lib_path ( $self->{_lib_path}->@* ) {
-            push @res, $lib_path . $path if -d $lib_path . $path;
+            push @res, "$lib_path/$path" if -d "$lib_path/$path";
         }
 
         return \@res;
@@ -111,16 +111,6 @@ sub write ( $self, $lib, $path, $file ) {    ## no critic qw[Subroutines::Prohib
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 44                   | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
