@@ -13,11 +13,15 @@ use overload
 
 our $EXPORT = [qw[res]];
 
+sub IS_PCORE_RESULT ($self) { return 1 }
+
 # CONSTRUCTOR
 sub res ( $status, @args ) {
     my $hash = @args % 2 ? { @args[ 1 .. $#args ], data => $args[0] } : {@args};
 
     my $self = bless $hash, __PACKAGE__;
+
+    $hash->{IS_PCORE_RESULT} = 1;
 
     if ( is_plain_arrayref $status ) {
         $hash->{status} = $status->[0];

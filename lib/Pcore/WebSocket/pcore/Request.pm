@@ -1,7 +1,7 @@
 package Pcore::WebSocket::pcore::Request;
 
 use Pcore -class, -res;
-use Pcore::Util::Scalar qw[is_blessed_ref];
+use Pcore::Util::Scalar qw[is_result];
 
 use overload    #
   q[&{}] => sub ( $self, @ ) {
@@ -23,9 +23,7 @@ sub DESTROY ( $self ) {
     return;
 }
 
-sub IS_PCORE_CALLBACK ($self) {
-    return 1;
-}
+sub IS_PCORE_CALLBACK ($self) { return 1 }
 
 sub _respond ( $self, @ ) {
     die q[Already responded] if $self->{_responded};
@@ -36,7 +34,7 @@ sub _respond ( $self, @ ) {
     if ( my $cb = delete $self->{_cb} ) {
 
         # return response, if callback is defined
-        $cb->( is_blessed_ref $_[1] ? $_[1] : res splice @_, 1 );
+        $cb->( is_result $_[1] ? $_[1] : res splice @_, 1 );
     }
 
     return;

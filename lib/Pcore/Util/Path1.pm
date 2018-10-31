@@ -58,7 +58,7 @@ has is_abs => ();
 has _encoded => ( init_arg => undef );    # utf8 encoded path
 has _to_url  => ( init_arg => undef );
 
-has IS_PCORE_PATH => ( 1, init_arg => undef );
+sub IS_PCORE_PATH ($self) { return 1 }
 
 # from_uri, from_mswin
 around new => sub ( $orig, $self, $path = undef, %args ) {
@@ -66,22 +66,20 @@ around new => sub ( $orig, $self, $path = undef, %args ) {
 
     if ( !defined $path || $path eq '' || $path eq '.' ) {
         return bless {
-            IS_PCORE_PATH => 1,
-            path          => '.',
-            dirname       => '.',
+            path    => '.',
+            dirname => '.',
         }, $self;
     }
 
     if ( is_blessed_hashref $path ) {
-        return $path->clone if $path->{IS_PCORE_PATH};
+        return $path->clone if is_path $path;
 
         $path = "$path";
     }
     elsif ( $path eq '/' ) {
         return bless {
-            IS_PCORE_PATH => 1,
-            path          => '/',
-            dirname       => '/',
+            path    => '/',
+            dirname => '/',
         }, $self;
     }
 
@@ -93,8 +91,6 @@ around new => sub ( $orig, $self, $path = undef, %args ) {
     }
 
     $self = bless _parse($path), $self;
-
-    $self->{IS_PCORE_PATH} = 1;
 
     return $self;
 };
@@ -457,10 +453,10 @@ C
 ## |======+======================+================================================================================================================|
 ## |    3 | 36                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 232                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 228                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 67, 159, 261, 320,   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 335, 341             |                                                                                                                |
+## |    2 | 67, 155, 257, 316,   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      | 331, 337             |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

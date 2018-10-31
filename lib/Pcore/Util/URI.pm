@@ -29,9 +29,10 @@ has path_query => ();    # escaped
 
 has default_port => ();
 
-has IS_PCORE_URI  => ( 1, init_arg => undef );
-has _canon        => ( init_arg    => undef );    # escaped
-has _userinfo_b64 => ( init_arg    => undef );
+has _canon        => ( init_arg => undef );    # escaped
+has _userinfo_b64 => ( init_arg => undef );
+
+sub IS_PCORE_URI ($self) { return 1 }
 
 around new => sub ( $orig, $self, $uri = undef, %args ) {
     no warnings qw[uninitialized];
@@ -643,19 +644,19 @@ sub canon ($self) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (45)                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 92                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 93                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 441                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 442                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 629                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 630                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 43, 98, 140, 155,    | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 169, 171, 175, 178,  |                                                                                                                |
-## |      | 220, 370, 402, 417,  |                                                                                                                |
-## |      | 498, 501, 515, 538,  |                                                                                                                |
-## |      | 551, 553, 558, 588   |                                                                                                                |
+## |    2 | 44, 99, 141, 156,    | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      | 170, 172, 176, 179,  |                                                                                                                |
+## |      | 221, 371, 403, 418,  |                                                                                                                |
+## |      | 499, 502, 516, 539,  |                                                                                                                |
+## |      | 552, 554, 559, 589   |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 78, 201              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 79, 202              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
