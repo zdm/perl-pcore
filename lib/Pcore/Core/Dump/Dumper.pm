@@ -63,7 +63,7 @@ our $DUMPERS = {
         my $tags;
 
         $res .= $dumper->_dump_blessed( $self, path => $args{path} );
-        $res .= qq[,\npath: "] . $self->filename . q["];
+        $res .= qq[,\npath: "$self->{filename}"];
 
         return $res, $tags;
     },

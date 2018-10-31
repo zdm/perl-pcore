@@ -53,7 +53,7 @@ sub BUILDARGS ( $self, $args ) {
 
 # METHODS
 sub _build_is_realpath ($self) {
-    return $self->path->realpath ? 1 : 0;
+    return $self->path->to_realpath ? 1 : 0;
 }
 
 sub _build_dist_cfg ($self) {

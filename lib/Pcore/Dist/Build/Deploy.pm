@@ -52,10 +52,10 @@ sub _chmod ($self) {
             else {
                 my $is_exe;
 
-                if ( ( $path->dirname eq 'bin/' || $path->dirname eq 'script/' ) && !$path->suffix ) {
+                if ( ( $path->{dirname} eq 'bin' || $path->{dirname} eq 'script' ) && !$path->{suffix} ) {
                     $is_exe = 1;
                 }
-                elsif ( $path->suffix eq 'sh' || $path->suffix eq 'pl' || $path->suffix eq 't' ) {
+                elsif ( $path->{suffix} eq 'sh' || $path->{suffix} eq 'pl' || $path->{suffix} eq 't' ) {
                     $is_exe = 1;
                 }
 

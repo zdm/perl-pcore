@@ -112,7 +112,6 @@ sub to_string ($self) { return $self->{path} }
 
 sub clone ($self) { return Clone::clone($self) }
 
-# TODO empty
 sub to_uri ($self) {
     if ( !exists $self->{_to_uri} ) {
 
@@ -435,10 +434,10 @@ C
 ## |======+======================+================================================================================================================|
 ## |    3 | 14                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 206                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 205                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 45, 133, 235, 294,   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 309, 315             |                                                                                                                |
+## |    2 | 45, 132, 234, 293,   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      | 308, 314             |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

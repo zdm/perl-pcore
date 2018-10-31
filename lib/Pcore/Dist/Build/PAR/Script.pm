@@ -33,7 +33,7 @@ sub _build_par_suffix ($self) {
 }
 
 sub _build_exe_filename ($self) {
-    my $filename = $self->{script}->filename_base;
+    my $filename = $self->{script}->{filename_base};
 
     my @attrs;
 
@@ -59,7 +59,7 @@ sub run ($self) {
     say qq[\nBuilding ] . ( $self->{crypt} ? $BLACK . $ON_GREEN . ' crypted ' : $BOLD . $WHITE . $ON_RED . q[ not crypted ] ) . $RESET . q[ ] . $BLACK . $ON_GREEN . ( $self->{clean} ? ' clean ' : ' cached ' ) . $RESET . qq[ "@{[$self->exe_filename]}" for $Config{archname}$LF];
 
     # add main script
-    $self->_add_perl_source( $self->{script}->realpath->to_string, 'script/main.pl' );
+    $self->_add_perl_source( $self->{script}->to_abs->{path}, 'script/main.pl' );
 
     # add META.yml
     $self->tree->add_file( 'META.yml', P->data->to_yaml( { par => { clean => 1 } } ) ) if $self->{clean};
@@ -280,7 +280,7 @@ sub _add_shlib ($self) {
 
     my $perl_path = P->path($^X);
 
-    $dso->{ $perl_path->filename } = "$perl_path";
+    $dso->{ $perl_path->{filename} } = "$perl_path";
 
     # add found deps
     for my $filename ( sort keys $dso->%* ) {

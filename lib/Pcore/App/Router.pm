@@ -114,9 +114,9 @@ sub run ( $self, $req ) {
 
     my $path = P->path("/$env->{PATH_INFO}");
 
-    my $path_tail = $path->filename;
+    my $path_tail = $path->{filename};
 
-    $path = $path->dirname;
+    $path = $path->{dirname};
 
     my $map = $self->{map};
 

@@ -373,7 +373,7 @@ sub set_path ( $self, $val = undef ) {
 
         # only abs path is allowed if uri has authority
         if ( defined $self->_get_authority ) {
-            if ( $path->is_abs ) {
+            if ( $path->{is_abs} ) {
                 $self->{path} = $path;
             }
             else {

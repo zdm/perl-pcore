@@ -62,11 +62,11 @@ $pod_markdown
 MD
 
                 # write markdown to the file
-                P->file->mkpath( $wiki_path . 'POD/' . $path->dirname );
+                P->file->mkpath("$wiki_path/POD/$path->{dirname}");
 
-                $toc->{ $path->dirname . $path->filename_base } = $module->abstract;
+                $toc->{"$path->{dirname}/$path->{filename_base}"} = $module->abstract;
 
-                P->file->write_text( $wiki_path . 'POD/' . $path->dirname . $path->filename_base . q[.md], { crlf => 0 }, \$markdown );
+                P->file->write_text( "$wiki_path/POD/$path->{dirname}/$path->{filename_base}.md", { crlf => 0 }, \$markdown );
             }
         }
     }

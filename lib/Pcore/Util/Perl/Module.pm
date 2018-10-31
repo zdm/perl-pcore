@@ -164,24 +164,24 @@ sub _build_auto_deps ($self) {
 
     $name = P->path($name);
 
-    return if $name->suffix eq 'pl';
+    return if $name->{suffix} eq 'pl';
 
-    my $auto_path = 'auto/' . $name->dirname . $name->filename_base . q[/];
+    my $auto_path = "auto/$name->{dirname}/$name->{filename_base}";
 
-    my $so_filename = $name->filename_base . q[.] . $Config{dlext};
+    my $so_filename = "$name->{filename_base}.$Config{dlext}";
 
     my $deps;
 
     for my $lib ( map { P->path($_) } "$ENV->{INLINE_DIR}/lib", @INC ) {
         if ( -f "$lib/$auto_path" . $so_filename ) {
-            $deps->{ $auto_path . $so_filename } = "$lib/$auto_path" . $so_filename;
+            $deps->{"$auto_path/$so_filename"} = "$lib/$auto_path/$so_filename";
 
             # add .ix, .al
             for my $file ( P->file->read_dir("$lib/$auto_path")->@* ) {
                 my $suffix = substr $file, -3, 3;
 
                 if ( $suffix eq '.ix' or $suffix eq '.al' ) {
-                    $deps->{ $auto_path . $file } = "$lib/$auto_path" . $file;
+                    $deps->{"$auto_path/$file"} = "$lib/$auto_path/$file";
                 }
             }
 

@@ -765,7 +765,7 @@ sub untar ( $tar, $target, @ ) {
     my @extracted;
 
     for my $file ( $tar->get_files ) {
-        next if !$file->is_file;
+        next if !defined $file->{filename};
 
         my $path = P->path( '/' . $file->full_path );
 
@@ -783,7 +783,7 @@ sub untar ( $tar, $target, @ ) {
 
         my $target_path = P->path("$target/$path");
 
-        P->file->mkpath( $target_path->dirname ) if !-e $target_path->dirname;
+        P->file->mkpath( $target_path->{dirname} ) if !-e $target_path->{dirname};
 
         if ( $file->extract($target_path) ) {
             push @extracted, $target_path;

@@ -26,9 +26,9 @@ sub upload ( $self, $path, $cb = undef ) {
 
     $self->_pack_multipart( \$body, $boundary, 'CAN_MULTIPART', \1 );
 
-    $self->_pack_multipart( \$body, $boundary, 'pause99_add_uri_upload', \$path->filename );
+    $self->_pack_multipart( \$body, $boundary, 'pause99_add_uri_upload', \$path->{filename} );
 
-    $self->_pack_multipart( \$body, $boundary, 'pause99_add_uri_httpupload', P->file->read_bin($path), $path->filename );
+    $self->_pack_multipart( \$body, $boundary, 'pause99_add_uri_httpupload', P->file->read_bin($path), $path->{filename} );
 
     $self->_pack_multipart( \$body, $boundary, 'pause99_add_uri_uri', \q[] );
 
