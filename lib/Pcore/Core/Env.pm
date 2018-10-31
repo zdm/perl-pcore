@@ -98,7 +98,7 @@ sub _configure_inc {
 
     # not for PAR
     if ( !$ENV->{is_par} ) {
-        my $is_module_build_test = 0;    # $ENV->dist && exists $inc_index->{ $ENV->dist->root . 'blib/lib' } ? 1 : 0;
+        my $is_module_build_test = 0;    # $ENV->dist && exists $inc_index->{ $ENV->dist->{root} . '/blib/lib' } ? 1 : 0;
 
         # add dist lib and PCORE_LIB to @INC only if we are int on the PAR archive and not in the Module::Build testing environment
         # under Module::Build dist lib is already added and PCORE_LIB is not added to emulate clean CPAN installation
@@ -106,8 +106,8 @@ sub _configure_inc {
             my $dist_lib_path;
 
             # detect dist lib path
-            if ( $ENV->dist && !exists $inc_index->{ $ENV->dist->root . '/lib' } && -d $ENV->dist->root . '/lib' ) {
-                $dist_lib_path = $ENV->dist->root . '/lib';
+            if ( $ENV->dist && !exists $inc_index->{ $ENV->dist->{root} . '/lib' } && -d $ENV->dist->{root} . '/lib' ) {
+                $dist_lib_path = $ENV->dist->{root} . '/lib';
 
                 $inc_index->{$dist_lib_path} = 1;
             }
@@ -252,7 +252,7 @@ sub BUILD1 ($self) {
             $self->{DATA_DIR} = $self->{SCRIPT_DIR};
         }
         else {
-            $self->{DATA_DIR} = P->path1( $dist->root . '/data' );
+            $self->{DATA_DIR} = P->path1("$dist->{root}/data");
             mkdir $self->{DATA_DIR} || die qq[Can't create "$self->{DATA_DIR}"] if !-d $self->{DATA_DIR};
         }
     }
@@ -274,7 +274,7 @@ sub BUILD1 ($self) {
     if ( !$self->{is_par} && defined( my $dist = $self->{main_dist} ) ) {
         if ( $dist->par_cfg && exists $dist->par_cfg->{ $self->{SCRIPT_NAME} } && !$dist->par_cfg->{ $self->{SCRIPT_NAME} }->{disabled} ) {
 
-            $self->set_scandeps( "$dist->{share_dir}/pardeps-$self->{SCRIPT_NAME}-@{[$^V->normal]}-$Config{archname}.json" );
+            $self->set_scandeps("$dist->{share_dir}/pardeps-$self->{SCRIPT_NAME}-@{[$^V->normal]}-$Config{archname}.json");
         }
     }
 
