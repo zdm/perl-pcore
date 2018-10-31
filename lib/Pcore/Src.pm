@@ -263,7 +263,7 @@ sub _process_files ( $self, $paths, $args ) {
     for my $path ( $paths->@* ) {
         $path = P->path1($path) if !is_path $path;
 
-        my $dirname = $path->dirname;
+        my $dirname = $path->{dirname};
 
         if ( !defined $prefix ) {
             $prefix = $dirname;
