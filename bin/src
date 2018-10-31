@@ -4,9 +4,6 @@ package main v0.1.0;
 
 use Pcore;
 
-say 123;
-exit 23;
-
 sub CLI ($self) {
     return 'Pcore::Src';
 }

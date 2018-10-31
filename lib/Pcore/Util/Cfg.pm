@@ -19,10 +19,6 @@ const our $EXT_TYPE_MAP => {
 sub read ( $path, %args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my $type = delete $args{type};
 
-    use Devel::StackTrace;
-    say Devel::StackTrace->new->as_string;
-    say '-' x 100;
-
     die qq[Config file "$path" wasn't found.] if !-f $path;
 
     $type = $EXT_TYPE_MAP->{$1} if !$type && $path =~ /[.]([^.]+)\z/sm;
@@ -60,7 +56,7 @@ sub write ( $path, $data, %args ) {    ## no critic qw[Subroutines::ProhibitBuil
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 28, 47               | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    3 | 24, 43               | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
