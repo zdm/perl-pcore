@@ -18,16 +18,17 @@ has cli           => ( is => 'ro',   isa => HashRef, init_arg => undef );       
 has user_cfg_path => ( is => 'lazy', isa => Str,     init_arg => undef );
 has user_cfg      => ( is => 'lazy', isa => HashRef, init_arg => undef );                                # $HOME/.pcore/pcore.ini config
 
-has SYS_USER_DIR   => ();                                                                                # OS user profile dir
-has PCORE_USER_DIR => ();                                                                                # SYS_USER_DIR/.pcore, pcore profile dir
-has INLINE_DIR     => ();
-has START_DIR      => ();
-has SCRIPT_DIR     => ();
-has SCRIPT_NAME    => ();
-has SYS_TEMP_DIR   => ();                                                                                # OS temp dir
-has TEMP_DIR       => ();                                                                                # SYS_TEMP_DIR/temp-xxxx, random temp dir, created in SYS_TEMP_DIR
-has PCORE_SYS_DIR  => ();                                                                                # SYS_TEMP_DIR/.pcore
-has DATA_DIR       => ();
+has PCORE_SHARE_DIR => ();
+has SYS_USER_DIR    => ();                                                                               # OS user profile dir
+has PCORE_USER_DIR  => ();                                                                               # SYS_USER_DIR/.pcore, pcore profile dir
+has INLINE_DIR      => ();
+has START_DIR       => ();
+has SCRIPT_DIR      => ();
+has SCRIPT_NAME     => ();
+has SYS_TEMP_DIR    => ();                                                                               # OS temp dir
+has TEMP_DIR        => ();                                                                               # SYS_TEMP_DIR/temp-xxxx, random temp dir, created in SYS_TEMP_DIR
+has PCORE_SYS_DIR   => ();                                                                               # SYS_TEMP_DIR/.pcore
+has DATA_DIR        => ();
 
 has SCANDEPS  => ();
 has DAEMONIZE => ();
@@ -183,6 +184,26 @@ sub BUILD ( $self, $args ) {
 }
 
 sub BUILD1 ($self) {
+
+    # find Pcore share dir
+    my $pcore_path = $INC{'Pcore.pm'};
+
+    # remove "/Pcore.pm"
+    substr $pcore_path, -9, 9, '';
+
+    if ( -d "$pcore_path/../share" ) {
+
+        # remove "/lib"
+        substr $pcore_path, -4, 4, '';
+
+        $self->{PCORE_SHARE_DIR} = "$pcore_path/share";
+    }
+    elsif ( -d "$pcore_path/auto/share/dist/Pcore" ) {
+        $self->{PCORE_SHARE_DIR} = "$pcore_path/auto/share/dist/Pcore";
+    }
+    else {
+        die q[Pcore share dir can't be found.];
+    }
 
     $self->{SYS_USER_DIR}   = P->path( $self->{SYS_USER_DIR},   is_dir => 1 );
     $self->{PCORE_USER_DIR} = P->path( $self->{PCORE_USER_DIR}, is_dir => 1 );
@@ -405,16 +426,18 @@ sub DESTROY ( $self ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 185                  | * Subroutine "BUILD1" with high complexity score (21)                                                          |
-## |      | 317                  | * Subroutine "DESTROY" with high complexity score (22)                                                         |
+## |      | 186                  | * Subroutine "BUILD1" with high complexity score (24)                                                          |
+## |      | 338                  | * Subroutine "DESTROY" with high complexity score (22)                                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 326                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 347                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 364                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 385                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 391                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
+## |    2 | 192, 197             | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 116                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    2 | 412                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 117                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

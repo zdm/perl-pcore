@@ -439,7 +439,7 @@ SV *_parse (SV *path) {
     return newRV((SV *)hash);
 }
 C
-    inc        => '-I' . $ENV->{share}->get_storage( 'Pcore', 'include' ),
+    inc        => "-I$ENV->{PCORE_SHARE_DIR}",
     ccflagsex  => '-Wall -Wextra -Ofast -std=c11',
     prototypes => 'ENABLE',
     prototype  => { _parse => '$', },
