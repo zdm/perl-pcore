@@ -307,7 +307,7 @@ sub set_scandeps ( $self, $path ) {
     return;
 }
 
-sub _build_user_cfg_path ($self) { return "$self->{PCORE_USER_DIR}pcore.ini" }
+sub _build_user_cfg_path ($self) { return "$self->{PCORE_USER_DIR}/pcore.ini" }
 
 sub _build_user_cfg ($self) {
     if ( !-f $self->user_cfg_path ) {
