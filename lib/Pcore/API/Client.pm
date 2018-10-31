@@ -2,7 +2,7 @@ package Pcore::API::Client;
 
 use Pcore -class, -res;
 use Pcore::WebSocket;
-use Pcore::Util::Scalar qw[is_blessed_ref is_plain_arrayref is_plain_coderef weaken];
+use Pcore::Util::Scalar qw[is_callback is_plain_arrayref is_plain_coderef weaken];
 use Pcore::Util::Data qw[to_cbor from_cbor];
 use Pcore::Util::UUID qw[uuid_v1mc_str];
 use Pcore::HTTP qw[:TLS_CTX];
@@ -83,7 +83,7 @@ sub api_call ( $self, $method, @args ) {
     }
 
     # parse callback
-    my $cb = is_plain_coderef $_[-1] || ( is_blessed_ref $_[-1] && $_[-1]->can('IS_CALLBACK') ) ? pop : undef;
+    my $cb = is_plain_coderef $_[-1] || is_callback $_[-1] ? pop : undef;
 
     if ( defined wantarray ) {
         my $cv = P->cv;

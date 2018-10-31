@@ -2,7 +2,7 @@ package Pcore::Util::URI;
 
 use Pcore -class, -const;
 use Pcore::Util::Net qw[get_free_port];
-use Pcore::Util::Scalar qw[is_ref is_blessed_hashref];
+use Pcore::Util::Scalar qw[is_path is_uri is_ref];
 use Pcore::Util::Data qw[:URI to_b64];
 use Pcore::Util::Text qw[decode_utf8 encode_utf8];
 use Pcore::Util::UUID qw[uuid_v4_str];
@@ -48,7 +48,7 @@ around new => sub ( $orig, $self, $uri = undef, %args ) {
                 return $self->$orig;
             }
             else {
-                if ( is_ref $args{base} ) {
+                if ( is_uri $args{base} ) {
                     $base = $args{base}->clone;
                 }
                 else {
@@ -83,7 +83,7 @@ around new => sub ( $orig, $self, $uri = undef, %args ) {
     my ( $scheme, $authority, $path, $query, $fragment );
 
     # parse source uri
-    if ( is_ref $uri) {
+    if ( is_uri $uri) {
         return $uri->clone if !defined $args{base};
 
         ( $scheme, $authority, $path, $query, $fragment ) = $uri->@{qw[scheme authority path query fragment]};
@@ -112,7 +112,7 @@ around new => sub ( $orig, $self, $uri = undef, %args ) {
             $target = $self->$orig;
         }
         else {
-            $base = is_blessed_hashref $args{base} && $args{base}->{IS_PCORE_URI} ? $args{base} : P->uri("$args{base}");
+            $base = is_uri $args{base} ? $args{base} : P->uri("$args{base}");
 
             # Pre-parse the Base URI: https://tools.ietf.org/html/rfc3986#section-5.2.1
             # base URI MUST contain scheme
@@ -160,7 +160,7 @@ around new => sub ( $orig, $self, $uri = undef, %args ) {
     }
 
     # path
-    if ( is_ref $path) {
+    if ( is_path $path) {
         $target->{path} = $path;
     }
     else {
@@ -436,7 +436,7 @@ sub to_abs ( $self, $base ) {
     # already absolute uri
     return $self if defined $self->{scheme};
 
-    $base = P->uri("$base") unless is_blessed_hashref $base && $base->{IS_PCORE_URI};
+    $base = P->uri("$base") unless is_uri $base;
 
     die qq[Can't convert URI to absolute] if !defined $base->{scheme};
 
@@ -641,7 +641,7 @@ sub canon ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (46)                               |
+## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (45)                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 92                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|

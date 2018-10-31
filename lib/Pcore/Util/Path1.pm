@@ -4,7 +4,7 @@ use Pcore -class, -const, -res;
 use Clone qw[];
 use Cwd qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Pcore::Util::Data qw[from_uri_utf8 to_uri_path];
-use Pcore::Util::Scalar qw[is_blessed_hashref];
+use Pcore::Util::Scalar qw[is_path is_blessed_hashref];
 use Pcore::Util::Text qw[encode_utf8 decode_utf8];
 
 use overload
@@ -24,7 +24,7 @@ use overload
 
     # $self + $str
     else {
-        if ( is_blessed_hashref $_[1] && $_[1]->{IS_PCORE_PATH} && !defined $_[1]->{filename} ) {
+        if ( is_path $_[1] && !defined $_[1]->{filename} ) {
             return $_[0]->new("$_[0]->{path}/$_[1]->{path}/");
         }
         else {
@@ -190,7 +190,7 @@ sub to_abs ( $self, $base = undef ) {
     if ( !defined $base ) {
         $base = Cwd::getcwd();
     }
-    elsif ( is_blessed_hashref $base && $base->{IS_PCORE_PATH} ) {
+    elsif ( is_path $base ) {
         $base = $base->to_abs->{dirname};
     }
     else {
@@ -212,7 +212,7 @@ sub merge ( $self, $base ) {
 
     return $self if !defined $base;
 
-    if ( is_blessed_hashref $base && $base->{IS_PCORE_PATH} ) {
+    if ( is_path $base ) {
         $base = $base->{dirname};
     }
     else {

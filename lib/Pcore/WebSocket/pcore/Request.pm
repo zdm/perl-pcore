@@ -23,7 +23,7 @@ sub DESTROY ( $self ) {
     return;
 }
 
-sub IS_CALLBACK ($self) {
+sub IS_PCORE_CALLBACK ($self) {
     return 1;
 }
 
