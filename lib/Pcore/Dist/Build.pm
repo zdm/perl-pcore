@@ -150,7 +150,7 @@ sub tgz ($self) {
         $tgz->add_data( "$base_dir/$path", P->file->read_bin("$temp/$path")->$*, { mode => $mode } );
     }
 
-    my $path = $ENV->{PCORE_SYS_DIR} . 'build/' . $self->dist->name . q[-] . $self->dist->version . '.tar.gz';
+    my $path = $ENV->get_pcore_sys_dir . 'build/' . $self->dist->name . q[-] . $self->dist->version . '.tar.gz';
 
     $tgz->write( $path, Archive::Tar::COMPRESS_GZIP() );
 

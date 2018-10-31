@@ -15,26 +15,26 @@ const our $SCM_TYPE_CLASS => {
 };
 
 sub new ( $self, $path ) {
-    $path = P->path( $path, is_dir => 1 )->realpath;
+    $path = P->path1($path)->to_abs;
 
     my $class;
 
-    if ( -d "$path/.hg/" ) {
+    if ( -d "$path/.hg" ) {
         $class = $SCM_TYPE_CLASS->{$SCM_TYPE_HG};
     }
-    elsif ( -d "$path/.git/" ) {
+    elsif ( -d "$path/.git" ) {
         $class = $SCM_TYPE_CLASS->{$SCM_TYPE_GIT};
     }
     else {
         $path = $path->parent;
 
         while ($path) {
-            if ( -d "$path/.hg/" ) {
+            if ( -d "$path/.hg" ) {
                 $class = $SCM_TYPE_CLASS->{$SCM_TYPE_HG};
 
                 last;
             }
-            elsif ( -d "$path/.git/" ) {
+            elsif ( -d "$path/.git" ) {
                 $class = $SCM_TYPE_CLASS->{$SCM_TYPE_GIT};
 
                 last;

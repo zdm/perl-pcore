@@ -18,7 +18,7 @@ const our $XT_TEST => {
 };
 
 sub _build_cpanfile ($self) {
-    return P->class->load('Module::CPANfile')->load( $self->dist->root . 'cpanfile' );
+    return P->class->load('Module::CPANfile')->load( $self->dist->root . '/cpanfile' );
 }
 
 sub _build_prereqs ($self) {
@@ -37,22 +37,22 @@ sub run ( $self, $keep = 0 ) {
     $self->_generate_meta_json($tree);
 
     if ($keep) {
-        my $path = P->file->temppath( base => $ENV->{PCORE_SYS_DIR} . 'build/', tmpl => $self->dist->name . '-XXXXXXXX' );
+        my $path = P->file->temppath( base => $ENV->get_pcore_sys_dir . '/build', tmpl => $self->dist->name . '-XXXXXXXX' );
 
         $tree->write_to( $path, manifest => 1 );
 
         return $path;
     }
     else {
-        return $tree->write_to_temp( base => $ENV->{PCORE_SYS_DIR} . 'build/', tmpl => $self->dist->name . '-XXXXXXXX', manifest => 1 );
+        return $tree->write_to_temp( base => $ENV->get_pcore_sys_dir . '/build', tmpl => $self->dist->name . '-XXXXXXXX', manifest => 1 );
     }
 }
 
 sub _gather_files ($self) {
     my $tree = Pcore::Util::File::Tree->new;
 
-    for my $dir (qw[bin/ lib/ share/ t/ xt/]) {
-        $tree->add_dir( $self->dist->root . $dir, $dir );
+    for my $dir (qw[bin lib share t xt]) {
+        $tree->add_dir( $self->dist->root . "/$dir", $dir );
     }
 
     # relocate files, apply cpan_manifest_skip
@@ -115,7 +115,7 @@ sub _gather_files ($self) {
     }
 
     for my $file (qw[CHANGES cpanfile LICENSE README.md]) {
-        $tree->add_file( $file, $self->dist->root . $file );
+        $tree->add_file( $file, $self->dist->root . "/$file" );
     }
 
     # add dist-id.json

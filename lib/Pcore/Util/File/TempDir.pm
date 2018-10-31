@@ -66,9 +66,9 @@ sub _build_path ($self) {
 
     $umask_guard = P->file->umask( $self->umask ) if defined $self->umask;
 
-    P->file->mkpath( $self->base . q[/] . $dirname, mode => $self->mode );
+    P->file->mkpath( $self->base . "/$dirname", mode => $self->mode );
 
-    return P->path( $self->base . q[/] . $dirname, is_dir => 1 )->realpath->to_string;
+    return P->path1( $self->base . "/$dirname" )->to_abs;
 }
 
 1;

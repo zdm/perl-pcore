@@ -4,6 +4,55 @@ use Pcore -role;
 use Pcore::Util::Scalar qw[is_plain_coderef];
 use Fcntl qw[];
 
+has _dir_is_root => ();
+has _dir_parent  => ();
+
+around _clear_cache => sub ( $orig, $self ) {
+    delete $self->@{qw[_dir_is_root _dir_parent]};
+
+    return $self->$orig;
+};
+
+sub is_root ($self) {
+    if ( !exists $self->{_dir_is_root} ) {
+        if ( $self->{is_abs} ) {
+            if ( $self->{volume} ) {
+                if ( length $self->{path} == 3 ) {
+                    $self->{_dir_is_root} = 1;
+                }
+                else {
+                    $self->{_dir_is_root} = 0;
+                }
+            }
+            else {
+                if ( $self->{path} eq '/' ) {
+                    $self->{_dir_is_root} = 1;
+                }
+                else {
+                    $self->{_dir_is_root} = 0;
+                }
+            }
+        }
+        else {
+            $self->{_dir_is_root} = 0;
+        }
+    }
+
+    return $self->{_dir_is_root};
+}
+
+sub parent ($self) {
+    if ( !exists $self->{_dir_parent} ) {
+        my $path = $self->{is_abs} ? $self : $self->clone->to_abs;
+
+        my $parent = $self->new("$self->{dirname}/..");
+
+        $self->{_dir_parent} = $parent->is_root ? undef : $parent;
+    }
+
+    return $self->{_dir_parent};
+}
+
 sub read_dir ( $self, @ ) {
     return if !-d $self;
 
@@ -99,6 +148,28 @@ sub read_dir ( $self, @ ) {
     return $res;
 }
 
+# mkdir with chmod support
+sub mkdir ( $self, $mode = undef ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+    if ( defined wantarray ) {
+        if ( defined $mode ) {
+            return mkdir $self->encoded, P->file->calc_chmod($mode);
+        }
+        else {
+            return mkdir $self->encoded;
+        }
+    }
+    else {
+        if ( defined $mode ) {
+            mkdir $self->encoded, P->file->calc_chmod($mode) or die qq[Can't mkdir "$self". $!];
+        }
+        else {
+            mkdir $self->encoded or die qq[Can't mkdir "$self". $!];
+        }
+
+        return;
+    }
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -106,11 +177,11 @@ sub read_dir ( $self, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 7                    | Subroutines::ProhibitExcessComplexity - Subroutine "read_dir" with high complexity score (30)                  |
+## |    3 | 56                   | Subroutines::ProhibitExcessComplexity - Subroutine "read_dir" with high complexity score (30)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 97                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 146                  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 10                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 59                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

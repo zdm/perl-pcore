@@ -2,6 +2,7 @@ package Pcore::Dist;
 
 use Pcore -class;
 use Config;
+use Pcore::Util::Scalar qw[is_ref];
 
 has root         => ( is => 'ro', required => 1 );                      # Maybe [Str], absolute path to the dist root
 has is_cpan_dist => ( is => 'ro', isa      => Bool, required => 1 );    # dist is installed as CPAN module, root is undefined
@@ -131,7 +132,7 @@ around new => sub ( $orig, $self, $dist ) {
 
 # CLASS METHODS
 sub find_dist_root ( $self, $path ) {
-    $path = P->path( $path, is_dir => 1 ) if !ref $path;
+    $path = P->path1($path) if !is_ref $path;
 
     if ( !$self->dir_is_dist_root($path) ) {
         $path = $path->parent;
@@ -144,7 +145,7 @@ sub find_dist_root ( $self, $path ) {
     }
 
     if ( defined $path ) {
-        return $path->realpath;
+        return $path->clone->to_realpath;
     }
     else {
         return;
@@ -166,11 +167,11 @@ sub _build_module ($self) {
         # find main module in @INC
         $module = P->perl->module($module_name);
     }
-    elsif ( -f $self->root . 'lib/' . $module_name ) {
+    elsif ( -f $self->root . '/lib/' . $module_name ) {
 
         # we check -f manually, because perl->module will search for Module/Name.pm in whole @INC, but we need only to search module in dist root
         # get main module from dist root lib
-        $module = P->perl->module( $module_name, $self->root . 'lib/' );
+        $module = P->perl->module( $module_name, $self->root . '/lib' );
     }
 
     die qq[Distr main module "$module_name" wasn't found, distribution is corrupted] if !$module;
@@ -179,7 +180,7 @@ sub _build_module ($self) {
 }
 
 sub _build_cfg ($self) {
-    return P->cfg->read( $self->share_dir . 'dist.' . $Pcore::Core::Const::DIST_CFG_TYPE );
+    return P->cfg->read( $self->share_dir . "/dist.$Pcore::Core::Const::DIST_CFG_TYPE" );
 }
 
 sub _build_docker_cfg ($self) {
@@ -351,7 +352,7 @@ sub _build_docker ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 107, 155             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 108, 156             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

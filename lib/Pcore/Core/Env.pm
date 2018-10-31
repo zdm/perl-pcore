@@ -27,7 +27,6 @@ has SCRIPT_DIR      => ();
 has SCRIPT_NAME     => ();
 has SYS_TEMP_DIR    => ();                                                                               # OS temp dir
 has TEMP_DIR        => ();                                                                               # SYS_TEMP_DIR/temp-xxxx, random temp dir, created in SYS_TEMP_DIR
-has PCORE_SYS_DIR   => ();                                                                               # SYS_TEMP_DIR/.pcore
 has DATA_DIR        => ();
 
 has SCANDEPS  => ();
@@ -229,9 +228,8 @@ sub BUILD1 ($self) {
 
     $self->{SCRIPT_PATH} = $self->{SCRIPT_DIR} . $self->{SCRIPT_NAME};
 
-    $self->{SYS_TEMP_DIR}  = P->path1( File::Spec->tmpdir );
-    $self->{TEMP_DIR}      = P->file->tempdir( base => "$self->{SYS_TEMP_DIR}", lazy => 1 );
-    $self->{PCORE_SYS_DIR} = P->path( "$self->{SYS_TEMP_DIR}/.pcore", is_dir => 1, lazy => 1 );
+    $self->{SYS_TEMP_DIR} = P->path1( File::Spec->tmpdir );
+    $self->{TEMP_DIR} = P->file->tempdir( base => "$self->{SYS_TEMP_DIR}", lazy => 1 );
 
     # find main dist
     if ( $self->{is_par} ) {
@@ -281,6 +279,21 @@ sub BUILD1 ($self) {
     }
 
     return;
+}
+
+# SYS_TEMP_DIR/.pcore
+sub get_pcore_sys_dir ($self) {
+    state $path = P->path1("$self->{SYS_TEMP_DIR}/.pcore");
+
+    state $init = 0;
+
+    if ( !$init ) {
+        $init = 1;
+
+        $path->mkdir if !-d $path;
+    }
+
+    return $path;
 }
 
 sub set_scandeps ( $self, $path ) {
@@ -427,18 +440,18 @@ sub DESTROY ( $self ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 207                  | * Subroutine "BUILD1" with high complexity score (23)                                                          |
-## |      | 339                  | * Subroutine "DESTROY" with high complexity score (22)                                                         |
+## |      | 206                  | * Subroutine "BUILD1" with high complexity score (23)                                                          |
+## |      | 352                  | * Subroutine "DESTROY" with high complexity score (22)                                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 348                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 361                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 386                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 399                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 186, 191             | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 185, 190             | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 413                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
+## |    2 | 426                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 118                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 117                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

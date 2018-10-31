@@ -16,14 +16,14 @@ sub add_dir ( $self, $dir, $prefix = undef, $meta = undef ) {
         $prefix .= '/';
     }
 
-    $dir = P->path($dir)->realpath->to_string;
+    $dir = P->path1($dir)->to_abs;
 
-    my $files = P->path1($dir)->read_dir( max_depth => 0, is_dir => 0 );
+    my $files = $dir->read_dir( max_depth => 0, is_dir => 0 );
 
     return if !$files;
 
     for my $file ( $files->@* ) {
-        $self->add_file( "${prefix}${file}", "${dir}${file}", $meta );
+        $self->add_file( "${prefix}${file}", "$dir/$file", $meta );
     }
 
     return;
@@ -102,7 +102,7 @@ sub write_to ( $self, $target_path, @ ) {
     }
 
     # write MANIFEST
-    P->file->write_bin( $target_path . q[/MANIFEST], [ sort 'MANIFEST', keys $self->{files}->%* ] ) if $args{manifest};
+    P->file->write_bin( "$target_path/MANIFEST", [ sort 'MANIFEST', keys $self->{files}->%* ] ) if $args{manifest};
 
     return;
 }
