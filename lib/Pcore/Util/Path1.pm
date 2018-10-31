@@ -10,28 +10,6 @@ use Pcore::Util::Text qw[encode_utf8 decode_utf8];
 use overload
   q[""]  => sub { $_[0]->{path} },
   'bool' => sub {1},
-  '.'    => sub {
-
-    # $str + $self
-    if ( $_[2] ) {
-        if ( !defined $_[0]->{filename} ) {
-            return $_[0]->new("$_[1]/$_[0]->{path}/");
-        }
-        else {
-            return $_[0]->new("$_[1]/$_[0]->{path}");
-        }
-    }
-
-    # $self + $str
-    else {
-        if ( is_path $_[1] && !defined $_[1]->{filename} ) {
-            return $_[0]->new("$_[0]->{path}/$_[1]->{path}/");
-        }
-        else {
-            return $_[0]->new("$_[0]->{path}/$_[1]");
-        }
-    }
-  },
   '-X' => sub {
     state $map = { map { $_ => eval qq[sub { return -$_ \$_[0] }] } qw[r w x o R W X O e z s f d l p S b c t u g k T B M A C] };    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
 

@@ -4,11 +4,11 @@ use Pcore -class;
 use Config;
 use Pcore::Util::Scalar qw[is_path];
 
-has root         => ( is => 'ro', required => 1 );                      # Maybe [Str], absolute path to the dist root
-has is_cpan_dist => ( is => 'ro', isa      => Bool, required => 1 );    # dist is installed as CPAN module, root is undefined
-has share_dir    => ( is => 'ro', isa      => Str, required => 1 );     # absolute path to the dist share dir
+has root => ( is => 'ro', required => 1 );                         # Maybe [Str], absolute path to the dist root
+has is_cpan_dist => ( is => 'ro', isa => Bool, required => 1 );    # dist is installed as CPAN module, root is undefined
+has share_dir => ( required => 1 );                                # absolute path to the dist share dir
 
-has module => ( is => 'lazy' );                                         # InstanceOf ['Pcore::Util::Perl::Module']
+has module => ( is => 'lazy' );                                    # InstanceOf ['Pcore::Util::Perl::Module']
 
 has cfg         => ( is => 'lazy', isa      => HashRef, init_arg => undef );               # dist cfg
 has docker_cfg  => ( is => 'lazy', init_arg => undef );                                    # Maybe [HashRef], docker.json
@@ -33,7 +33,7 @@ around new => sub ( $orig, $self, $dist ) {
         return $self->$orig( {
             root         => undef,
             is_cpan_dist => 1,
-            share_dir    => P->path( $ENV{PAR_TEMP} . '/inc/share/' )->to_string,
+            share_dir    => P->path1( $ENV{PAR_TEMP} . '/inc/share' ),
         } );
     }
 
@@ -52,9 +52,9 @@ around new => sub ( $orig, $self, $dist ) {
 
             # path is a part of the dist
             return $self->$orig( {
-                root         => $root->to_string,
+                root         => $root,
                 is_cpan_dist => 0,
-                share_dir    => $root . 'share/',
+                share_dir    => $root . '/share',
             } );
         }
         else {
@@ -105,24 +105,24 @@ around new => sub ( $orig, $self, $dist ) {
     # remove .pm suffix
     substr $dist_name, -3, 3, q[];
 
-    if ( -f $module_lib . "auto/share/dist/$dist_name/dist.yaml" ) {
+    if ( -f "$module_lib/auto/share/dist/$dist_name/dist.yaml" ) {
 
         # module is installed
         return $self->$orig( {
             root         => undef,
             is_cpan_dist => 1,
-            share_dir    => $module_lib . "auto/share/dist/$dist_name/",
+            share_dir    => $module_lib . "/auto/share/dist/$dist_name",
             module       => P->perl->module( $module_name, $module_lib ),
         } );
     }
     elsif ( $self->dir_is_dist_root("$module_lib/../") ) {
-        my $root = P->path("$module_lib/../")->to_string;
+        my $root = P->path1("$module_lib/..");
 
         # module is a dist
         return $self->$orig( {
             root         => $root,
             is_cpan_dist => 0,
-            share_dir    => $root . 'share/',
+            share_dir    => $root . '/share',
             module       => P->perl->module( $module_name, $module_lib ),
         } );
     }
@@ -152,9 +152,7 @@ sub find_dist_root ( $self, $path ) {
     }
 }
 
-sub dir_is_dist_root ( $self, $path ) {
-    return -f $path . "/share/dist.yaml" ? 1 : 0;
-}
+sub dir_is_dist_root ( $self, $path ) { return -f "$path/share/dist.yaml" ? 1 : 0 }
 
 # BUILDERS
 sub _build_module ($self) {
@@ -179,21 +177,19 @@ sub _build_module ($self) {
     return $module;
 }
 
-sub _build_cfg ($self) {
-    return P->cfg->read( $self->share_dir . "/dist.yaml" );
-}
+sub _build_cfg ($self) {  return P->cfg->read("$self->{share_dir}/dist.yaml") }
 
 sub _build_docker_cfg ($self) {
-    if ( -f $self->share_dir . 'docker.json' ) {
-        return P->cfg->read( $self->share_dir . 'docker.json' );
+    if ( -f "$self->{share_dir}/docker.json" ) {
+        return P->cfg->read("$self->{share_dir}/docker.json");
     }
 
     return;
 }
 
 sub _build_par_cfg ($self) {
-    if ( -f $self->share_dir . 'par.ini' ) {
-        return P->cfg->read( $self->share_dir . 'par.ini' );
+    if ( -f "$self->{share_dir}/par.ini" ) {
+        return P->cfg->read("$self->{share_dir}/par.ini");
     }
 
     return;
@@ -239,8 +235,8 @@ sub _build_id ($self) {
             $id->{release_distance} = 0 if $id->{desc} =~ /added tag.+$id->{release}/smi;
         }
     }
-    elsif ( -f $self->share_dir . 'dist-id.json' ) {
-        $id = P->cfg->read( $self->share_dir . 'dist-id.json' );
+    elsif ( -f "$self->{share_dir}/dist-id.json" ) {
+        $id = P->cfg->read("$self->{share_dir}/dist-id.json");
     }
 
     # convert date to UTC
@@ -352,9 +348,7 @@ sub _build_docker ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 108, 156             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 156, 183             | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 155                  | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

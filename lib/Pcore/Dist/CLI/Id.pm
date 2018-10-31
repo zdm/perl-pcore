@@ -62,7 +62,7 @@ sub _show_dist_info ( $self, $dist ) {
         [ module => $dist->module->name, ],
         [ root   => $dist->root, ],
         [ lib    => $dist->module->lib, ],
-        [ share  => $dist->share_dir, ],
+        [ share  => $dist->{share_dir}, ],
         $dist->docker ? [ docker => $dist->docker->{repo_id} . ' FROM ' . $dist->docker->{from} ] : (),
     ] );
 

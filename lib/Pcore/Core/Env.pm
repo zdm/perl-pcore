@@ -274,7 +274,7 @@ sub BUILD1 ($self) {
     if ( !$self->{is_par} && defined( my $dist = $self->{main_dist} ) ) {
         if ( $dist->par_cfg && exists $dist->par_cfg->{ $self->{SCRIPT_NAME} } && !$dist->par_cfg->{ $self->{SCRIPT_NAME} }->{disabled} ) {
 
-            $self->set_scandeps( $dist->share_dir . "pardeps-$self->{SCRIPT_NAME}-@{[$^V->normal]}-$Config{archname}.json" );
+            $self->set_scandeps( "$dist->{share_dir}/pardeps-$self->{SCRIPT_NAME}-@{[$^V->normal]}-$Config{archname}.json" );
         }
     }
 
@@ -335,7 +335,7 @@ sub register_dist ( $self, $dist ) {
     $self->{_dist_idx}->{ $dist->name } = $dist;
 
     # register dist share lib
-    $self->{share}->register_lib( $dist->name, $dist->share_dir );
+    $self->{share}->register_lib( $dist->name, $dist->{share_dir} );
 
     return;
 }
