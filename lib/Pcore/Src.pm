@@ -227,7 +227,7 @@ sub _source_dir ($self) {
     for my $path ( ( P->path( $self->path )->read_dir( max_depth => 0, is_dir => 0 ) // [] )->@* ) {
         my $type = Pcore::Src::File->detect_filetype($path);
 
-        return if !$type || lc $type->{type} ne $self->type;    # skip file, if file type isn't supported
+        next if !$type || lc $type->{type} ne $self->type;    # skip file, if file type isn't supported
 
         push @paths_to_process, $path;
     }
