@@ -8,14 +8,14 @@ use overload    #
   },
   fallback => undef;
 
-has app   => ( required => 1 );    # ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
-has hosts => ( required => 1 );    # ( is => 'ro', isa => HashRef, required => 1 );
+has app   => ( required => 1 );    # ConsumerOf ['Pcore::App']
+has hosts => ( required => 1 );    # HashRef
 
-has map           => ();           # ( is => 'ro', isa => HashRef, init_arg => undef );    # router path -> class name
-has host_api_path => ();           # ( is => 'ro', isa => HashRef, init_arg => undef );
+has map           => ();           # HashRef, router path -> class name
+has host_api_path => ();           # HashRef
 
-has _path_class_cache     => ();   # ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );    # router path -> sigleton cache
-has _class_instance_cache => ();   # ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );    # class name -> sigleton cache
+has _path_class_cache     => ();   # HashRef, router path -> sigleton cache
+has _class_instance_cache => ();   # HashRef, class name -> sigleton cache
 
 sub init ($self) {
     my $map;
