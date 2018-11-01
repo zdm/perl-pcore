@@ -170,6 +170,57 @@ sub mkdir ( $self, $mode = undef ) {    ## no critic qw[Subroutines::ProhibitBui
     }
 }
 
+# TODO
+sub mkpath ( $self, %args ) {
+    state $init = !!require File::Path;
+
+    # my %args = (
+    #     mode  => q[rwx------],
+    #     umask => undef,
+    #     splice @_, 1,
+    # );
+
+    # state $init = !!require File::Path;
+
+    # $args{mode} = calc_chmod( $args{mode} );
+
+    # my $umask_guard = defined $args{umask} ? &umask( delete $args{umask} ) : delete $args{umask};    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+
+    return File::Path::make_path( $self->encoded, \%args );
+}
+
+# TODO
+sub rmtree ( $path, @ ) {
+    my %args = (
+        safe      => 0,    # 0 - will attempts to alter file permission
+        keep_root => 0,
+        splice @_, 1,
+    );
+
+    state $init = !!require File::Path;
+
+    my $error;
+
+    $args{error} = \$error;
+
+    my $removed = File::Path::remove_tree( "$path", \%args );
+
+    return $error->@* ? () : 1;
+}
+
+# TODO
+sub empty_dir ( $path, @ ) {
+    my %args = (
+        safe => 0,    # 0 - will attempts to alter file permission
+        splice @_, 1,
+        keep_root => 1,
+    );
+
+    state $init = !!require File::Path;
+
+    return File::Path::remove_tree( "$path", \%args );
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##

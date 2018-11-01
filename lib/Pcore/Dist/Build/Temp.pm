@@ -36,16 +36,20 @@ sub run ( $self, $keep = 0 ) {
 
     $self->_generate_meta_json($tree);
 
+    my $path;
+
     if ($keep) {
-        my $path = P->file->temppath( base => $ENV->get_pcore_sys_dir . '/build', tmpl => $self->{dist}->name . '-XXXXXXXX' );
+        $path = P->path( "$ENV->{PCORE_TEMP_DIR}/build/" . $self->{dist}->name . '-' . P->uuid->v4_hex );
+
+        $path->mkpath;
 
         $tree->write_to( $path, manifest => 1 );
-
-        return $path;
     }
     else {
-        return $tree->write_to_temp( base => $ENV->get_pcore_sys_dir . '/build', tmpl => $self->{dist}->name . '-XXXXXXXX', manifest => 1 );
+        $path = $tree->write_to_temp( manifest => 1, prefix => "$ENV->{PCORE_TEMP_DIR}/build", name => $self->{dist}->name . '-' . P->uuid->v4_hex );
     }
+
+    return $path;
 }
 
 sub _gather_files ($self) {
@@ -271,7 +275,7 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 51                   | Subroutines::ProhibitExcessComplexity - Subroutine "_gather_files" with high complexity score (22)             |
+## |    3 | 55                   | Subroutines::ProhibitExcessComplexity - Subroutine "_gather_files" with high complexity score (22)             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

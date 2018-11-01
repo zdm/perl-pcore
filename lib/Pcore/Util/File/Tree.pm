@@ -91,12 +91,8 @@ sub render_tmpl ( $self, $tmpl_args ) {
     return;
 }
 
-sub write_to ( $self, $target_path, @ ) {
-    my %args = (
-        manifest => undef,
-        splice @_, 2,
-    );
-
+# manifest
+sub write_to ( $self, $target_path, %args ) {
     for my $file ( values $self->{files}->%* ) {
         $file->write_to($target_path);
     }
@@ -107,18 +103,9 @@ sub write_to ( $self, $target_path, @ ) {
     return;
 }
 
-sub write_to_temp ( $self, @ ) {
-    my %args = (
-        base     => undef,
-        tmpl     => undef,
-        manifest => undef,
-        splice @_, 1,
-    );
-
-    my $tempdir = P->file->tempdir(    #
-        ( $args{base} ? ( base => $args{base} ) : () ),
-        ( $args{tmpl} ? ( tmpl => $args{tmpl} ) : () ),
-    );
+# manifest + tempdir args
+sub write_to_temp ( $self, %args ) {
+    my $tempdir = P->file1->tempdir(%args);
 
     $self->write_to( $tempdir, manifest => $args{manifest} );
 

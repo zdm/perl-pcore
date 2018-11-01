@@ -18,7 +18,7 @@ sub run {
     my $obj2 = AA->new;
     my $obj3 = AA->new( { "1\n2" => $obj2 } );
 
-    open my $fh1, q[>>:unix], $ENV->{TEMP_DIR} . 'p_core_dump.test' or die;    ## no critic qw[InputOutput::RequireBriefOpen]
+    open my $fh1, '>>:unix', "$ENV->{TEMP_DIR}/p_core_dump.test" or die;    ## no critic qw[InputOutput::RequireBriefOpen]
 
     my $data = {
         undef                      => undef,
@@ -51,7 +51,7 @@ sub run {
 sub var_types {
     _header('Different variables types:');
 
-    open my $fh1, q[>>:unix], $ENV->{TEMP_DIR} . 'p_core_dump.test' or die;
+    open my $fh1, '>>:unix', "$ENV->{TEMP_DIR}/p_core_dump.test" or die;
     close $fh1 or die;
 
     my $data = {

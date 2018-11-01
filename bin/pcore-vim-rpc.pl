@@ -80,7 +80,7 @@ sub CMD_browser_print ( $self, $h, $id, $args ) {
     $args->{content} =~ s/"/&quot;/smg;
     $args->{content} =~ s/'/&#39;/smg;
 
-    my $temp = $ENV->{TEMP_DIR} . q[vim-browserprint.html];
+    my $temp = "$ENV->{TEMP_DIR}/vim-browserprint.html";
 
     $args->{font} = [ split /:/sm, $args->{font} ]->[0] =~ s/_/ /smgr if $args->{font};
 

@@ -122,7 +122,7 @@ sub run_js_hint ($self) {
 
     syswrite $in_temp, $self->{buffer}->$* or die;
 
-    my $out_temp = $ENV->{TEMP_DIR} . 'tmp-jshint-' . int rand 99_999;
+    my $out_temp = "$ENV->{TEMP_DIR}/tmp-jshint-" . int rand 99_999;
 
     my $proc = P->sys->run_proc( qq[jshint  $js_hint_args "$in_temp" > "$out_temp"], win32_create_no_window => 1 )->wait;
 
