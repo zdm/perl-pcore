@@ -4,9 +4,9 @@ use Pcore -class;
 use Pcore::Util::Scalar qw[is_plain_arrayref];
 use Package::Stash::XS qw[];
 
-has app    => ();    # ( isa => ConsumerOf ['Pcore::App'], required => 1 );
-has method => ();    # ( isa => HashRef, init_arg => undef );
-has obj    => ();    # ( isa => HashRef, init_arg => undef );
+has app    => ( required => 1 );    # ConsumerOf ['Pcore::App']
+has method => ();                   # HashRef
+has obj    => ();                   # HashRef
 
 # TODO https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md
 

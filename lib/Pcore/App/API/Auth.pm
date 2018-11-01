@@ -11,14 +11,14 @@ use overload    #
   },
   fallback => undef;
 
-has app              => ();    # ( isa => ConsumerOf ['Pcore::App'], required => 1 );
-has is_authenticated => ();    # ( isa => Bool, required => 1 );
-has private_token    => ();    # ( isa => Maybe [ArrayRef] );    # [ $token_type, $token_id, $token_hash ]
-has is_root          => ();    # ( isa => Bool );
-has user_id          => ();    # ( isa => Maybe [Str] );
-has user_name        => ();    # ( isa => Maybe [Str] );
-has permissions      => ();    # ( isa => Maybe [HashRef] );
-has depends_on       => ();    # ( isa => Maybe [ArrayRef] );
+has app              => ( required => 1 );    # ConsumerOf ['Pcore::App']
+has is_authenticated => ( required => 1 );    # Bool
+has private_token => ();                      # Maybe [ArrayRef], [ $token_type, $token_id, $token_hash ]
+has is_root       => ();                      # Bool
+has user_id       => ();                      # Maybe [Str]
+has user_name     => ();                      # Maybe [Str]
+has permissions   => ();                      # Maybe [HashRef]
+has depends_on    => ();                      # Maybe [ArrayRef]
 
 *TO_JSON = *TO_CBOR = sub ($self) {
     return { $self->%{qw[is_authenticated is_root user_id user_name permissions]} };
