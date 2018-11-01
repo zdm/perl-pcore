@@ -100,7 +100,7 @@ sub _build_name ($self) {
 }
 
 sub _build_path ($self) {
-    return $self->lib . $self->name if $self->lib && $self->name;
+    return $self->lib . '/' . $self->name if $self->lib && $self->name;
 
     return;
 }

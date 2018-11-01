@@ -3,28 +3,28 @@ package Pcore::Dist::Build;
 use Pcore -class;
 use Pcore::Util::File::Tree;
 
-has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'] );
+has dist => ();    # InstanceOf ['Pcore::Dist']
 
-has wiki   => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist::Build::Wiki'] ],   init_arg => undef );
-has issues => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist::Build::Issues'] ], init_arg => undef );
-has docker => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist::Build::Docker'] ], init_arg => undef );
+has wiki   => ( is => 'lazy', init_arg => undef );    # Maybe [ InstanceOf ['Pcore::Dist::Build::Wiki'] ]
+has issues => ( is => 'lazy', init_arg => undef );    # Maybe [ InstanceOf ['Pcore::Dist::Build::Issues'] ]
+has docker => ( is => 'lazy', init_arg => undef );    # Maybe [ InstanceOf ['Pcore::Dist::Build::Docker'] ]
 
 sub _build_wiki ($self) {
     state $init = !!require Pcore::Dist::Build::Wiki;
 
-    return Pcore::Dist::Build::Wiki->new( { dist => $self->dist } );
+    return Pcore::Dist::Build::Wiki->new( { dist => $self->{dist} } );
 }
 
 sub _build_issues ($self) {
     state $init = !!require Pcore::Dist::Build::Issues;
 
-    return Pcore::Dist::Build::Issues->new( { dist => $self->dist } );
+    return Pcore::Dist::Build::Issues->new( { dist => $self->{dist} } );
 }
 
 sub _build_docker ($self) {
     state $init = !!require Pcore::Dist::Build::Docker;
 
-    return Pcore::Dist::Build::Docker->new( { dist => $self->dist } );
+    return Pcore::Dist::Build::Docker->new( { dist => $self->{dist} } );
 }
 
 sub create ( $self, $args ) {
@@ -44,7 +44,7 @@ sub setup ($self) {
 sub clean ($self) {
     state $init = !!require Pcore::Dist::Build::Clean;
 
-    Pcore::Dist::Build::Clean->new( { dist => $self->dist } )->run;
+    Pcore::Dist::Build::Clean->new( { dist => $self->{dist} } )->run;
 
     return;
 }
@@ -52,7 +52,7 @@ sub clean ($self) {
 sub update ($self) {
     state $init = !!require Pcore::Dist::Build::Update;
 
-    Pcore::Dist::Build::Update->new( { dist => $self->dist } )->run;
+    Pcore::Dist::Build::Update->new( { dist => $self->{dist} } )->run;
 
     return;
 }
@@ -60,7 +60,7 @@ sub update ($self) {
 sub deploy ( $self, %args ) {
     state $init = !!require Pcore::Dist::Build::Deploy;
 
-    Pcore::Dist::Build::Deploy->new( { dist => $self->dist, %args } )->run;
+    Pcore::Dist::Build::Deploy->new( { dist => $self->{dist}, %args } )->run;
 
     return;
 }
@@ -104,7 +104,7 @@ sub test ( $self, @ ) {
 sub release ( $self, @args ) {
     state $init = !!require Pcore::Dist::Build::Release;
 
-    return Pcore::Dist::Build::Release->new( { dist => $self->dist, @args } )->run;
+    return Pcore::Dist::Build::Release->new( { dist => $self->{dist}, @args } )->run;
 }
 
 sub par ( $self, @ ) {
@@ -117,7 +117,7 @@ sub par ( $self, @ ) {
 
     state $init = !!require Pcore::Dist::Build::PAR;
 
-    Pcore::Dist::Build::PAR->new( { %args, dist => $self->dist } )->run;    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
+    Pcore::Dist::Build::PAR->new( { %args, dist => $self->{dist} } )->run;    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
 
     return;
 }
@@ -125,7 +125,7 @@ sub par ( $self, @ ) {
 sub temp_build ( $self, $keep = 0 ) {
     state $init = !!require Pcore::Dist::Build::Temp;
 
-    return Pcore::Dist::Build::Temp->new( { dist => $self->dist } )->run($keep);
+    return Pcore::Dist::Build::Temp->new( { dist => $self->{dist} } )->run($keep);
 }
 
 sub tgz ($self) {
@@ -135,7 +135,7 @@ sub tgz ($self) {
 
     my $tgz = Archive::Tar->new;
 
-    my $base_dir = $self->dist->name . q[-] . $self->dist->version;
+    my $base_dir = $self->{dist}->name . q[-] . $self->{dist}->version;
 
     for my $path ( P->path($temp)->read_dir( max_depth => 0, is_dir => 0 )->@* ) {
         my $mode;
@@ -150,7 +150,7 @@ sub tgz ($self) {
         $tgz->add_data( "$base_dir/$path", P->file->read_bin("$temp/$path")->$*, { mode => $mode } );
     }
 
-    my $path = $ENV->get_pcore_sys_dir . 'build/' . $self->dist->name . q[-] . $self->dist->version . '.tar.gz';
+    my $path = $ENV->get_pcore_sys_dir . 'build/' . $self->{dist}->name . q[-] . $self->{dist}->version . '.tar.gz';
 
     $tgz->write( $path, Archive::Tar::COMPRESS_GZIP() );
 
