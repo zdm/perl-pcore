@@ -123,15 +123,11 @@ sub import {
         }
 
         # re-export OOP
-        if ( $import->{pragma}->{class} || $import->{pragma}->{role} ) {
-            $import->{pragma}->{types} = 1;
-
-            if ( $import->{pragma}->{class} ) {
-                Pcore::Core::OOP::Class->import($caller);
-            }
-            else {
-                Pcore::Core::OOP::Role->import($caller);
-            }
+        if ( $import->{pragma}->{class} ) {
+            Pcore::Core::OOP::Class->import($caller);
+        }
+        else {
+            Pcore::Core::OOP::Role->import($caller);
         }
     }
 
@@ -243,8 +239,9 @@ sub config_stdout ($h) {
     return;
 }
 
-# TODO remove $B::VERSION = undef, after Type::Tiny will be removed from Core, test with par crypted
 sub _CORE_RUN {
+
+    # crack Filter::Crypto protection
     $B::VERSION = undef;
 
     # EMBEDDED mode, if run not from INIT block or -embedded pragma specified:
@@ -422,13 +419,13 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 64                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 160, 189, 192, 196,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 228, 231, 236, 239,  |                                                                                                                |
-## |      | 266, 397             |                                                                                                                |
+## |    3 | 156, 185, 188, 192,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 224, 227, 232, 235,  |                                                                                                                |
+## |      | 263, 394             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 247                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
+## |    3 | 242                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 164                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 160                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
