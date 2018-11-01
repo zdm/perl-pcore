@@ -173,7 +173,7 @@ sub _build_auto_deps ($self) {
     my $deps;
 
     for my $lib ( map { P->path($_) } "$ENV->{INLINE_DIR}/lib", @INC ) {
-        if ( -f "$lib/$auto_path" . $so_filename ) {
+        if ( -f "$lib/$auto_path/$so_filename" ) {
             $deps->{"$auto_path/$so_filename"} = "$lib/$auto_path/$so_filename";
 
             # add .ix, .al
@@ -212,8 +212,6 @@ sub clear ($self) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 143                  | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 176                  | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

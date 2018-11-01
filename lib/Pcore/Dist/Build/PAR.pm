@@ -44,7 +44,7 @@ sub run ($self) {
         # load pardeps.json
         my $pardeps;
 
-        my $pardeps_path = $self->{dist}->root . "share/pardeps-$script-@{[$^V->normal]}-$Config{archname}.json";
+        my $pardeps_path = "$self->{dist}->{root}/share/pardeps-$script-@{[$^V->normal]}-$Config{archname}.json";
 
         if ( -f $pardeps_path ) {
             $pardeps = P->cfg->read($pardeps_path);

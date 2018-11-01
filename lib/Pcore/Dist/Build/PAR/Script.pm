@@ -293,7 +293,7 @@ sub _add_shlib ($self) {
 }
 
 sub _add_module ( $self, $module ) {
-    $module = P->perl->module( $module, $self->{dist}->root . 'lib/' );
+    $module = P->perl->module( $module, "$self->{dist}->{root}/lib" );
 
     # module wasn't found
     return if !$module;
