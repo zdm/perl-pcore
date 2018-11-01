@@ -73,7 +73,7 @@ sub get_resources ( $self, @resources ) {
             push @res, $self->{resources}->{ $name->[0] }->( $self, $name->@[ 1 .. $name->$#* ] )->@*;
         }
         else {
-            push @res, $self->{resources}->{$name}->($self)->@*;
+            push @res, $self->{resources}->{$name}->($self);
         }
     }
 
