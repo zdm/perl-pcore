@@ -10,25 +10,25 @@ has issues => ( is => 'lazy', init_arg => undef );    # Maybe [ InstanceOf ['Pco
 has docker => ( is => 'lazy', init_arg => undef );    # Maybe [ InstanceOf ['Pcore::Dist::Build::Docker'] ]
 
 sub _build_wiki ($self) {
-    state $init = !!require Pcore::Dist::Build::Wiki;
+    require Pcore::Dist::Build::Wiki;
 
     return Pcore::Dist::Build::Wiki->new( { dist => $self->{dist} } );
 }
 
 sub _build_issues ($self) {
-    state $init = !!require Pcore::Dist::Build::Issues;
+    require Pcore::Dist::Build::Issues;
 
     return Pcore::Dist::Build::Issues->new( { dist => $self->{dist} } );
 }
 
 sub _build_docker ($self) {
-    state $init = !!require Pcore::Dist::Build::Docker;
+    require Pcore::Dist::Build::Docker;
 
     return Pcore::Dist::Build::Docker->new( { dist => $self->{dist} } );
 }
 
 sub create ( $self, $args ) {
-    state $init = !!require Pcore::Dist::Build::Create;
+    require Pcore::Dist::Build::Create;
 
     return Pcore::Dist::Build::Create->new($args)->run;
 }
@@ -42,7 +42,7 @@ sub setup ($self) {
 }
 
 sub clean ($self) {
-    state $init = !!require Pcore::Dist::Build::Clean;
+    require Pcore::Dist::Build::Clean;
 
     Pcore::Dist::Build::Clean->new( { dist => $self->{dist} } )->run;
 
@@ -50,7 +50,7 @@ sub clean ($self) {
 }
 
 sub update ($self) {
-    state $init = !!require Pcore::Dist::Build::Update;
+    require Pcore::Dist::Build::Update;
 
     Pcore::Dist::Build::Update->new( { dist => $self->{dist} } )->run;
 
@@ -58,7 +58,7 @@ sub update ($self) {
 }
 
 sub deploy ( $self, %args ) {
-    state $init = !!require Pcore::Dist::Build::Deploy;
+    require Pcore::Dist::Build::Deploy;
 
     Pcore::Dist::Build::Deploy->new( { dist => $self->{dist}, %args } )->run;
 
@@ -102,7 +102,7 @@ sub test ( $self, @ ) {
 }
 
 sub release ( $self, @args ) {
-    state $init = !!require Pcore::Dist::Build::Release;
+    require Pcore::Dist::Build::Release;
 
     return Pcore::Dist::Build::Release->new( { dist => $self->{dist}, @args } )->run;
 }
@@ -115,7 +115,7 @@ sub par ( $self, @ ) {
         splice @_, 1,
     );
 
-    state $init = !!require Pcore::Dist::Build::PAR;
+    require Pcore::Dist::Build::PAR;
 
     Pcore::Dist::Build::PAR->new( { %args, dist => $self->{dist} } )->run;    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
 
@@ -123,7 +123,7 @@ sub par ( $self, @ ) {
 }
 
 sub temp_build ( $self, $keep = 0 ) {
-    state $init = !!require Pcore::Dist::Build::Temp;
+    require Pcore::Dist::Build::Temp;
 
     return Pcore::Dist::Build::Temp->new( { dist => $self->{dist} } )->run($keep);
 }
@@ -131,7 +131,7 @@ sub temp_build ( $self, $keep = 0 ) {
 sub tgz ($self) {
     my $temp = $self->temp_build;
 
-    state $init = !!require Archive::Tar;
+    require Archive::Tar;
 
     my $tgz = Archive::Tar->new;
 

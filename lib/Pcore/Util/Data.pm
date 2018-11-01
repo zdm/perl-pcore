@@ -96,7 +96,7 @@ sub encode_data ( $type, $data, @ ) {
     if ( $args{compress} ) {
         if ( bytes::length $res->$* >= $args{compress_threshold} ) {
             if ( $args{compress} == $DATA_COMPRESS_ZLIB ) {
-                state $init = !!require Compress::Zlib;
+                require Compress::Zlib;
 
                 $res = \Compress::Zlib::compress( $res->$* );
             }
@@ -121,7 +121,7 @@ sub encode_data ( $type, $data, @ ) {
         }
 
         if ( defined $secret ) {
-            state $init = !!require Crypt::CBC;
+            require Crypt::CBC;
 
             $res = \Crypt::CBC->new(
                 -key    => $secret,
@@ -213,7 +213,7 @@ sub decode_data ( $type, @ ) {
         }
 
         if ( defined $secret ) {
-            state $init = !!require Crypt::CBC;
+            require Crypt::CBC;
 
             $data_ref = \Crypt::CBC->new(
                 -key    => $secret,
@@ -226,7 +226,7 @@ sub decode_data ( $type, @ ) {
     # decompress
     if ( $args{compress} ) {
         if ( $args{compress} == $DATA_COMPRESS_ZLIB ) {
-            state $init = !!require Compress::Zlib;
+            require Compress::Zlib;
 
             $data_ref = \Compress::Zlib::uncompress($data_ref);
 
@@ -272,7 +272,7 @@ sub decode_data ( $type, @ ) {
 
 # PERL
 sub to_perl ( $data, %args ) {
-    state $init = !!require Data::Dumper;
+    require Data::Dumper;    ## no critic qw[Modules::ProhibitEvilModules]
 
     state $sort_keys = sub {
         return [ nsort keys $_[0]->%* ];
@@ -308,7 +308,7 @@ sub to_perl ( $data, %args ) {
     }
 
     if ( $args{readable} ) {
-        state $init1 = !!require Pcore::Src::File;
+        require Pcore::Src::File;
 
         $res = Pcore::Src::File->new( {
             action      => $Pcore::Src::SRC_DECOMPRESS,
@@ -347,7 +347,7 @@ CODE
 
 # JSON
 sub get_json ( @args ) {
-    state $init = !!require Cpanel::JSON::XS;
+    require Cpanel::JSON::XS;    ## no critic qw[Modules::ProhibitEvilModules]
 
     my %args = (
         allow_nonref    => 1,    # allow scalars
@@ -397,7 +397,7 @@ sub from_json ( $data, %args ) {
 
 # CBOR
 sub get_cbor ( @args ) {
-    state $init = !!require CBOR::XS;
+    require CBOR::XS;
 
     my %args = (
         max_depth      => 512,
@@ -433,7 +433,7 @@ sub from_cbor ( $data, @ ) {
 
 # YAML
 sub to_yaml ( $data, @ ) {
-    state $init = !!require YAML::XS;
+    require YAML::XS;
 
     local $YAML::XS::UseCode  = 0;
     local $YAML::XS::DumpCode = 0;
@@ -443,7 +443,7 @@ sub to_yaml ( $data, @ ) {
 }
 
 sub from_yaml ( $data, @ ) {
-    state $init = !!require YAML::XS;
+    require YAML::XS;
 
     local $YAML::XS::UseCode  = 0;
     local $YAML::XS::DumpCode = 0;
@@ -454,7 +454,7 @@ sub from_yaml ( $data, @ ) {
 
 # XML
 sub get_xml (@args) {
-    state $init = !!require XML::Hash::XS;
+    require XML::Hash::XS;
 
     my %args = (
         buf_size => 4096,         # buffer size for reading end encoding data
@@ -582,27 +582,27 @@ sub from_ini ( $data, @ ) {
 
 # BASE64
 sub to_b64 {
-    state $init = !!require MIME::Base64;
+    require MIME::Base64;    ## no critic qw[Modules::ProhibitEvilModules]
 
     return &MIME::Base64::encode_base64;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
 sub to_b64_url {
-    state $init = !!require MIME::Base64;
+    require MIME::Base64;                   ## no critic qw[Modules::ProhibitEvilModules]
 
-    return &MIME::Base64::encode_base64url;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+    return &MIME::Base64::encode_base64url; ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
 sub from_b64 {
-    state $init = !!require MIME::Base64;
+    require MIME::Base64;                   ## no critic qw[Modules::ProhibitEvilModules]
 
-    return &MIME::Base64::decode_base64;       ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+    return &MIME::Base64::decode_base64;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
 sub from_b64_url {
-    state $init = !!require MIME::Base64;
+    require MIME::Base64;                   ## no critic qw[Modules::ProhibitEvilModules]
 
-    return &MIME::Base64::decode_base64url;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+    return &MIME::Base64::decode_base64url; ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
 # XOR

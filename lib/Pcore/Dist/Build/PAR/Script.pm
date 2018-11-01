@@ -538,7 +538,7 @@ sub _patch_icon ( $self, $path ) {
     # all layers 8bpp, 1-bit alpha, 256-slot palette
 
     if ($MSWIN) {
-        state $init = !!require Win32::Exe;
+        require Win32::Exe;
 
         # path should be passed as plain string
         my $exe = Win32::Exe->new("$path");

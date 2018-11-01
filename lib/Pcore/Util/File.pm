@@ -19,7 +19,7 @@ sub chdir ($path) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
 
         return unless chdir $path;
 
-        state $init = !!require Pcore::Util::File::ChdirGuard;
+        require Pcore::Util::File::ChdirGuard;
 
         return Pcore::Util::File::ChdirGuard->new( { dir => $cwd } );
     }
@@ -36,7 +36,7 @@ sub umask ($mode) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     return '00' if $MSWIN;
 
     if ( defined wantarray ) {
-        state $init = !!require Pcore::Util::File::UmaskGuard;
+        require Pcore::Util::File::UmaskGuard;
 
         return Pcore::Util::File::UmaskGuard->new( { old_umask => CORE::umask calc_umask($mode) } );
     }
@@ -539,7 +539,7 @@ sub mkpath ( $path, % ) {
         splice @_, 1,
     );
 
-    state $init = !!require File::Path;
+    require File::Path;    ## no critic qw[Modules::ProhibitEvilModules]
 
     $args{mode} = calc_chmod( $args{mode} );
 
@@ -555,7 +555,7 @@ sub rmtree ( $path, @ ) {
         splice @_, 1,
     );
 
-    state $init = !!require File::Path;
+    require File::Path;                                                                              ## no critic qw[Modules::ProhibitEvilModules]
 
     my $error;
 
@@ -568,25 +568,25 @@ sub rmtree ( $path, @ ) {
 
 sub empty_dir ( $path, @ ) {
     my %args = (
-        safe => 0,    # 0 - will attempts to alter file permission
+        safe => 0,                                                                                   # 0 - will attempts to alter file permission
         splice @_, 1,
         keep_root => 1,
     );
 
-    state $init = !!require File::Path;
+    require File::Path;                                                                              ## no critic qw[Modules::ProhibitEvilModules]
 
     return File::Path::remove_tree( "$path", \%args );
 }
 
 # TEMP
 sub tempfile (%args) {
-    state $init = !!require Pcore::Util::File::TempFile;
+    require Pcore::Util::File::TempFile;
 
     return Pcore::Util::File::TempFile->new(%args);
 }
 
 sub tempdir (%args) {
-    state $init = !!require Pcore::Util::File::TempDir;
+    require Pcore::Util::File::TempDir;
 
     return Pcore::Util::File::TempDir->new( \%args );
 }
@@ -601,7 +601,7 @@ sub temppath {
 
     $args{suffix} = q[.] . $args{suffix} if defined $args{suffix} && $args{suffix} ne q[] && substr( $args{suffix}, 0, 1 ) ne q[.];
 
-    state $init = !!require Pcore::Util::File::TempFile;
+    require Pcore::Util::File::TempFile;
 
     mkpath( $args{base} ) if !-e $args{base};
 
@@ -687,7 +687,7 @@ sub move ( $from, $to, @ ) {
     local $File::Copy::Recursive::PFSCheck = $args{pfs_check};
     local $File::Copy::Recursive::CPRFComp = $args{cprf};
 
-    state $init = !!require File::Copy::Recursive;
+    require File::Copy::Recursive;
 
     if ( -d $from ) {
         if ( $args{glob} ) {
@@ -751,7 +751,7 @@ sub where ( $filename ) {
 
 # UNTAR
 sub untar ( $tar, $target, @ ) {
-    state $init = !!require Archive::Tar;
+    require Archive::Tar;
 
     my %args = (
         strip_component => 0,

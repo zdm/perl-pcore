@@ -166,7 +166,7 @@ sub _build_out_buffer ($self) {
     }
 
     if ( $self->{decode} ) {
-        state $init = !!require Encode::Guess;
+        require Encode::Guess;
 
         # detect buffer encoding
         my $decoder = Encode::Guess::guess_encoding($buffer);

@@ -56,7 +56,7 @@ sub compress ($self) {
 
     my $html_packer_minify_args = $self->dist_cfg->{HTML_PACKER_MINIFY} || $self->src_cfg->{HTML_PACKER_MINIFY};
 
-    state $init = !!require HTML::Packer;
+    require HTML::Packer;
 
     eval {
         $self->{buffer}->$* = HTML::Packer->init->minify( $self->{buffer}, $html_packer_minify_args );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]

@@ -6,7 +6,7 @@ use Pcore::Util::UUID qw[uuid_v4_hex];
 # prefix, name, mode, umask
 # TODO
 sub tempfile (%args) {
-    state $init = !!require Pcore::Util::File1::TempFile;
+    require Pcore::Util::File1::TempFile;
 
     $args{prefix} //= $ENV->{TEMP_DIR};
 
@@ -21,7 +21,7 @@ sub tempfile (%args) {
 
 # TODO
 sub tempdir (%args) {
-    state $init = !!require Pcore::Util::File1::TempDir;
+    require Pcore::Util::File1::TempDir;
 
     my $path = Pcore::Util::File1::TempDir->new( ( $args{prefix} // $ENV->{TEMP_DIR} ) . '/' . ( $args{name} // uuid_v4_hex ) );
 

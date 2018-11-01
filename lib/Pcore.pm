@@ -81,7 +81,7 @@ sub import {
 
         # process -l10n pragma
         if ( $import->{pragma}->{l10n} ) {
-            state $L10N_INIT = !!require Pcore::Core::L10N;
+            require Pcore::Core::L10N;
 
             Pcore::Core::L10N->import( -caller => $caller );
         }
@@ -110,14 +110,14 @@ sub import {
 
         # process -res pragma
         if ( $import->{pragma}->{res} ) {
-            state $RESULT_INIT = !!require Pcore::Util::Result;
+            require Pcore::Util::Result;
 
             Pcore::Util::Result->import( -caller => $caller, qw[res] );
         }
 
         # process -sql pragma
         if ( $import->{pragma}->{sql} ) {
-            state $SQL_INIT = !!require Pcore::Handle::DBI::Const;
+            require Pcore::Handle::DBI::Const;
 
             Pcore::Handle::DBI::Const->import( -caller => $caller, qw[:TYPES :QUERY] );
         }
@@ -223,7 +223,7 @@ sub _CORE_INIT_AFTER_FORK {
 sub config_stdout ($h) {
     if ($MSWIN) {
         if ( -t $h ) {    ## no critic qw[InputOutput::ProhibitInteractiveTest]
-            state $init = !!require Pcore::Core::PerlIOviaWinUniCon;
+            require Pcore::Core::PerlIOviaWinUniCon;
 
             binmode $h, ':raw:via(Pcore::Core::PerlIOviaWinUniCon)' or die;    # terminal
         }
@@ -253,7 +253,7 @@ sub _CORE_RUN {
     # process will not daemonized;
 
     if ( !$EMBEDDED ) {
-        state $INIT_CLI = !!require Pcore::Core::CLI;
+        require Pcore::Core::CLI;
 
         Pcore::Core::CLI->new( { class => 'main' } )->run( \@ARGV );
 
@@ -280,7 +280,7 @@ sub _CORE_RUN {
 
 # L10N
 sub set_locale ( $self, $locale = undef ) {
-    state $L10N_INIT = !!require Pcore::Core::L10N;
+    require Pcore::Core::L10N;
 
     return Pcore::Core::L10N::set_locale($locale);
 }
@@ -408,7 +408,7 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 
 # CV
 *cv = *P::cv = sub ( $self, $cb = undef ) {
-    state $init = !!require Pcore::Core::CV;
+    require Pcore::Core::CV;
 
     return bless [$cb], 'Pcore::Core::CV';
 };

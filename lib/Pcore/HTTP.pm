@@ -296,7 +296,7 @@ sub _request ($args) {
 
         # HTTP2 requirest
         if ( $args->{http2} ) {
-            state $http2_init = !!require Protocol::HTTP2::Client;
+            require Protocol::HTTP2::Client;
 
             # perform HTTP2 request
             _http2_request( $h, $args, $res ) || last;
@@ -705,7 +705,7 @@ sub _read_data ( $h, $args, $res ) {
 }
 
 sub _get_on_progress_cb (%args) {
-    state $init = !!require Pcore::Util::Term::Progress;
+    require Pcore::Util::Term::Progress;
 
     return sub ( $content_length, $bytes_received ) {
         state $indicator;

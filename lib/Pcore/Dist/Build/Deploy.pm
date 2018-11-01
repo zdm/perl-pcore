@@ -146,7 +146,7 @@ sub _install ($self) {
 
         # update $ENV{PATH}
         if ( -d $canon_bin_dir ) {
-            state $init = !!require Win32::TieRegistry;
+            require Win32::TieRegistry;
 
             my @system_path;
 

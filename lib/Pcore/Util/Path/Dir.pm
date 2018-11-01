@@ -172,7 +172,7 @@ sub mkdir ( $self, $mode = undef ) {    ## no critic qw[Subroutines::ProhibitBui
 
 # TODO
 sub mkpath ( $self, %args ) {
-    state $init = !!require File::Path;
+    require File::Path;    ## no critic qw[Modules::ProhibitEvilModules]
 
     # my %args = (
     #     mode  => q[rwx------],
@@ -180,7 +180,7 @@ sub mkpath ( $self, %args ) {
     #     splice @_, 1,
     # );
 
-    # state $init = !!require File::Path;
+    # require File::Path;
 
     # $args{mode} = calc_chmod( $args{mode} );
 
@@ -197,7 +197,7 @@ sub rmtree ( $path, @ ) {
         splice @_, 1,
     );
 
-    state $init = !!require File::Path;
+    require File::Path;    ## no critic qw[Modules::ProhibitEvilModules]
 
     my $error;
 
@@ -216,7 +216,7 @@ sub empty_dir ( $path, @ ) {
         keep_root => 1,
     );
 
-    state $init = !!require File::Path;
+    require File::Path;    ## no critic qw[Modules::ProhibitEvilModules]
 
     return File::Path::remove_tree( "$path", \%args );
 }

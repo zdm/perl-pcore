@@ -261,7 +261,7 @@ sub _upload_to_cpan ($self) {
 }
 
 sub _create_changes ( $self, $ver, $issues ) {
-    state $init = !!require CPAN::Changes;
+    require CPAN::Changes;
 
     my $changes_path = $self->dist->root . 'CHANGES';
 

@@ -63,7 +63,7 @@ sub decompress ( $self, % ) {
         $error_log .= qq[\n$log] if $args{perl_verbose};
     }
     elsif ( my $perl_critic_profile_name = $self->_get_perlcritic_profile_name( $args{perl_critic} ) ) {    # run perlcritic ONLY if no perltidy errors detected
-        state $init1 = !!require Perl::Critic;
+        require Perl::Critic;
 
         my @violations = eval { $self->_get_perlcritic_object($perl_critic_profile_name)->critique( $self->{buffer} ) };
 
@@ -224,7 +224,7 @@ sub compress ( $self, % ) {
         $key = 'compress_' . $args{perl_compress_keep_ln} . $optimise_size . $md5;
 
         if ( !exists $cache->{$key} ) {
-            state $init = !!require Perl::Strip;
+            require Perl::Strip;
 
             my $transform = Perl::Strip->new( optimise_size => $optimise_size, keep_nl => $args{perl_compress_keep_ln} );
 
@@ -235,7 +235,7 @@ sub compress ( $self, % ) {
         $key = 'strip_' . $args{perl_compress_keep_ln} . $args{perl_strip_ws} . $args{perl_strip_comment} . $args{perl_strip_pod} . $md5;
 
         if ( !exists $cache->{$key} ) {
-            state $init = !!require Perl::Stripper;
+            require Perl::Stripper;
 
             my $transform = Perl::Stripper->new(
                 maintain_linum => $args{perl_compress_keep_ln},    # keep line numbers unchanged

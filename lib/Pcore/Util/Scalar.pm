@@ -24,14 +24,14 @@ sub is_glob : prototype($) {
 }
 
 sub on_destroy ( $scalar, $cb ) {
-    state $init = !!require Variable::Magic;
+    require Variable::Magic;
 
     Variable::Magic::cast( $_[0], Variable::Magic::wizard( free => $cb ) );
 
     return;
 }
 
-sub is_path : prototype($) { return is_blessed_hashref $_[0] && $_[0]->can('IS_PCORE_PATH') }
+sub is_path : prototype($) { return is_blessed_hashref $_[0] && $_[0]->isa('Pcore::Util::Path') }
 
 sub is_uri : prototype($) { return is_blessed_hashref $_[0] && $_[0]->can('IS_PCORE_URI') }
 

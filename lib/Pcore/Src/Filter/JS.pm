@@ -69,7 +69,7 @@ sub compress ($self) {
         $self->{buffer}->$* = P->data->to_json( $json, readable => 0 )->$*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
     }
     else {
-        state $init = !!require JavaScript::Packer;
+        require JavaScript::Packer;
 
         $JS_PACKER //= JavaScript::Packer->init;
 
@@ -80,7 +80,7 @@ sub compress ($self) {
 }
 
 sub obfuscate ($self) {
-    state $init = !!require JavaScript::Packer;
+    require JavaScript::Packer;
 
     $JS_PACKER //= JavaScript::Packer->init;
 
