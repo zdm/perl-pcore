@@ -641,13 +641,7 @@ sub copy ( $from, $to, @ ) {
     local $File::Copy::Recursive::PFSCheck = $args{pfs_check};
     local $File::Copy::Recursive::CPRFComp = $args{cprf};
 
-    state $init = do {
-
-        # redefine $Coro::State::DIEHOOK, required under MSWin to handle Time::HiRes::utime import
-        local $SIG{__DIE__} = undef;
-
-        !!require File::Copy::Recursive;
-    };
+    require File::Copy::Recursive;
 
     if ( -d $from ) {
         if ( $args{glob} ) {
@@ -808,7 +802,7 @@ sub untar ( $tar, $target, @ ) {
 ## |      | 122                  | * Subroutine "calc_chmod" with high complexity score (25)                                                      |
 ## |      | 248                  | * Subroutine "read_lines" with high complexity score (27)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 778                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 772                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
