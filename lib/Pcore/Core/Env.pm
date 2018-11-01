@@ -19,8 +19,8 @@ has user_cfg_path => ( is       => 'lazy', init_arg => undef );
 has user_cfg      => ( is       => 'lazy', init_arg => undef );    # $HOME/.pcore/pcore.ini config
 
 has PCORE_SHARE_DIR => ();
-has SYS_USER_DIR    => ();                                         # OS user profile dir
-has PCORE_USER_DIR  => ();                                         # SYS_USER_DIR/.pcore, pcore profile dir
+has USER_DIR        => ();                                         # OS user profile dir
+has PCORE_USER_DIR  => ();                                         # USER_DIR/.pcore, pcore profile dir
 has INLINE_DIR      => ();
 has START_DIR       => ();
 has SCRIPT_DIR      => ();
@@ -168,9 +168,9 @@ sub _init_inline ($self) {
 sub BUILD ( $self, $args ) {
     $self->{is_par} = $ENV{PAR_TEMP} ? 1 : 0;
 
-    $self->{SYS_USER_DIR} = $ENV{HOME} || $ENV{USERPROFILE};
+    $self->{USER_DIR} = $ENV{HOME} || $ENV{USERPROFILE};
 
-    $self->{PCORE_USER_DIR} = "$self->{SYS_USER_DIR}/.pcore";
+    $self->{PCORE_USER_DIR} = "$self->{USER_DIR}/.pcore";
     mkdir $self->{PCORE_USER_DIR} || die qq[Error creating user dir "$self->{PCORE_USER_DIR}"] if !-d $self->{PCORE_USER_DIR};
 
     if ( !$self->{is_par} ) {
@@ -205,7 +205,7 @@ sub BUILD ( $self, $args ) {
 }
 
 sub BUILD1 ($self) {
-    $self->{SYS_USER_DIR}   = P->path( $self->{SYS_USER_DIR} )->{path};
+    $self->{USER_DIR}       = P->path( $self->{USER_DIR} )->{path};
     $self->{PCORE_USER_DIR} = P->path( $self->{PCORE_USER_DIR} )->{path};
     $self->{INLINE_DIR}     = P->path( $self->{INLINE_DIR} )->{path} if $self->{INLINE_DIR};
 
