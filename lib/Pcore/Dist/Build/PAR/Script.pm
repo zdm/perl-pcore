@@ -103,12 +103,12 @@ sub run ($self) {
         $member->unixFileAttributes( oct 666 );
     }
 
-    my $zip_path = P->file->temppath( suffix => 'zip' );
+    my $zip_path = P->file1->tempfile;
 
-    $zip->writeToFileNamed("$zip_path");
+    $zip->writeToFileNamed( $zip_path->{path} );
 
     # create parl executable
-    my $parl_path = P->file->temppath( suffix => $self->par_suffix );
+    my $parl_path = P->file1->tempfile;
 
     print 'writing parl ... ';
 
@@ -125,7 +125,7 @@ sub run ($self) {
     # patch windows exe icon
     $self->_patch_icon("$repacked_path");
 
-    my $target_exe = $self->{dist}->root . 'data/' . $self->exe_filename;
+    my $target_exe = "$self->{dist}->{root}/data/" . $self->exe_filename;
 
     P->file->move( $repacked_path, $target_exe );
 
@@ -442,8 +442,6 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
     # cut cache id, now overlay = files sections + par zip section
     $overlay =~ s/.{40}\x{00}CACHE\z//sm;
 
-    my $parl_so_temp = P->file->tempdir;
-
     my $file_section = {};
 
     while (1) {
@@ -478,7 +476,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
         }
     }
 
-    my $path = P->file->temppath( suffix => $self->par_suffix );
+    my $path = P->file1->tempfile;
 
     # write raw exe
     P->file->write_bin( $path, $src );
@@ -577,11 +575,11 @@ sub _error ( $self, $msg ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 161                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 519, 522             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 517, 520             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 169                  | InputOutput::RequireBracedFileHandleWithPrint - File handle for "print" or "printf" is not braced              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 452, 458             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 450, 456             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

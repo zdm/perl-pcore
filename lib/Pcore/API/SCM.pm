@@ -68,13 +68,12 @@ sub scm_clone ( $self, $uri, $root, $scm_type = $SCM_TYPE_HG, $cb = undef ) {
 
     $self = P->class->load( $SCM_TYPE_CLASS->{$scm_type} )->new( { root => $root } );
 
-    my $temp = P->file->tempdir;
+    my $temp = P->file1->tempdir;
 
     return $self->scm_clone(
-        $temp->path,
-        $uri,
+        $temp, $uri,
         sub ($res) {
-            P->file->move( $temp->path, $root ) if $res;
+            P->file->move( $temp, $root ) if $res;
 
             return $cb ? $cb->($res) : $res;
         }

@@ -311,7 +311,7 @@ TXT
         }
     }
 
-    my $tempfile = P->file->temppath;
+    my $tempfile = P->file1->tempfile;
 
     P->file->write_text( $tempfile, $log );
 
