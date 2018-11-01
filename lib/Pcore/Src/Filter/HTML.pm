@@ -14,13 +14,13 @@ sub decompress ($self) {
 
     my $html_beautify_args = $self->dist_cfg->{HTML_BEAUTIFY} || $self->src_cfg->{HTML_BEAUTIFY};
 
-    my $temp = P->file->tempfile;
+    my $temp = P->file1->tempfile;
 
-    syswrite $temp, $self->{buffer}->$* or die;
+    P->file->write_bin( $temp, $self->{buffer} );
 
     my $proc = P->sys->run_proc( qq[html-beautify $html_beautify_args --replace "$temp"], win32_create_no_window => 1 )->wait;
 
-    $self->{buffer}->$* = P->file->read_bin( $temp->path )->$*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+    $self->{buffer}->$* = P->file->read_bin($temp)->$*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     return 0;
 }

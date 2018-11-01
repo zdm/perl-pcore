@@ -25,13 +25,13 @@ sub decompress ( $self, % ) {
     else {
         my $js_beautify_args = $self->dist_cfg->{JS_BEAUTIFY} || $self->src_cfg->{JS_BEAUTIFY};
 
-        my $temp = P->file->tempfile;
+        my $temp = P->file1->tempfile;
 
-        syswrite $temp, $self->{buffer}->$* or die;
+        P->file->write_bin( $temp, $self->{buffer} );
 
         my $proc = P->sys->run_proc( qq[js-beautify $js_beautify_args --replace "$temp"], win32_create_no_window => 1 )->wait;
 
-        $self->{buffer}->$* = P->file->read_bin( $temp->path )->$*;            ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+        $self->{buffer}->$* = P->file->read_bin($temp)->$*;                    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
     }
 
     my $log;
@@ -118,9 +118,9 @@ sub run_js_hint ($self) {
 
     my $js_hint_args = $self->dist_cfg->{JS_HINT} || $self->src_cfg->{JS_HINT};
 
-    my $in_temp = P->file->tempfile;
+    my $in_temp = P->file1->tempfile;
 
-    syswrite $in_temp, $self->{buffer}->$* or die;
+    P->file->write_bin( $in_temp, $self->{buffer} );
 
     my $out_temp = "$ENV->{TEMP_DIR}/tmp-jshint-" . int rand 99_999;
 

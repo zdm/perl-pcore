@@ -1,7 +1,7 @@
 package Pcore::HTTP;
 
 use Pcore -const, -export;
-use Pcore::Util::Scalar qw[is_ref is_glob is_plain_coderef is_blessed_ref is_coderef is_plain_hashref is_plain_arrayref];
+use Pcore::Util::Scalar qw[is_ref is_plain_coderef is_blessed_ref is_coderef is_plain_hashref is_plain_arrayref];
 use Pcore::Handle qw[:ALL];
 use Pcore::HTTP::Response;
 use Pcore::HTTP::Cookies;
@@ -603,10 +603,11 @@ sub _read_data ( $h, $args, $res ) {
 
     # reader is required
     else {
+        my $fh;
+
         my $on_read = sub ( $buf_ref, $total_bytes ) {
             state $expected_content_length = $res->{content_length};
             state $total_decoded_bytes     = 0;
-            state $is_fh                   = 0;
 
             # decode buffer
             if ($decoder) {
@@ -642,8 +643,8 @@ sub _read_data ( $h, $args, $res ) {
 
             # store data in result
             else {
-                if ($is_fh) {
-                    syswrite $res->{data}, $buf_ref->$* or do {
+                if ( defined $fh ) {
+                    syswrite $fh, $buf_ref->$* or do {
                         $h->set_protocol_error($!);
 
                         return;
@@ -653,7 +654,10 @@ sub _read_data ( $h, $args, $res ) {
                     $res->{data}->$* .= $buf_ref->$*;
 
                     if ( defined $args->{mem_buf_size} && length $res->{data}->$* > $args->{mem_buf_size} ) {
-                        my $fh = P->file->tempfile;
+                        my $tempfile = P->file1->tempfile;
+
+                        require Fcntl;
+                        $fh = P->file->get_fh( $tempfile, Fcntl::O_WRONLY | Fcntl::O_CREAT | Fcntl::O_TRUNC, crlf => 0 );
 
                         syswrite $fh, $res->{data}->$* or do {
                             $h->set_protocol_error($!);
@@ -661,9 +665,7 @@ sub _read_data ( $h, $args, $res ) {
                             return;
                         };
 
-                        $res->{data} = $fh;
-
-                        $is_fh = 1;
+                        $res->{data} = $tempfile;
                     }
                 }
             }
@@ -697,9 +699,6 @@ sub _read_data ( $h, $args, $res ) {
 
             return;
         }
-
-        # rewind fh
-        $res->{data}->seek( 0, 0 ) if is_glob $res->{data};
     }
 
     return 1;
@@ -870,8 +869,8 @@ sub _http2_request ( $h, $args, $res ) {
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 140                  | * Subroutine "request" with high complexity score (23)                                                         |
 ## |      | 254                  | * Subroutine "_request" with high complexity score (28)                                                        |
-## |      | 510                  | * Subroutine "_read_data" with high complexity score (47)                                                      |
-## |      | 731                  | * Subroutine "_http2_request" with high complexity score (22)                                                  |
+## |      | 510                  | * Subroutine "_read_data" with high complexity score (46)                                                      |
+## |      | 730                  | * Subroutine "_http2_request" with high complexity score (22)                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 90                   | CodeLayout::ProhibitQuotedWordLists - List of quoted literal words                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|

@@ -77,8 +77,8 @@ sub objects {
 
     my $data = {
         DateTime          => DateTime->now,
-        'File::Temp'      => P->file->tempfile,
-        'File::Temp::Dir' => P->file->tempdir,
+        'File::Temp'      => P->file1->tempfile,
+        'File::Temp::Dir' => P->file1->tempdir,
     };
 
     say dump $data;
