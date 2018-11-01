@@ -20,7 +20,7 @@ sub BUILDARGS ( $self, $args ) {
 }
 
 sub run ($self) {
-    my $chdir_guard = P->file->chdir( $self->dist->root );
+    my $chdir_guard = P->file->chdir( $self->{dist}->{root} );
 
     # deps
     exit 3 if !$self->_deps;
@@ -52,10 +52,10 @@ sub _chmod ($self) {
             else {
                 my $is_exe;
 
-                if ( ( $path->{dirname} eq 'bin' || $path->{dirname} eq 'script' ) && !$path->{suffix} ) {
+                if ( !defined $path->{filename} && ( $path->{dirname} eq 'bin' || $path->{dirname} eq 'script' ) ) {
                     $is_exe = 1;
                 }
-                elsif ( $path->{suffix} eq 'sh' || $path->{suffix} eq 'pl' || $path->{suffix} eq 't' ) {
+                elsif ( defined $path->{suffix} && ( $path->{suffix} eq 'sh' || lc $path->{suffix} eq 'pl' || $path->{suffix} eq 't' ) ) {
                     $is_exe = 1;
                 }
 
@@ -131,7 +131,7 @@ sub _install ($self) {
     my $pcore_lib_dir_canon = P->path("$canon_dist_root/../")->to_abs;
 
     if ($MSWIN) {
-        if ( $self->dist->is_pcore ) {
+        if ( $self->{dist}->is_pcore ) {
 
             # set $ENV{PERL5LIB}
             P->sys->run_proc(qq[setx.exe /M PERL5LIB "$canon_dist_root/lib;"]) or return;
@@ -170,7 +170,7 @@ sub _install ($self) {
 
         $data = qq[if ! echo \$PATH | grep -Eq "(^|$Config{path_sep})$canon_bin_dir/?(\$|$Config{path_sep})" ; then export PATH="\$PATH$Config{path_sep}$canon_bin_dir" ; fi\n] if -d $canon_bin_dir;
 
-        if ( $self->dist->is_pcore ) {
+        if ( $self->{dist}->is_pcore ) {
             $data .= <<"SH";
 if ! echo \$PERL5LIB | grep -Eq "(^|$Config{path_sep})$canon_dist_root/lib/?(\$|$Config{path_sep})" ; then export PERL5LIB="$canon_dist_root/lib$Config{path_sep}\$PERL5LIB" ; fi
 export PCORE_LIB="$pcore_lib_dir_canon"
@@ -178,9 +178,9 @@ SH
         }
 
         if ($data) {
-            P->file->write_bin( "/etc/profile.d/@{[lc $self->dist->name]}.sh", { mode => q[rw-r--r--] }, \$data );
+            P->file->write_bin( "/etc/profile.d/@{[lc $self->{dist}->name]}.sh", { mode => 'rw-r--r--' }, \$data );
 
-            say "/etc/profile.d/@{[lc $self->dist->name]}.sh installed";
+            say "/etc/profile.d/@{[lc $self->{dist}->name]}.sh installed";
         }
     }
 
