@@ -81,7 +81,7 @@ sub _draw ($self) {
         # progress bar
         $bar .= '[';
 
-        my $mess = $self->message;
+        my $mess = $self->{message};
 
         # truncate mess
         $mess = substr $mess, 0, $bar_size if length $mess > $bar_size;
@@ -124,7 +124,7 @@ sub _draw ($self) {
 
                 $bar .= $mess;
 
-                $bar .= q[ ] x abs $bar_size - length $self->message;
+                $bar .= q[ ] x abs $bar_size - length $self->{message};
             }
         }
         else {
