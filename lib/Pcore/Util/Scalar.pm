@@ -31,21 +31,13 @@ sub on_destroy ( $scalar, $cb ) {
     return;
 }
 
-sub is_path : prototype($) {
-    return is_blessed_hashref $_[0] && $_[0]->can('IS_PCORE_PATH');
-}
+sub is_path : prototype($) { return is_blessed_hashref $_[0] && $_[0]->can('IS_PCORE_PATH') }
 
-sub is_uri : prototype($) {
-    return is_blessed_hashref $_[0] && $_[0]->can('IS_PCORE_URI');
-}
+sub is_uri : prototype($) { return is_blessed_hashref $_[0] && $_[0]->can('IS_PCORE_URI') }
 
-sub is_callback : prototype($) {
-    return is_blessed_hashref $_[0] && $_[0]->can('IS_PCORE_CALLBACK');
-}
+sub is_callback : prototype($) { return is_blessed_hashref $_[0] && $_[0]->can('IS_PCORE_CALLBACK') }
 
-sub is_result : prototype($) {
-    return is_blessed_hashref $_[0] && $_[0]->can('IS_PCORE_RESULT');
-}
+sub is_result : prototype($) { return is_blessed_hashref $_[0] && $_[0]->can('IS_PCORE_RESULT') }
 
 1;
 __END__
