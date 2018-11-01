@@ -9,9 +9,9 @@ use overload    #
   },
   fallback => 1;
 
-has _cb => ( is => 'ro', isa => Maybe [CodeRef] );
+has _cb => ();    # Maybe [CodeRef]
 
-has _responded => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # already responded
+has _responded => ( init_arg => undef );    # Bool, already responded
 
 sub DESTROY ( $self ) {
     if ( ( ${^GLOBAL_PHASE} ne 'DESTRUCT' ) && !$self->{_responded} && $self->{_cb} ) {
