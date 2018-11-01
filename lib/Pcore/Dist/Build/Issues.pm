@@ -2,7 +2,7 @@ package Pcore::Dist::Build::Issues;
 
 use Pcore -class, -const, -ansi;
 
-has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
+has dist => ( required => 1 );    # InstanceOf ['Pcore::Dist']
 
 const our $PRIORITY_ID => {
     trivial  => 1,

@@ -4,7 +4,7 @@ use Pcore -class;
 use Pod::Markdown;
 use Pcore::API::SCM;
 
-has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
+has dist => ( required => 1 );    # InstanceOf ['Pcore::Dist']
 
 around new => sub ( $orig, $self, $args ) {
     return if !-d $args->{dist}->root . 'wiki/';
@@ -13,7 +13,7 @@ around new => sub ( $orig, $self, $args ) {
 };
 
 sub run ($self) {
-    my $chdir_guard = P->file->chdir( $self->dist->root );
+    my $chdir_guard = P->file->chdir( $self->{dist}->{root} );
 
     my $wiki_path = P->path('wiki')->to_abs;
 
