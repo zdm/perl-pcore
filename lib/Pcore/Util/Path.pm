@@ -36,8 +36,6 @@ has is_abs => ();
 has _encoded => ( init_arg => undef );    # utf8 encoded path
 has _to_url  => ( init_arg => undef );
 
-sub IS_PCORE_PATH ($self) { return 1 }
-
 # from_uri, from_mswin
 around new => sub ( $orig, $self, $path = undef, %args ) {
     $self = ref $self if is_blessed_hashref $self;
@@ -434,10 +432,10 @@ C
 ## |======+======================+================================================================================================================|
 ## |    3 | 14                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 205                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 203                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 45, 132, 234, 293,   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 308, 314             |                                                                                                                |
+## |    2 | 43, 130, 232, 291,   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      | 306, 312             |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
