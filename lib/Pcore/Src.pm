@@ -16,7 +16,7 @@ require Pcore::Src::File;
 has action => ( required => 1 );    # Enum [ $SRC_DECOMPRESS, $SRC_COMPRESS, $SRC_OBFUSCATE, $SRC_COMMIT ]
 has path => ();                     # Maybe [Str]
 
-has type        => ();              # Enum [ map { lc $_->{type} } Pcore::Src::File->cfg->{FILE_TYPE}->@* ], mandatory, if source path is dir
+has type        => ();              # mandatory, if source path is dir
 has filename    => ();              # Str, mandatory, if source is stdin
 has stdin_files => (0);             # read list of filenames from stdin
 

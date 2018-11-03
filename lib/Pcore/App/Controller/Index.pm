@@ -22,7 +22,7 @@ with qw[Pcore::App::Controller];
 
 #             $path = P->path($path);
 
-#             $req->( 200, [ 'Content-Type' => $path->mime_type ], $data )->finish;
+#             $req->( 200, [ 'Content-Type' => $path->mime_type // 'application/octet-stream' ], $data )->finish;
 #         }
 #         else {
 #             $req->(404)->finish;    # not found

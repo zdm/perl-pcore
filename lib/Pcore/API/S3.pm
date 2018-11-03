@@ -338,7 +338,7 @@ sub upload ( $self, $path, $data, @args ) {
 
     $args->{content_type} //= $path->mime_type;
 
-    $args->{compress} = 0 if $args->{compress} && $args->{compress} == 2 && !$path->mime_compress;
+    $args->{compress} = 0 if $args->{compress} && $args->{compress} == 2 && !$path->mime_has_tag('compress');
 
     if ( $args->{compress} ) {
         gzip is_ref $data ? $data : \$data, \my $buf1, time => 0, level => 9 or die q[Failed to gzip data];

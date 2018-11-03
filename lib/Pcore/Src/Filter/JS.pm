@@ -17,7 +17,7 @@ sub decompress ( $self, % ) {
 
     return 0 if $self->has_kolon;
 
-    if ( 0 && $self->{file}->{path}->mime_type eq 'application/json' ) {
+    if ( 0 && $self->{file}->{path}->mime_has_tag('json') ) {
         my $json = P->data->from_json( $self->{buffer} );
 
         $self->{buffer}->$* = P->data->to_json( $json, readable => 1 )->$*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
@@ -63,7 +63,7 @@ sub decompress ( $self, % ) {
 }
 
 sub compress ($self) {
-    if ( 0 && $self->{file}->{path}->mime_type eq 'application/json' ) {
+    if ( 0 && $self->{file}->{path}->mime_has_tag('json') ) {
         my $json = P->data->from_json( $self->{buffer} );
 
         $self->{buffer}->$* = P->data->to_json( $json, readable => 0 )->$*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]

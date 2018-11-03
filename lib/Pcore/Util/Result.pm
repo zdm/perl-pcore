@@ -21,8 +21,6 @@ sub res ( $status, @args ) {
 
     my $self = bless $hash, __PACKAGE__;
 
-    $hash->{IS_PCORE_RESULT} = 1;
-
     if ( is_plain_arrayref $status ) {
         $hash->{status} = $status->[0];
 
