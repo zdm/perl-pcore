@@ -16,33 +16,37 @@ sub _mime_spec ( $self, $shebang = undef ) {
     if ( !exists $self->{_mime_spec} ) {
         my $spec;
 
-        if ( defined $shebang && !is_plain_scalarref $shebang ) {
-            if ( -f $self ) {
+        if ( defined $self->{filename} ) {
+            $spec = P->mime->mime_filename( $self->{filename} );
 
-                # read first 50 bytes
-                P->file->read_bin(
-                    $self->encoded,
-                    buf_size => 50,
-                    cb       => sub {
-                        $shebang = $_[0];
+            if ( !defined $spec && defined $self->{suffix} ) {
+                $spec = P->mime->mime_custom_suffix( $self->{suffix} );
 
-                        return;
+                $spec = P->mime->mime_suffix( $self->{suffix} ) if !defined $spec;
+            }
+
+            if ( !defined $spec && $shebang ) {
+                if ( !is_plain_scalarref $shebang ) {
+                    if ( -f $self ) {
+
+                        # read first 50 bytes
+                        P->file->read_bin(
+                            $self->encoded,
+                            buf_size => 50,
+                            cb       => sub {
+                                $shebang = $_[0];
+
+                                return;
+                            }
+                        );
                     }
-                );
+                    else {
+                        undef $shebang;
+                    }
+                }
+
+                $spec = P->mime->mime_shebang( $shebang->$* ) if defined $shebang;
             }
-            else {
-                undef $shebang;
-            }
-        }
-
-        $spec = P->mime->mime_shebang( $shebang->$* ) if defined $shebang;
-
-        $spec = P->mime->mime_filename( $self->{filename} ) if !defined $spec && defined $self->{filename};
-
-        if ( defined $self->{suffix} ) {
-            $spec = P->mime->mime_custom_suffix( $self->{suffix} ) if !defined $spec;
-
-            $spec = P->mime->mime_suffix( $self->{suffix} ) if !defined $spec;
         }
 
         $self->{_mime_spec} = $spec;
