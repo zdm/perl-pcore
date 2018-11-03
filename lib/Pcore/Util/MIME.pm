@@ -40,6 +40,8 @@ sub _load_data {
 }
 
 sub update ($cb = undef) {
+    print 'updating mime.yaml ... ';
+
     return P->http->get(
         'https://svn.apache.org/viewvc/httpd/httpd/trunk/docs/conf/mime.types?view=co',
         sub ($res) {
@@ -71,6 +73,8 @@ sub update ($cb = undef) {
 
                 undef $DATA;
             }
+
+            say $res;
 
             $cb->($res) if $cb;
 
