@@ -373,7 +373,7 @@ sub to_json ( $data, %args ) {
         return \get_json(%args)->encode($data);
     }
     elsif ($readable) {
-        state $json = get_json( utf8 => 1, canonical => 1, indent => 1, space_after => 1 );
+        state $json = get_json( utf8 => 1, canonical => 1, indent => 1, indent_length => 4, space_after => 1 );
 
         return \$json->encode($data);
     }
