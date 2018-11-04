@@ -438,6 +438,7 @@ sub to_yaml ( $data, @ ) {
     local $YAML::XS::UseCode  = 0;
     local $YAML::XS::DumpCode = 0;
     local $YAML::XS::LoadCode = 0;
+    local $YAML::Indent       = 4;
 
     return \YAML::XS::Dump($data);
 }
@@ -1046,9 +1047,9 @@ sub from_uri_query_utf8 : prototype($) ($uri) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | ControlStructures::ProhibitPostfixControls                                                                     |
 ## |      | 364, 417             | * Postfix control "for" used                                                                                   |
-## |      | 625                  | * Postfix control "while" used                                                                                 |
+## |      | 626                  | * Postfix control "while" used                                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 960                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 961                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
