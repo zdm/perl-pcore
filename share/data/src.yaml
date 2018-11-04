@@ -7,7 +7,7 @@ mime_tag:
     javascript:
         type: js
     json:
-        type: js
+        type: json
     perl-config:                                            # *.perl
         type: perl
         perl_critic: pcore-config
@@ -131,6 +131,8 @@ perlcritic:
         ValuesAndExpressions::ProhibitInterpolationOfLiterals: ~
         ValuesAndExpressions::ProhibitNoisyQuotes: ~
         ValuesAndExpressions::RequireInterpolationOfMetachars: ~
+
+jshint: --verbose # --show-non-errors
 
 perltidy: >-
     --perl-best-practices --tight-secret-operators --continuation-indentation=2

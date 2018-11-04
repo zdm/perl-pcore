@@ -47,4 +47,10 @@ Pcore::Src1::css
 
 =head1 DESCRIPTION
 
+=head1 ATTRIBUTES
+
+=head1 METHODS
+
+=head1 SEE ALSO
+
 =cut

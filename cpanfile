@@ -81,6 +81,7 @@ on develop => sub {
     requires 'Perl::Strip';
     requires 'Perl::Critic';
     requires 'PPI::XS';
+    requires 'JavaScript::Beautifier', v0.25.0;
     requires 'JavaScript::Packer';
     requires 'CSS::Packer';
     requires 'HTML::Packer';
