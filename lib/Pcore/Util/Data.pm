@@ -308,18 +308,14 @@ sub to_perl ( $data, %args ) {
     }
 
     if ( $args{readable} ) {
-        require Pcore::Src::File;
-
-        $res = Pcore::Src::File->new( {
-            action      => $Pcore::Src::SRC_DECOMPRESS,
-            path        => 'config.perl',                 # mark file as perl config
-            is_realpath => 0,
-            in_buffer   => $res,
-            filter_args => {
+        $res = \P->src->decompress(
+            path   => 'config.perl',    # mark file as perl config
+            data   => $res->$*,
+            filter => {
                 perl_tidy   => '--comma-arrow-breakpoints=0',
                 perl_critic => 0,
-            },
-        } )->run->out_buffer;
+            }
+        )->{data};
     }
 
     return $res;
@@ -1046,10 +1042,10 @@ sub from_uri_query_utf8 : prototype($) ($uri) {
 ## |      | 159                  | * Subroutine "decode_data" with high complexity score (27)                                                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | ControlStructures::ProhibitPostfixControls                                                                     |
-## |      | 364, 417             | * Postfix control "for" used                                                                                   |
-## |      | 626                  | * Postfix control "while" used                                                                                 |
+## |      | 360, 413             | * Postfix control "for" used                                                                                   |
+## |      | 622                  | * Postfix control "while" used                                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 961                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 957                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

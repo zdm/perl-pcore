@@ -6,7 +6,6 @@ use Pcore::Util::File::Tree;
 use Archive::Zip qw[];
 use PAR::Filter;
 use Filter::Crypto::CryptFile;
-use Pcore::Src::File;
 use Config;
 use Fcntl qw[:DEFAULT SEEK_END];
 
@@ -356,17 +355,15 @@ sub _add_perl_source ( $self, $source, $target, $is_cpan_module = 0, $module = u
         $src = PAR::Filter->new('PatchContent')->apply( $src, $module );
     }
 
-    $src = Pcore::Src::File->new( {
-        action      => $Pcore::Src::SRC_COMPRESS,
-        path        => $target,
-        is_realpath => 0,
-        in_buffer   => $src,
-        filter_args => {
+    $src = \P->src->compress(
+        path   => $target,
+        data   => $src->$*,
+        filter => {
             perl_compress_keep_ln => 1,
             perl_strip_comment    => 1,
             perl_strip_pod        => 1,
-        },
-    } )->run->out_buffer;
+        }
+    )->{data};
 
     # crypt sources, do not crypt CPAN modules
     if ( !$is_cpan_module && $self->{crypt} && ( !$module || $module ne 'Filter/Crypto/Decrypt.pm' ) ) {
@@ -460,16 +457,14 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
         if ( $filename =~ /[.](?:pl|pm)\z/sm ) {
 
             # compress perl sources
-            $file_section->{$filename} = Pcore::Src::File->new( {
-                action      => $Pcore::Src::SRC_COMPRESS,
-                path        => $filename,
-                is_realpath => 0,
-                in_buffer   => \$content,
-                filter_args => {                            #
+            $file_section->{$filename} = \P->src->compress(
+                path   => $filename,
+                data   => $content,
+                filter => {
                     perl_compress         => 1,
                     perl_compress_keep_ln => 0,
                 },
-            } )->run->out_buffer;
+            )->{data};
         }
         else {
             $file_section->{$filename} = \$content;
@@ -562,24 +557,24 @@ sub _error ( $self, $msg ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 142                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "record"                                |
+## |    3 | 141                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "record"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 151, 159, 161, 163,  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
-## |      | 169, 213             |                                                                                                                |
+## |    3 | 150, 158, 160, 162,  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |      | 168, 212             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 345                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 344                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 424                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_repack_parl' declared but not used |
+## |    3 | 421                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_repack_parl' declared but not used |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 435                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    3 | 432                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 161                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 160                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 517, 520             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 512, 515             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 169                  | InputOutput::RequireBracedFileHandleWithPrint - File handle for "print" or "printf" is not braced              |
+## |    1 | 168                  | InputOutput::RequireBracedFileHandleWithPrint - File handle for "print" or "printf" is not braced              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 450, 456             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 447, 453             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
