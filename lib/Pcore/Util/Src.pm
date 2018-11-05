@@ -67,12 +67,15 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     if ( $arg->{path}->[0] eq '-' ) {
         $arg->{path} = P->file->read_lines(*STDIN);
 
-        for ( $arg->{path}->@* ) { $_ = P->path( $_, from_mswin => 1 ) }
+        for ( $arg->{path}->@* ) { $_ = P->path( $_, from_mswin => 1 )->to_abs }
     }
+
+    my $prefix;
 
     if ( $opt->{action} eq 'commit' ) {
         $opt->{action} = 'decompress';
         $opt->{type}   = 'perl';
+        $prefix        = shift $arg->{path}->@*;
     }
 
     my $res = P->src->run(
@@ -81,6 +84,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
             type    => $opt->{type},
             report  => $opt->{report},
             dry_run => $opt->{dry_run},
+            prefix  => $prefix,
         }
     );
 
@@ -106,6 +110,7 @@ sub obfuscate ( %args ) { return run( 'obfuscate', \%args ) }
 # filter, HashRef, additional filter arguments
 # dry_run, Bool, if true - do not write results to the source path
 # report, print report
+# prefix, common paths prefix
 sub run ( $action, $args ) {
     $args->{ignore} //= 1;
 
@@ -184,25 +189,40 @@ sub _process_files ( $args, $action ) {
         }
     }
 
-    my ( $max_path_len, $prefix, $use_prefix );
+    my ( $prefix, $use_prefix );
+    my $max_path_len = 0;
 
-    # find longest common prefix
     if ( $args->{report} ) {
-        for my $task ( values %tasks ) {
-            my $dirname = "$task->[1]->{dirname}/";
 
-            if ( !defined $prefix ) {
-                $prefix = $dirname;
+        # use predefined prefix
+        if ( defined $args->{prefix} ) {
+            $prefix     = is_path $args->{prefix} ? $args->{prefix} : P->path( $args->{prefix} );
+            $prefix     = "$prefix/";
+            $use_prefix = 1;
 
-                $max_path_len = length $task->[1];
-            }
-            else {
+            for my $task ( values %tasks ) {
                 $max_path_len = length $task->[1] if length $task->[1] > $max_path_len;
+            }
+        }
 
-                if ( "$prefix\x00$dirname" =~ /^(.*).*\x00\1.*$/sm ) {
-                    $prefix = $1;
+        # find longest common prefix
+        else {
+            for my $task ( values %tasks ) {
+                my $dirname = "$task->[1]->{dirname}/";
 
-                    $use_prefix = 1;
+                if ( !defined $prefix ) {
+                    $prefix = $dirname;
+
+                    $max_path_len = length $task->[1];
+                }
+                else {
+                    $max_path_len = length $task->[1] if length $task->[1] > $max_path_len;
+
+                    if ( "$prefix\x00$dirname" =~ /^(.*).*\x00\1.*$/sm ) {
+                        $prefix = $1;
+
+                        $use_prefix = 1;
+                    }
                 }
             }
         }
@@ -440,13 +460,13 @@ sub _report_total ( $total ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 150                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (27)            |
+## |    3 | 155                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (32)            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 239, 343             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 259, 363             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 202                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 221                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 276                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 296                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
