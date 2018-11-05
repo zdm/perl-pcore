@@ -51,6 +51,12 @@ TXT
                 desc    => q[don't save changes],
                 default => 0,
             },
+            prefix => {
+                short => undef,
+                isa   => 'Str',
+                desc  => q[for internal use with commit hook],
+                max   => 1,
+            },
         },
         arg => [
             path => {
@@ -70,12 +76,13 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
         for ( $arg->{path}->@* ) { $_ = P->path( $_, from_mswin => 1 )->to_abs }
     }
 
-    my $prefix;
-
     if ( $opt->{action} eq 'commit' ) {
         $opt->{action} = 'decompress';
         $opt->{type}   = 'perl';
-        $prefix        = shift $arg->{path}->@*;
+        $opt->{prefix} = P->path( $opt->{prefix}, from_mswin => 1 )->to_abs;
+    }
+    else {
+        undef $opt->{prefix};
     }
 
     my $res = P->src->run(
@@ -84,7 +91,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
             type    => $opt->{type},
             report  => $opt->{report},
             dry_run => $opt->{dry_run},
-            prefix  => $prefix,
+            prefix  => $opt->{prefix},
         }
     );
 
@@ -460,13 +467,13 @@ sub _report_total ( $total ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 155                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (32)            |
+## |    3 | 162                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (32)            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 259, 363             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 266, 370             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 221                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 228                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 296                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 303                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
