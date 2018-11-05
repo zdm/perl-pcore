@@ -64,7 +64,11 @@ TXT
 }
 
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
-    $arg->{path} = P->file->read_lines(*STDIN) if $arg->{path}->[0] eq '-';
+    if ( $arg->{path}->[0] eq '-' ) {
+        $arg->{path} = P->file->read_lines(*STDIN);
+
+        for ( $arg->{path}->@* ) { $_ = P->path( $_, from_mswin => 1 ) }
+    }
 
     if ( $opt->{action} eq 'commit' ) {
         $opt->{action} = 'decompress';
@@ -227,7 +231,7 @@ sub _process_files ( $args, $action ) {
 
     print $tbl->finish if defined $tbl;
 
-    _report_total($total) if $args->{report};
+    _report_total($total) if $args->{report} && keys %tasks;
 
     return $total;
 }
@@ -436,13 +440,13 @@ sub _report_total ( $total ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 146                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (26)            |
+## |    3 | 150                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (27)            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 235, 339             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 239, 343             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 198                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 202                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 272                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 276                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
