@@ -158,7 +158,6 @@ sub run ( $action, $args ) {
     return $res;
 }
 
-# TODO fix prefix
 sub _process_files ( $args, $action ) {
     my $total = res 200;
 
@@ -467,13 +466,13 @@ sub _report_total ( $total ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 162                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (32)            |
+## |    3 | 161                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (32)            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 266, 370             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 265, 369             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 228                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 227                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 303                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 302                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

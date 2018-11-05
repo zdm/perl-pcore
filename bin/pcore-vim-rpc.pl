@@ -5,7 +5,6 @@ package main v0.1.0;
 use Pcore;
 use Pcore::Util::Data qw[from_json to_json];
 use Pcore::Util::Text qw[decode_utf8 encode_utf8];
-use Pcore::Src::File;
 
 my $cv = P->cv;
 
@@ -46,20 +45,20 @@ sub CMD_src ( $self, $h, $id, $args ) {
         }
     }
 
-    my $res = Pcore::Src::File->new( {
-        action      => $args->{action},
-        path        => $path,
-        is_realpath => $args->{path} ? 1 : 0,
-        in_buffer   => \encode_utf8 $args->{content},
-        dry_run     => 0,
-    } )->run;
+    my $res = P->src->run(
+        $args->{action},
+        {   path   => $path,
+            data   => encode_utf8 $args->{data},
+            ignore => 0,
+        }
+    );
 
     my $json = to_json [
         $id,
-        {   was_changed => $res->was_changed                  ? 1 : 0,
-            is_error    => $res->severity_range_is('ERROR')   ? 1 : 0,
-            is_warn     => $res->severity_range_is('WARNING') ? 1 : 0,
-            content     => decode_utf8 $res->out_buffer->$*
+        {   status      => $res->{status},
+            reason      => $res->{reason},
+            data        => decode_utf8( $res->{data} ),
+            is_modified => $res->{is_modified} ? 1 : 0,
         }
     ];
 
@@ -73,12 +72,12 @@ sub CMD_browser_print ( $self, $h, $id, $args ) {
     # only MSWIN currently supported
     return if !$MSWIN;
 
-    $args->{content} =~ s/\t/    /smg;
-    $args->{content} =~ s/&/&amp;/smg;
-    $args->{content} =~ s/</&lt;/smg;
-    $args->{content} =~ s/>/&gt;/smg;
-    $args->{content} =~ s/"/&quot;/smg;
-    $args->{content} =~ s/'/&#39;/smg;
+    $args->{data} =~ s/\t/    /smg;
+    $args->{data} =~ s/&/&amp;/smg;
+    $args->{data} =~ s/</&lt;/smg;
+    $args->{data} =~ s/>/&gt;/smg;
+    $args->{data} =~ s/"/&quot;/smg;
+    $args->{data} =~ s/'/&#39;/smg;
 
     my $temp = "$ENV->{TEMP_DIR}/vim-browserprint.html";
 
@@ -99,7 +98,7 @@ EOF
 </html>
 EOF
 
-    P->file->write_text( $temp, $header, $args->{content}, $footer );
+    P->file->write_text( $temp, $header, $args->{data}, $footer );
 
     if ($MSWIN) {
         require Win32::Process;
