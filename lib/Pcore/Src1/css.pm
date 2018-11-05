@@ -5,30 +5,16 @@ use CSS::Packer qw[];
 
 with qw[Pcore::Src1::Filter];
 
-my $COMPRESSOR = CSS::Packer->init;
-
-my $DECOMPRESSOR = do {
-    my $packer = CSS::Packer->init;
-
-    $packer->{old_declaration_replacement} = $packer->{declaration}->{reggrp_data}->[0]->{replacement};
-
-    $packer->{declaration}->{reggrp_data}->[0]->{replacement} = sub {
-        return q[ ] x 4 . $packer->{old_declaration_replacement}->(@_);
-    };
-
-    $packer->{_reggrp_declaration} = Regexp::RegGrp->new( { reggrp => $packer->{declaration}->{reggrp_data} } );
-
-    $packer;
-};
+my $PACKER = CSS::Packer->init;
 
 sub decompress ($self) {
-    $DECOMPRESSOR->minify( $self->{data}, { compress => 'pretty' } );
+    $PACKER->minify( $self->{data}, { compress => 'pretty', indent => 4 } );
 
     return res 200;
 }
 
 sub compress ($self) {
-    $COMPRESSOR->minify( $self->{data}, { compress => 'minify' } );
+    $PACKER->minify( $self->{data}, { compress => 'minify' } );
 
     return res 200;
 }
