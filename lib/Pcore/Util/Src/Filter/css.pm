@@ -1,9 +1,9 @@
-package Pcore::Src1::css;
+package Pcore::Util::Src::Filter::css;
 
 use Pcore -class, -res;
 use CSS::Packer qw[];
 
-with qw[Pcore::Src1::Filter];
+with qw[Pcore::Util::Src::Filter];
 
 my $PACKER = CSS::Packer->init;
 
@@ -27,7 +27,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Src1::css
+Pcore::Util::Src::Filter::css
 
 =head1 SYNOPSIS
 

@@ -1,15 +1,15 @@
-package Pcore::Src1::js;
+package Pcore::Util::Src::Filter::js;
 
 use Pcore -class, -res;
 use Pcore::Util::Text qw[rcut_all encode_utf8];
 
-with qw[Pcore::Src1::Filter];
+with qw[Pcore::Util::Src::Filter];
 
 has js_hint => 1;    # use jshint on decompress
 
 my $JS_PACKER;
 
-sub decompress ( $self ) {
+sub decompress ($self) {
     require JavaScript::Beautifier;
 
     $self->{data}->$* = JavaScript::Beautifier::js_beautify(    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
@@ -158,7 +158,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Src1::js
+Pcore::Util::Src::Filter::js
 
 =head1 SYNOPSIS
 

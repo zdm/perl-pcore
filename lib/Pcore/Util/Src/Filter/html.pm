@@ -1,11 +1,11 @@
-package Pcore::Src1::html;
+package Pcore::Util::Src::Filter::html;
 
 use Pcore -class, -res;
 use Pcore::Util::Text qw[trim];
-use Pcore::Src1::js;
-use Pcore::Src1::css;
+use Pcore::Util::Src::Filter::js;
+use Pcore::Util::Src::Filter::css;
 
-with qw[Pcore::Src1::Filter];
+with qw[Pcore::Util::Src::Filter];
 
 sub decompress ($self) {
     return res 200 if !length $self->{data}->$*;
@@ -33,7 +33,7 @@ sub compress ($self) {
 
     for my $i ( 0 .. $#script ) {
         if ( $script[$i] =~ m[\A</script]sm && $script[ $i - 1 ] ) {
-            Pcore::Src1::js->new( { file => $self->{file}, data => \$script[ $i - 1 ] } )->compress;
+            Pcore::Util::Src::Filter::js->new( { data => \$script[ $i - 1 ] } )->compress;
 
             trim $script[ $i - 1 ];
         }
@@ -46,7 +46,7 @@ sub compress ($self) {
 
     for my $i ( 0 .. $#css ) {
         if ( $css[$i] =~ m[\A</style]sm && $css[ $i - 1 ] ) {
-            Pcore::Src1::css->new( { file => $self->{file}, data => \$css[ $i - 1 ] } )->compress;
+            Pcore::Util::Src::Filter::css->new( { data => \$css[ $i - 1 ] } )->compress;
         }
     }
 
@@ -79,7 +79,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Src1::html
+Pcore::Util::Src::Filter::html
 
 =head1 SYNOPSIS
 

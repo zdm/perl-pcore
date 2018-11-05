@@ -1,10 +1,10 @@
-package Pcore::Src1::json;
+package Pcore::Util::Src::Filter::json;
 
 use Pcore -class, -res;
 
-with qw[Pcore::Src1::Filter];
+with qw[Pcore::Util::Src::Filter];
 
-sub decompress ( $self ) {
+sub decompress ($self) {
     my $json = P->data->from_json( $self->{data} );
 
     $self->{data}->$* = P->data->to_json( $json, readable => 1 )->$*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
@@ -28,7 +28,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Src1::json
+Pcore::Util::Src::Filter::json
 
 =head1 SYNOPSIS
 

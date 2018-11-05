@@ -1,10 +1,10 @@
-package Pcore::Src1::perl;
+package Pcore::Util::Src::Filter::perl;
 
 use Pcore -class, -const, -res;
 use Pcore::Util::Text qw[decode_utf8 encode_utf8 rcut_all trim];
 use Clone qw[];
 
-with qw[Pcore::Src1::Filter];
+with qw[Pcore::Util::Src::Filter];
 
 # decompress
 has perl_verbose => 0;     # verbose perltidy, perlcritic output
@@ -409,7 +409,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Src1::perl
+Pcore::Util::Src::Filter::perl
 
 =head1 SYNOPSIS
 

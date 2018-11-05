@@ -1,22 +1,9 @@
-package Pcore::Src1;
+package Pcore::Util::Src;
 
-use Pcore -class, -const, -res, -export, -ansi;
+use Pcore -const, -res, -ansi;
 use Pcore::Util::Scalar qw[is_path is_plain_arrayref is_plain_hashref];
 use Pcore::Util::Text qw[encode_utf8 decode_eol lcut_all rcut_all rtrim_multi remove_bom];
 use Pcore::Util::Digest qw[md5_hex];
-
-has path    => ();    # Scalar, ArrayRef
-has data    => ();
-has type    => ();    # ArrayRef[ Enum ['css', 'html', 'js', 'json', 'perl']], list of types to process, used if path is directory
-has ignore  => 1;     # Bool, ignore unsupported file types
-has filter  => ();    # HashRef, additional filter arguments
-has dry_run => ();    # Bool, if true - do not write results to the source path
-has report  => ();    # print report
-
-const our $SRC_DECOMPRESS => 1;
-const our $SRC_COMPRESS   => 2;
-const our $SRC_OBFUSCATE  => 3;
-const our $SRC_COMMIT     => 4;
 
 const our $STATUS_REASON => {
     200 => 'OK',
@@ -33,9 +20,6 @@ const our $STATUS_COLOR => {
     404 => $BOLD . $RED,
     500 => $BOLD . $RED,
 };
-
-# TODO do we need this???
-our $EXPORT = { ACTION => [qw[$SRC_DECOMPRESS $SRC_COMPRESS $SRC_OBFUSCATE]] };
 
 # TODO do not use class, use functional interface???
 # TODO CLI mode
@@ -67,8 +51,8 @@ action to perform:
     obfuscate    applied only for javascript and embedded javascripts, comments will be deleted;
     commit       SCM commit hook
 TXT
-                isa     => [ $SRC_DECOMPRESS, $SRC_COMPRESS, $SRC_OBFUSCATE, $SRC_COMMIT ],
-                default => $SRC_DECOMPRESS,
+                isa     => [ 'decompress', 'compress', 'obfuscate', 'commit' ],
+                default => 'decompress',
             },
             type => {
                 desc => 'define source files to process. Mandatory, if <source> is a directory. Recognized types: perl, html, css, js',
@@ -140,59 +124,73 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     exit $exit_code;
 }
 
-sub cfg ($self) {
+sub cfg {
     state $cfg = $ENV->{share}->read_cfg( 'Pcore', 'data', 'src.yaml' );
 
     return $cfg;
 }
 
-sub run ( $self, $action ) {
+sub decompress ( %args ) { return run( 'decompress', \%args ) }
+
+sub compress ( %args ) { return run( 'compress', \%args ) }
+
+sub obfuscate ( %args ) { return run( 'obfuscate', \%args ) }
+
+# has path    => ();    # Scalar, ArrayRef
+# has data    => ();
+# has type    => ();    # ArrayRef[ Enum ['css', 'html', 'js', 'json', 'perl']], list of types to process, used if path is directory
+# has ignore  => 1;     # Bool, ignore unsupported file types
+# has filter  => ();    # HashRef, additional filter arguments
+# has dry_run => ();    # Bool, if true - do not write results to the source path
+# has report  => ();    # print report
+sub run ( $action, $args ) {
+    $args->{ignore} //= 1;
 
     # convert type to HashRef
-    if ( defined $self->{type} && !is_plain_hashref $self->{type} ) {
-        if ( is_plain_arrayref $self->{type} ) {
-            $self->{type} = { map { $_ => undef } $self->{type}->@* };
+    if ( defined $args->{type} && !is_plain_hashref $args->{type} ) {
+        if ( is_plain_arrayref $args->{type} ) {
+            $args->{type} = { map { $_ => undef } $args->{type}->@* };
         }
         else {
-            $self->{type} = { $self->{type} => undef };
+            $args->{type} = { $args->{type} => undef };
         }
     }
 
     my $res;
 
     # file content is provided
-    if ( defined $self->{data} ) {
+    if ( defined $args->{data} ) {
 
         # convert path
-        my $path = $self->{path};
+        my $path = $args->{path};
         $path = P->path($path) if !is_path $path;
 
         # get filter profile
-        my $filter_profile = $self->_get_filter_profile( $path, $self->{data} );
+        my $filter_profile = _get_filter_profile( $args, $path, $args->{data} );
 
         # ignore file
         return res [ 202, $STATUS_REASON ] if !defined $filter_profile;
 
         # process file
-        $res = $self->_process_file( $action, $filter_profile, $path, $self->{data} );
+        $res = _process_file( $args, $action, $filter_profile, $path, $args->{data} );
     }
 
     # file content is not provided
     else {
-        $res = $self->_process_files( $action, $self->{path} );
+        $res = _process_files( $args, $action );
     }
 
     return $res;
 }
 
 # TODO fix prefix
-sub _process_files ( $self, $action, $paths ) {
+sub _process_files ( $args, $action ) {
     my $total = res 200;
 
     my %tasks;
 
     # build absolute paths list
-    for my $path ( is_plain_arrayref $paths ? $paths->@* : $paths ) {
+    for my $path ( is_plain_arrayref $args->{path} ? $args->{path}->@* : $args->{path} ) {
         next if !defined $path;
 
         # convert path
@@ -201,13 +199,13 @@ sub _process_files ( $self, $action, $paths ) {
 
         # path is directory
         if ( -d $path ) {
-            return res [ 510, 'Type must be specified in path is directory' ] if !defined $self->{type};
+            return res [ 510, 'Type must be specified in path is directory' ] if !defined $args->{type};
 
             # read dir
             for my $path ( ( $path->read_dir( abs => 1, max_depth => 0, is_dir => 0 ) // [] )->@* ) {
 
                 # get filter profile
-                if ( my $filter_profile = $self->_get_filter_profile($path) ) {
+                if ( my $filter_profile = _get_filter_profile( $args, $path ) ) {
                     $tasks{$path} = [ $filter_profile, $path ];
                 }
             }
@@ -217,7 +215,7 @@ sub _process_files ( $self, $action, $paths ) {
         else {
 
             # get filter profile
-            if ( my $filter_profile = $self->_get_filter_profile($path) ) {
+            if ( my $filter_profile = _get_filter_profile( $args, $path ) ) {
                 $tasks{$path} = [ $filter_profile, $path ];
             }
         }
@@ -226,7 +224,7 @@ sub _process_files ( $self, $action, $paths ) {
     my ( $max_path_len, $prefix, $use_prefix );
 
     # find longest common prefix
-    if ( $self->{report} ) {
+    if ( $args->{report} ) {
         for my $task ( values %tasks ) {
             my $dirname = "$task->[1]->{dirname}/";
 
@@ -253,7 +251,7 @@ sub _process_files ( $self, $action, $paths ) {
     my $tbl;
 
     for my $path ( sort keys %tasks ) {
-        my $res = $self->_process_file( $action, $tasks{$path}->@* );
+        my $res = _process_file( $args, $action, $tasks{$path}->@* );
 
         if ( $res != 202 ) {
             if ( $res->{status} > $total->{status} ) {
@@ -264,18 +262,18 @@ sub _process_files ( $self, $action, $paths ) {
             $total->{ $res->{status} }++;
             $total->{modified}++ if $res->{is_modified};
 
-            $self->_report_file( \$tbl, $use_prefix ? substr $path, length $prefix : $path, $res, $max_path_len ) if $self->{report};
+            _report_file( \$tbl, $use_prefix ? substr $path, length $prefix : $path, $res, $max_path_len ) if $args->{report};
         }
     }
 
     print $tbl->finish if defined $tbl;
 
-    $self->_report_total($total) if $self->{report};
+    _report_total($total) if $args->{report};
 
     return $total;
 }
 
-sub _process_file ( $self, $action, $filter_profile, $path = undef, $data = undef ) {
+sub _process_file ( $args, $action, $filter_profile, $path = undef, $data = undef ) {
     my $res = res [ 200, $STATUS_REASON ],
       is_modified => 0,
       in_size     => 0,
@@ -310,20 +308,16 @@ sub _process_file ( $self, $action, $filter_profile, $path = undef, $data = unde
     if ( my $filter_type = delete $filter_profile->{type} ) {
 
         # merge filter args
-        $filter_profile->@{ keys $self->{filter}->%* } = values $self->{filter}->%* if defined $self->{filter};
+        $filter_profile->@{ keys $args->{filter}->%* } = values $args->{filter}->%* if defined $args->{filter};
 
-        my $filter_res = P->class->load( $filter_type, ns => 'Pcore::Src1' )->new(
-            $filter_profile->%*,
-            file => $self,
-            data => \$data,
-        )->run($action);
+        my $filter_res = P->class->load( $filter_type, ns => 'Pcore::Util::Src::Filter' )->new( $filter_profile->%*, data => \$data, )->$action;
 
         $res->{status} = $filter_res->{status};
         $res->{reason} = $filter_res->{reason};
     }
 
     # trim
-    if ( $action == $SRC_DECOMPRESS ) {
+    if ( $action eq 'decompress' ) {
         decode_eol $data;    # decode CRLF to internal \n representation
 
         lcut_all $data;      # trim leading horizontal whitespaces
@@ -344,7 +338,7 @@ sub _process_file ( $self, $action, $filter_profile, $path = undef, $data = unde
 
     # write file
     if ($write_data) {
-        if ( $res->{is_modified} && !$self->{dry_run} ) { P->file->write_bin( $path->encoded, $data ) }
+        if ( $res->{is_modified} && !$args->{dry_run} ) { P->file->write_bin( $path->encoded, $data ) }
     }
     else {
         $res->{data} = $data;
@@ -353,8 +347,8 @@ sub _process_file ( $self, $action, $filter_profile, $path = undef, $data = unde
     return $res;
 }
 
-sub _get_filter_profile ( $self, $path, $data = undef ) {
-    my $cfg = $self->cfg;
+sub _get_filter_profile ( $args, $path, $data = undef ) {
+    my $cfg = cfg();
 
     my $filter_profile;
 
@@ -366,7 +360,7 @@ sub _get_filter_profile ( $self, $path, $data = undef ) {
     if ( defined $filter_profile ) {
 
         # file is filtered by the type filter and in ignore mode
-        if ( defined $self->{type} && !exists $self->{type}->{ $filter_profile->{type} } && $self->{ignore} ) {
+        if ( defined $args->{type} && !exists $args->{type}->{ $filter_profile->{type} } && $args->{ignore} ) {
             return;
         }
         else {
@@ -375,7 +369,7 @@ sub _get_filter_profile ( $self, $path, $data = undef ) {
     }
 
     # filte type is unknown and in ignore mode
-    elsif ( $self->{ignore} ) {
+    elsif ( $args->{ignore} ) {
         return;
     }
     else {
@@ -383,7 +377,7 @@ sub _get_filter_profile ( $self, $path, $data = undef ) {
     }
 }
 
-sub _report_file ( $self, $tbl, $path, $res, $max_path_len ) {
+sub _report_file ( $tbl, $path, $res, $max_path_len ) {
     if ( !defined $tbl->$* ) {
         $tbl->$* = P->text->table(    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
             style    => 'compact',
@@ -446,7 +440,7 @@ sub _report_file ( $self, $tbl, $path, $res, $max_path_len ) {
     return;
 }
 
-sub _report_total ( $self, $total ) {
+sub _report_total ( $total ) {
     return if !defined $total;
 
     my $tbl = P->text->table(
@@ -483,13 +477,13 @@ sub _report_total ( $self, $total ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 189                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (26)            |
+## |    3 | 187                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (26)            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 278, 386             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 276, 380             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 241                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 239                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 315                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 313                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -500,7 +494,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Src1
+Pcore::Util::Src
 
 =head1 SYNOPSIS
 
