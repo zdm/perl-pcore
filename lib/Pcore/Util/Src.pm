@@ -21,7 +21,6 @@ const our $STATUS_COLOR => {
     500 => $BOLD . $RED,
 };
 
-# TODO do not use class, use functional interface???
 # TODO CLI mode
 
 # CLI
@@ -136,13 +135,13 @@ sub compress ( %args ) { return run( 'compress', \%args ) }
 
 sub obfuscate ( %args ) { return run( 'obfuscate', \%args ) }
 
-# has path    => ();    # Scalar, ArrayRef
-# has data    => ();
-# has type    => ();    # ArrayRef[ Enum ['css', 'html', 'js', 'json', 'perl']], list of types to process, used if path is directory
-# has ignore  => 1;     # Bool, ignore unsupported file types
-# has filter  => ();    # HashRef, additional filter arguments
-# has dry_run => ();    # Bool, if true - do not write results to the source path
-# has report  => ();    # print report
+# path, Scalar, ArrayRef
+# data, Str
+# type, ArrayRef[ Enum ['css', 'html', 'js', 'json', 'perl']], list of types to process, used if path is directory
+# ignore, Bool, ignore unsupported file types
+# filter, HashRef, additional filter arguments
+# dry_run, Bool, if true - do not write results to the source path
+# report, print report
 sub run ( $action, $args ) {
     $args->{ignore} //= 1;
 
@@ -477,13 +476,13 @@ sub _report_total ( $total ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 187                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (26)            |
+## |    3 | 186                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (26)            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 276, 380             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 275, 379             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 239                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 238                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 313                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 312                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
