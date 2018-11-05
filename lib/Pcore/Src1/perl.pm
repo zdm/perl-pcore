@@ -23,7 +23,7 @@ const our $PERLCRITIC_ERROR => 4;
 const our $SEVERITY         => {
 
     # valid
-    0 => [ 200, 'Valid' ],
+    0 => 200,
 
     # warning
     1 => [ 201, 'Warning, perlcritic(1)' ],

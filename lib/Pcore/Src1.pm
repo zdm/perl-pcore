@@ -18,11 +18,18 @@ const our $SRC_COMPRESS   => 2;
 const our $SRC_OBFUSCATE  => 3;
 
 const our $STATUS_REASON => {
-    200 => 'Valid',
+    200 => 'OK',
     201 => 'Warning',
     202 => 'File was skipped',
     404 => 'File was not found',
     500 => 'Error',
+};
+
+const our $STATUS_COLOR => {
+    200 => $BOLD . $GREEN,
+    201 => $YELLOW,
+    404 => $BOLD . $RED,
+    500 => $BOLD . $RED,
 };
 
 # TODO do we need this???
@@ -138,7 +145,7 @@ sub _process_files ( $self, $action, $paths ) {
 }
 
 sub _process_file ( $self, $action, $path = undef, $data = undef ) {
-    my $res = res 200,
+    my $res = res [ 200, $STATUS_REASON ],
       is_modified => 0,
       in_size     => 0,
       out_size    => 0,
@@ -244,7 +251,6 @@ sub _process_file ( $self, $action, $path = undef, $data = undef ) {
     return $res;
 }
 
-# TODO
 sub _report_file ( $self, $tbl, $path, $res, $max_path_len ) {
     if ( !defined $tbl->$* ) {
         $tbl->$* = P->text->table(    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
@@ -265,7 +271,7 @@ sub _report_file ( $self, $tbl, $path, $res, $max_path_len ) {
                 },
                 size_delta => {
                     title => 'SIZE DELTA',
-                    width => 18,
+                    width => 16,
                     align => 1,
                 },
                 modified => {
@@ -280,22 +286,34 @@ sub _report_file ( $self, $tbl, $path, $res, $max_path_len ) {
 
     my @row;
 
+    # path
     push @row, $path;
 
-    push @row, 0;
+    # severity
+    push @row, $STATUS_COLOR->{ $res->{status} } . uc( $res->{reason} ) . $RESET;
 
+    # size
     push @row, $res->{out_size};
 
-    push @row, $res->{size_delta};
+    # size delta
+    if ( !$res->{size_delta} ) {
+        push @row, ' - ';
+    }
+    elsif ( $res->{size_delta} > 0 ) {
+        push @row, $BOLD . $RED . "+$res->{size_delta} bytes" . $RESET;
+    }
+    else {
+        push @row, $BOLD . $GREEN . "$res->{size_delta} bytes" . $RESET;
+    }
 
-    push @row, $res->{is_modified};
+    # modified
+    push @row, ( $res->{is_modified} ? $BOLD . $WHITE . $ON_RED . ' modified ' . $RESET : ' - ' );
 
     print $tbl->$*->render_row( \@row );
 
     return;
 }
 
-# TODO color
 sub _report_total ( $self, $total ) {
     return if !defined $total;
 
@@ -303,7 +321,7 @@ sub _report_total ( $self, $total ) {
         style => 'full',
         cols  => [
             type => {
-                width => 14,
+                width => 20,
                 align => 1,
             },
             count => {
@@ -315,11 +333,11 @@ sub _report_total ( $self, $total ) {
 
     print $tbl->render_header;
 
-    print $tbl->render_row( [ $BOLD . $GREEN . 'Valid' . $RESET, $BOLD . $GREEN . ( $total->{200} // 0 ) . $RESET ] );
-    print $tbl->render_row( [ $YELLOW . 'Warning' . $RESET, $YELLOW . ( $total->{201} // 0 ) . $RESET ] );
-    print $tbl->render_row( [ $BOLD . $RED . 'Error' . $RESET, $BOLD . $RED . ( $total->{500} // 0 ) . $RESET ] );
-    print $tbl->render_row( [ $BOLD . $RED . 'Not found' . $RESET, $BOLD . $RED . ( $total->{404} // 0 ) . $RESET ] ) if $total->{404};
-    print $tbl->render_row( [ 'Modified', $total->{modified} // 0 ] );
+    for my $status ( 200, 201, 500, 404 ) {
+        print $tbl->render_row( [ $STATUS_COLOR->{$status} . uc( $STATUS_REASON->{$status} ) . $RESET, $STATUS_COLOR->{$status} . ( $total->{$status} // 0 ) . $RESET ] );
+    }
+
+    print $tbl->render_row( [ 'MODIFIED', $total->{modified} // 0 ] );
 
     print $tbl->finish;
 
@@ -334,14 +352,14 @@ sub _report_total ( $self, $total ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 67                   | * Subroutine "_process_files" with high complexity score (23)                                                  |
-## |      | 140                  | * Subroutine "_process_file" with high complexity score (23)                                                   |
+## |      | 74                   | * Subroutine "_process_files" with high complexity score (23)                                                  |
+## |      | 147                  | * Subroutine "_process_file" with high complexity score (23)                                                   |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 248                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 254                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 103                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 110                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 206                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 213                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
