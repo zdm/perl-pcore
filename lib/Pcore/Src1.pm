@@ -159,7 +159,19 @@ sub run ( $self, $action ) {
 
     # file content is provided
     if ( defined $self->{data} ) {
-        $res = $self->_process_file( $action, $self->{path}, $self->{data} );
+
+        # convert path
+        my $path = $self->{path};
+        $path = P->path($path) if !is_path $path;
+
+        # get filter profile
+        my $filter_profile = $self->_get_filter_profile( $path, $self->{data} );
+
+        # ignore file
+        return res [ 202, $STATUS_REASON ] if !defined $filter_profile;
+
+        # process file
+        $res = $self->_process_file( $action, $filter_profile, $path, $self->{data} );
     }
 
     # file content is not provided
@@ -171,24 +183,43 @@ sub run ( $self, $action ) {
 }
 
 # TODO find path prefix
+# TODO types must be defined if dir
 sub _process_files ( $self, $action, $paths ) {
     my $total = res 200;
 
-    my %path;
+    my %tasks;
 
     # build absolute paths list
     for my $path ( is_plain_arrayref $paths ? $paths->@* : $paths ) {
         next if !defined $path;
 
+        # convert path
         $path = P->path($path) if !is_path $path;
-
         $path->to_abs;
 
+        # path is directory
         if ( -d $path ) {
-            for ( ( $path->read_dir( abs => 1, max_depth => 0, is_dir => 0 ) // [] )->@* ) { $path{$_} = $_ }
+
+            # TODO
+            die if !defined $self->{type};
+
+            # read dir
+            for my $path ( ( $path->read_dir( abs => 1, max_depth => 0, is_dir => 0 ) // [] )->@* ) {
+
+                # get filter profile
+                if ( my $filter_profile = $self->_get_filter_profile($path) ) {
+                    $tasks{$path} = [ $filter_profile, $path ];
+                }
+            }
         }
+
+        # path is file
         else {
-            $path{$path} = $path;
+
+            # get filter profile
+            if ( my $filter_profile = $self->_get_filter_profile($path) ) {
+                $tasks{$path} = [ $filter_profile, $path ];
+            }
         }
     }
 
@@ -196,16 +227,16 @@ sub _process_files ( $self, $action, $paths ) {
 
     # find longest common prefix
     if ( $self->{report} ) {
-        for my $path ( values %path ) {
-            my $dirname = "$path->{dirname}/";
+        for my $task ( values %tasks ) {
+            my $dirname = "$task->[1]->{dirname}/";
 
             if ( !defined $prefix ) {
                 $prefix = $dirname;
 
-                $max_path_len = length $path;
+                $max_path_len = length $task->[1];
             }
             else {
-                $max_path_len = length $path if length $path > $max_path_len;
+                $max_path_len = length $task->[1] if length $task->[1] > $max_path_len;
 
                 if ( "$prefix\x00$dirname" =~ /^(.*).*\x00\1.*$/sm ) {
                     $prefix = $1;
@@ -221,8 +252,8 @@ sub _process_files ( $self, $action, $paths ) {
 
     my $tbl;
 
-    for my $key ( sort keys %path ) {
-        my $res = $self->_process_file( $action, $path{$key} );
+    for my $path ( sort keys %tasks ) {
+        my $res = $self->_process_file( $action, $tasks{$path}->@* );
 
         if ( $res != 202 ) {
             if ( $res->{status} > $total->{status} ) {
@@ -233,7 +264,7 @@ sub _process_files ( $self, $action, $paths ) {
             $total->{ $res->{status} }++;
             $total->{modified}++ if $res->{is_modified};
 
-            $self->_report_file( \$tbl, $use_prefix ? substr $key, length $prefix : $key, $res, $max_path_len ) if $self->{report};
+            $self->_report_file( \$tbl, $use_prefix ? substr $path, length $prefix : $path, $res, $max_path_len ) if $self->{report};
         }
     }
 
@@ -244,39 +275,12 @@ sub _process_files ( $self, $action, $paths ) {
     return $total;
 }
 
-sub _process_file ( $self, $action, $path = undef, $data = undef ) {
+sub _process_file ( $self, $action, $filter_profile, $path = undef, $data = undef ) {
     my $res = res [ 200, $STATUS_REASON ],
       is_modified => 0,
       in_size     => 0,
       out_size    => 0,
       size_delta  => 0;
-
-    $path = P->path($path) if !is_path $path;
-
-    # detect file type
-    my $filter_profile;
-    my $cfg = $self->cfg;
-    my $path_mime_tags = $path->mime_tags( defined $data ? \$data : 1 );
-
-    for ( keys $cfg->{mime_tag}->%* ) { $filter_profile = $cfg->{mime_tag}->{$_} and last if exists $path_mime_tags->{$_} }
-
-    # file type is known
-    if ( defined $filter_profile ) {
-
-        # file is filtered by the type filter and in ignore mode
-        if ( defined $self->{type} && !exists $self->{type}->{ $filter_profile->{type} } && $self->{ignore} ) {
-            $res->{status} = 202;
-            $res->{reason} = $STATUS_REASON->{202};
-            return $res;
-        }
-    }
-
-    # filte type is unknown and in ignore mode
-    elsif ( $self->{ignore} ) {
-        $res->{status} = 202;
-        $res->{reason} = $STATUS_REASON->{202};
-        return $res;
-    }
 
     my $write_data;
 
@@ -303,15 +307,13 @@ sub _process_file ( $self, $action, $path = undef, $data = undef ) {
     my $in_md5 = md5_hex $data;
 
     # run filter
-    if ($filter_profile) {
-        my $filter_args->@{ keys $filter_profile->%* } = values $filter_profile->%*;
+    if ( my $filter_type = delete $filter_profile->{type} ) {
 
-        my $filter_type = delete $filter_args->{type};
-
-        $filter_args->@{ keys $self->{filter}->%* } = values $self->{filter}->%* if defined $self->{filter};
+        # merge filter args
+        $filter_profile->@{ keys $self->{filter}->%* } = values $self->{filter}->%* if defined $self->{filter};
 
         my $filter_res = P->class->load( $filter_type, ns => 'Pcore::Src1' )->new(
-            $filter_args->%*,
+            $filter_profile->%*,
             file => $self,
             data => \$data,
         )->run($action);
@@ -349,6 +351,36 @@ sub _process_file ( $self, $action, $path = undef, $data = undef ) {
     }
 
     return $res;
+}
+
+sub _get_filter_profile ( $self, $path, $data = undef ) {
+    my $cfg = $self->cfg;
+
+    my $filter_profile;
+
+    my $path_mime_tags = $path->mime_tags( defined $data ? \$data : 1 );
+
+    for ( keys $cfg->{mime_tag}->%* ) { $filter_profile = $cfg->{mime_tag}->{$_} and last if exists $path_mime_tags->{$_} }
+
+    # file type is known
+    if ( defined $filter_profile ) {
+
+        # file is filtered by the type filter and in ignore mode
+        if ( defined $self->{type} && !exists $self->{type}->{ $filter_profile->{type} } && $self->{ignore} ) {
+            return;
+        }
+        else {
+            return { $filter_profile->%* };
+        }
+    }
+
+    # filte type is unknown and in ignore mode
+    elsif ( $self->{ignore} ) {
+        return;
+    }
+    else {
+        return {};
+    }
 }
 
 sub _report_file ( $self, $tbl, $path, $res, $max_path_len ) {
@@ -451,15 +483,13 @@ sub _report_total ( $self, $total ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 174                  | * Subroutine "_process_files" with high complexity score (23)                                                  |
-## |      | 247                  | * Subroutine "_process_file" with high complexity score (23)                                                   |
+## |    3 | 187                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (26)            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 354                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 278, 386             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 210                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 241                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 313                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 315                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
