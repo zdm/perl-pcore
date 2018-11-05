@@ -16,6 +16,7 @@ has report  => ();    # print report
 const our $SRC_DECOMPRESS => 1;
 const our $SRC_COMPRESS   => 2;
 const our $SRC_OBFUSCATE  => 3;
+const our $SRC_COMMIT     => 4;
 
 const our $STATUS_REASON => {
     200 => 'OK',
@@ -36,6 +37,105 @@ const our $STATUS_COLOR => {
 our $EXPORT = { ACTION => [qw[$SRC_DECOMPRESS $SRC_COMPRESS $SRC_OBFUSCATE]] };
 
 # TODO CLI mode
+# CLI
+sub CLI ($self) {
+    return {
+        help => <<'TXT',
+- convert to uft-8;
+- strip BOM header;
+- convert tabs to spaces;
+- trim trailing spaces;
+- trim trailing empty strings;
+- convert line endings to unix style (\x0A);
+
+Exit codes:
+
+    0 - source is valid;
+    1 - run-time error;
+    2 - params error;
+    3 - source error;
+TXT
+        opt => {
+            action => {
+                desc => <<'TXT',
+action to perform:
+    decompress   unpack sources, DEFAULT;
+    compress     pack sources, comments will be deleted;
+    obfuscate    applied only for javascript and embedded javascripts, comments will be deleted;
+    commit       SCM commit hook
+TXT
+                isa     => [ $SRC_DECOMPRESS, $SRC_COMPRESS, $SRC_OBFUSCATE, $SRC_COMMIT ],
+                default => $SRC_DECOMPRESS,
+            },
+            type => {
+                desc => 'define source files to process. Mandatory, if <source> is a directory. Recognized types: perl, html, css, js',
+                isa  => [qw[perl html css js]],
+            },
+            stdin_files => {
+                short   => undef,
+                desc    => 'read list of filenames from STDIN',
+                default => 0,
+            },
+            filename => {
+                desc => 'mandatory, if read source content from STDIN',
+                type => 'Str',
+            },
+            no_critic => {
+                short   => undef,
+                desc    => 'skip Perl::Critic filter',
+                default => 0,
+            },
+            dry_run => {
+                short   => undef,
+                desc    => q[don't save changes],
+                default => 0,
+            },
+            pause => {
+                short   => undef,
+                desc    => q[don't close console after script finished],
+                default => 0,
+            },
+        },
+        arg => [
+            path => {
+                isa => 'Path',
+                min => 0,
+            }
+        ],
+    };
+}
+
+sub CLI_RUN ( $self, $opt, $arg, $rest ) {
+    P->file->chdir( $ENV->{START_DIR} );
+
+    my $exit_code = eval {
+        my $src = Pcore::Src->new( {
+            interactive => 1,
+            path        => $arg->{path},
+            action      => $opt->{action},
+            stdin_files => $opt->{stdin_files},
+            no_critic   => $opt->{no_critic},
+            dry_run     => $opt->{dry_run},
+            ( exists $opt->{type}     ? ( type     => $opt->{type} )     : () ),
+            ( exists $opt->{filename} ? ( filename => $opt->{filename} ) : () ),
+        } );
+
+        $src->run;
+    };
+
+    if ($@) {
+        say $@;
+
+        return Pcore::Src::File->cfg->{EXIT_CODES}->{RUNTIME_ERROR};
+    }
+
+    if ( $opt->{pause} ) {
+        print 'Press ENTER to continue...';
+        <STDIN>;
+    }
+
+    exit $exit_code;
+}
 
 sub cfg ($self) {
     state $cfg = $ENV->{share}->read_cfg( 'Pcore', 'data', 'src.yaml' );
@@ -352,14 +452,14 @@ sub _report_total ( $self, $total ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 74                   | * Subroutine "_process_files" with high complexity score (23)                                                  |
-## |      | 147                  | * Subroutine "_process_file" with high complexity score (23)                                                   |
+## |      | 174                  | * Subroutine "_process_files" with high complexity score (23)                                                  |
+## |      | 247                  | * Subroutine "_process_file" with high complexity score (23)                                                   |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 254                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 354                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 110                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 210                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 213                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 313                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
