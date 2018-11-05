@@ -73,22 +73,6 @@ feature linux => sub {    #
     requires 'IO::Uncompress::Brotli';
 };
 
-# Pcore::Src
-requires 'Perl::Tidy';
-on develop => sub {
-    requires 'BerkeleyDB';
-    requires 'Perl::Stripper';
-    requires 'Perl::Strip';
-    requires 'Perl::Critic';
-    requires 'PPI::XS';
-    requires 'JavaScript::Beautifier', v0.25.0;
-    requires 'JavaScript::Packer';
-    requires 'CSS::Packer';
-    requires 'HTML::Packer';
-
-    # suggests 'Perl::Lint';    # Perl::Critic replacement
-};
-
 # Pcore::Util::Class
 requires 'Sub::Util';
 
@@ -134,6 +118,22 @@ requires 'Regexp::Util';
 requires 'Devel::Refcount';
 requires 'Ref::Util';
 requires 'Ref::Util::XS';
+
+# Pcore::Util::Src
+requires 'Perl::Tidy';
+on develop => sub {
+    requires 'BerkeleyDB';
+    requires 'Perl::Stripper';
+    requires 'Perl::Strip';
+    requires 'Perl::Critic';
+    requires 'PPI::XS';
+    requires 'JavaScript::Beautifier', v0.25.0;
+    requires 'JavaScript::Packer';
+    requires 'CSS::Packer';
+    requires 'HTML::Packer';
+
+    # suggests 'Perl::Lint';    # Perl::Critic replacement
+};
 
 # Pcore::Util::Sys
 requires 'Sys::CpuAffinity';
