@@ -20,8 +20,8 @@ const our $SRC_OBFUSCATE  => 3;
 const our $STATUS_REASON => {
     200 => 'OK',
     201 => 'Warning',
-    202 => 'File was skipped',
-    404 => 'File was not found',
+    202 => 'File skipped',
+    404 => 'File not found',
     500 => 'Error',
 };
 
@@ -321,7 +321,7 @@ sub _report_total ( $self, $total ) {
         style => 'full',
         cols  => [
             type => {
-                width => 20,
+                width => 16,
                 align => 1,
             },
             count => {
