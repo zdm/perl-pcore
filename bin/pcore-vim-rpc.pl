@@ -48,7 +48,7 @@ sub CMD_src ( $self, $h, $id, $args ) {
     my $res = P->src->run(
         $args->{action},
         {   path   => $path,
-            data   => encode_utf8 $args->{data},
+            data   => encode_utf8( $args->{data} ),
             ignore => 0,
         }
     );
