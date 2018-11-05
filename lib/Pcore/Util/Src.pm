@@ -80,7 +80,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
         }
     );
 
-    exit $res ? 3 : 0;
+    exit( $res ? 0 : 3 );
 }
 
 sub cfg {
