@@ -21,26 +21,9 @@ const our $STATUS_COLOR => {
     500 => $BOLD . $RED,
 };
 
-# TODO CLI mode
-
 # CLI
 sub CLI ($self) {
     return {
-        help => <<'TXT',
-- convert to uft-8;
-- strip BOM header;
-- convert tabs to spaces;
-- trim trailing spaces;
-- trim trailing empty strings;
-- convert line endings to unix style (\x0A);
-
-Exit codes:
-
-    0 - source is valid;
-    1 - run-time error;
-    2 - params error;
-    3 - source error;
-TXT
         opt => {
             action => {
                 desc => <<'TXT',
@@ -54,73 +37,50 @@ TXT
                 default => 'decompress',
             },
             type => {
-                desc => 'define source files to process. Mandatory, if <source> is a directory. Recognized types: perl, html, css, js',
-                isa  => [qw[perl html css js]],
+                desc => 'define source files to process. Mandatory, if <source> is a directory. Recognized types: perl, html, css, js, json',
+                isa  => [qw[perl html css js json]],
+                max  => 0,
             },
-            stdin_files => {
+            report => {
                 short   => undef,
-                desc    => 'read list of filenames from STDIN',
-                default => 0,
-            },
-            filename => {
-                desc => 'mandatory, if read source content from STDIN',
-                type => 'Str',
-            },
-            no_critic => {
-                short   => undef,
-                desc    => 'skip Perl::Critic filter',
-                default => 0,
+                desc    => 'print report',
+                default => 1,
             },
             dry_run => {
                 short   => undef,
                 desc    => q[don't save changes],
                 default => 0,
             },
-            pause => {
-                short   => undef,
-                desc    => q[don't close console after script finished],
-                default => 0,
-            },
         },
         arg => [
             path => {
-                isa => 'Path',
-                min => 0,
+                type => 'Path',
+                desc => 'path for processing, special value "-" for read paths from stdin',
+                min  => 1,
+                max  => 0,
             }
         ],
     };
 }
 
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
-    P->file->chdir( $ENV->{START_DIR} );
+    $arg->{path} = P->file->read_lines(*STDIN) if $arg->{path}->[0] eq '-';
 
-    my $exit_code = eval {
-        my $src = Pcore::Src->new( {
-            interactive => 1,
-            path        => $arg->{path},
-            action      => $opt->{action},
-            stdin_files => $opt->{stdin_files},
-            no_critic   => $opt->{no_critic},
-            dry_run     => $opt->{dry_run},
-            ( exists $opt->{type}     ? ( type     => $opt->{type} )     : () ),
-            ( exists $opt->{filename} ? ( filename => $opt->{filename} ) : () ),
-        } );
-
-        $src->run;
-    };
-
-    if ($@) {
-        say $@;
-
-        return Pcore::Src::File->cfg->{EXIT_CODES}->{RUNTIME_ERROR};
+    if ( $opt->{action} eq 'commit' ) {
+        $opt->{action} = 'decompress';
+        $opt->{type}   = 'perl';
     }
 
-    if ( $opt->{pause} ) {
-        print 'Press ENTER to continue...';
-        <STDIN>;
-    }
+    my $res = P->src->run(
+        $opt->{action},
+        {   path    => $arg->{path},
+            type    => $opt->{type},
+            report  => $opt->{report},
+            dry_run => $opt->{dry_run},
+        }
+    );
 
-    exit $exit_code;
+    exit $res ? 3 : 0;
 }
 
 sub cfg {
@@ -476,13 +436,13 @@ sub _report_total ( $total ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 186                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (26)            |
+## |    3 | 146                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (26)            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 275, 379             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 235, 339             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 238                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 198                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 312                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 272                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
