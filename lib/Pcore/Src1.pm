@@ -24,6 +24,7 @@ const our $STATUS_REASON => {
     202 => 'File skipped',
     404 => 'File not found',
     500 => 'Error',
+    510 => 'Params error',
 };
 
 const our $STATUS_COLOR => {
@@ -182,8 +183,7 @@ sub run ( $self, $action ) {
     return $res;
 }
 
-# TODO find path prefix
-# TODO types must be defined if dir
+# TODO fix prefix
 sub _process_files ( $self, $action, $paths ) {
     my $total = res 200;
 
@@ -199,9 +199,7 @@ sub _process_files ( $self, $action, $paths ) {
 
         # path is directory
         if ( -d $path ) {
-
-            # TODO
-            die if !defined $self->{type};
+            return res [ 510, 'Type must be specified in path is directory' ] if !defined $self->{type};
 
             # read dir
             for my $path ( ( $path->read_dir( abs => 1, max_depth => 0, is_dir => 0 ) // [] )->@* ) {
@@ -485,11 +483,11 @@ sub _report_total ( $self, $total ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 187                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (26)            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 278, 386             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 276, 384             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 241                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 239                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 315                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 313                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
