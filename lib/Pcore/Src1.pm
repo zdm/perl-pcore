@@ -7,7 +7,7 @@ use Pcore::Util::Digest qw[md5_hex];
 
 has path    => ();    # Scalar, ArrayRef
 has data    => ();
-has type    => ();    # ArrayRef[ Enum ['css', 'html', 'js', 'json', 'perl']], list of types to process, used if path is pirectory
+has type    => ();    # ArrayRef[ Enum ['css', 'html', 'js', 'json', 'perl']], list of types to process, used if path is directory
 has ignore  => 1;     # Bool, ignore unsupported file types
 has filter  => ();    # HashRef, additional filter arguments
 has dry_run => ();    # Bool, if true - do not write results to the source path
@@ -25,7 +25,10 @@ const our $STATUS_REASON => {
     500 => 'Error',
 };
 
+# TODO do we need this???
 our $EXPORT = { ACTION => [qw[$SRC_DECOMPRESS $SRC_COMPRESS $SRC_OBFUSCATE]] };
+
+# TODO CLI mode
 
 sub cfg ($self) {
     state $cfg = $ENV->{share}->read_cfg( 'Pcore', 'data', 'src.yaml' );
@@ -61,10 +64,8 @@ sub run ( $self, $action ) {
 }
 
 # TODO find path prefix
-# collect results
-# report
 sub _process_files ( $self, $action, $paths ) {
-    my $res;
+    my $total = res 200;
 
     my %path;
 
@@ -84,7 +85,7 @@ sub _process_files ( $self, $action, $paths ) {
         }
     }
 
-    my ( $total, $max_path_len, $prefix, $use_prefix );
+    my ( $max_path_len, $prefix, $use_prefix );
 
     # find longest common prefix
     if ( $self->{report} ) {
@@ -111,20 +112,29 @@ sub _process_files ( $self, $action, $paths ) {
         $max_path_len -= length $prefix if $use_prefix;
     }
 
-    for my $key ( sort keys %path ) {
-        $res = $self->_process_file( $action, $path{$key} );
+    my $tbl;
 
-        if ( $self->{report} && $res != 202 ) {
+    for my $key ( sort keys %path ) {
+        my $res = $self->_process_file( $action, $path{$key} );
+
+        if ( $res != 202 ) {
+            if ( $res->{status} > $total->{status} ) {
+                $total->{status} = $res->{status};
+                $total->{reason} = $STATUS_REASON->{ $total->{status} };
+            }
+
             $total->{ $res->{status} }++;
             $total->{modified}++ if $res->{is_modified};
 
-            $self->_report_file( $use_prefix ? substr $key, length $prefix : $key, $res, $max_path_len );
+            $self->_report_file( \$tbl, $use_prefix ? substr $key, length $prefix : $key, $res, $max_path_len ) if $self->{report};
         }
     }
 
+    print $tbl->finish if defined $tbl;
+
     $self->_report_total($total) if $self->{report};
 
-    return $res;
+    return $total;
 }
 
 sub _process_file ( $self, $action, $path = undef, $data = undef ) {
@@ -132,7 +142,7 @@ sub _process_file ( $self, $action, $path = undef, $data = undef ) {
       is_modified => 0,
       in_size     => 0,
       out_size    => 0,
-      size_diff   => 0;
+      size_delta  => 0;
 
     $path = P->path($path) if !is_path $path;
 
@@ -221,7 +231,7 @@ sub _process_file ( $self, $action, $path = undef, $data = undef ) {
     my $out_md5 = md5_hex $data;
     $res->{is_modified} = $in_md5 ne $out_md5;
     $res->{out_size}    = bytes::length $data;
-    $res->{size_diff}   = $res->{out_size} - $res->{in_size};
+    $res->{size_delta}  = $res->{out_size} - $res->{in_size};
 
     # write file
     if ($write_data) {
@@ -234,20 +244,64 @@ sub _process_file ( $self, $action, $path = undef, $data = undef ) {
     return $res;
 }
 
-sub _report_file ( $self, $path, $res, $max_path_len ) {
+# TODO
+sub _report_file ( $self, $tbl, $path, $res, $max_path_len ) {
+    if ( !defined $tbl->$* ) {
+        $tbl->$* = P->text->table(    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+            style    => 'compact',
+            top_line => 1,
+            cols     => [
+                path => {
+                    width => $max_path_len + 2,
+                    align => -1,
+                },
+                severity => {
+                    width => 25,
+                    align => 1,
+                },
+                size => {
+                    width => 10,
+                    align => 1,
+                },
+                size_delta => {
+                    title => 'SIZE DELTA',
+                    width => 18,
+                    align => 1,
+                },
+                modified => {
+                    width => 12,
+                    align => 1,
+                },
+            ],
+        );
+
+        print $tbl->$*->render_header;
+    }
+
+    my @row;
+
+    push @row, $path;
+
+    push @row, 0;
+
+    push @row, $res->{out_size};
+
+    push @row, $res->{size_delta};
+
+    push @row, $res->{is_modified};
+
+    print $tbl->$*->render_row( \@row );
+
     return;
 }
 
+# TODO color
 sub _report_total ( $self, $total ) {
     return if !defined $total;
 
     my $tbl = P->text->table(
-
-        # style => 'pcore',
-        # style => 'compact',
-        style    => 'compact_mini',
-        top_line => 1,
-        cols     => [
+        style => 'full',
+        cols  => [
             type => {
                 width => 14,
                 align => 1,
@@ -280,14 +334,14 @@ sub _report_total ( $self, $total ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 66                   | * Subroutine "_process_files" with high complexity score (21)                                                  |
-## |      | 130                  | * Subroutine "_process_file" with high complexity score (23)                                                   |
+## |      | 67                   | * Subroutine "_process_files" with high complexity score (23)                                                  |
+## |      | 140                  | * Subroutine "_process_file" with high complexity score (23)                                                   |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 237                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 248                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 102                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 103                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 196                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 206                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

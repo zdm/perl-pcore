@@ -26,7 +26,7 @@ const our $GRID => {
 };
 
 const our $STYLE => {
-    pcore => {
+    full => {
         grid         => 'ascii',
         header       => 1,
         top_line     => 1,

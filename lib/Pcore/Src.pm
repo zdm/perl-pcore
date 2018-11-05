@@ -389,7 +389,7 @@ sub _report_total ($self) {
     }
 
     my $tbl = P->text->table(
-        style => 'pcore',
+        style => 'full',
         cols  => [
             type => {
                 width => 10,
