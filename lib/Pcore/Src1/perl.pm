@@ -23,7 +23,7 @@ const our $PERLCRITIC_ERROR => 4;
 const our $SEVERITY         => {
 
     # valid
-    0 => 200,
+    0 => [ 200, 'Valid' ],
 
     # warning
     1 => [ 201, 'Warning, perlcritic(1)' ],
@@ -61,7 +61,7 @@ sub decompress ( $self ) {
 
     # temporary conver source to the utf8
     # https://rt.cpan.org/Public/Bug/Display.html?id=32905
-    decode_utf8 $self->{data}->$*;
+    # decode_utf8 $self->{data}->$*;
 
     Perl::Tidy::perltidy(
         source      => $self->{data},

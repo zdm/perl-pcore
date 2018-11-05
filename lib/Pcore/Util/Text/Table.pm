@@ -46,6 +46,16 @@ const our $STYLE => {
         left_border  => 1,
         right_border => 1,
     },
+    compact_mini => {
+        grid         => 'ascii',
+        header       => 1,
+        top_line     => 0,
+        header_line  => 1,
+        row_line     => 0,
+        bottom_line  => 1,
+        left_border  => 0,
+        right_border => 0,
+    },
 };
 
 has cols => ( required => 1 );    # ArrayRef [ InstanceOf ['Pcore::Util::Text::Table::Column'] ]
@@ -316,7 +326,7 @@ sub _render_line ( $self, $idx ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 180                  | Subroutines::ProhibitExcessComplexity - Subroutine "_render_row" with high complexity score (34)               |
+## |    3 | 190                  | Subroutines::ProhibitExcessComplexity - Subroutine "_render_row" with high complexity score (34)               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
