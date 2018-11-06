@@ -386,7 +386,7 @@ sub _report_file ( $tbl, $path, $res, $max_path_len ) {
                 },
                 size_delta => {
                     title => 'SIZE DELTA',
-                    width => 16,
+                    width => 12,
                     align => 1,
                 },
                 modified => {
