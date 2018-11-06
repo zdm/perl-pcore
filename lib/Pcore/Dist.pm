@@ -12,7 +12,7 @@ has module => ( is => 'lazy' );           # InstanceOf ['Pcore::Util::Perl::Modu
 
 has is_main     => ( init_arg => undef );                        # main process dist
 has cfg         => ( is       => 'lazy', init_arg => undef );    # dist cfg
-has docker_cfg  => ( is       => 'lazy', init_arg => undef );    # Maybe [HashRef], docker.json
+has docker_cfg  => ( is       => 'lazy', init_arg => undef );    # Maybe [HashRef], docker.yaml
 has par_cfg     => ( is       => 'lazy', init_arg => undef );    # Maybe [HashRef], par.yaml
 has name        => ( is       => 'lazy', init_arg => undef );    # Dist-Name
 has is_pcore    => ( is       => 'lazy', init_arg => undef );
@@ -178,8 +178,8 @@ sub _build_module ($self) {
 sub _build_cfg ($self) { return P->cfg->read("$self->{share_dir}/dist.yaml") }
 
 sub _build_docker_cfg ($self) {
-    if ( -f "$self->{share_dir}/docker.json" ) {
-        return P->cfg->read("$self->{share_dir}/docker.json");
+    if ( -f "$self->{share_dir}/docker.yaml" ) {
+        return P->cfg->read("$self->{share_dir}/docker.yaml");
     }
 
     return;
