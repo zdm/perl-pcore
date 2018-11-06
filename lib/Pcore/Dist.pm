@@ -13,7 +13,7 @@ has module => ( is => 'lazy' );           # InstanceOf ['Pcore::Util::Perl::Modu
 has is_main     => ( init_arg => undef );                        # main process dist
 has cfg         => ( is       => 'lazy', init_arg => undef );    # dist cfg
 has docker_cfg  => ( is       => 'lazy', init_arg => undef );    # Maybe [HashRef], docker.json
-has par_cfg     => ( is       => 'lazy', init_arg => undef );    # Maybe [HashRef], par.ini
+has par_cfg     => ( is       => 'lazy', init_arg => undef );    # Maybe [HashRef], par.yaml
 has name        => ( is       => 'lazy', init_arg => undef );    # Dist-Name
 has is_pcore    => ( is       => 'lazy', init_arg => undef );
 has scm         => ( is       => 'lazy', init_arg => undef );    # Maybe [ ConsumerOf ['Pcore::API::SCM'] ]
@@ -186,8 +186,8 @@ sub _build_docker_cfg ($self) {
 }
 
 sub _build_par_cfg ($self) {
-    if ( -f "$self->{share_dir}/par.ini" ) {
-        return P->cfg->read("$self->{share_dir}/par.ini");
+    if ( -f "$self->{share_dir}/par.yaml" ) {
+        return P->cfg->read("$self->{share_dir}/par.yaml");
     }
 
     return;
