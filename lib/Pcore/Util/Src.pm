@@ -415,10 +415,10 @@ sub _report_file ( $tbl, $path, $res, $max_path_len ) {
         push @row, ' - ';
     }
     elsif ( $res->{size_delta} > 0 ) {
-        push @row, $BOLD . $RED . "+$res->{size_delta} bytes" . $RESET;
+        push @row, $BOLD . $RED . "+$res->{size_delta}" . $RESET;
     }
     else {
-        push @row, $BOLD . $GREEN . "$res->{size_delta} bytes" . $RESET;
+        push @row, $BOLD . $GREEN . "$res->{size_delta}" . $RESET;
     }
 
     # modified
