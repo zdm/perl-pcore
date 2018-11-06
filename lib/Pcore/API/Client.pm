@@ -145,10 +145,10 @@ sub _send_http ( $self, $method, $args, $cb ) {
                     my $tx = is_plain_arrayref $msg ? $msg->[0] : $msg;
 
                     if ( $tx->{type} eq 'exception' ) {
-                        $cb->( bless $tx->{message}, 'Pcore::Util::Result' );
+                        $cb->( bless $tx->{message}, 'Pcore::Util::Result::Class' );
                     }
                     elsif ( $tx->{type} eq 'rpc' ) {
-                        $cb->( bless $tx->{result}, 'Pcore::Util::Result' );
+                        $cb->( bless $tx->{result}, 'Pcore::Util::Result::Class' );
                     }
                 }
             }

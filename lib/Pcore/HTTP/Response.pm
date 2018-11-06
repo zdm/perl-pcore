@@ -3,7 +3,7 @@ package Pcore::HTTP::Response;
 use Pcore -class;
 use Pcore::Util::Scalar qw[is_plain_coderef is_plain_scalarref];
 
-with qw[Pcore::Util::Result::Status];
+with qw[Pcore::Util::Result::Role];
 
 has url => ();
 

@@ -254,7 +254,7 @@ sub _on_message ( $self, $msg ) {
                     if ( my $cb = delete $self->{_req_cb}->{ $tx->{tid} } ) {
 
                         # convert result to response object
-                        $cb->( bless $tx->{result}, 'Pcore::Util::Result' );
+                        $cb->( bless $tx->{result}, 'Pcore::Util::Result::Class' );
                     }
                 }
             }
@@ -326,7 +326,7 @@ sub _on_auth_response ( $self, $tx ) {
     $self->{is_ready} = 1;
 
     # create and store auth object
-    $self->{auth} = bless $tx->{auth}, 'Pcore::Util::Result';
+    $self->{auth} = bless $tx->{auth}, 'Pcore::Util::Result::Class';
 
     # set events listeners
     $self->_bind_events( $tx->{bindings} ) if defined $tx->{bindings};
