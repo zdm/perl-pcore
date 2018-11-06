@@ -377,7 +377,7 @@ sub _report_file ( $tbl, $path, $res, $max_path_len ) {
                     align => -1,
                 },
                 severity => {
-                    width => 25,
+                    width => 24,
                     align => 1,
                 },
                 size => {
@@ -390,7 +390,7 @@ sub _report_file ( $tbl, $path, $res, $max_path_len ) {
                     align => 1,
                 },
                 modified => {
-                    width => 12,
+                    width => 10,
                     align => 1,
                 },
             ],
