@@ -433,7 +433,6 @@ sub to_yaml ( $data, @ ) {
 
     local $YAML::XS::UseCode  = 0;
     local $YAML::XS::DumpCode = 0;
-    local $YAML::XS::LoadCode = 0;
     local $YAML::Indent       = 4;
 
     return \YAML::XS::Dump($data);
@@ -442,9 +441,9 @@ sub to_yaml ( $data, @ ) {
 sub from_yaml ( $data, @ ) {
     require YAML::XS;
 
-    local $YAML::XS::UseCode  = 0;
-    local $YAML::XS::DumpCode = 0;
-    local $YAML::XS::LoadCode = 0;
+    local $YAML::XS::LoadBlessed = 0;
+    local $YAML::XS::UseCode     = 0;
+    local $YAML::XS::LoadCode    = 0;
 
     return YAML::XS::Load( is_plain_scalarref $data ? $data->$* : $data );
 }
@@ -1043,9 +1042,9 @@ sub from_uri_query_utf8 : prototype($) ($uri) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | ControlStructures::ProhibitPostfixControls                                                                     |
 ## |      | 360, 413             | * Postfix control "for" used                                                                                   |
-## |      | 622                  | * Postfix control "while" used                                                                                 |
+## |      | 621                  | * Postfix control "while" used                                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 957                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 956                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
