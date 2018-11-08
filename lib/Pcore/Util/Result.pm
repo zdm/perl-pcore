@@ -66,22 +66,22 @@ sub res ( $status, @args ) {
         $self->{status} = $status->[0];
 
         if ( is_plain_hashref $status->[1] ) {
-            $self->{reason} = get_reason( $status->[0], $status->[1] );
+            $self->{reason} = resolve_reason( $status->[0], $status->[1] );
         }
         else {
-            $self->{reason} = $status->[1] // get_reason( $status->[0], $status->[2] );
+            $self->{reason} = $status->[1] // resolve_reason( $status->[0], $status->[2] );
         }
     }
     else {
         $self->{status} = $status;
 
-        $self->{reason} = get_reason($status);
+        $self->{reason} = resolve_reason($status);
     }
 
     return $self;
 }
 
-sub get_reason ( $status, $status_reason = undef ) {
+sub resolve_reason ( $status, $status_reason = undef ) {
     _load_data() if !defined $STATUS_REASON;
 
     if ( $status_reason && $status_reason->{$status} ) { return $status_reason->{$status} }

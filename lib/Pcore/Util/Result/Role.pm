@@ -1,16 +1,15 @@
 package Pcore::Util::Result::Role;
 
 use Pcore -role, -const;
-use Pcore::Util::Scalar qw[is_plain_arrayref is_plain_hashref];
+use Pcore::Util::Scalar qw[is_ref is_plain_arrayref is_plain_hashref];
 use overload
   bool     => sub { substr( $_[0]->{status}, 0, 1 ) == 2 },
   '0+'     => sub { $_[0]->{status} },
   q[""]    => sub {"$_[0]->{status} $_[0]->{reason}"},
   fallback => 1;
 
-has status        => ();
-has reason        => ();
-has status_reason => ();    # HashRef
+has status => ();
+has reason => ();
 
 sub IS_PCORE_RESULT ($self) { return 1 }
 
@@ -21,35 +20,50 @@ around BUILDARGS => sub ( $orig, $self, $args ) {
 
     if ( is_plain_arrayref $args->{status} ) {
         if ( is_plain_hashref $args->{status}->[1] ) {
-            $args->{status_reason} //= $args->{status}->[1];
-
-            $args->{reason} //= Pcore::Util::Result::get_reason( $args->{status}->[0], $args->{status_reason} );
+            $args->{reason} //= Pcore::Util::Result::resolve_reason( $args->{status}->[0], $args->{status}->[1] );
         }
         else {
-            $args->{reason} //= $args->{status}->[1];
-
-            $args->{status_reason} //= $args->{status}->[2];
+            $args->{reason} //= $args->{status}->[1] // Pcore::Util::Result::resolve_reason( $args->{status}->[0], $args->{status}->[2] );
         }
 
         $args->{status} = $args->{status}->[0];
     }
     elsif ( !defined $args->{reason} ) {
-        $args->{reason} = Pcore::Util::Result::get_reason( $args->{status}, $args->{status_reason} );
+        $args->{reason} = Pcore::Util::Result::resolve_reason( $args->{status} );
     }
 
     return $self->$orig($args);
 };
 
-sub set_status ( $self, $status, $reason = undef ) {
+# $status, $reason;
+# $status, $status_reason;
+# $status, $reason, $status_reason;
+sub set_status ( $self, $status, @ ) {
     if ( is_plain_arrayref $status ) {
         $self->{status} = $status->[0];
 
-        $self->{reason} = $reason // $status->[1] // Pcore::Util::Result::get_reason( $status->[0], $self->{status_reason} );
+        if ( is_plain_arrayref $_[2] ) {
+
+            # $status_reason = $_[2];
+        }
+
+        my $reason;
+
+        # elsif () {
+
+        # }
+
+        $self->{reason} = $reason // $status->[1] // Pcore::Util::Result::resolve_reason( $status->[0] );
     }
     else {
         $self->{status} = $status;
 
-        $self->{reason} = $reason // Pcore::Util::Result::get_reason( $status, $self->{status_reason} );
+        if ( is_plain_hashref $_[2] ) {
+            $self->{reason} = Pcore::Util::Result::resolve_reason( $status, $_[2] );
+        }
+        else {
+            $self->{reason} = $_[2] // Pcore::Util::Result::resolve_reason( $status, $_[3] );
+        }
     }
 
     return;
