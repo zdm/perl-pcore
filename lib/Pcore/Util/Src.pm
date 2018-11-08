@@ -390,7 +390,7 @@ sub _report_file ( $tbl, $path, $res, $max_path_len ) {
                     align => 1,
                 },
                 modified => {
-                    width => 10,
+                    width => 12,
                     align => 1,
                 },
             ],
