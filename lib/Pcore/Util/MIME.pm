@@ -7,7 +7,7 @@ our $DATA;
 
 sub _load_data {
     if ( !defined $DATA ) {
-        $DATA = $ENV->{share}->read_cfg('data/mime.yaml');    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+        $DATA = $ENV->{share}->read_cfg( 'Pcore', 'data', 'mime.yaml' );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
         state $get_tags = sub ($data) {
             my $type = shift $data->@*;

@@ -433,7 +433,7 @@ sub to_yaml ( $data, @ ) {
 
     local $YAML::XS::UseCode  = 0;
     local $YAML::XS::DumpCode = 0;
-    local $YAML::Indent       = 4;
+    local $YAML::XS::Indent   = 4;
 
     return \YAML::XS::Dump($data);
 }
