@@ -340,7 +340,7 @@ sub ev ($self) {
 
         my $_broker = Pcore::Core::Event->new;
 
-        # # set default log channels
+        # set default log channels
         $_broker->bind_events( 'log.EXCEPTION.*', 'stderr:' );
 
         # file logs are disabled by default for scripts, that are not part of the distribution

@@ -209,9 +209,9 @@ sub run_test (@args) {
 
     my @old_inc = @INC;
 
-    unshift @INC, $t->{dist_lib};
+    unshift @INC, "$t->{dist_lib}";
 
-    unshift @INC, $t->{cpan_lib} if $t->{cpan_lib};
+    unshift @INC, "$t->{cpan_lib}" if $t->{cpan_lib};
 
     $test->($t);
 
@@ -255,11 +255,11 @@ sub test_dist ( $type, $dist, $t ) {
         ok( !$dist->module->is_cpan_module, $t->{test_id} . '_dist_module_is_cpan_module' );
     }
     elsif ( $type eq 'par' ) {
-        ok( !$dist->root, $t->{test_id} . '_dist_root' );
+        ok( !$dist->{root}, $t->{test_id} . '_dist_root' );
 
-        ok( $dist->share_dir eq $t->{dist_share_dir}, $t->{test_id} . '_dist_share_dir' );
+        ok( $dist->{share_dir} eq $t->{dist_share_dir}, $t->{test_id} . '_dist_share_dir' );
 
-        ok( $dist->is_cpan_dist, $t->{test_id} . '_dist_is_cpan_dist' );
+        ok( $dist->{is_cpan_dist}, $t->{test_id} . '_dist_is_cpan_dist' );
 
         ok( $dist->module->name eq $t->{module_name}, $t->{test_id} . '_dist_module_name' );
 
