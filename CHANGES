@@ -1,3 +1,28 @@
+v0.76.0 2018-11-09T07:14:58Z
+ - par gui option added
+ - path xs
+ - mime database updated
+ - s3 upload attrs renamed
+ - typo
+ - uri methods refactored
+ - uri ported to the new path
+ - ENV refactored
+ - DIST_CFG_TYPE removed
+ - Type::Tiny removed
+ - temp refactoring
+ - code cleanup
+ - cdn resources fixed
+ - mime refactored
+ - yaml indent 4
+ - src redesign
+ - src redesign #no filter
+ - src css indent
+ - code improvements
+ - par.ini --> par.yaml
+ - docker.json --> docker.yaml
+ - result refactored
+ - cpanfile
+
 v0.75.2 2018-10-26T20:44:26Z
  - path1
  - path1 normalize

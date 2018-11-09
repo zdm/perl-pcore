@@ -7,7 +7,7 @@ use Pcore::API::SCM;
 has dist => ( required => 1 );    # InstanceOf ['Pcore::Dist']
 
 around new => sub ( $orig, $self, $args ) {
-    return if !-d $args->{dist}->root . 'wiki/';
+    return if !-d "$args->{dist}->{root}/wiki";
 
     return $self->$orig($args);
 };
@@ -21,9 +21,9 @@ sub run ($self) {
 
     my $upstream = $scm->upstream;
 
-    my $base_url = qq[/$upstream->{repo_id}/wiki/];
+    my $base_url = "/$upstream->{repo_id}/wiki";
 
-    P->file->rmtree( $wiki_path . 'POD/' );
+    P->file->rmtree("$wiki_path/POD");
 
     my $toc = {};
 
@@ -52,7 +52,7 @@ sub run ($self) {
                 my $markdown = <<"MD";
 **!!! DO NOT EDIT. This document is generated automatically. !!!**
 
-back to **[INDEX](${base_url}POD)**
+back to **[INDEX]($base_url/POD)**
 
 **TABLE OF CONTENT**
 
@@ -79,7 +79,7 @@ MD
     for my $link ( sort keys $toc->%* ) {
         my $package_name = $link =~ s[/][::]smgr;
 
-        $toc_md .= "**[${package_name}](${base_url}POD/${link})**";
+        $toc_md .= "**[$package_name]($base_url/POD/$link)**";
 
         # add abstract
         $toc_md .= " - $toc->{$link}" if $toc->{$link};
@@ -88,7 +88,7 @@ MD
     }
 
     # write POD.md
-    P->file->write_text( $wiki_path . 'POD.md', { crlf => 0 }, \$toc_md );
+    P->file->write_text( "$wiki_path/POD.md", { crlf => 0 }, \$toc_md );
 
     say keys( $toc->%* ) + 1 . ' wiki page(s) were generated';
 
@@ -109,7 +109,7 @@ MD
         say $res;
 
         if ( !$res ) {
-            goto PUSH_WIKI if P->term->prompt( q[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
+            goto PUSH_WIKI if P->term->prompt( 'Repeat?', [qw[yes no]], enter => 1 ) eq 'yes';
         }
     }
 
