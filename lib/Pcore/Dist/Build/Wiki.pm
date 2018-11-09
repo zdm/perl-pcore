@@ -17,8 +17,6 @@ sub run ($self) {
 
     my $wiki_path = P->path('wiki')->to_abs;
 
-    say $wiki_path;
-
     my $scm = Pcore::API::SCM->new($wiki_path);
 
     my $upstream = $scm->upstream;
@@ -26,12 +24,6 @@ sub run ($self) {
     my $base_url = "/$upstream->{repo_id}/wiki";
 
     P->file->rmtree("$wiki_path/POD");
-
-    print 'Press ENTER to continue...';
-    <STDIN>;
-    exit;
-
-    ## no critic qw[ControlStructures::ProhibitUnreachableCode]
 
     my $toc = {};
 
@@ -121,7 +113,9 @@ MD
         }
     }
 
-    return;
+    exit;
+
+    # return;
 }
 
 1;
@@ -131,7 +125,7 @@ MD
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 101                  | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 93                   | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
