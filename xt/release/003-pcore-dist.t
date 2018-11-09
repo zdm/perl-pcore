@@ -225,11 +225,11 @@ sub run_test (@args) {
 
 sub test_dist ( $type, $dist, $t ) {
     if ( $type eq 'cpan' ) {
-        ok( !defined $dist->root, $t->{test_id} . '_dist_root' );
+        ok( !defined $dist->{root}, $t->{test_id} . '_dist_root' );
 
-        ok( $dist->share_dir eq $t->{cpan_share_dir}, $t->{test_id} . '_dist_share_dir' );
+        ok( $dist->{share_dir} eq $t->{cpan_share_dir}, $t->{test_id} . '_dist_share_dir' );
 
-        ok( $dist->is_cpan_dist, $t->{test_id} . '_dist_is_cpan_dist' );
+        ok( $dist->{is_cpan_dist}, $t->{test_id} . '_dist_is_cpan_dist' );
 
         ok( $dist->module->name eq $t->{module_name}, $t->{test_id} . '_dist_module_name' );
 
@@ -240,11 +240,11 @@ sub test_dist ( $type, $dist, $t ) {
         ok( $dist->module->is_cpan_module, $t->{test_id} . '_dist_module_is_cpan_module' );
     }
     elsif ( $type eq 'dist' ) {
-        ok( $dist->root eq $t->{dist_root}, $t->{test_id} . '_dist_root' );
+        ok( $dist->{root} eq $t->{dist_root}, $t->{test_id} . '_dist_root' );
 
-        ok( $dist->share_dir eq $t->{dist_share_dir}, $t->{test_id} . '_dist_share_dir' );
+        ok( $dist->{share_dir} eq $t->{dist_share_dir}, $t->{test_id} . '_dist_share_dir' );
 
-        ok( !$dist->is_cpan_dist, $t->{test_id} . '_dist_is_cpan_dist' );
+        ok( !$dist->{is_cpan_dist}, $t->{test_id} . '_dist_is_cpan_dist' );
 
         ok( $dist->module->name eq $t->{module_name}, $t->{test_id} . '_dist_module_name' );
 
