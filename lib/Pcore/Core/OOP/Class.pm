@@ -13,6 +13,10 @@ our %REG;
 sub import ( $self, $caller = undef ) {
     $caller //= caller;
 
+    # register caller module in %INC
+    my $module = $caller =~ s[::][/]smgr . '.pm';
+    if ( !exists $INC{$module} ) { $INC{$module} = "(embedded)" }    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+
     _defer_sub( $caller, new => sub { return _build_constructor($caller) } );
 
     *{"$caller\::does"}    = \&_does;
@@ -438,12 +442,14 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 158, 238, 251, 265,  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 287, 431             |                                                                                                                |
+## |    3 | 18                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 165                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (24)             |
+## |    3 | 162, 242, 255, 269,  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 291, 435             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 165                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 169                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (24)             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 169                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
