@@ -113,9 +113,7 @@ MD
         }
     }
 
-    exit;
-
-    # return;
+    return;
 }
 
 1;
