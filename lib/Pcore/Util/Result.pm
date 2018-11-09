@@ -1,20 +1,21 @@
 package Pcore::Util::Result;
 
 use Pcore -export, -const;
-use Pcore::Util::Scalar qw[is_plain_arrayref is_plain_hashref];
+use Pcore::Util::Scalar qw[is_res is_plain_arrayref is_plain_hashref];
 use Pcore::Util::Result::Class;
 
 our $EXPORT = [qw[res]];
 
 our $STATUS_REASON;
 
-const our $STATUS_CATEGORY => {
-    '1xx' => 'Informational',
-    '2xx' => 'Success',
-    '3xx' => 'Redirection',
-    '4xx' => 'Client Error',
-    '5xx' => 'Server Error',
-};
+const our $STATUS_CATEGORY => [    #
+    'Unknown Status',              # 0
+    'Informational',               # 1xx
+    'Success',                     # 2xx
+    'Redirection',                 # 3xx
+    'Client Error',                # 4xx
+    'Server Error',                # 5xx
+];
 
 sub update ($cb = undef) {
     print 'updating status.yaml ... ';
@@ -53,29 +54,36 @@ sub _load_data {
     return;
 }
 
-# possible values for status:
-# $status;
-# [ $status, \%status_reason ]
-# [ $status, $reason, \%status_reason ]
 sub res ( $status, @args ) {
     my $self = @args % 2 ? { @args[ 1 .. $#args ], data => $args[0] } : {@args};
 
     $self = bless $self, 'Pcore::Util::Result::Class';
 
-    if ( is_plain_arrayref $status ) {
-        $self->{status} = $status->[0];
+    my $reason;
 
-        if ( is_plain_hashref $status->[1] ) {
-            $self->{reason} = resolve_reason( $status->[0], $status->[1] );
-        }
-        else {
-            $self->{reason} = $status->[1] // resolve_reason( $status->[0], $status->[2] );
-        }
+  REDO:
+    if ( is_plain_arrayref $status) {
+        ( $status, $reason ) = $status->@*;
+
+        goto REDO;
+    }
+    elsif ( is_res $status) {
+        $self->{status} = $status->{status};
+
+        $self->{reason} = $status->{reason};
     }
     else {
         $self->{status} = $status;
 
-        $self->{reason} = resolve_reason($status);
+        if ( !defined $reason ) {
+            $self->{reason} = resolve_reason($status);
+        }
+        elsif ( is_plain_hashref $reason) {
+            $self->{reason} = resolve_reason( $status, $reason );
+        }
+        else {
+            $self->{reason} = $reason;
+        }
     }
 
     return $self;
@@ -86,11 +94,11 @@ sub resolve_reason ( $status, $status_reason = undef ) {
 
     if ( $status_reason && $status_reason->{$status} ) { return $status_reason->{$status} }
     elsif ( exists $STATUS_REASON->{$status} ) { return $STATUS_REASON->{$status} }
-    elsif ( $status < 200 ) { return $STATUS_CATEGORY->{'1xx'} }
-    elsif ( $status >= 200 && $status < 300 ) { return $STATUS_CATEGORY->{'2xx'} }
-    elsif ( $status >= 300 && $status < 400 ) { return $STATUS_CATEGORY->{'3xx'} }
-    elsif ( $status >= 400 && $status < 500 ) { return $STATUS_CATEGORY->{'4xx'} }
-    else                                      { return $STATUS_CATEGORY->{'5xx'} }
+    elsif ( $status < 200 ) { return $STATUS_CATEGORY->[1] }
+    elsif ( $status >= 200 && $status < 300 ) { return $STATUS_CATEGORY->[2] }
+    elsif ( $status >= 300 && $status < 400 ) { return $STATUS_CATEGORY->[3] }
+    elsif ( $status >= 400 && $status < 500 ) { return $STATUS_CATEGORY->[4] }
+    else                                      { return $STATUS_CATEGORY->[5] }
 }
 
 1;

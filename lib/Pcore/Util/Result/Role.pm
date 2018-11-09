@@ -1,7 +1,7 @@
 package Pcore::Util::Result::Role;
 
 use Pcore -role, -const;
-use Pcore::Util::Scalar qw[is_ref is_plain_arrayref is_plain_hashref];
+use Pcore::Util::Scalar qw[is_res is_ref is_plain_arrayref is_plain_hashref];
 use overload
   bool     => sub { substr( $_[0]->{status}, 0, 1 ) == 2 },
   '0+'     => sub { $_[0]->{status} },
@@ -16,53 +16,53 @@ sub IS_PCORE_RESULT ($self) { return 1 }
 sub BUILDARGS ( $self, $args ) { return $args }
 
 around BUILDARGS => sub ( $orig, $self, $args ) {
-    $args->{status} //= 0;
-
+  REDO:
     if ( is_plain_arrayref $args->{status} ) {
-        if ( is_plain_hashref $args->{status}->[1] ) {
-            $args->{reason} //= Pcore::Util::Result::resolve_reason( $args->{status}->[0], $args->{status}->[1] );
-        }
-        else {
-            $args->{reason} //= $args->{status}->[1] // Pcore::Util::Result::resolve_reason( $args->{status}->[0], $args->{status}->[2] );
-        }
+        ( $args->{status}, $args->{reason} ) = $args->{status}->@*;
 
-        $args->{status} = $args->{status}->[0];
+        goto REDO;
     }
-    elsif ( !defined $args->{reason} ) {
-        $args->{reason} = Pcore::Util::Result::resolve_reason( $args->{status} );
+    elsif ( is_res $args->{status} ) {
+        $args->{reason} = $args->{status}->{reason};
+        $args->{status} = $args->{status}->{status};
+    }
+    elsif ( defined $args->{status} ) {
+        if ( !defined $args->{reason} ) {
+            $args->{reason} = Pcore::Util::Result::resolve_reason( $args->{status}, $self->get_status_reason );
+        }
+        elsif ( is_plain_hashref $args->{reason} ) {
+            $args->{reason} = Pcore::Util::Result::resolve_reason( $args->{status}, $args->{reason} );
+        }
     }
 
     return $self->$orig($args);
 };
 
-# $status, $reason;
-# $status, $status_reason;
-# $status, $reason, $status_reason;
-sub set_status ( $self, $status, @ ) {
-    if ( is_plain_arrayref $status ) {
-        $self->{status} = $status->[0];
+sub get_status_reason ($self) {return}
 
-        if ( is_plain_arrayref $_[2] ) {
+sub set_status ( $self, $status, $reason = undef ) {
 
-            # $status_reason = $_[2];
-        }
+  REDO:
+    if ( is_plain_arrayref $status) {
+        ( $status, $reason ) = $status->@*;
 
-        my $reason;
-
-        # elsif () {
-
-        # }
-
-        $self->{reason} = $reason // $status->[1] // Pcore::Util::Result::resolve_reason( $status->[0] );
+        goto REDO;
+    }
+    elsif ( is_res $status) {
+        $self->{status} = $status->{status};
+        $self->{reason} = $status->{reason};
     }
     else {
         $self->{status} = $status;
 
-        if ( is_plain_hashref $_[2] ) {
-            $self->{reason} = Pcore::Util::Result::resolve_reason( $status, $_[2] );
+        if ( !defined $reason ) {
+            $self->{reason} = Pcore::Util::Result::resolve_reason( $status, $self->get_status_reason );
+        }
+        elsif ( is_plain_hashref $reason) {
+            $self->{reason} = Pcore::Util::Result::resolve_reason( $status, $reason );
         }
         else {
-            $self->{reason} = $_[2] // Pcore::Util::Result::resolve_reason( $status, $_[3] );
+            $self->{reason} = $reason;
         }
     }
 
