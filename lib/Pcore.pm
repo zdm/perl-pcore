@@ -127,7 +127,7 @@ sub import {
         if ( $import->{pragma}->{class} ) {
             Pcore::Core::OOP::Class->import($caller);
         }
-        else {
+        elsif ( $import->{pragma}->{role} ) {
             Pcore::Core::OOP::Role->import($caller);
         }
     }

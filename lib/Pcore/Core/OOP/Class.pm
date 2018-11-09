@@ -27,7 +27,7 @@ sub import ( $self, $caller = undef ) {
 sub load_class ($class) {
     my $name = $class =~ s[::][/]smgr . '.pm';
 
-    require $name if !exists $INC{$name};
+    require $name;
 
     return;
 }
