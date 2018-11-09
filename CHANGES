@@ -1,3 +1,8 @@
+v0.76.1 2018-11-09T07:41:35Z
+ - Build.PL
+ - test
+ - typo
+
 v0.76.0 2018-11-09T07:21:39Z
  - par gui option added
  - path xs
