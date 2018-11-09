@@ -83,7 +83,9 @@ sub is_client_error ($self) { return substr( $_[0]->{status}, 0, 1 ) == 4 }
 sub is_server_error ($self) { return substr( $_[0]->{status}, 0, 1 ) >= 5 }
 
 # SERIALIZE
-*TO_JSON = *TO_CBOR = sub ($self) { return { $self->%* } };
+sub TO_JSON ($self) { return { $self->%* } }
+
+sub TO_CBOR ($self) { return { $self->%* } }
 
 1;
 __END__
