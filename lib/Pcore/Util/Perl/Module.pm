@@ -1,6 +1,7 @@
 package Pcore::Util::Perl::Module;
 
 use Pcore -class;
+use Pcore::Util::Scalar qw[is_ref];
 use Config;
 
 has name    => ( is => 'lazy' );    # Maybe [Str], Module/Name.pm
@@ -27,7 +28,7 @@ around new => sub ( $orig, $self, $module, @inc ) {
     }
     else {
 
-        # if module is not contain .pl or .pl suffixes - this is Package::Name
+        # if module is not contains .pl or .pm suffixes - this is Package::Name
         # convert Package::Name to Module/Name.pm
         my $suffix = substr $module, -3, 3;
 
@@ -44,9 +45,14 @@ around new => sub ( $orig, $self, $module, @inc ) {
         }
         else {
 
+            # try to find module in @inc, items can be path objects
+            for my $lib (@inc) {
+                return $self->$orig( { lib => P->path($lib)->to_abs, name => $module } ) if -f "$lib/$module";
+            }
+
             # try to find module in @INC
-            for my $lib ( @inc, @INC ) {
-                next if ref $lib;
+            for my $lib (@INC) {
+                next if is_ref $lib;
 
                 return $self->$orig( { lib => P->path($lib)->to_abs, name => $module } ) if -f "$lib/$module";
             }
@@ -211,7 +217,7 @@ sub clear ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 143                  | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 149                  | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
