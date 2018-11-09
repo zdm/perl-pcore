@@ -76,7 +76,7 @@ sub _gather_files ($self) {
                 }
             }
 
-            last if $skipped;
+            next if $skipped;
         }
 
         if ( $file->{path} =~ m[\Abin/(.+)\z]sm ) {
@@ -85,10 +85,10 @@ sub _gather_files ($self) {
             my $name = $1;
 
             if ( $file->{path} !~ m[[.].+\z]sm ) {    # no extension
-                $file->move( 'script/' . $name );
+                $file->move("script/$name");
             }
             elsif ( $file->{path} =~ m[[.](?:pl|sh|cmd|bat)\z]sm ) {    # allowed extensions
-                $file->move( 'script/' . $name );
+                $file->move("script/$name");
             }
             else {
                 $file->remove;

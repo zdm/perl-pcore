@@ -89,13 +89,13 @@ sub test ( $self, @ ) {
     {
         my $chdir_guard = P->file->chdir($build);
 
-        my $psplit = $MSWIN ? q[\\] : q[/];
+        my $psplit = $MSWIN ? '\\' : '/';
 
-        return if !P->sys->run_proc( [qw[perl Build.PL]] );
+        return if !P->sys->run_proc( [ $^X, 'Build.PL' ] );
 
         return if !P->sys->run_proc(".${psplit}Build");
 
-        return if !P->sys->run_proc( [ ".${psplit}Build", 'test', $args{verbose} ? '--verbose' : q[] ] );
+        return if !P->sys->run_proc( [ ".${psplit}Build", 'test', $args{verbose} ? '--verbose' : '' ] );
     }
 
     return 1;
@@ -158,6 +158,16 @@ sub tgz ($self) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    2 | 98                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
