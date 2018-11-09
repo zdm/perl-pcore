@@ -2,8 +2,11 @@ package Pcore::Util::File1::TempDir;
 
 use Pcore -class;
 use File::Path qw[];    ## no critic qw[Modules::ProhibitEvilModules]
+use Clone qw[];
 
 extends qw[Pcore::Util::Path];
+
+has temp => ();
 
 our @DEFERRED_UNLINK;
 
@@ -14,14 +17,35 @@ END {
 }
 
 sub DESTROY ($self) {
-    $self->rmtree( safe => 0 );
+    return if !defined $self->{temp};
 
-    push @DEFERRED_UNLINK, $self->encoded if -d $self;
+    File::Path::remove_tree( $self->{temp}, safe => 0 );
+
+    push @DEFERRED_UNLINK, $self->{temp} if -d $self->{temp};
 
     return;
 }
 
-around new => sub ( $orig, $self, @args ) { return $self->SUPER::new(@args) };
+around new => sub ( $orig, $self, $path, %args ) {
+    if ( delete $args{temp} ) {
+        $self = $self->SUPER::new( $path, %args )->to_abs;
+
+        $self->{temp} = $self->encoded;
+    }
+    else {
+        $self = $self->SUPER::new( $path, %args );
+    }
+
+    return $self;
+};
+
+sub clone ($self) {
+    my $clone = Clone::clone($self);
+
+    delete $clone->{temp};
+
+    return $clone;
+}
 
 1;
 __END__

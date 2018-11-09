@@ -9,14 +9,35 @@ our @DEFERRED_UNLINK;
 END { unlink @DEFERRED_UNLINK if @DEFERRED_UNLINK }    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 
 sub DESTROY ($self) {
-    unlink $self->{path};                              ## no critic qw[InputOutput::RequireCheckedSyscalls]
+    return if !defined $self->{temp};
 
-    push @DEFERRED_UNLINK, $self->encoded if -f $self;
+    unlink $self->{temp};                              ## no critic qw[InputOutput::RequireCheckedSyscalls]
+
+    push @DEFERRED_UNLINK, $self->{temp} if -f $self->{temp};
 
     return;
 }
 
-around new => sub ( $orig, $self, @args ) { return $self->SUPER::new(@args) };
+around new => sub ( $orig, $self, $path, %args ) {
+    if ( delete $args{temp} ) {
+        $self = $self->SUPER::new( $path, %args )->to_abs;
+
+        $self->{temp} = $self->encoded;
+    }
+    else {
+        $self = $self->SUPER::new( $path, %args );
+    }
+
+    return $self;
+};
+
+sub clone ($self) {
+    my $clone = Clone::clone($self);
+
+    delete $clone->{temp};
+
+    return $clone;
+}
 
 1;
 __END__

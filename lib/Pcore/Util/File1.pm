@@ -12,7 +12,7 @@ sub tempfile (%args) {
 
     P->path( $args{prefix} )->mkpath if !-e $args{prefix};
 
-    my $path = Pcore::Util::File1::TempFile->new( "$args{prefix}/" . ( $args{name} // uuid_v4_hex ) );
+    my $path = Pcore::Util::File1::TempFile->new( "$args{prefix}/" . ( $args{name} // uuid_v4_hex ), temp => 1 );
 
     $path->touch( mode => $args{mode}, umask => $args{umask} );
 
@@ -23,7 +23,7 @@ sub tempfile (%args) {
 sub tempdir (%args) {
     require Pcore::Util::File1::TempDir;
 
-    my $path = Pcore::Util::File1::TempDir->new( ( $args{prefix} // $ENV->{TEMP_DIR} ) . '/' . ( $args{name} // uuid_v4_hex ) );
+    my $path = Pcore::Util::File1::TempDir->new( ( $args{prefix} // $ENV->{TEMP_DIR} ) . '/' . ( $args{name} // uuid_v4_hex ), temp => 1 );
 
     $path->mkpath;
 
