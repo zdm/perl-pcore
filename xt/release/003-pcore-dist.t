@@ -315,7 +315,7 @@ PERL
 
     $res->{temp} = $tree->write_to_temp;
 
-    $res->{dist_root} = $res->{temp}->path;
+    $res->{dist_root} = $res->{temp};
 
     $res->{dist_lib} = P->path("$res->{dist_root}/$args->{prefix}lib/");
 
