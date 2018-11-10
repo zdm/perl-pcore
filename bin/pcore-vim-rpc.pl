@@ -34,11 +34,11 @@ sub on_accept ( $fh, $host, $port ) {
 }
 
 sub CMD_src ( $self, $h, $id, $args ) {
-    my $path = $args->{path} // 'temp';
+    my $path = $args->{path} || 'temp';
 
     if ( $args->{ft} ) {
         if ( $args->{ft} eq 'perl' ) {
-            $path .= '.perl' if !defined $args->{path};
+            $path .= '.perl' if !$args->{path};
         }
         else {
             $path .= ".$args->{ft}";
