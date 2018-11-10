@@ -1,7 +1,7 @@
 package Pcore::Core::CLI::Type;
 
 use Pcore -role, -const;
-use Pcore::Util::Scalar qw[is_ref is_plain_arrayref is_plain_hashref is_plain_coderef];
+use Pcore::Util::Scalar qw[is_plain_arrayref is_plain_hashref is_plain_coderef];
 
 const our $TYPE => {
     Str => sub ($val) {
@@ -36,7 +36,7 @@ const our $TYPE => {
 sub _validate_isa ( $self, @ ) {
     my $vals = is_plain_arrayref $_[1] ? $_[1] : is_plain_hashref $_[1] ? [ values $_[1]->%* ] : [ $_[1] ];
 
-    my $isa_ref = is_ref $self->{isa};
+    my $isa_ref = ref $self->{isa};
 
     for my $val ( $vals->@* ) {
         if ( !$isa_ref ) {
