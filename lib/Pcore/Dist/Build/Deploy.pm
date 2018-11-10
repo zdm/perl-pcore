@@ -45,14 +45,14 @@ sub _chmod ($self) {
 
             # directory
             if ( -d $path ) {
-                P->file->chmod( 'rwxr-xr-x', $path ) or say qq[$!: $path];
+                P->file->chmod( 'rwxr-xr-x', $path ) or say "$!: $path";
             }
 
             # file
             else {
                 my $is_exe;
 
-                if ( !defined $path->{filename} && ( $path->{dirname} eq 'bin' || $path->{dirname} eq 'script' ) ) {
+                if ( !defined $path->{suffix} && ( $path->{dirname} eq 'bin' || $path->{dirname} eq 'script' ) ) {
                     $is_exe = 1;
                 }
                 elsif ( defined $path->{suffix} && ( $path->{suffix} eq 'sh' || lc $path->{suffix} eq 'pl' || $path->{suffix} eq 't' ) ) {
@@ -61,16 +61,16 @@ sub _chmod ($self) {
 
                 # executable script
                 if ($is_exe) {
-                    P->file->chmod( 'rwxr-xr-x', $path ) or say qq[$!: $path];
+                    P->file->chmod( 'rwxr-xr-x', $path ) or say "$!: $path";
                 }
 
                 # non-executable file
                 else {
-                    P->file->chmod( 'rw-r--r--', $path ) or say qq[$!: $path];
+                    P->file->chmod( 'rw-r--r--', $path ) or say "$!: $path";
                 }
             }
 
-            chown $>, $), $path or say qq[$!: $path];    # EUID, EGID
+            chown $>, $), $path or say "$!: $path";    # EUID, EGID
         }
     }
 
@@ -81,7 +81,7 @@ sub _chmod ($self) {
 
 sub _deps ($self) {
     if ( -f 'cpanfile' ) {
-        my @args = (                                     #
+        my @args = (                                   #
             'cpanm',
             '--with-feature', ( $MSWIN ? 'windows' : 'linux' ),
             ( $self->devel      ? '--with-develop'    : () ),
