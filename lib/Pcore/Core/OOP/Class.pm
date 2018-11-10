@@ -100,21 +100,23 @@ sub _with (@roles) {
 }
 
 sub export_methods ( $roles, $to ) {
+    my $is_role = $REG{$to}{is_role};
+
+    $REG{$to}{method} //= {} if $is_role;
+
     for my $role ( $roles->@* ) {
-        my $role_methods;
+        $REG{$role}{method} //= {};
 
-        for ( Package::Stash::XS->new($role)->list_all_symbols('CODE') ) {
-            my $fullname = Sub::Util::subname( *{"$role\::$_"}{CODE} );
+        for my $subname ( Package::Stash::XS->new($role)->list_all_symbols('CODE') ) {
+            my $fullname = Sub::Util::subname( *{"$role\::$subname"}{CODE} );
 
-            next unless $fullname eq "$role\::$_" || $fullname eq "$role\::__ANON__" || substr( $_, 0, 1 ) eq '(';
+            next unless $fullname eq "$role\::$subname" || $fullname eq "$role\::__ANON__" || substr( $subname, 0, 1 ) eq '(' || exists $REG{$role}{method}->{$subname};
 
-            $role_methods->{$_} = undef;
-        }
+            next if defined *{"$to\::$subname"}{CODE};
 
-        for my $method_name ( keys $role_methods->%* ) {
-            next if defined *{"$to\::$method_name"}{CODE};
+            *{"$to\::$subname"} = *{"$role\::$subname"}{CODE};
 
-            *{"$to\::$method_name"} = *{"$role\::$method_name"}{CODE};
+            $REG{$to}{method}->{$subname} = undef if $is_role;
         }
     }
 
@@ -430,12 +432,12 @@ PERL
 ## |======+======================+================================================================================================================|
 ## |    3 | 18                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 148, 228, 241, 255,  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 277, 421             |                                                                                                                |
+## |    3 | 150, 230, 243, 257,  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 279, 423             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 155                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (24)             |
+## |    3 | 157                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (24)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 155                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 157                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
