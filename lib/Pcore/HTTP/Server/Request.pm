@@ -7,7 +7,7 @@ use Pcore::Util::Text qw[encode_utf8];
 use Pcore::App::API::Auth;
 
 use overload    #
-  q[&{}] => sub ( $self, @ ) {
+  '&{}' => sub ( $self, @ ) {
     return sub { return _respond( $self, @_ ) };
   },
   fallback => undef;

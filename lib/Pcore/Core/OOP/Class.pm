@@ -116,6 +116,9 @@ sub export_methods ( $roles, $to ) {
 
             *{"$to\::$subname"} = *{"$role\::$subname"}{CODE};
 
+            # export overload fallback value
+            *{"$to\::()"} = *{"$role\::()"} if $subname eq '()';
+
             $REG{$to}{method}->{$subname} = undef if $is_role;
         }
     }
@@ -432,12 +435,12 @@ PERL
 ## |======+======================+================================================================================================================|
 ## |    3 | 18                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 150, 230, 243, 257,  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 279, 423             |                                                                                                                |
+## |    3 | 153, 233, 246, 260,  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 282, 426             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 157                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (24)             |
+## |    3 | 160                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (24)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 157                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 160                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
