@@ -3,13 +3,13 @@ package Pcore::Dist::Build::Deploy;
 use Pcore -class;
 use Config;
 
-has dist => ( is => 'ro', required => 1 );    # InstanceOf ['Pcore::Dist']
+has dist => ( required => 1 );    # InstanceOf ['Pcore::Dist']
 
-has install    => ( is => 'ro', default => 0 );
-has devel      => ( is => 'ro', default => 0 );
-has recommends => ( is => 'ro', default => 0 );
-has suggests   => ( is => 'ro', default => 0 );
-has verbose    => ( is => 'ro', default => 0 );
+has install    => ();
+has devel      => ();
+has recommends => ();
+has suggests   => ();
+has verbose    => ();
 
 # TODO under windows acquire superuser automatically with use Win32::RunAsAdmin qw[force];
 
@@ -32,7 +32,7 @@ sub run ($self) {
     $self->_chmod;
 
     # install
-    exit 3 if $self->install && !$self->_install;
+    exit 3 if $self->{install} && !$self->_install;
 
     return;
 }
@@ -84,10 +84,10 @@ sub _deps ($self) {
         my @args = (                                   #
             'cpanm',
             '--with-feature', ( $MSWIN ? 'windows' : 'linux' ),
-            ( $self->devel      ? '--with-develop'    : () ),
-            ( $self->recommends ? '--with-recommends' : () ),
-            ( $self->suggests   ? '--with-suggests'   : () ),
-            ( $self->verbose    ? '--verbose'         : () ),
+            ( $self->{devel}      ? '--with-develop'    : () ),
+            ( $self->{recommends} ? '--with-recommends' : () ),
+            ( $self->{suggests}   ? '--with-suggests'   : () ),
+            ( $self->{verbose}    ? '--verbose'         : () ),
             '--metacpan', '--installdeps', q[.],
         );
 
