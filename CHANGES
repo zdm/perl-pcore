@@ -1,3 +1,10 @@
+v0.77.0 2018-11-10T00:43:09Z
+ - Build.PL
+ - test
+ - typo
+ - code improvements
+ - tests fixed
+
 v0.76.1 2018-11-09T07:41:35Z
  - Build.PL
  - test
