@@ -1,3 +1,12 @@
+v0.77.2 2018-11-11T01:53:07Z
+ - scandeps improved
+ - ro attrs fixed
+ - vim integration
+ - role export overload fallback
+ - module auto deps fixed
+ - typo
+ - host->name fixed
+
 v0.77.1 2018-11-10T01:11:22Z
  - tests fixed
 
