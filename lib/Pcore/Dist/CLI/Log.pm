@@ -1,4 +1,4 @@
-package Pcore::Dist::CLI::Changes;
+package Pcore::Dist::CLI::Log;
 
 use Pcore -class;
 
@@ -50,7 +50,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Dist::CLI::Changes - show unreleased changes
+Pcore::Dist::CLI::Log - show unreleased changes
 
 =head1 SYNOPSIS
 
