@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# wget -q https://bitbucket.org/softvisio/<: $dist_name :>/raw/tip/contrib/<: $dist_name :>.sh && chmod +x <: $dist_name :>.sh
+# wget -q https://bitbucket.org/softvisio/<: $dist_path :>/raw/tip/contrib/<: $dist_path :>.sh && chmod +x <: $dist_path :>.sh
 
 set -e
 
