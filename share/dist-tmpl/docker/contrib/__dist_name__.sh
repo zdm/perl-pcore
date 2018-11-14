@@ -22,7 +22,7 @@ RESTART=always
 KILL_TIMEOUT=10
 
 DOCKER_CONTAINER_ARGS="
-    -v $SCRIPT_DIR/:/var/local/$NAME/data/ \
+    -v $SCRIPT_DIR:/var/local/$NAME/data \
     -p 80:80/tcp \
     -p 443:443/tcp \
 "
