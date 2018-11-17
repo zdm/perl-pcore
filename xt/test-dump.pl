@@ -153,7 +153,7 @@ package AA;
 use parent qw[Exporter];
 
 sub new {
-    my $self = shift;
+    my $self  = shift;
     my $attrs = shift // { "1\n2" => 1 };
 
     return bless $attrs, $self;

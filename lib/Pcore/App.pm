@@ -10,7 +10,7 @@ use Pcore::App::API;
 use Pcore::CDN;
 
 has app_cfg => ( required => 1 );    # HashRef
-has devel => 0;                      # Bool
+has devel   => 0;                    # Bool
 
 has server => ( init_arg => undef ); # InstanceOf ['Pcore::HTTP::Server']
 has router => ( init_arg => undef ); # InstanceOf ['Pcore::App::Router']
