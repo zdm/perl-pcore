@@ -20,9 +20,6 @@ has cdn    => ( init_arg => undef ); # InstanceOf['Pcore::CDN']
 
 sub BUILD ( $self, $args ) {
 
-    # apply default HTTP router settings
-    $self->{app_cfg}->{router} //= { '*' => ref $self };
-
     # create HTTP router
     $self->{router} = Pcore::App::Router->new( {
         app   => $self,
@@ -249,7 +246,7 @@ sub _init_reload ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 195, 218             | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 192, 215             | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
