@@ -1,24 +1,27 @@
 package Pcore::CDN;
 
 use Pcore -class;
-use Pcore::Util::Scalar qw[is_ref is_plain_arrayref is_plain_coderef];
+use Pcore::Util::Scalar qw[weaken is_ref is_plain_arrayref is_plain_coderef];
 use overload '&{}' => sub ( $self, @ ) {
     sub { $self->get_url(@_) }
   },
   fallback => 1;
 
-has bucket    => ( init_arg => undef );
-has resources => ();                      # HashRef[CodeRef]
+has native_cdn => ();
+has bucket     => ( init_arg => undef );
+has resources  => ();                      # HashRef[CodeRef]
 
 around new => sub ( $orig, $self, $args ) {
     $self = $self->$orig;
+
+    $self->{native_cdn} = $args->{native_cdn};
 
     # load resources
     if ( my $resources = delete $args->{resources} ) {
         for my $lib ( $resources->@* ) {
             P->class->load( $lib =~ s/-/::/smgr );
 
-            my $cdn_resources_path = $ENV->dist($lib)->{share_dir} . '/cdn-resources.perl';
+            my $cdn_resources_path = $ENV->dist($lib)->{share_dir} . '/cdn.perl';
 
             if ( -f $cdn_resources_path ) {
                 my $cdn_resources = P->cfg->read($cdn_resources_path);
@@ -53,36 +56,91 @@ around new => sub ( $orig, $self, $args ) {
 
 sub bucket ( $self, $name ) { return $self->{bucket}->{$name} }
 
-# $cdn->get_url($path);
-# $cdn->get_url( $bucket_name, $path );
-sub get_url ( $self, @ ) {
-    my ( $bucket_name, $path ) = @_ == 2 ? ( 'default', $_[1] ) : ( $_[1], $_[2] );
+sub get_url ( $self, $path ) {
+    my $bucket_name;
 
-    return $self->{bucket}->{ $bucket_name // 'default' }->get_url($path);
+    # extract bucket
+    if ( substr( $path, 0, 1 ) eq '/' ) {
+        $path = "$path" if is_ref $path;
+
+        $bucket_name = substr $path, 0, index( $path, '/', 1 ) + 1, '';
+        substr $bucket_name, 0,  1, '';
+        substr $bucket_name, -1, 1, '';
+    }
+    else {
+        $bucket_name = 'default';
+    }
+
+    my $bucket = $self->{bucket}->{$bucket_name};
+
+    die qq[Bucket "$bucket_name" is not defined] if !defined $bucket;
+
+    return $bucket->get_url($path);
 }
-
-sub get_script_tag ( $self, @args ) { return qq[<script src="@{[ $self->get_url(@args) ]}" integrity="" crossorigin="anonymous"></script>] }
-
-sub get_css_tag ( $self, @args ) { return qq[<link rel="stylesheet" href="@{[ $self->get_url(@args) ]}" integrity="" crossorigin="anonymous" />] }
 
 sub get_resources ( $self, @resources ) {
     my @res;
 
-    for my $name (@resources) {
-        my $res;
+    for my $res (@resources) {
+        my ( $name, %args, $bucket_name );
 
-        if ( is_plain_arrayref $name) {
-            $res = $self->{resources}->{ $name->[0] }->( $self, $name->@[ 1 .. $name->$#* ] );
+        if ( is_plain_arrayref $res) {
+            ( $name, %args ) = $res->@*;
         }
         else {
-            $res = $self->{resources}->{$name}->($self);
+            $name = $res;
         }
 
-        push @res, is_plain_arrayref $res ? $res->@* : $res;
+        if ( substr( $name, 0, 1 ) eq '/' ) {
+            $bucket_name = substr $name, 0, index( $name, '/', 1 ) + 1, '';
+            substr $bucket_name, 0,  1, '';
+            substr $bucket_name, -1, 1, '';
+        }
+        else {
+            $bucket_name = 'default';
+        }
+
+        my $bucket = $self->{bucket}->{$bucket_name};
+
+        die qq[Bucket "$bucket_name" is not defined] if !defined $bucket;
+
+        die qq[CDN resource "$name" is not defined] if !defined $self->{resources}->{$name};
+
+        my $native = $args{native_cdn} // $bucket->{native_cdn} // $self->{native_cdn};
+
+        push @res, $self->{resources}->{$name}->( $self, $bucket, $native, \%args );
     }
 
     return \@res;
 }
+
+sub get_resource_root ( $self, $name, %args ) {
+    my $bucket_name;
+
+    # extract bucket
+    if ( substr( $name, 0, 1 ) eq '/' ) {
+        $bucket_name = substr $name, 0, index( $name, '/', 1 ) + 1, '';
+        substr $bucket_name, 0,  1, '';
+        substr $bucket_name, -1, 1, '';
+    }
+    else {
+        $bucket_name = 'default';
+    }
+
+    my $bucket = $self->{bucket}->{$bucket_name};
+
+    die qq[Bucket "$bucket_name" is not defined] if !defined $bucket;
+
+    die qq[CDN resource "$name" is not defined] if !defined $self->{resources}->{$name};
+
+    my $native = $args{native_cdn} // $bucket->{native_cdn} // $self->{native_cdn};
+
+    return scalar $self->{resources}->{$name}->( $self, $bucket, $native, \%args );
+}
+
+sub get_script_tag ( $self, $url ) { return qq[<script src="$url" integrity="" crossorigin="anonymous"></script>] }
+
+sub get_css_tag ( $self, $url ) { return qq[<link rel="stylesheet" href="$url" integrity="" crossorigin="anonymous" />] }
 
 # $cdn->upload( $path, $data, %args );
 # $cdn->upload( $bucket_name, $path, $data, %args );
@@ -144,7 +202,9 @@ sub get_nginx_cfg($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 112                  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 66, 67, 68, 95, 96,  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      | 97, 122, 123, 124,   |                                                                                                                |
+## |      | 170                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

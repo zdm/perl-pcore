@@ -20,10 +20,10 @@ sub BUILD ( $self, $args ) {
 
 sub get_url ( $self, $path ) {
     if ( $self->{edge_links} ) {
-        return $self->{prefix_edge} . $path;
+        return "$self->{prefix_edge}/$path";
     }
     else {
-        return $self->{prefix} . $path;
+        return "$self->{prefix}/$path";
     }
 }
 
