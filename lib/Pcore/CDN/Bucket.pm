@@ -9,9 +9,20 @@ use overload '&{}' => sub ( $self, @ ) {
 
 requires qw[upload];
 
-has id         => sub {uuid_v1mc_str}, init_arg => undef;
-has native_cdn => ();
-has can_upload => ( init_arg => undef );
+has id            => sub {uuid_v1mc_str}, init_arg => undef;
+has native_cdn    => ();
+has cache_control => ();                                       # HashRef
+has can_upload    => ( init_arg => undef );
+
+around BUILD => sub ( $orig, $self, $args ) {
+    $self->$orig($args);
+
+    # set default cache control settings
+    $self->{cache_control}->{'/'}        //= 'public, private, must-revalidate, proxy-revalidate';
+    $self->{cache_control}->{'/static/'} //= 'public, max-age=30672000';
+
+    return;
+};
 
 sub get_url ( $self, $path ) { return "$self->{prefix}/$path" }
 

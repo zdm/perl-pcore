@@ -14,10 +14,10 @@ has resources  => ();                      # HashRef[CodeRef]
 around new => sub ( $orig, $self, $args ) {
     $self = $self->$orig;
 
-    $self->{native_cdn} = delete $args->{native_cdn};
+    $self->{native_cdn} = $args->{native_cdn};
 
-    # load resources
-    if ( my $resources = delete $args->{resources} ) {
+    # resources
+    if ( my $resources = $args->{resources} ) {
         for my $lib ( $resources->@* ) {
             P->class->load( $lib =~ s/-/::/smgr );
 
@@ -31,8 +31,8 @@ around new => sub ( $orig, $self, $args ) {
         }
     }
 
-    # create buckets
-    while ( my ( $name, $cfg ) = each $args->%* ) {
+    # buckets
+    while ( my ( $name, $cfg ) = each $args->{buckets}->%* ) {
 
         # skip aliases
         next if !is_ref $cfg;
@@ -44,8 +44,8 @@ around new => sub ( $orig, $self, $args ) {
         $self->{bucket}->{default_upload} //= $bucket if $bucket->{can_upload};
     }
 
-    # assign buckets aliases
-    while ( my ( $name, $target ) = each $args->%* ) {
+    # buckets aliases
+    while ( my ( $name, $target ) = each $args->{buckets}->%* ) {
 
         # skip buckets
         next if is_ref $target;
@@ -168,6 +168,7 @@ sub upload ( $self, $path, $data, @args ) {
     return $bucket->upload( $path, $data, @args );
 }
 
+# TODO cache_control
 sub sync ( $self, $local, $remote, @locations ) {
     $local = $self->{bucket}->{$local};
 
@@ -213,7 +214,7 @@ sub get_nginx_cfg($self) {
 ## |======+======================+================================================================================================================|
 ## |    2 | 70, 71, 72, 99, 100, | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |      |  101, 126, 127, 128, |                                                                                                                |
-## |      |  156, 157, 158, 179  |                                                                                                                |
+## |      |  156, 157, 158, 180  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

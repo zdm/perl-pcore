@@ -5,36 +5,35 @@ use Pcore::Util::Scalar qw[is_plain_arrayref is_plain_coderef];
 
 with qw[Pcore::CDN::Bucket];
 
-has locations => ();         # HashRef
-has prefix    => ('/cdn');
+has prefix => ('/cdn');
 
-has libs            => ( init_arg => undef );    # ArrayRef
+has locations       => ( init_arg => undef );    # ArrayRef
 has upload_location => ( init_arg => undef );
 has is_local => ( 1, init_arg => undef );
 
 sub BUILD ( $self, $args ) {
 
-    # load libs
-    for my $path ( $args->{libs}->@* ) {
+    # locations
+    for my $location ( $args->{locations}->@* ) {
 
-        # $path is absolute
-        if ( $path =~ m[\A/]sm ) {
-            P->file->mkpath( $path, mode => 'rwxr-xr-x' ) || die qq[Can't create CDN path "$path", $!] if !-d $path;
+        # location is absolute
+        if ( $location =~ m[\A/]sm ) {
+            P->file->mkpath( $location, mode => 'rwxr-xr-x' ) || die qq[Can't create CDN path "$location", $!] if !-d $location;
 
             $self->{can_upload} = 1;
-            $self->{upload_location} //= $path;
+            $self->{upload_location} //= $location;
         }
 
-        # $path is dist name
+        # location is dist name
         else {
-            P->class->load( $path =~ s/-/::/smgr );
+            P->class->load( $location =~ s/-/::/smgr );
 
-            $path = $ENV->{share}->get_storage( $path, 'cdn' );
+            $location = $ENV->{share}->get_storage( $location, 'cdn' );
 
-            next if !$path;
+            next if !$location;
         }
 
-        push $self->{libs}->@*, "$path";
+        push $self->{locations}->@*, "$location";
     }
 
     return;
@@ -44,28 +43,28 @@ sub get_nginx_cfg ($self) {
     my $tmpl = <<'TMPL';
     # cdn
     location <: $prefix :>/ {
-        error_page 418 = @<: $libs[0] :>;
-        set $cache_control "<: $locations["/"] :>";
+        error_page 418 = @<: $locations[0] :>;
+        set $cache_control "<: $cache_control["/"] :>";
         return 418;
-: for $locations.keys().sort() -> $location {
-: next if $location == "/"
+: for $cache_control.keys().sort() -> $cache_control_location {
+: next if $cache_control_location == "/"
 
-        location <: $prefix :><: $location :> {
-            set $cache_control "<: $locations[$location] :>";
+        location <: $prefix :><: $cache_control_location :> {
+            set $cache_control "<: $cache_control[$cache_control_location] :>";
             return 418;
         }
 : }
     }
-:for $libs -> $path {
+:for $locations -> $location {
 
-    location @<: $path :> {
-        root          <: $path :>;
+    location @<: $location :> {
+        root          <: $location :>;
         add_header    Cache-Control $cache_control;
-: if ( $~path.is_last ) {
+: if ( $~location.is_last ) {
         try_files     /../$uri =404;
 : }
 : else {
-        try_files     /../$uri @<: $~path.peek_next :>;
+        try_files     /../$uri @<: $~location.peek_next :>;
 : }
     }
 : }
@@ -73,9 +72,9 @@ TMPL
 
     return P->tmpl->(
         \$tmpl,
-        {   prefix    => $self->{prefix},
-            locations => $self->{locations},
-            libs      => $self->{libs},
+        {   prefix        => $self->{prefix},
+            cache_control => $self->{cache_control},
+            locations     => $self->{locations},
         }
     )->$*;
 }
@@ -100,7 +99,7 @@ sub upload ( $self, $path, $data, @args ) {
     # TODO check, that path is child
     # return $on_finish->( $cb, res 404 );
 
-    P->file->mkpath( $path->{dirname}, mode => 'rwxr-xr-x' ) || return res [ 500, qq[Can't create CDN path "$path", $!] ] if !-d $path->{dirname};
+    P->file->mkpath( $path->{dirname}, mode => 'rwxr-xr-x' ) || return $on_finish->( $cb, res [ 500, qq[Can't create CDN path "$path", $!] ] ) if !-d $path->{dirname};
 
     P->file->write_bin( $path, { mode => 'rw-r--r--' }, $data );    # TODO or return res [ 500, qq[Can't write "$path", $!] ];
 

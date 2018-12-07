@@ -38,6 +38,7 @@ sub upload ( $self, $path, $data, @args ) {
     return $self->s3->upload( $path, $data, @args );
 }
 
+# TODO cache-control
 sub sync ( $self, @args ) {
     return $self->s3->sync(@args);
 }
