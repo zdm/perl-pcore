@@ -9,8 +9,9 @@ use overload '&{}' => sub ( $self, @ ) {
 
 requires qw[upload];
 
-has native_cdn => ();
 has id         => sub {uuid_v1mc_str}, init_arg => undef;
+has native_cdn => ();
+has can_upload => ( init_arg => undef );
 
 sub get_url ( $self, $path ) { return "$self->{prefix}/$path" }
 

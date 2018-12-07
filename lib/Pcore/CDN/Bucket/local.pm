@@ -8,8 +8,8 @@ with qw[Pcore::CDN::Bucket];
 has locations => ();         # HashRef
 has prefix    => ('/cdn');
 
-has libs       => ( init_arg => undef );    # ArrayRef
-has write_path => ( init_arg => undef );
+has libs            => ( init_arg => undef );    # ArrayRef
+has upload_location => ( init_arg => undef );
 has is_local => ( 1, init_arg => undef );
 
 sub BUILD ( $self, $args ) {
@@ -21,7 +21,8 @@ sub BUILD ( $self, $args ) {
         if ( $path =~ m[\A/]sm ) {
             P->file->mkpath( $path, mode => 'rwxr-xr-x' ) || die qq[Can't create CDN path "$path", $!] if !-d $path;
 
-            $self->{write_path} //= $path;
+            $self->{can_upload} = 1;
+            $self->{upload_location} //= $path;
         }
 
         # $path is dist name
@@ -83,7 +84,7 @@ TMPL
 sub upload ( $self, $path, $data, @args ) {
     my $cb = is_plain_coderef $_[-1] ? pop @args : ();
 
-    die q[Bucket has no default write path] if !$self->{write_path};
+    die q[Can't upload to bucket] if !$self->{can_upload};
 
     state $on_finish = sub ( $cb, $res ) {
         if ($cb) {
@@ -94,7 +95,7 @@ sub upload ( $self, $path, $data, @args ) {
         }
     };
 
-    $path = P->path("$self->{write_path}/$path");
+    $path = P->path("$self->{upload_location}/$path");
 
     # TODO check, that path is child
     # return $on_finish->( $cb, res 404 );

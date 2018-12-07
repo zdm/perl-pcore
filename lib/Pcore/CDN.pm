@@ -14,7 +14,7 @@ has resources  => ();                      # HashRef[CodeRef]
 around new => sub ( $orig, $self, $args ) {
     $self = $self->$orig;
 
-    $self->{native_cdn} = $args->{native_cdn};
+    $self->{native_cdn} = delete $args->{native_cdn};
 
     # load resources
     if ( my $resources = delete $args->{resources} ) {
@@ -37,9 +37,11 @@ around new => sub ( $orig, $self, $args ) {
         # skip aliases
         next if !is_ref $cfg;
 
-        $self->{bucket}->{$name} = P->class->load( $cfg->{type}, ns => 'Pcore::CDN::Bucket' )->new($cfg);
+        my $bucket = $self->{bucket}->{$name} = P->class->load( $cfg->{type}, ns => 'Pcore::CDN::Bucket' )->new($cfg);
 
-        $self->{bucket}->{default} //= $name;
+        $self->{bucket}->{default} //= $bucket;
+
+        $self->{bucket}->{default_upload} //= $bucket if $bucket->{can_upload};
     }
 
     # assign buckets aliases
@@ -50,6 +52,8 @@ around new => sub ( $orig, $self, $args ) {
 
         $self->{bucket}->{$name} = $self->{bucket}->{$target};
     }
+
+    $self->{bucket}->{default_upload} = $self->{bucket}->{default} if !defined $self->{bucket}->{default_upload} && $self->{bucket}->{default}->{can_upload};
 
     return $self;
 };
@@ -142,21 +146,26 @@ sub get_script_tag ( $self, $url ) { return qq[<script src="$url" integrity="" c
 
 sub get_css_tag ( $self, $url ) { return qq[<link rel="stylesheet" href="$url" integrity="" crossorigin="anonymous" />] }
 
-# $cdn->upload( $path, $data, %args );
-# $cdn->upload( $bucket_name, $path, $data, %args );
-sub upload ( $self, @ ) {
-    my ( $bucket_name, $path, $data, @args );
+sub upload ( $self, $path, $data, @args ) {
+    my $bucket_name;
 
-    my $cb = is_plain_coderef $_[-1] ? pop : ();
+    # extract bucket
+    if ( substr( $path, 0, 1 ) eq '/' ) {
+        $path = "$path" if is_ref $path;
 
-    if ( @_ % 2 ) {
-        ( $bucket_name, $path, $data, @args ) = ( 'default', @_[ 1 .. $#_ ] );
+        $bucket_name = substr $path, 0, index( $path, '/', 1 ) + 1, '';
+        substr $bucket_name, 0,  1, '';
+        substr $bucket_name, -1, 1, '';
     }
     else {
-        ( $bucket_name, $path, $data, @args ) = @_[ 1 .. $#_ ];
+        $bucket_name = 'default_upload';
     }
 
-    return $self->{bucket}->{ $bucket_name // 'default' }->upload( $path, $data, @args, $cb || () );
+    my $bucket = $self->{bucket}->{$bucket_name};
+
+    die qq[Bucket "$bucket_name" is not defined] if !defined $bucket;
+
+    return $bucket->upload( $path, $data, @args );
 }
 
 sub sync ( $self, $local, $remote, @locations ) {
@@ -202,9 +211,9 @@ sub get_nginx_cfg($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 66, 67, 68, 95, 96,  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 97, 122, 123, 124,   |                                                                                                                |
-## |      | 170                  |                                                                                                                |
+## |    2 | 70, 71, 72, 99, 100, | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      |  101, 126, 127, 128, |                                                                                                                |
+## |      |  156, 157, 158, 179  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
