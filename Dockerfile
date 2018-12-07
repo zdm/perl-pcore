@@ -5,7 +5,7 @@ LABEL maintainer="zdm <zdm@softvisio.net>"
 USER root
 
 ENV TZ=UTC \
-    PERL_VERSION="5.28.0" \
+    PERL_VERSION="5.28.1" \
     PERL_CPANM_OPT="--metacpan --from https://cpan.metacpan.org/" \
     PERL_CPANM_HOME=/tmp/.cpanm \
     PCORE_LIB="/var/local" \
