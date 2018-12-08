@@ -31,11 +31,10 @@ sub s3 ($self) {
     return $self->{s3};
 }
 
-# TODO detect cache-control, gzip automatically
 sub upload ( $self, $path, $data, @args ) {
     die q[Can't upload to bucket] if !$self->{can_upload};
 
-    return $self->s3->upload( $path, $data, @args );
+    return $self->s3->upload( $path, $data, cache_control => $self->find_cache_control("/$path"), @args );
 }
 
 # TODO cache-control
