@@ -5,7 +5,6 @@ use Pcore::Util::Digest qw[sha256_hex hmac_sha256 hmac_sha256_hex];
 use Pcore::Util::Scalar qw[is_ref is_plain_coderef];
 use Pcore::Util::Data qw[to_uri_query from_xml];
 use Pcore::Util::Scalar qw[weaken];
-use Pcore::Util::File::Tree;
 use Pcore::Util::Term::Progress;
 use IO::Compress::Gzip qw[gzip];
 
@@ -483,24 +482,14 @@ XML
     return $self->_req($args);
 }
 
-sub sync ( $self, $roots, $locations ) {
-    my $tree = Pcore::Util::File::Tree->new;
-
-    # load libs, add files
-    for my $path ( $roots->@* ) {
-        for my $location ( sort { length $a <=> length $b } keys $locations->%* ) {
-
-            $tree->add_dir( "$path/$location", $location, $locations->{$location} ? { 'Cache-Control' => $locations->{$location} } : () ) if -d "$path/$location";
-        }
-    }
-
+sub sync ( $self, $locations, $tree ) {
     my $remote_files;
 
     # get remote files
     {
         my $cv = P->cv->begin;
 
-        for my $location ( keys $locations->%* ) {
+        for my $location ( $locations->@* ) {
             $cv->begin;
 
             $self->get_all_bucket_content(
@@ -594,8 +583,8 @@ sub sync ( $self, $roots, $locations ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 104, 231, 232, 233,  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 234                  |                                                                                                                |
+## |    2 | 103, 230, 231, 232,  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      | 233                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -2,6 +2,7 @@ package Pcore::CDN;
 
 use Pcore -class;
 use Pcore::Util::Scalar qw[weaken is_ref is_plain_arrayref is_plain_coderef];
+use Pcore::Util::File::Tree;
 use overload '&{}' => sub ( $self, @ ) {
     sub { $self->get_url(@_) }
   },
@@ -168,25 +169,24 @@ sub upload ( $self, $path, $data, @args ) {
     return $bucket->upload( $path, $data, @args );
 }
 
-# TODO cache_control
 sub sync ( $self, $local, $remote, @locations ) {
-    $local = $self->{bucket}->{$local};
+    $local  = $self->{bucket}->{$local};
+    $remote = $self->{bucket}->{$remote};
 
-    my $local_locations = $local->{locations};
+    my $tree = Pcore::Util::File::Tree->new;
 
-    my $locations;
-
-    for my $location (@locations) {
-        my $match = '';
-
-        for my $loc_cache ( keys $local_locations->%* ) {
-            $match = $loc_cache if length $loc_cache > length $match && index( $location, $loc_cache ) == 0;
+    # create tree
+    for my $root ( $local->{locations}->@* ) {
+        for my $location (@locations) {
+            $tree->add_dir( "$root/$location", $location );
         }
-
-        $locations->{$location} = $match ? $local_locations->{$match} : undef;
     }
 
-    return $self->{bucket}->{$remote}->sync( $local->{libs}, $locations );
+    for my $file ( values $tree->{files}->%* ) {
+        $file->{meta}->{'Cache-Control'} = $remote->find_cache_control( $file->{path} );
+    }
+
+    return $remote->sync( \@locations, $tree );
 }
 
 sub get_nginx_cfg($self) {
@@ -212,9 +212,9 @@ sub get_nginx_cfg($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 70, 71, 72, 99, 100, | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      |  101, 126, 127, 128, |                                                                                                                |
-## |      |  156, 157, 158, 180  |                                                                                                                |
+## |    2 | 71, 72, 73, 100,     | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |      | 101, 102, 127, 128,  |                                                                                                                |
+## |      | 129, 157, 158, 159   |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
