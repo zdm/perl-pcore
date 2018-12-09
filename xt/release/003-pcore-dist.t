@@ -196,7 +196,7 @@ sub run_test (@args) {
         delete $args{cpan_share_dir};
     }
     else {
-        $args{prefix} = q[];
+        $args{prefix} = $EMPTY;
     }
 
     my $t = generate_test_dir( $dist_name, \%args );

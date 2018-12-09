@@ -37,8 +37,8 @@ const our $SEVERITY         => {
 };
 
 sub decompress ( $self ) {
-    my $err = q[];
-    my $log = q[];
+    my $err = $EMPTY;
+    my $log = $EMPTY;
 
     # format heredocs
     $self->_format_heredoc;
@@ -234,7 +234,7 @@ sub compress ( $self ) {
     };
 
     # cut __END__ or __DATA__ sections
-    my $data_section = q[];
+    my $data_section = $EMPTY;
 
     if ( $self->{data}->$* =~ s/(\n__(END|DATA)__(?:\n.*|))\z//sm ) {
         $data_section = $1 if $self->{perl_compress_end_section} || $2 eq 'DATA';

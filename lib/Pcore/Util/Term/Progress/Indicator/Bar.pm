@@ -9,7 +9,7 @@ our $MESS_COLOR        = $BOLD . $YELLOW;
 our $BAR_COLOR         = $YELLOW;
 
 sub _draw ($self) {
-    my $info = q[];
+    my $info = $EMPTY;
 
     # state
     if ( $self->{show_state} ) {
@@ -70,7 +70,7 @@ sub _draw ($self) {
         }
     }
 
-    my $bar = q[];
+    my $bar = $EMPTY;
 
     # bar
     if ( $self->{total} ) {
@@ -114,7 +114,7 @@ sub _draw ($self) {
                 $bar .= q[ ] x ( $bar_size - $current_pos );
             }
             else {    # hl mess part
-                my $mess_hl = substr $mess, 0, $current_pos, q[];
+                my $mess_hl = substr $mess, 0, $current_pos, $EMPTY;
 
                 $bar .= $MESS_COLOR;
 

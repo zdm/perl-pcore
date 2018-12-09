@@ -183,7 +183,7 @@ sub finish ($self) {
         return $self->_render_line(5);
     }
     else {
-        return q[];
+        return $EMPTY;
     }
 }
 
@@ -288,7 +288,7 @@ sub _render_row ( $self, $row, $header_row = 0 ) {
         }
     }
 
-    my $padding = $self->{padding} ? q[ ] x $self->{padding} : q[];
+    my $padding = $self->{padding} ? q[ ] x $self->{padding} : $EMPTY;
 
     # render
     for my $line_idx ( 0 .. $row_height - 1 ) {

@@ -181,7 +181,7 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
     return $on_error->( $self, $h->{status}, $h->{reason} ) if !$h;
 
     # generate websocket key
-    my $sec_websocket_key = to_b64 rand 100_000, q[];
+    my $sec_websocket_key = to_b64 rand 100_000, $EMPTY;
 
     my @headers = (    #
         "GET @{[$uri->path_query]} HTTP/1.1",
@@ -307,7 +307,7 @@ sub _set_status ( $self, $status, $reason = undef ) {
 
 # UTILS
 sub _get_challenge ( $self, $key ) {
-    return to_b64( sha1( ($key) . $WEBSOCKET_GUID ), q[] );
+    return to_b64( sha1( ($key) . $WEBSOCKET_GUID ), $EMPTY );
 }
 
 sub _build_frame ( $self, $fin, $rsv1, $rsv2, $rsv3, $op, $payload_ref ) {
@@ -326,7 +326,7 @@ sub _build_frame ( $self, $fin, $rsv1, $rsv2, $rsv3, $op, $payload_ref ) {
 
         $deflate->flush( $out, Z_SYNC_FLUSH );
 
-        substr $out, -4, 4, q[];
+        substr $out, -4, 4, $EMPTY;
 
         $payload_ref = \$out;
     }
@@ -594,7 +594,7 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
             my ( $status, $reason );
 
             if ( $payload_ref && length $payload_ref->$* >= 2 ) {
-                $status = unpack 'n', substr $payload_ref->$*, 0, 2, q[];
+                $status = unpack 'n', substr $payload_ref->$*, 0, 2, $EMPTY;
 
                 $reason = decode_utf8 $payload_ref->$* if length $payload_ref->$*;
             }
@@ -609,14 +609,14 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
         elsif ( $header->{op} == $WEBSOCKET_OP_PING ) {
 
             # reply pong automatically
-            $self->send_pong( $payload_ref ? $payload_ref->$* : q[] );
+            $self->send_pong( $payload_ref ? $payload_ref->$* : $EMPTY );
 
-            $self->{on_ping}->( $self, $payload_ref || \q[] ) if $self->{on_ping};
+            $self->{on_ping}->( $self, $payload_ref || \$EMPTY ) if $self->{on_ping};
         }
 
         # PONG message
         elsif ( $header->{op} == $WEBSOCKET_OP_PONG ) {
-            $self->{on_pong}->( $self, $payload_ref || \q[] ) if $self->{on_pong};
+            $self->{on_pong}->( $self, $payload_ref || \$EMPTY ) if $self->{on_pong};
         }
     }
 

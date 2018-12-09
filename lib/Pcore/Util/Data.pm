@@ -180,7 +180,7 @@ sub decode_data ( $type, @ ) {
         if ( bytes::length( $data_ref->$* ) - $token_len == hex $2 ) {
             $args{has_token} = 1;
 
-            substr $data_ref->$*, -$token_len, $token_len, q[];
+            substr $data_ref->$*, -$token_len, $token_len, $EMPTY;
 
             ( $args{compress}, $args{cipher}, $args{secret_index}, $args{encode}, $type ) = split //sm, sprintf '%05s', hex $1;
 
@@ -280,7 +280,7 @@ sub to_perl ( $data, %args ) {
 
     local $Data::Dumper::Indent     = 0;
     local $Data::Dumper::Purity     = 1;
-    local $Data::Dumper::Pad        = q[];
+    local $Data::Dumper::Pad        = $EMPTY;
     local $Data::Dumper::Terse      = 1;
     local $Data::Dumper::Deepcopy   = 0;
     local $Data::Dumper::Quotekeys  = 0;
@@ -539,7 +539,7 @@ sub to_ini ( $data, @ ) {
 sub from_ini ( $data, @ ) {
     my $cfg = {};
 
-    my @lines = grep { $_ ne q[] } map { trim $_} split /\n/sm, decode_utf8 is_plain_scalarref $data ? $data->$* : $data;
+    my @lines = grep { $_ ne $EMPTY } map { trim $_} split /\n/sm, decode_utf8 is_plain_scalarref $data ? $data->$* : $data;
 
     my $path = $cfg;
 
@@ -565,7 +565,7 @@ sub from_ini ( $data, @ ) {
                 if ( defined $val ) {
                     trim $val;
 
-                    $val = undef if $val eq q[];
+                    $val = undef if $val eq $EMPTY;
                 }
 
                 $path->{ trim $key} = $val;
@@ -616,9 +616,9 @@ sub to_xor ( $buf, $mask ) {
         $mlen = length $mask;
     }
 
-    my $tmp_buf = my $out = q[];
+    my $tmp_buf = my $out = $EMPTY;
 
-    $out .= $tmp_buf ^ $mask while length( $tmp_buf = substr $buf, 0, $mlen, q[] ) == $mlen;
+    $out .= $tmp_buf ^ $mask while length( $tmp_buf = substr $buf, 0, $mlen, $EMPTY ) == $mlen;
 
     $out .= $tmp_buf ^ substr $mask, 0, length $tmp_buf;
 
@@ -954,7 +954,7 @@ sub to_uri_query : prototype($) ($data) {
 
     if ( is_plain_arrayref $data ) {
         for ( my $i = 0; $i <= $data->$#*; $i += 2 ) {
-            push @res, join q[=], defined $data->[$i] ? to_uri_component $data->[$i] : q[], defined $data->[ $i + 1 ] ? to_uri_component $data->[ $i + 1 ] : ();
+            push @res, join q[=], defined $data->[$i] ? to_uri_component $data->[$i] : $EMPTY, defined $data->[ $i + 1 ] ? to_uri_component $data->[ $i + 1 ] : ();
         }
     }
     elsif ( is_plain_hashref $data) {
@@ -990,9 +990,9 @@ sub from_uri_query : prototype($) ($uri) {
         my $val;
 
         if ( ( my $idx = index $key, q[=] ) != -1 ) {
-            $val = substr $key, $idx, length $key, q[];
+            $val = substr $key, $idx, length $key, $EMPTY;
 
-            substr $val, 0, 1, q[];
+            substr $val, 0, 1, $EMPTY;
 
             $val = from_uri $val;
         }
@@ -1014,9 +1014,9 @@ sub from_uri_query_utf8 : prototype($) ($uri) {
         my $val;
 
         if ( ( my $idx = index $key, q[=] ) != -1 ) {
-            $val = substr $key, $idx, length $key, q[];
+            $val = substr $key, $idx, length $key, $EMPTY;
 
-            substr $val, 0, 1, q[];
+            substr $val, 0, 1, $EMPTY;
 
             $val = from_uri_utf8 $val;
         }
