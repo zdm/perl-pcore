@@ -55,7 +55,7 @@ sub _build_exe_filename ($self) {
 
 # TODO enable repack
 sub run ($self) {
-    say qq[\nBuilding ] . ( $self->{crypt} ? $BLACK . $ON_GREEN . ' crypted ' : $BOLD . $WHITE . $ON_RED . q[ not crypted ] ) . $RESET . q[ ] . $BLACK . $ON_GREEN . ( $self->{clean} ? ' clean ' : ' cached ' ) . $RESET . qq[ "@{[$self->exe_filename]}" for $Config{archname}$LF];
+    say qq[\nBuilding ] . ( $self->{crypt} ? $BLACK . $ON_GREEN . ' crypted ' : $BOLD . $WHITE . $ON_RED . q[ not crypted ] ) . $RESET . $SPACE . $BLACK . $ON_GREEN . ( $self->{clean} ? ' clean ' : ' cached ' ) . $RESET . qq[ "@{[$self->exe_filename]}" for $Config{archname}$LF];
 
     # add main script
     $self->_add_perl_source( $self->{script}->to_abs->{path}, 'script/main.pl' );
@@ -130,7 +130,7 @@ sub run ($self) {
 
     P->file->chmod( 'rwx------', $target_exe );
 
-    say 'final binary size: ' . $BLACK . $ON_GREEN . q[ ] . add_num_sep( -s $target_exe ) . q[ ] . $RESET . ' bytes';
+    say 'final binary size: ' . $BLACK . $ON_GREEN . $SPACE . add_num_sep( -s $target_exe ) . $SPACE . $RESET . ' bytes';
 
     $self->_gui($target_exe) if $self->{gui} && $MSWIN;
 

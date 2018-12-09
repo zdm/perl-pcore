@@ -12,7 +12,7 @@ use Coro::EV qw[];
 use overload    #
   q[bool]  => sub { return $_[0]->{is_connected} },
   q[0+]    => sub { return $_[0]->{status} },
-  q[""]    => sub { return $_[0]->{status} . q[ ] . $_[0]->{reason} },
+  q[""]    => sub { return $_[0]->{status} . $SPACE . $_[0]->{reason} },
   fallback => 1;
 
 our $EXPORT = {
@@ -640,7 +640,7 @@ sub _parse_http_headers ( $self, $buf ) {
     #             $res->{reason} = $3;
 
     #             while ( my $header = shift @lines ) {
-    #                 if ( substr( $header, 0, 1 ) eq q[ ] ) {
+    #                 if ( substr( $header, 0, 1 ) eq $SPACE ) {
     #                     if ($parsed_headers) {
     #                         $parsed_headers->[-1] .= $header;
     #                     }

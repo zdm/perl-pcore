@@ -386,12 +386,12 @@ sub wrap ( $text, $width, % ) {
             if ( $args{align} == -1 ) {
 
                 # right
-                $line .= ( q[ ] x ( $width - $len ) );
+                $line .= ( $SPACE x ( $width - $len ) );
             }
             elsif ( $args{align} == 1 ) {
 
                 # left
-                $line = q[ ] x ( $width - $len ) . $line;
+                $line = $SPACE x ( $width - $len ) . $line;
             }
             elsif ( $args{align} == 0 ) {
 
@@ -399,7 +399,7 @@ sub wrap ( $text, $width, % ) {
                 my $left  = int( ( $width - $len ) / 2 );
                 my $right = $width - $len - $left;
 
-                $line = ( q[ ] x $left ) . $line . ( q[ ] x $right );
+                $line = ( $SPACE x $left ) . $line . ( $SPACE x $right );
             }
             else {
                 die q[Invalid align value];

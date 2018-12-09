@@ -8,9 +8,9 @@ use Pcore::Util::Data qw[to_b64 to_xor];
 use Pcore::Util::Digest qw[sha1];
 use Compress::Raw::Zlib;
 use overload    #
-  q[bool]  => sub { return $_[0]->{is_connected} },
-  q[0+]    => sub { return $_[0]->{status} },
-  q[""]    => sub { return $_[0]->{status} . q[ ] . $_[0]->{reason} },
+  'bool'   => sub { return $_[0]->{is_connected} },
+  '0+'     => sub { return $_[0]->{status} },
+  '""'     => sub { return "$_[0]->{status} $_[0]->{reason}" },
   fallback => 1;
 
 # Websocket v13 spec. https://tools.ietf.org/html/rfc6455
