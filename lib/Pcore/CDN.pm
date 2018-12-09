@@ -68,9 +68,9 @@ sub get_url ( $self, $path ) {
     if ( substr( $path, 0, 1 ) eq '/' ) {
         $path = "$path" if is_ref $path;
 
-        $bucket_name = substr $path, 0, index( $path, '/', 1 ) + 1, '';
-        substr $bucket_name, 0,  1, '';
-        substr $bucket_name, -1, 1, '';
+        $bucket_name = substr $path, 0, index( $path, '/', 1 ) + 1, $EMPTY;
+        substr $bucket_name, 0,  1, $EMPTY;
+        substr $bucket_name, -1, 1, $EMPTY;
     }
     else {
         $bucket_name = 'default';
@@ -97,9 +97,9 @@ sub get_resources ( $self, @resources ) {
         }
 
         if ( substr( $name, 0, 1 ) eq '/' ) {
-            $bucket_name = substr $name, 0, index( $name, '/', 1 ) + 1, '';
-            substr $bucket_name, 0,  1, '';
-            substr $bucket_name, -1, 1, '';
+            $bucket_name = substr $name, 0, index( $name, '/', 1 ) + 1, $EMPTY;
+            substr $bucket_name, 0,  1, $EMPTY;
+            substr $bucket_name, -1, 1, $EMPTY;
         }
         else {
             $bucket_name = 'default';
@@ -124,9 +124,9 @@ sub get_resource_root ( $self, $name, %args ) {
 
     # extract bucket
     if ( substr( $name, 0, 1 ) eq '/' ) {
-        $bucket_name = substr $name, 0, index( $name, '/', 1 ) + 1, '';
-        substr $bucket_name, 0,  1, '';
-        substr $bucket_name, -1, 1, '';
+        $bucket_name = substr $name, 0, index( $name, '/', 1 ) + 1, $EMPTY;
+        substr $bucket_name, 0,  1, $EMPTY;
+        substr $bucket_name, -1, 1, $EMPTY;
     }
     else {
         $bucket_name = 'default';
@@ -154,9 +154,9 @@ sub upload ( $self, $path, $data, @args ) {
     if ( substr( $path, 0, 1 ) eq '/' ) {
         $path = "$path" if is_ref $path;
 
-        $bucket_name = substr $path, 0, index( $path, '/', 1 ) + 1, '';
-        substr $bucket_name, 0,  1, '';
-        substr $bucket_name, -1, 1, '';
+        $bucket_name = substr $path, 0, index( $path, '/', 1 ) + 1, $EMPTY;
+        substr $bucket_name, 0,  1, $EMPTY;
+        substr $bucket_name, -1, 1, $EMPTY;
     }
     else {
         $bucket_name = 'default_upload';
@@ -206,18 +206,6 @@ sub get_nginx_cfg($self) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    2 | 71, 72, 73, 100,     | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 101, 102, 127, 128,  |                                                                                                                |
-## |      | 129, 157, 158, 159   |                                                                                                                |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

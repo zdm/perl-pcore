@@ -100,7 +100,7 @@ sub _req1 ( $self, $args ) {
 
     $args->{path} = "/$args->{path}" if substr( $args->{path}, 0, 1 ) ne '/';
 
-    my $uri = P->uri( sprintf "https://%s%s.$self->{endpoint}%s?%s", $args->{bucket} ? "$args->{bucket}." : '', $args->{region} || $self->{region}, $args->{path}, defined $args->{query} ? to_uri_query $args->{query} : '' );
+    my $uri = P->uri( sprintf "https://%s%s.$self->{endpoint}%s?%s", $args->{bucket} ? "$args->{bucket}." : $EMPTY, $args->{region} || $self->{region}, $args->{path}, defined $args->{query} ? to_uri_query $args->{query} : $EMPTY );
 
     my $date          = P->date->now_utc;
     my $date_ymd      = $date->strftime('%Y%m%d');
@@ -227,10 +227,10 @@ sub get_bucket_content ( $self, @args ) {
         method => 'GET',
         path   => '/',
         query  => [
-            delimiter  => $args{delim}  // '',
-            marker     => $args{marker} // '',
-            'max-keys' => $args{max}    // '',
-            prefix     => $args{prefix} // '',
+            delimiter  => $args{delim}  // $EMPTY,
+            marker     => $args{marker} // $EMPTY,
+            'max-keys' => $args{max}    // $EMPTY,
+            prefix     => $args{prefix} // $EMPTY,
         ],
         cb => sub ($res) {
             if ( $res && $res->{data} ) {
@@ -577,17 +577,6 @@ sub sync ( $self, $locations, $tree ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    2 | 103, 230, 231, 232,  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |      | 233                  |                                                                                                                |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

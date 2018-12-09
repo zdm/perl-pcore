@@ -31,7 +31,7 @@ sub get_url ( $self, $path ) { return "$self->{prefix}/$path" }
 sub get_nginx_cfg ($self) {return}
 
 sub find_cache_control ( $self, $path ) {
-    my $map = $self->{_cache_control_sorted} //= [ sort { length $b <=> length $a } keys $self->{cache_control}->%* ];
+    my $map = $self->{_cache_control_sorted} //= [ reverse sort { length $a <=> length $b } keys $self->{cache_control}->%* ];
 
     for my $loc ( $map->@* ) {
         return $self->{cache_control}->{$loc} if substr( $path, 0, length $loc ) eq $loc;
@@ -41,16 +41,6 @@ sub find_cache_control ( $self, $path ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    1 | 34                   | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
