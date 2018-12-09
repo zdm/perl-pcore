@@ -31,17 +31,18 @@ cdn:
         local:
             type: local
             locations:
-                - <: \$DATA_DIR :>/cdn
+: my $DATA_DIR_VAR = "<: $DATA_DIR :>"
+                - <: $DATA_DIR_VAR | raw :>/cdn
                 - <: $dist_name :>
                 - Pcore-CDN-Static-Data
             cache_control:
                 /<: $dist_path :>/images/: public, private, must-revalidate, proxy-revalidate
         s3:
             type: digitalocean
-            bucket: 
+            bucket:
             region: nyc3
-            key: 
-            secret: 
+            key:
+            secret:
             edge_links: 0
             cache_control:
                 /<: $dist_path :>/images/: public, private, must-revalidate, proxy-revalidate

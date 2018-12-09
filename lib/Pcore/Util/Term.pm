@@ -213,7 +213,7 @@ sub read_input {
     else {
         $args{timeout} = 0;    # drop timout if user start enter something
 
-        $key =~ s/[\x0D\x0A]//smg;
+        $key =~ s/[\r\n]//smg;
 
         if ( $key eq $EMPTY ) {    # ENTER
             if ( $args{on_read} ) {
