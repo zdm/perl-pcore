@@ -14,8 +14,8 @@ has hosts => ( required => 1 );    # HashRef
 has map           => ();           # HashRef, router path -> class name
 has host_api_path => ();           # HashRef
 
-has _path_class_cache     => ();   # HashRef, router path -> sigleton cache
-has _class_instance_cache => ();   # HashRef, class name -> sigleton cache
+has path_ctrl  => ();              # HashRef, router path -> sigleton cache
+has class_ctrl => ();              # HashRef, class name -> sigleton cache
 
 sub BUILD ( $self, $args ) {
 
@@ -108,11 +108,11 @@ sub _get_host_map ( $self, $host, $ns ) {
             $obj->{path} = $route;
         }
 
-        die qq[Route "$route" is not unique] if exists $self->{_path_class_cache}->{$host}->{$route};
+        die qq[Controller path "$route" is not unique] if exists $self->{path_ctrl}->{$host}->{$route};
 
         $map->{$route} = $class;
 
-        $self->{_class_instance_cache}->{$class} = $self->{_path_class_cache}->{$host}->{$route} = $obj;
+        $self->{class_ctrl}->{$class} = $self->{path_ctrl}->{$host}->{$route} = $obj;
 
         if ( $class->does('Pcore::App::Controller::API') ) {
 
@@ -195,15 +195,11 @@ sub run ( $self, $req ) {
     $req->{host} = $host;
     $req->{path} = $req_path;
 
-    my $ctrl = $self->{_class_instance_cache}->{$class};
+    my $ctrl = $self->{class_ctrl}->{$class};
 
     Coro::async_pool { $ctrl->run($req) };
 
     return;
-}
-
-sub get_ctrl_by_class_name ( $self, $class_name ) {
-    return $self->{_class_instance_cache}->{$class_name};
 }
 
 sub get_host_api_path ( $self, $host ) {

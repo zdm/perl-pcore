@@ -4,8 +4,6 @@ use Pcore -role;
 
 with qw[Pcore::App::Controller];
 
-has path => '/';
-
 sub get_nginx_cfg ($self) {
     return <<"TXT";
     location =/ {
