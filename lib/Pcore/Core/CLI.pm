@@ -326,7 +326,7 @@ sub _parse_opt ( $self, $argv ) {
         }
     }
 
-    return $self->help_usage( [qq[unexpected arguments]] ) if $parsed_args->@*;
+    return $self->help_usage( [q[unexpected arguments]] ) if $parsed_args->@*;
 
     # validate cli
     my $class = $self->{class};
@@ -454,7 +454,7 @@ sub _help_usage ($self) {
         $help = 'options ([+] - can be repeated, [!] - is required):' . $LF . $LF;
 
         for my $opt ( values $self->opt->%* ) {
-            $list->{ $opt->{name} } = [ $opt->help_spec, $opt->{desc} // '' ];
+            $list->{ $opt->{name} } = [ $opt->help_spec, $opt->{desc} // $EMPTY ];
         }
     }
 
@@ -558,13 +558,9 @@ sub help_error ( $self, $msg ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 42                   | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 329                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 488, 516             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 108                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 457                  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

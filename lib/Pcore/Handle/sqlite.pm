@@ -232,7 +232,7 @@ sub quote ( $self, $var ) {
     else {
 
         # quote \x00 in literal
-        if ( index( $var, "\x00" ) != -1 ) {
+        if ( index( $var, "\N{NULL}" ) != -1 ) {
             utf8::encode $var if utf8::is_utf8 $var;
 
             return q[CAST(x'] . unpack( 'H*', $var ) . q[' AS TEXT)];
@@ -762,8 +762,6 @@ sub attach ( $self, $name, $path = undef ) {
 ## |    3 | 377                  | Subroutines::ProhibitExcessComplexity - Subroutine "do" with high complexity score (28)                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 460                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 235                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 350                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|

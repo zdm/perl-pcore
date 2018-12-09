@@ -95,7 +95,7 @@ sub test ( $self, @ ) {
 
         return if !P->sys->run_proc(".${psplit}Build");
 
-        return if !P->sys->run_proc( [ ".${psplit}Build", 'test', $args{verbose} ? '--verbose' : '' ] );
+        return if !P->sys->run_proc( [ ".${psplit}Build", 'test', $args{verbose} ? '--verbose' : $EMPTY ] );
     }
 
     return 1;
@@ -158,16 +158,6 @@ sub tgz ($self) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    2 | 98                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

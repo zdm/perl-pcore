@@ -236,7 +236,7 @@ sub validate ( $self, $opt ) {
             return;
         }
     }
-    elsif ( defined $self->{default_val} && $opt->{$name} eq '' ) {
+    elsif ( defined $self->{default_val} && $opt->{$name} eq $EMPTY ) {
 
         # apply default_val if opt is exists. but value is not specified
         $opt->{$name} = $self->{default_val};
@@ -287,8 +287,6 @@ sub validate ( $self, $opt ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 34                   | Subroutines::ProhibitExcessComplexity - Subroutine "BUILD" with high complexity score (35)                     |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 239                  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

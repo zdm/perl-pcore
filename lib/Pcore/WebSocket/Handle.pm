@@ -185,7 +185,7 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
 
     my @headers = (    #
         "GET @{[$uri->path_query]} HTTP/1.1",
-        'Host:' . ( $uri->{host} // '' ),
+        'Host:' . ( $uri->{host} // $EMPTY ),
         "User-Agent:Pcore-HTTP/$Pcore::VERSION",
         'Upgrade:websocket',
         'Connection:upgrade',
@@ -554,7 +554,7 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
                 -LimitOutput  => 1,
             );
 
-            $payload_ref->$* .= "\x00\x00\xff\xff";
+            $payload_ref->$* .= "\N{NULL}\N{NULL}\xff\xff";
 
             $inflate->inflate( $payload_ref, my $out );
 
@@ -640,8 +640,6 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
 ## |    3 | 485, 487, 489        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 46, 557              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 188                  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

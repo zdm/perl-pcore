@@ -53,7 +53,7 @@ sub decompress ( $self ) {
 
     my $perltidy_argv = $self->src_cfg->{perltidy};
 
-    $perltidy_argv .= '' . $self->dist_cfg->{perltidy} if $self->dist_cfg->{perltidy};
+    $perltidy_argv .= $EMPTY . $self->dist_cfg->{perltidy} if $self->dist_cfg->{perltidy};
 
     $perltidy_argv .= " $self->{perl_tidy}" if $self->{perl_tidy};
 
@@ -174,11 +174,11 @@ sub decompress ( $self ) {
                 my $policy = $v;
 
                 if ( keys $violations->{$v}->{desc}->%* > 1 ) {    # multiple violations with different descriptions
-                    $report .= $tbl->render_row( [ $violations->{$v}->{severity}, '', $policy ] );
+                    $report .= $tbl->render_row( [ $violations->{$v}->{severity}, $EMPTY, $policy ] );
 
                     # sorting descriptions by ascending first line number, then by description text
                     for my $desc ( sort { $violations->{$v}->{desc}->{$a}->{line}->[0] != $violations->{$v}->{desc}->{$b}->{line}->[0] ? $violations->{$v}->{desc}->{$a}->{line}->[0] <=> $violations->{$v}->{desc}->{$b}->{line}->[0] : $violations->{$v}->{desc}->{$a}->{text} cmp $violations->{$v}->{desc}->{$b}->{text} } keys $violations->{$v}->{desc}->%* ) {
-                        $report .= $tbl->render_row( [ '', join( ', ', sort { $a <=> $b } $violations->{$v}->{desc}->{$desc}->{line}->@* ), qq[* $violations->{$v}->{desc}->{$desc}->{text}] ] );
+                        $report .= $tbl->render_row( [ $EMPTY, join( ', ', sort { $a <=> $b } $violations->{$v}->{desc}->{$desc}->{line}->@* ), qq[* $violations->{$v}->{desc}->{$desc}->{text}] ] );
                     }
                 }
                 else {                                             # single violation
@@ -188,7 +188,7 @@ sub decompress ( $self ) {
                 }
 
                 # add diagnostic
-                $report .= $tbl->render_row( [ '', '', "\nDiagnostics:\n$violations->{$v}->{diag}" ] ) if $self->{perl_verbose} && $violations->{$v}->{severity} >= $PERLCRITIC_ERROR;
+                $report .= $tbl->render_row( [ $EMPTY, $EMPTY, "\nDiagnostics:\n$violations->{$v}->{diag}" ] ) if $self->{perl_verbose} && $violations->{$v}->{severity} >= $PERLCRITIC_ERROR;
 
                 # add table row line
                 if ( --$total_violations ) {
@@ -393,8 +393,6 @@ sub _cut_log ($self) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 39                   | Subroutines::ProhibitExcessComplexity - Subroutine "decompress" with high complexity score (29)                |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 56, 177, 181, 191    | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 231                  | Miscellanea::ProhibitTies - Tied variable used                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|

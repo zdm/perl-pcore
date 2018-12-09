@@ -127,7 +127,7 @@ sub run ( $self, $req ) {
 
     my $path = P->path("/$env->{PATH_INFO}");
 
-    my $path_tail = $path->{filename} // '';
+    my $path_tail = $path->{filename} // $EMPTY;
 
     $path = $path->{dirname};
     $path .= '/' if length $path > 1;    # add triling '/' to path
@@ -198,16 +198,6 @@ sub get_host_api_path ( $self, $host ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    2 | 130                  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

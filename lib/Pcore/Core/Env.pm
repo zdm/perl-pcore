@@ -114,7 +114,7 @@ sub _configure_inc {
 
             # find and add other dist libs to @INC
             if ( $ENV{PCORE_LIB} && -d $ENV{PCORE_LIB} ) {
-                for my $dir ( sort { $b cmp $a } P->file->read_dir( $ENV{PCORE_LIB}, full_path => 1 )->@* ) {
+                for my $dir ( reverse sort { $a cmp $b } P->file->read_dir( $ENV{PCORE_LIB}, full_path => 1 )->@* ) {
                     if ( !exists $inc_index->{qq[$dir/lib]} && -d qq[$dir/lib/] && Pcore::Dist->dir_is_dist_root($dir) ) {
                         $inc_index->{qq[$dir/lib]} = 1;
 
@@ -183,12 +183,12 @@ sub BUILD ( $self, $args ) {
     my $pcore_path = $INC{'Pcore.pm'};
 
     # remove "/Pcore.pm"
-    substr $pcore_path, -9, 9, '';
+    substr $pcore_path, -9, 9, $EMPTY;
 
     if ( -d "$pcore_path/../share" ) {
 
         # remove "/lib"
-        substr $pcore_path, -4, 4, '';
+        substr $pcore_path, -4, 4, $EMPTY;
 
         $self->{PCORE_SHARE_DIR} = "$pcore_path/share";
     }
@@ -428,11 +428,7 @@ END {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 382                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 186, 191             | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 409                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 117                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
