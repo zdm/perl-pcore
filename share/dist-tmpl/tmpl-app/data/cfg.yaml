@@ -20,14 +20,40 @@ node:
     # see node server uri examples above
     listen:
 
+cdn:
+    native_cdn: 0
+    resources:
+        - Pcore-CDN-Static
+        - <: $dist_name :>
+    buckets:
+        default: local
+        default_upload: s3
+        local:
+            type: local
+            locations:
+                - <: \$DATA_DIR :>/cdn
+                - <: $dist_name :>
+                - Pcore-CDN-Static-Data
+            cache_control:
+                /<: $dist_path :>/images/: public, private, must-revalidate, proxy-revalidate
+        s3:
+            type: digitalocean
+            bucket: 
+            region: nyc3
+            key: 
+            secret: 
+            edge_links: 0
+            cache_control:
+                /<: $dist_path :>/images/: public, private, must-revalidate, proxy-revalidate
+
 smtp:
-  username: no-reply@softvisio.net
-  password:
-  host: smtp.gmail.com
-  port: 465
-  tls: 1
-  to:
-  cc:
+    username: no-reply@softvisio.net
+    password:
+    host: smtp.gmail.com
+    port: 465
+    tls: 1
+    to:
+    cc:
 
 xmpp:
     username: no-reply@softvisio.net
