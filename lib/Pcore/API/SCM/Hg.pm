@@ -57,7 +57,7 @@ sub _read ( $self ) {
 
     my $header = $hg->{stdout}->read_chunk(5);
 
-    my $channel = substr $header->$*, 0, 1, q[];
+    my $channel = substr $header->$*, 0, 1, $EMPTY;
 
     my $data = $hg->{stdout}->read_chunk( unpack 'L>', $header->$* );
 

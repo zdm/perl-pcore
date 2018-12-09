@@ -105,7 +105,7 @@ sub _req1 ( $self, $args ) {
     my $date          = P->date->now_utc;
     my $date_ymd      = $date->strftime('%Y%m%d');
     my $date_iso08601 = $date->strftime('%Y%m%dT%H%M%SZ');
-    my $data_hash     = sha256_hex( $args->{data} ? $args->{data}->$* : q[] );
+    my $data_hash     = sha256_hex( $args->{data} ? $args->{data}->$* : $EMPTY );
 
     $args->{headers}->{'Host'}                 = $uri->{host};
     $args->{headers}->{'X-Amz-Date'}           = $date_iso08601;

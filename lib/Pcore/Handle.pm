@@ -298,16 +298,16 @@ sub read_line ( $self, $eol, %args ) {
         my $idx = defined $self->{rbuf} ? index $self->{rbuf}, $eol, 0 : -1;
 
         if ( $idx == 0 ) {
-            substr $self->{rbuf}, 0, length $eol, q[];
+            substr $self->{rbuf}, 0, length $eol, $EMPTY;
 
-            my $buf = q[];
+            my $buf = $EMPTY;
 
             return \$buf;
         }
         elsif ( $idx > 0 ) {
-            my $buf = substr $self->{rbuf}, 0, $idx, q[];
+            my $buf = substr $self->{rbuf}, 0, $idx, $EMPTY;
 
-            substr $self->{rbuf}, 0, length $eol, q[];
+            substr $self->{rbuf}, 0, length $eol, $EMPTY;
 
             return \$buf;
         }
@@ -335,7 +335,7 @@ sub read_chunk ( $self, $length, %args ) {
 
         while () {
             if ( my $rlen = length $self->{rbuf} ) {
-                my $buf = substr $self->{rbuf}, 0, $length, q[];
+                my $buf = substr $self->{rbuf}, 0, $length, $EMPTY;
 
                 $total_bytes += my $blen = length $buf;
 
@@ -360,7 +360,7 @@ sub read_chunk ( $self, $length, %args ) {
                     return \delete( $self->{rbuf} );
                 }
                 elsif ( $rlen > $length ) {
-                    return \substr( $self->{rbuf}, 0, $length, q[] );
+                    return \substr $self->{rbuf}, 0, $length, $EMPTY;
                 }
             }
 
@@ -709,7 +709,7 @@ sub read_http_chunked_data ( $self, %args ) {
 
             # no trailing headers
             if ( index( $self->{rbuf}, $CRLF, 0 ) == 0 ) {
-                substr $self->{rbuf}, 0, 2, q[];
+                substr $self->{rbuf}, 0, 2, $EMPTY;
 
                 return $args{on_read} ? $total_bytes_read : \$buf;
             }
@@ -760,7 +760,7 @@ sub read_http_chunked_data ( $self, %args ) {
 
             my $chunk = $self->read_chunk( $length + 2, read_size => $args{read_size}, timeout => $args{timeout} ) // return;
 
-            substr $chunk->$*, -2, 2, q[];
+            substr $chunk->$*, -2, 2, $EMPTY;
 
             $total_bytes_read += length $chunk->$*;
 
@@ -788,8 +788,6 @@ sub read_http_chunked_data ( $self, %args ) {
 ## |    3 | 679                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 740                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 363                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

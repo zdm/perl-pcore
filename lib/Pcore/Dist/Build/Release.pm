@@ -29,12 +29,12 @@ sub run ($self) {
 
     return if P->term->prompt( q[Continue release process?], [qw[yes no]], enter => 1 ) ne 'yes';
 
-    say q[];
+    say $EMPTY;
 
     # run tests
     return if !$self->{dist}->build->test( author => 1, release => 1 );
 
-    say q[];
+    say $EMPTY;
 
     # NOTE !!!WARNING!!! start release, next changes will be hard to revert
 
@@ -275,7 +275,7 @@ sub _create_changes ( $self, $ver, $issues ) {
     if ($issues) {
         my $group = {};
 
-        for my $issue ( sort { $b->priority_id <=> $a->priority_id } $issues->@* ) {
+        for my $issue ( reverse sort { $a->priority_id <=> $b->priority_id } $issues->@* ) {
             push $group->{ $issue->{metadata}->{kind} }->@*, qq[[$issue->{priority}] $issue->{title} (@{[$issue->url]})];
         }
 
@@ -343,8 +343,6 @@ TXT
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (26)                       |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 278                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -24,23 +24,23 @@ say P->uri( $uri, base => $base_obj );
 
 my $tests = {
     URI => sub {
-        my $u = URI->new($uri) . q[];
+        my $u = URI->new($uri) . $EMPTY;
 
-        # my $u = URI->new_abs( $uri, $base ) . q[];
+        # my $u = URI->new_abs( $uri, $base ) . $EMPTY;
 
         return;
     },
     'Mojo::URL' => sub {
-        my $u = Mojo::URL->new($uri) . q[];
+        my $u = Mojo::URL->new($uri) . $EMPTY;
 
-        # my $u = Mojo::URL->new($uri)->to_abs( Mojo::URL->new($base) ) . q[];
+        # my $u = Mojo::URL->new($uri)->to_abs( Mojo::URL->new($base) ) . $EMPTY;
 
         return;
     },
     'Pcore::Util::URI' => sub {
-        my $u = P->uri($uri) . q[];
+        my $u = P->uri($uri) . $EMPTY;
 
-        # my $u = P->uri( $uri, base => $base_obj ) . q[];
+        # my $u = P->uri( $uri, base => $base_obj ) . $EMPTY;
 
         return;
     },

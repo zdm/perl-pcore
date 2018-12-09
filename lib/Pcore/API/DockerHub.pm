@@ -165,7 +165,7 @@ sub create_repo ( $self, $repo_id, $desc, @args ) {
 
     my %args = (
         private   => 0,
-        full_desc => q[],
+        full_desc => $EMPTY,
         @args
     );
 

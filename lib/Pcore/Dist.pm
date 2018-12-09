@@ -103,7 +103,7 @@ around new => sub ( $orig, $self, $dist ) {
     my $dist_name = $module_name =~ s[/][-]smgr;
 
     # remove .pm suffix
-    substr $dist_name, -3, 3, q[];
+    substr $dist_name, -3, 3, $EMPTY;
 
     if ( -f "$module_lib/auto/share/dist/$dist_name/dist.yaml" ) {
 
@@ -295,7 +295,7 @@ sub version_string ($self) {
 
     my @tags = $self->id->{tags} ? $self->id->{tags}->@* : ();
 
-    return join q[ ], $self->name, $self->id->{release_id}, join( q[ ], grep {$_} $self->id->{branch}, $self->id->{bookmark}, sort @tags ), $self->id->{node} . ( $is_commited ? q[] : q[+] ), $self->id->{date};
+    return join q[ ], $self->name, $self->id->{release_id}, join( q[ ], grep {$_} $self->id->{branch}, $self->id->{bookmark}, sort @tags ), $self->id->{node} . ( $is_commited ? $EMPTY : q[+] ), $self->id->{date};
 }
 
 sub _build_docker ($self) {

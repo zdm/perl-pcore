@@ -39,7 +39,7 @@ sub resolve_sockaddr : prototype($$$$$$) ( $node, $service, $proto, $family, $ty
         return $cb->( [ AF_UNIX, defined $type ? $type : SOCK_STREAM, 0, Socket::pack_sockaddr_un $service] );
     }
 
-    my $cache_key = join q[-], map { $_ // q[] } @_[ 0 .. $#_ - 1 ];
+    my $cache_key = join q[-], map { $_ // $EMPTY } @_[ 0 .. $#_ - 1 ];
 
     if ( exists $SOCKADDR_CACHE->{$cache_key} ) {
         if ( $SOCKADDR_CACHE->{$cache_key}->[0] > time ) {

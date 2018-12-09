@@ -263,7 +263,7 @@ sub status ( $self ) {
     }
 
     # index builds
-    for my $build ( sort { $b->{id} <=> $a->{id} } values $build_history->{data}->%* ) {
+    for my $build ( reverse sort { $a->{id} <=> $b->{id} } values $build_history->{data}->%* ) {
 
         # skip build if it was completed successfully, and tag was removed
         next if $build->{status_text} eq 'success' && !exists $report->{ $build->{dockertag_name} };
@@ -341,7 +341,7 @@ sub build_status ( $self ) {
             $repo_id,
             sub ($res) {
                 if ( $res && $res->{data} ) {
-                    for my $autobuild ( sort { $b->{id} <=> $a->{id} } values $res->{data}->%* ) {
+                    for my $autobuild ( reverse sort { $a->{id} <=> $b->{id} } values $res->{data}->%* ) {
                         my $build_id = "$repo_id:$autobuild->{dockertag_name}";
 
                         if ( !exists $build_history->{$build_id} ) {
@@ -443,7 +443,7 @@ sub build_status ( $self ) {
 
                     my $days = int( $delta_hours / 24 );
 
-                    my $res = q[];
+                    my $res = $EMPTY;
 
                     $res .= "$days days " if $days;
 
@@ -469,7 +469,7 @@ sub build_status ( $self ) {
         }
     }
 
-    $report2 = [ sort { $b->{created_date} cmp $a->{created_date} } $report2->@* ];
+    $report2 = [ reverse sort { $a->{created_date} cmp $b->{created_date} } $report2->@* ];
 
     print $tbl->render_all( [ $report1->@*, $report2->@*, $report3->@* ] );
 
@@ -572,8 +572,6 @@ sub trigger_build ( $self, $tag ) {
 ## |      | 302                  | * Subroutine "build_status" with high complexity score (31)                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 479                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 266, 344, 472        | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

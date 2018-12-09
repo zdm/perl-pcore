@@ -145,7 +145,7 @@ sub _build_type ($self) {
         }
     }
 
-    return q[];
+    return $EMPTY;
 }
 
 sub _build_getopt_spec ($self) {
@@ -178,9 +178,9 @@ sub _build_getopt_spec ($self) {
 }
 
 sub _build_help_spec ($self) {
-    my $spec = $self->short ? q[-] . $self->short . q[ ] : q[ ] x 3;
+    my $spec = $self->short ? q[-] . $self->short . $SPACE : $SPACE x 3;
 
-    $spec .= q[--];
+    $spec .= '--';
 
     $spec .= '[no[-]]' if $self->negated;
 
@@ -204,11 +204,11 @@ sub _build_help_spec ($self) {
 
     my @attrs;
 
-    push @attrs, q[+] if $self->is_repeatable;
+    push @attrs, '+' if $self->is_repeatable;
 
-    push @attrs, q[!] if $self->is_required;
+    push @attrs, '!' if $self->is_required;
 
-    $spec .= q[ ] . join q[], map {"[$_]"} @attrs if @attrs;
+    $spec .= $SPACE . join $EMPTY, map {"[$_]"} @attrs if @attrs;
 
     return $spec;
 }

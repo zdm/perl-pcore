@@ -279,7 +279,7 @@ sub _parse_opt ( $self, $argv ) {
         no warnings qw[redefine];
 
         local $SIG{__WARN__} = sub {
-            push $res->{error}->@*, join q[], @_;
+            push $res->{error}->@*, join $EMPTY, @_;
 
             $res->{error}->[-1] =~ s/\n\z//sm;
 
@@ -387,7 +387,7 @@ sub _get_class_cmd ( $self, $class = undef ) {
 sub _help_class_abstract ( $self, $class = undef ) {
     my $spec = $class ? $self->_get_class_spec($class) : $self->spec;
 
-    return $spec->{abstract} // q[];
+    return $spec->{abstract} // $EMPTY;
 }
 
 sub _help_usage_string ($self) {
@@ -422,12 +422,12 @@ sub _help_alias ($self) {
         return 'aliases: ' . join q[ ], sort $cmd->@*;
     }
     else {
-        return q[];
+        return $EMPTY;
     }
 }
 
 sub _help ($self) {
-    my $help = $self->spec->{help} // q[];
+    my $help = $self->spec->{help} // $EMPTY;
 
     if ($help) {
         $help =~ s/^/    /smg;
@@ -458,7 +458,7 @@ sub _help_usage ($self) {
         }
     }
 
-    return q[] if !$list->%*;
+    return $EMPTY if !$list->%*;
 
     my $max_key_len = 10;
 
@@ -473,7 +473,7 @@ sub _help_usage ($self) {
 
     $help .= join $LF, map { sprintf( " %-${max_key_len}s   ", $list->{$_}->[0] ) . $list->{$_}->[1] =~ s/\n/$desc_indent/smgr } sort keys $list->%*;
 
-    return $help // q[];
+    return $help // $EMPTY;
 }
 
 sub _help_footer ($self) { return '(global options: --help, -h, -?, --version)' }
@@ -538,7 +538,7 @@ sub help_version ($self) {
 
     say 'Perl ' . $^V->normal . " $Config{archname}";
 
-    say join $LF, q[], 'Image path: ' . $ENV{PAR_PROGNAME}, 'Temp dir: ' . $ENV{PAR_TEMP} if $ENV->{is_par};
+    say join $LF, $EMPTY, "Image path: $ENV{PAR_PROGNAME}", "Temp dir: $ENV{PAR_TEMP}" if $ENV->{is_par};
 
     exit 2;
 }
