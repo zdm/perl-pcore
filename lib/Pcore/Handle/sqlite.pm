@@ -115,7 +115,7 @@ sub BUILD ( $self, $args ) {
 
     my $dbname = $self->{uri}->{path} ? $self->{uri}->{path}->to_string : ':memory:';
 
-    my $dbh = DBI->connect( "dbi:SQLite:dbname=$dbname", q[], q[], $attr );
+    my $dbh = DBI->connect( "dbi:SQLite:dbname=$dbname", $EMPTY, $EMPTY, $attr );
 
     $dbh->do('PRAGMA encoding = "UTF-8"');
     $dbh->do( 'PRAGMA temp_store = ' . $self->{temp_store} );
@@ -334,7 +334,7 @@ sub _exec_sth ( $self, $query, @args ) {
 }
 
 sub _warn ($self) {
-    warn qq[DBI: "$DBI::errstr"] . ( defined $self->{query} ? qq[, current query: "$self->{query}->$*"] : q[] );
+    warn qq[DBI: "$DBI::errstr"] . ( defined $self->{query} ? qq[, current query: "$self->{query}->$*"] : $EMPTY );
 
     return;
 }
