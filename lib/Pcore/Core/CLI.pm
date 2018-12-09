@@ -231,7 +231,7 @@ sub _parse_cmd ( $self, $argv ) {
             return $self->help_usage( [qq[command "$res->{cmd}" is unknown]] );
         }
         elsif ( $possible_commands->@* > 1 ) {
-            return $self->help_error( qq[command "$res->{cmd}" is ambiguous:$LF  ] . join q[ ], $possible_commands->@* );
+            return $self->help_error( qq[command "$res->{cmd}" is ambiguous:$LF  ] . join $SPACE, $possible_commands->@* );
         }
         else {
             unshift $res->{rest}->@*, '--help' if $res->{opt}->{help};
@@ -391,7 +391,7 @@ sub _help_class_abstract ( $self, $class = undef ) {
 }
 
 sub _help_usage_string ($self) {
-    my $usage = join q[ ], P->path( $ENV->{SCRIPT_NAME} )->{filename}, $self->{cmd_path}->@*;
+    my $usage = join $SPACE, P->path( $ENV->{SCRIPT_NAME} )->{filename}, $self->{cmd_path}->@*;
 
     if ( $self->is_cmd ) {
         $usage .= ' [COMMAND] [OPTION]...';
@@ -406,7 +406,7 @@ sub _help_usage_string ($self) {
                 push @args, $arg->help_spec;
             }
 
-            $usage .= q[ ] . join q[ ], @args;
+            $usage .= $SPACE . join $SPACE, @args;
         }
     }
 
@@ -419,7 +419,7 @@ sub _help_alias ($self) {
     shift $cmd->@*;
 
     if ( $cmd->@* ) {
-        return 'aliases: ' . join q[ ], sort $cmd->@*;
+        return 'aliases: ' . join $SPACE, sort $cmd->@*;
     }
     else {
         return $EMPTY;
@@ -469,7 +469,7 @@ sub _help_usage ($self) {
         $_->[1] =~ s/\n+\z//smg;
     }
 
-    my $desc_indent = $LF . q[    ] . ( q[ ] x $max_key_len );
+    my $desc_indent = $LF . q[    ] . ( $SPACE x $max_key_len );
 
     $help .= join $LF, map { sprintf( " %-${max_key_len}s   ", $list->{$_}->[0] ) . $list->{$_}->[1] =~ s/\n/$desc_indent/smgr } sort keys $list->%*;
 
@@ -531,7 +531,7 @@ sub help_version ($self) {
         say $ENV->dist->version_string;
     }
     else {
-        say join q[ ], $ENV->{SCRIPT_NAME}, ( $main::VERSION ? version->new($main::VERSION)->normal : () );
+        say join $SPACE, $ENV->{SCRIPT_NAME}, ( $main::VERSION ? version->new($main::VERSION)->normal : () );
     }
 
     say $ENV->{pcore}->version_string if !$ENV->dist || $ENV->dist->name ne $ENV->{pcore}->name;

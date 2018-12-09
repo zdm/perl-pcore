@@ -70,7 +70,7 @@ our $DUMPERS = {
 };
 
 sub run ( $self, @ ) {
-    $self->{_indent} = q[ ] x ( $self->{indent} // 4 );
+    $self->{_indent} = $SPACE x ( $self->{indent} // 4 );
 
     if ( !$self->{color} ) {
         return remove_ansi $self->_dump( $_[1], path => '$VAR' );
@@ -362,7 +362,7 @@ sub ARRAY {
         my $max_index_length = length( $#{$array_ref} ) + 2;
 
         for my $i ( 0 .. $array_ref->$#* ) {
-            my $index = sprintf( '%-*s', $max_index_length, "[$i]" ) . q[ ];
+            my $index = sprintf( '%-*s', $max_index_length, "[$i]" ) . $SPACE;
 
             $res .= $self->{_indent} . $COLOR->{array} . $index . $RESET;
 

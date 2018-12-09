@@ -66,15 +66,15 @@ sub _read ( $self ) {
 
 # NOTE status + pattern (status *.txt) not works under linux - http://bz.selenic.com/show_bug.cgi?id=4526
 sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
-    my $buf = join "\x00", $cmd->@*;
+    my $buf = join "\N{NULL}", $cmd->@*;
 
-    $buf .= "\x00--repository\x00$root" if $root;
+    $buf .= "\N{NULL}--repository\N{NULL}$root" if $root;
 
     $buf = Encode::encode( $Pcore::WIN_ENC, $buf, Encode::FB_CROAK );
 
     my $hg = $self->_server;
 
-    $hg->{stdin}->write( qq[runcommand\x0A] . pack( 'L>', length $buf ) . $buf );
+    $hg->{stdin}->write( "runcommand$LF" . pack( 'L>', length $buf ) . $buf );
 
     my $res = {};
 
@@ -98,7 +98,7 @@ sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
     my $result;
 
     if ( exists $res->{e} ) {
-        $result = res [ 500, join q[ ], $res->{e}->@* ];
+        $result = res [ 500, join $SPACE, $res->{e}->@* ];
     }
     else {
         $result = res 200, $res->{o};
@@ -240,8 +240,6 @@ sub scm_get_changesets ( $self, $tag = undef, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 69, 71, 77           | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 124                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
