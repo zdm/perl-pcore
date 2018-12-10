@@ -13,7 +13,7 @@ sub update ($cb = undef) {
             say $res;
 
             if ($res) {
-                $ENV->{share}->write( 'Pcore', 'data/ca_file.pem', $res->{data} );
+                $ENV->{share}->write( '/Pcore/data/ca_file.pem', $res->{data} );
 
                 $status = 1;
             }
