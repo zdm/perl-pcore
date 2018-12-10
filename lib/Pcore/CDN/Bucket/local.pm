@@ -28,7 +28,7 @@ sub BUILD ( $self, $args ) {
         else {
             P->class->load( $location =~ s/-/::/smgr );
 
-            $location = $ENV->{share}->get_storage( $location, 'cdn' );
+            $location = $ENV->{share}->get_location("/$location/cdn");
 
             next if !$location;
         }

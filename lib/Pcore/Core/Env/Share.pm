@@ -17,31 +17,27 @@ sub register_lib ( $self, $name, $path ) {
     return;
 }
 
-# return undef if storage is not exists
-# return $storage_path if lib is specified
-# return ArrayRef[$storage_path] if lib is not specified
-sub get_storage ( $self, @ ) {
-    my ( $lib, $path );
+# get_location('/Pcore-Dist/cdn') - returns path or undef
+# get_location('cdn') returns ArrayRef
+sub get_location ( $self, $path ) {
+    if ( substr( $path, 0, 1 ) eq '/' ) {
+        my $lib = substr $path, 1, index( $path, '/', 1 ) - 1, $EMPTY;
 
-    if ( @_ == 2 ) {
-        $path = $_[1];
-    }
-    elsif ( @_ == 3 ) {
-        $lib = $_[1];
+        my $lib_path = $self->{_lib_idx}->{$lib};
 
-        $path = $_[2];
-    }
+        die qq[share lib "$lib" does not exists] if !defined $lib_path;
 
-    if ($lib) {
-        die qq[share lib "$lib" does not exists] if !exists $self->{_lib_idx}->{$lib};
+        $path = $lib_path . substr $path, 1;
 
-        return -d "$self->{_lib_idx}->{$lib}/$path" ? "$self->{_lib_idx}->{$lib}/$path" : ();
+        return -d $path ? $path : undef;
     }
     else {
         my @res;
 
         for my $lib_path ( $self->{_lib_path}->@* ) {
-            push @res, "$lib_path/$path" if -d "$lib_path/$path";
+            my $location = "$lib_path/$path";
+
+            push @res, $location if -d $location;
         }
 
         return \@res;
