@@ -20,25 +20,19 @@ sub BUILD ( $self, $args ) {
 
     $self->{can_upload} = 1 if defined $self->{key} && defined $self->{secret};
 
+    $self->{s3} = Pcore::API::S3->new( $self->%{qw[key secret bucket region endpoint service]} );
+
     return;
-}
-
-sub s3 ($self) {
-    if ( !exists $self->{s3} ) {
-        $self->{s3} = Pcore::API::S3->new( $self->%{qw[key secret bucket region endpoint service]} );
-    }
-
-    return $self->{s3};
 }
 
 sub upload ( $self, $path, $data, @args ) {
     die q[Can't upload to bucket] if !$self->{can_upload};
 
-    return $self->s3->upload( $path, $data, cache_control => $self->find_cache_control("/$path"), @args );
+    return $self->{s3}->upload( $path, $data, @args );
 }
 
 sub sync ( $self, @args ) {
-    return $self->s3->sync(@args);
+    return $self->{s3}->sync(@args);
 }
 
 1;

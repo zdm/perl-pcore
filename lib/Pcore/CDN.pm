@@ -105,27 +105,32 @@ sub get_script_tag ( $self, $url ) { return qq[<script src="$url" integrity="" c
 sub get_css_tag ( $self, $url ) { return qq[<link rel="stylesheet" href="$url" integrity="" crossorigin="anonymous" />] }
 
 sub upload ( $self, $path, $data, @args ) {
-    my $bucket_name;
+    my $location_name;
 
     # extract bucket
     if ( substr( $path, 0, 1 ) eq '/' ) {
         $path = "$path" if is_ref $path;
 
-        $bucket_name = substr $path, 0, index( $path, '/', 1 ) + 1, $EMPTY;
-        substr $bucket_name, 0,  1, $EMPTY;
-        substr $bucket_name, -1, 1, $EMPTY;
+        $location_name = substr $path, 0, index( $path, '/', 1 ) + 1, $EMPTY;
+        substr $location_name, 0,  1, $EMPTY;
+        substr $location_name, -1, 1, $EMPTY;
     }
     else {
-        $bucket_name = 'default_upload';
+        die 'Location is not specified';
     }
 
-    my $bucket = $self->{bucket}->{$bucket_name};
+    my $location = $self->{locations}->{$location_name};
 
-    die qq[Bucket "$bucket_name" is not defined] if !defined $bucket;
+    die qq[Location "$location_name" is not defined] if !defined $location;
 
-    return $bucket->upload( $path, $data, @args );
+    my $bucket = $self->{buckets}->{ $location->{bucket} };
+
+    die qq[Bucket "$location->{bucket}" is not defined] if !defined $bucket;
+
+    return $bucket->upload( "$location->{path}/$path", $data, cache_control => $location->{cache_control}, @args );
 }
 
+# TODO
 sub sync ( $self, $local, $remote, @locations ) {
     $local  = $self->{bucket}->{$local};
     $remote = $self->{bucket}->{$remote};
