@@ -13,6 +13,10 @@ has can_upload => ( init_arg => undef );
 
 sub get_url ( $self, $path ) { return "$self->{prefix}/$path" }
 
+sub sync ( $self, @args ) {
+    die q[Can't sync with bucket];
+}
+
 1;
 __END__
 =pod

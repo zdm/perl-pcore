@@ -25,9 +25,20 @@ cdn:
     resources:
         - Pcore-CDN-Static
         - <: $dist_name :>
+    locations:
+        static:
+            bucket: s3
+            path: static
+            cache_control: public, max-age=30672000
+        <: $dist_path :>-static:
+            bucket: s3
+            path: <: $dist_path :>/static
+            cache_control: public, max-age=30672000
+        content:
+            bucket: local
+            path: <: $dist_path :>/dynamic
+            cache_control: public, private, must-revalidate, proxy-revalidate
     buckets:
-        default: local
-        default_upload: s3
         local:
             type: local
             locations:
@@ -35,8 +46,6 @@ cdn:
                 - <: $DATA_DIR_VAR | raw :>/cdn
                 - <: $dist_name :>
                 - Pcore-CDN-Static-Data
-            cache_control:
-                /<: $dist_path :>/images/: public, private, must-revalidate, proxy-revalidate
         s3:
             type: digitalocean
             bucket:
@@ -44,8 +53,6 @@ cdn:
             key:
             secret:
             edge_links: 0
-            cache_control:
-                /<: $dist_path :>/images/: public, private, must-revalidate, proxy-revalidate
 
 smtp:
     username: no-reply@softvisio.net

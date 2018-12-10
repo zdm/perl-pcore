@@ -492,8 +492,14 @@ sub sync ( $self, $locations, $tree ) {
         for my $location ( $locations->@* ) {
             $cv->begin;
 
+            # remove leading "/"
+            substr $location, 0, 1, $EMPTY if substr $location, 0, 1 eq '/';
+
+            # add trailing "/"
+            $location .= '/' if substr $location, -1, 1 ne '/';
+
             $self->get_all_bucket_content(
-                prefix => $location =~ s[\A/][]smr,
+                prefix => $location,
                 sub ($res) {
                     $remote_files->@{ keys $res->{data}->%* } = values $res->{data}->%*;
 
@@ -577,6 +583,16 @@ sub sync ( $self, $locations, $tree ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 496, 499             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

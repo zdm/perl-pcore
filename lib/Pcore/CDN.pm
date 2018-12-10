@@ -130,25 +130,26 @@ sub upload ( $self, $path, $data, @args ) {
     return $bucket->upload( "$location->{path}/$path", $data, cache_control => $location->{cache_control}, @args );
 }
 
-# TODO
 sub sync ( $self, $local, $remote, @locations ) {
-    $local  = $self->{bucket}->{$local};
-    $remote = $self->{bucket}->{$remote};
+    $local  = $self->{buckets}->{$local}  // die qq[Bucket "$local" is not defined];
+    $remote = $self->{buckets}->{$remote} // die qq[Bucket "$remote" is not defined];
+
+    die qq[Location is not local] if !$local->{is_local};
 
     my $tree = Pcore::Util::File::Tree->new;
 
     # create tree
     for my $root ( $local->{locations}->@* ) {
-        for my $location (@locations) {
-            $tree->add_dir( "$root/$location", $location );
+        for my $location_name (@locations) {
+            my $location = $self->{locations}->{$location_name};
+
+            die qq[Location "$location_name" is not defined] if !defined $location;
+
+            $tree->add_dir( "$root/$location->{path}", "/$location->{path}", { 'Cache-Control' => $location->{cache_control} } );
         }
     }
 
-    for my $file ( values $tree->{files}->%* ) {
-        $file->{meta}->{'Cache-Control'} = $remote->find_cache_control( $file->{path} );
-    }
-
-    return $remote->sync( \@locations, $tree );
+    return $remote->sync( [ map { $_->{path} } $self->{locations}->@{@locations} ], $tree );
 }
 
 sub get_nginx_cfg($self) {
@@ -166,6 +167,16 @@ sub get_nginx_cfg($self) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 137                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
