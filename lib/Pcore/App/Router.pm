@@ -87,26 +87,16 @@ sub _get_host_map ( $self, $host, $ns ) {
 
         die qq["$class" is not a consumer of "Pcore::App::Controller"] if !$class->can('does') || !$class->does('Pcore::App::Controller');
 
+        # generate route path
+        my $route = lc( $class =~ s[\A$index_class:*][/]smr );
+
+        $route =~ s[::][/]smg;
+
         my $obj = $class->new( {
             app  => $self->{app},
             host => $host,
+            path => $route,
         } );
-
-        my $route;
-
-        # get obj route
-        if ( defined $obj->{path} ) {
-            $route = $obj->{path};
-        }
-        else {
-
-            # generate route path
-            $route = lc( $class =~ s[\A$index_class:*][/]smr );
-
-            $route =~ s[::][/]smg;
-
-            $obj->{path} = $route;
-        }
 
         die qq[Controller path "$route" is not unique] if exists $self->{path_ctrl}->{$host}->{$route};
 

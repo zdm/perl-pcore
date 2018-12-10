@@ -4,7 +4,7 @@ use Pcore -role;
 
 has app  => ( required => 1 );    # ConsumerOf ['Pcore::App']
 has host => ( required => 1 );    # HTTP controller host
-has path => ();                   # HTTP controller url path, always finished with "/"
+has path => ( required => 1 );    # HTTP controller url path, always finished with "/"
 
 sub run ( $self, $req ) {
     $req->(404)->finish;
