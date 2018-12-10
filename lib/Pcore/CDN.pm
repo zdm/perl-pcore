@@ -8,9 +8,10 @@ use overload '&{}' => sub ( $self, @ ) {
   },
   fallback => 1;
 
-has native_cdn => ();
-has bucket     => ( init_arg => undef );
-has resources  => ();                      # HashRef[CodeRef]
+has native_cdn => ( init_arg => undef );
+has resources  => ( init_arg => undef );    # HashRef[CodeRef]
+has buckets    => ( init_arg => undef );
+has locations  => ( init_arg => undef );
 
 around new => sub ( $orig, $self, $args ) {
     $self = $self->$orig;
@@ -34,27 +35,11 @@ around new => sub ( $orig, $self, $args ) {
 
     # buckets
     while ( my ( $name, $cfg ) = each $args->{buckets}->%* ) {
-
-        # skip aliases
-        next if !is_ref $cfg;
-
-        my $bucket = $self->{bucket}->{$name} = P->class->load( $cfg->{type}, ns => 'Pcore::CDN::Bucket' )->new($cfg);
-
-        $self->{bucket}->{default} //= $bucket;
-
-        $self->{bucket}->{default_upload} //= $bucket if $bucket->{can_upload};
+        $self->{buckets}->{$name} = P->class->load( $cfg->{type}, ns => 'Pcore::CDN::Bucket' )->new($cfg);
     }
 
-    # buckets aliases
-    while ( my ( $name, $target ) = each $args->{buckets}->%* ) {
-
-        # skip buckets
-        next if is_ref $target;
-
-        $self->{bucket}->{$name} = $self->{bucket}->{$target};
-    }
-
-    $self->{bucket}->{default_upload} = $self->{bucket}->{default} if !defined $self->{bucket}->{default_upload} && $self->{bucket}->{default}->{can_upload};
+    # locations
+    $self->{locations} = $args->{locations};
 
     return $self;
 };
@@ -62,85 +47,57 @@ around new => sub ( $orig, $self, $args ) {
 sub bucket ( $self, $name ) { return $self->{bucket}->{$name} }
 
 sub get_url ( $self, $path ) {
-    my $bucket_name;
+    my $location_name;
 
     # extract bucket
     if ( substr( $path, 0, 1 ) eq '/' ) {
         $path = "$path" if is_ref $path;
 
-        $bucket_name = substr $path, 0, index( $path, '/', 1 ) + 1, $EMPTY;
-        substr $bucket_name, 0,  1, $EMPTY;
-        substr $bucket_name, -1, 1, $EMPTY;
+        $location_name = substr $path, 0, index( $path, '/', 1 ) + 1, $EMPTY;
+        substr $location_name, 0,  1, $EMPTY;
+        substr $location_name, -1, 1, $EMPTY;
     }
     else {
-        $bucket_name = 'default';
+        die 'Location is not specified';
     }
 
-    my $bucket = $self->{bucket}->{$bucket_name};
+    my $location = $self->{locations}->{$location_name};
 
-    die qq[Bucket "$bucket_name" is not defined] if !defined $bucket;
+    die qq[Location "$location_name" is not defined] if !defined $location;
 
-    return $bucket->get_url($path);
+    my $bucket = $self->{buckets}->{ $location->{bucket} };
+
+    die qq[Bucket "$location->{bucket}" is not defined] if !defined $bucket;
+
+    return $bucket->get_url("$location->{path}/$path");
 }
 
 sub get_resources ( $self, @resources ) {
     my @res;
 
-    for my $res (@resources) {
-        my ( $name, %args, $bucket_name );
+    for my $name (@resources) {
+        my %args;
 
-        if ( is_plain_arrayref $res) {
-            ( $name, %args ) = $res->@*;
-        }
-        else {
-            $name = $res;
+        if ( is_plain_arrayref $name) {
+            ( $name, %args ) = $name->@*;
         }
 
-        if ( substr( $name, 0, 1 ) eq '/' ) {
-            $bucket_name = substr $name, 0, index( $name, '/', 1 ) + 1, $EMPTY;
-            substr $bucket_name, 0,  1, $EMPTY;
-            substr $bucket_name, -1, 1, $EMPTY;
-        }
-        else {
-            $bucket_name = 'default';
-        }
+        my $resource = $self->{resources}->{$name};
 
-        my $bucket = $self->{bucket}->{$bucket_name};
+        die qq[CDN resource "$name" is not defined] if !defined $resource;
 
-        die qq[Bucket "$bucket_name" is not defined] if !defined $bucket;
-
-        die qq[CDN resource "$name" is not defined] if !defined $self->{resources}->{$name};
-
-        my $native = $args{native_cdn} // $bucket->{native_cdn} // $self->{native_cdn};
-
-        push @res, $self->{resources}->{$name}->( $self, $bucket, $native, \%args );
+        push @res, $resource->( $self, $args{native_cdn} // $self->{native_cdn}, \%args );
     }
 
     return \@res;
 }
 
 sub get_resource_root ( $self, $name, %args ) {
-    my $bucket_name;
+    my $resource = $self->{resources}->{$name};
 
-    # extract bucket
-    if ( substr( $name, 0, 1 ) eq '/' ) {
-        $bucket_name = substr $name, 0, index( $name, '/', 1 ) + 1, $EMPTY;
-        substr $bucket_name, 0,  1, $EMPTY;
-        substr $bucket_name, -1, 1, $EMPTY;
-    }
-    else {
-        $bucket_name = 'default';
-    }
+    die qq[CDN resource "$name" is not defined] if !defined $resource;
 
-    my $bucket = $self->{bucket}->{$bucket_name};
-
-    die qq[Bucket "$bucket_name" is not defined] if !defined $bucket;
-
-    die qq[CDN resource "$name" is not defined] if !defined $self->{resources}->{$name};
-
-    my $native = $args{native_cdn} // $bucket->{native_cdn} // $self->{native_cdn};
-
-    return scalar $self->{resources}->{$name}->( $self, $bucket, $native, \%args );
+    return scalar $resource->( $self, $args{native_cdn} // $self->{native_cdn}, \%args );
 }
 
 sub get_script_tag ( $self, $url ) { return qq[<script src="$url" integrity="" crossorigin="anonymous"></script>] }
@@ -192,14 +149,12 @@ sub sync ( $self, $local, $remote, @locations ) {
 sub get_nginx_cfg($self) {
     my @buf;
 
-    my $processed;
+    while ( my ( $bucket_name, $bucket ) = each $self->{buckets}->%* ) {
+        next if !$bucket->{is_local};
 
-    for my $bucket ( $self->{bucket}->%* ) {
-        next if !$bucket->{is_local} || exists $processed->{ $bucket->{id} };
+        my @cache_control = grep { $_->{bucket} eq $bucket_name && $_->{cache_control} } values $self->{locations}->%*;
 
-        $processed->{ $bucket->{id} } = 1;
-
-        push @buf, $bucket->get_nginx_cfg;
+        push @buf, $bucket->get_nginx_cfg( \@cache_control );
     }
 
     return join $LF, @buf;

@@ -39,18 +39,16 @@ sub BUILD ( $self, $args ) {
     return;
 }
 
-sub get_nginx_cfg ($self) {
+sub get_nginx_cfg ( $self, $cache_control ) {
     my $tmpl = <<'TMPL';
     # cdn
     location <: $prefix :>/ {
         error_page 418 = @<: $locations[0] :>;
-        set $cache_control "<: $cache_control["/"] :>";
         return 418;
-: for $cache_control.keys().sort() -> $cache_control_location {
-: next if $cache_control_location == "/"
+: for $cache_control.sort() -> $cache_control_location {
 
-        location <: $prefix :><: $cache_control_location :> {
-            set $cache_control "<: $cache_control[$cache_control_location] :>";
+        location <: $prefix :>/<: $cache_control_location.path :>/ {
+            set $cache_control "<: $cache_control_location.cache_control :>";
             return 418;
         }
 : }
@@ -73,8 +71,8 @@ TMPL
     return P->tmpl->(
         \$tmpl,
         {   prefix        => $self->{prefix},
-            cache_control => $self->{cache_control},
             locations     => $self->{locations},
+            cache_control => $cache_control,
         }
     )->$*;
 }
