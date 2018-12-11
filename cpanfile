@@ -123,7 +123,6 @@ requires 'Ref::Util::XS';
 # Pcore::Util::Src
 requires 'Perl::Tidy';
 on develop => sub {
-    requires 'BerkeleyDB';
     requires 'Perl::Stripper';
     requires 'Perl::Strip';
     requires 'Perl::Critic';
