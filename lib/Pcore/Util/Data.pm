@@ -301,7 +301,15 @@ sub to_perl ( $data, %args ) {
         no warnings qw[redefine];
 
         local *Data::Dumper::qquote = sub {
-            return q["] . encode_utf8( escape_scalar $_[0] ) . q["];
+            if ( $_[0] eq $EMPTY ) {
+                return q[''];
+            }
+            elsif ( $_[0] =~ /[^[:alnum:]_]/sm ) {
+                return 'qq[' . encode_utf8( escape_scalar $_[0] ) . ']';
+            }
+            else {
+                return "'$_[0]'";
+            }
         };
 
         $res = \Data::Dumper->Dump( [$data] );
@@ -1041,10 +1049,10 @@ sub from_uri_query_utf8 : prototype($) ($uri) {
 ## |      | 159                  | * Subroutine "decode_data" with high complexity score (27)                                                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | ControlStructures::ProhibitPostfixControls                                                                     |
-## |      | 360, 413             | * Postfix control "for" used                                                                                   |
-## |      | 621                  | * Postfix control "while" used                                                                                 |
+## |      | 368, 421             | * Postfix control "for" used                                                                                   |
+## |      | 629                  | * Postfix control "while" used                                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 956                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 964                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
