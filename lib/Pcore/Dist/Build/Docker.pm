@@ -4,10 +4,10 @@ use Pcore -class, -ansi;
 use Pcore::Util::Scalar qw[is_plain_arrayref];
 
 has dist          => ();                                     # InstanceOf ['Pcore::Dist']
-has dockerhub_api => ( is => 'lazy', init_arg => undef );    # InstanceOf ['Pcore::API::DockerHub']
+has dockerhub_api => ( is => 'lazy', init_arg => undef );    # InstanceOf ['Pcore::API::Docker::Hub']
 
 sub _build_dockerhub_api($self) {
-    return Pcore::API::DockerHub->new;
+    return Pcore::API::Docker::Hub->new;
 }
 
 sub init ( $self, $args ) {

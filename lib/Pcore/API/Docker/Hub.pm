@@ -1,4 +1,4 @@
-package Pcore::API::DockerHub;
+package Pcore::API::Docker::Hub;
 
 use Pcore -const, -class, -res, -export;
 use Pcore::Util::Scalar qw[is_plain_coderef];
@@ -601,7 +601,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::DockerHub
+Pcore::API::Docker::Hub
 
 =head1 SYNOPSIS
 
