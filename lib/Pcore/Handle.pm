@@ -4,7 +4,7 @@ use Pcore -const, -class, -export;
 use Pcore::AE::DNS::Cache;
 use Pcore::Util::CA;
 use HTTP::Parser::XS qw[];
-use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_plain_arrayref is_plain_coderef is_glob is_plain_hashref];
+use Pcore::Util::Scalar qw[is_ref is_uri is_plain_scalarref is_plain_arrayref is_plain_coderef is_glob is_plain_hashref];
 use AnyEvent::Socket qw[];
 use Errno qw[];
 use IO::Socket::SSL qw[$SSL_ERROR SSL_WANT_READ SSL_WANT_WRITE SSL_VERIFY_NONE SSL_VERIFY_PEER];
@@ -116,7 +116,7 @@ around new => sub ( $orig, $self, $uri, @args ) {
         else {
 
             # convert to URI object
-            $uri = P->uri( $uri, base => 'tcp:' ) if !is_ref $uri;
+            $uri = P->uri( $uri, base => 'tcp:' ) if !is_uri $uri;
 
             my $scheme = $uri->{scheme};
 

@@ -560,6 +560,19 @@ sub trigger_build ( $self, $tag ) {
     return $res;
 }
 
+sub build_local ( $self, $tag, $args ) {
+    my $dist = $self->{dist};
+
+    say dump $dist->id;
+
+    # TODO find revision by tag
+    #
+
+    # my $clone_res = Pcore::API::SCM->scm_clone( $clone_uri, $self->target_path, $self->{local_scm_type} );
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
