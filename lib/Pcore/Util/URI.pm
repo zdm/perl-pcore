@@ -24,6 +24,7 @@ has username   => ();    # unescaped, utf8
 has password   => ();    # unescaped, utf8
 has host_port  => ();    # escaped
 has host       => ();    # object
+has socket     => ();    # unix socket
 has port       => ();    # int
 has path_query => ();    # escaped
 
@@ -158,6 +159,13 @@ around new => sub ( $orig, $self, $uri = undef, %args ) {
     }
     else {
         $target->_set_authority($authority);
+    }
+
+    # extract unix socket from path
+    if ( !defined $target->{host} && substr( $path, 0, 6 ) eq '/unix:' && $path =~ m[\A/unix:([^:]+):?(.*)]sm ) {
+        $target->{socket} = $1;
+
+        $path = $2 // '/';
     }
 
     # path
@@ -308,7 +316,7 @@ sub set_password ( $self, $val = undef ) {
 
 # host_port
 sub set_host_port ( $self, $val = undef ) {
-    delete $self->@{qw[uri _canon authority host_port host port]};
+    delete $self->@{qw[uri _canon authority host_port host port socket]};
 
     $self->_set_host_port($val) if defined $val;
 
@@ -339,7 +347,7 @@ sub _get_host_port ( $self ) {
 sub set_host ( $self, $val = undef ) {
 
     # clear related attributes
-    delete $self->@{qw[uri _canon authority host_port host]};
+    delete $self->@{qw[uri _canon authority host_port host socket]};
 
     $self->{host} = P->host($val) if defined $val;
 
@@ -349,9 +357,23 @@ sub set_host ( $self, $val = undef ) {
     return $self;
 }
 
+# socket
+sub set_socket ( $self, $val = undef ) {
+
+    # clear related attributes
+    delete $self->@{qw[uri _canon authority host_port host]};
+
+    $self->{socket} = $val;
+
+    # rebuild uri
+    $self->_build;
+
+    return $self;
+}
+
 # port
 sub set_port ( $self, $val = undef ) {
-    delete $self->@{qw[uri _canon authority host_port port]};
+    delete $self->@{qw[uri _canon authority host_port port socket]};
 
     $self->{port} = $val;
 
@@ -372,7 +394,7 @@ sub set_path ( $self, $val = undef ) {
         my $path = P->path( $val, from_uri => 1 );
 
         # only abs path is allowed if uri has authority
-        if ( defined $self->_get_authority ) {
+        if ( defined $self->_get_authority || defined $self->{socket} ) {
             if ( $path->{is_abs} ) {
                 $self->{path} = $path;
             }
@@ -483,6 +505,9 @@ sub query_params_utf8 ($self) {
 sub connect ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     if ( defined $self->{host} ) {
         return $self->{host}, $self->{port} || $self->{default_port};
+    }
+    elsif ( defined $self->{socket} ) {
+        return 'unix/', $self->{socket};
     }
     else {
         return 'unix/', $self->{path}->{path};
@@ -613,7 +638,14 @@ sub _build ($self) {
 
         $uri .= "//$self->{authority}" if defined $self->_get_authority;
 
-        $uri .= $self->{path}->to_uri if defined $self->{path};
+        if ( !defined $self->{host} && defined $self->{socket} ) {
+            $uri .= "/unix:$self->{socket}";
+
+            $uri .= ':' . $self->{path}->to_uri if defined $self->{path};
+        }
+        else {
+            $uri .= $self->{path}->to_uri if defined $self->{path};
+        }
 
         $uri .= "?$self->{query}" if defined $self->{query};
 
@@ -642,11 +674,11 @@ sub canon ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (45)                               |
+## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (48)                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 93                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 94                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 630                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 662                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

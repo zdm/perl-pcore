@@ -376,7 +376,7 @@ sub _write_headers ( $h, $args, $res ) {
     }
 
     # add "Host" header
-    $headers .= 'Host:' . $res->{url}->{host}->{name} . $CRLF if !$args->{norm_headers}->{host};
+    $headers .= 'Host:' . ( defined $res->{url}->{host} ? $res->{url}->{host}->{name} : $EMPTY ) . $CRLF if !$args->{norm_headers}->{host};
 
     # prepare content related headers
     if ( defined $args->{data} ) {
