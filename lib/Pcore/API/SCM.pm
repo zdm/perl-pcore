@@ -1,6 +1,6 @@
 package Pcore::API::SCM;
 
-use Pcore -const, -role;
+use Pcore -const, -role, -res;
 use Pcore::API::SCM::Const qw[:ALL];
 use Pcore::API::SCM::Upstream;
 
@@ -61,9 +61,11 @@ sub scm_clone ( $self, $uri, $root, $scm_type = $SCM_TYPE_HG, $cb = undef ) {
 
     # can't clone to existing directory
     if ( -d $root ) {
-        $cb->(undef) if $cb;
+        my $res = res [ 500, 'Clone target directory is already exists' ];
 
-        return;
+        $res = $cb->($res) if $cb;
+
+        return $res;
     }
 
     $self = P->class->load( $SCM_TYPE_CLASS->{$scm_type} )->new( { root => $root } );

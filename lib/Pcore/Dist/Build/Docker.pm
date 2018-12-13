@@ -561,14 +561,23 @@ sub trigger_build ( $self, $tag ) {
 }
 
 sub build_local ( $self, $tag, $args ) {
+    require Pcore::API::SCM;
+
     my $dist = $self->{dist};
 
-    say dump $dist->id;
+    # TODO
+    # clone to temp dir + checkout to tag
+    # get repo id
 
-    # TODO find revision by tag
-    #
+    my $target = '/var/local/downloads/111';
 
-    # my $clone_res = Pcore::API::SCM->scm_clone( $clone_uri, $self->target_path, $self->{local_scm_type} );
+    # my $res = Pcore::API::SCM->scm_clone( $dist->{root}, $target );
+
+    my $nd = Pcore::Dist->new($target);
+
+    say dump $nd->scm->scm_id;
+
+    say dump $nd->id;
 
     return;
 }
