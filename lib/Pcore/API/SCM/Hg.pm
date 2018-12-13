@@ -119,6 +119,10 @@ sub scm_clone ( $self, $root, $uri, $cb = undef ) {
     return $self->_scm_cmd( [ 'clone', $uri, $root ], undef, $cb );
 }
 
+sub scm_update ( $self, $rev, $cb = undef ) {
+    return $self->_scm_cmd( [ 'update', '--clean', '--check', '--rev', $rev ], undef, $cb );
+}
+
 sub scm_id ( $self, $cb = undef ) {
     return $self->scm_cmd(
         [ qw[log -r . --template], q[{node|short}\n{phase}\n{join(tags,'\x00')}\n{activebookmark}\n{branch}\n{desc}\n{date|rfc3339date}\n{latesttag('re:^v\d+[.]\d+[.]\d+$') % '{tag}\x00{distance}'}] ],
@@ -240,7 +244,7 @@ sub scm_get_changesets ( $self, $tag = undef, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 124                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 128                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

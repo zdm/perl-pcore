@@ -5,7 +5,21 @@ use Pcore::API::SCM::Const qw[:ALL];
 use Pcore::API::SCM::Upstream;
 use Pcore::Util::Scalar qw[is_callback];
 
-requires qw[_build_upstream scm_cmd scm_init scm_clone scm_id scm_releases scm_is_commited scm_addremove scm_commit scm_push scm_set_tag scm_get_changesets];
+requires qw[
+  _build_upstream
+  scm_cmd
+  scm_init
+  scm_clone
+  scm_update
+  scm_id
+  scm_releases
+  scm_is_commited
+  scm_addremove
+  scm_commit
+  scm_push
+  scm_set_tag
+  scm_get_changesets
+];
 
 has root     => ( required => 1 );
 has upstream => ( is       => 'lazy' );    # InstanceOf ['Pcore::API::SCM::Upstream'] ]
@@ -113,7 +127,7 @@ sub scm_clone ( $self, $uri, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 55                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 69                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

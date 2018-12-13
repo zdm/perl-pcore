@@ -575,6 +575,15 @@ sub build_local ( $self, $tag, $args ) {
 
     my $repo = Pcore::Dist->new( $res->{root} );
 
+    say dump $repo->scm;
+
+    # exit;
+
+    # say dump $repo->scm->scm_update('v0.1.0');
+
+    print 'Press ENTER to continue...';
+    <STDIN>;
+
     say dump $repo->id;
 
     return;
