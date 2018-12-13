@@ -120,7 +120,7 @@ sub scm_clone ( $self, $root, $uri, $cb = undef ) {
 }
 
 sub scm_update ( $self, $rev, $cb = undef ) {
-    return $self->_scm_cmd( [ 'update', '--clean', '--check', '--rev', $rev ], undef, $cb );
+    return $self->scm_cmd( [ 'update', '--clean', '--rev', $rev ], $cb );
 }
 
 sub scm_id ( $self, $cb = undef ) {

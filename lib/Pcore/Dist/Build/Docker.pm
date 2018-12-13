@@ -1,6 +1,6 @@
 package Pcore::Dist::Build::Docker;
 
-use Pcore -class, -ansi;
+use Pcore -class, -ansi, -res;
 use Pcore::Util::Scalar qw[is_plain_arrayref];
 
 has dist          => ();                                     # InstanceOf ['Pcore::Dist']
@@ -569,24 +569,32 @@ sub build_local ( $self, $tag, $args ) {
     # clone to temp dir + checkout to tag
     # get repo id
 
-    my $res = Pcore::API::SCM->scm_clone( $dist->{root} );
+    # my $res = Pcore::API::SCM->scm_clone( $dist->{root} );
+    my $res = Pcore::API::SCM->scm_clone( $dist->scm->upstream->get_clone_url );
 
-    die $res if !$res;
+    return $res if !$res;
+
+    # TODO
+    my $root = $res->{root};
 
     my $repo = Pcore::Dist->new( $res->{root} );
 
-    say dump $repo->scm;
+    $res = $repo->scm->scm_update('v0.1.0');
 
-    # exit;
+    return $res if !$res;
 
-    # say dump $repo->scm->scm_update('v0.1.0');
+    my $id = $repo->id;
+
+    say dump $id;
+
+    my $tgz = $repo->build->tgz;
+
+    say dump $tgz;
 
     print 'Press ENTER to continue...';
     <STDIN>;
 
-    say dump $repo->id;
-
-    return;
+    return res 200;
 }
 
 1;

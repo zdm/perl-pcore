@@ -29,7 +29,9 @@ sub CLI ($self) {
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     my $dist = $self->get_dist;
 
-    $dist->build->docker->build_local( $arg->{tag}, $opt );
+    my $res = $dist->build->docker->build_local( $arg->{tag}, $opt );
+
+    say $res;
 
     return;
 }
