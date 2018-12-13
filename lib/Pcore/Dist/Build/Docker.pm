@@ -569,15 +569,13 @@ sub build_local ( $self, $tag, $args ) {
     # clone to temp dir + checkout to tag
     # get repo id
 
-    my $target = '/var/local/downloads/111';
+    my $res = Pcore::API::SCM->scm_clone( $dist->{root} );
 
-    # my $res = Pcore::API::SCM->scm_clone( $dist->{root}, $target );
+    die $res if !$res;
 
-    my $nd = Pcore::Dist->new($target);
+    my $repo = Pcore::Dist->new( $res->{root} );
 
-    say dump $nd->scm->scm_id;
-
-    say dump $nd->id;
+    say dump $repo->id;
 
     return;
 }
