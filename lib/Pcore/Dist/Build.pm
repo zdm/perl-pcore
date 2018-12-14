@@ -152,6 +152,8 @@ sub tgz ($self) {
 
     my $path = "$ENV->{PCORE_TEMP_DIR}/build/" . $self->{dist}->name . '-' . $self->{dist}->version . '.tar.gz';
 
+    unlink $path or die qq[Can't unlink "$path"] if -e $path;
+
     $tgz->write( $path, Archive::Tar::COMPRESS_GZIP() );
 
     return $path;
