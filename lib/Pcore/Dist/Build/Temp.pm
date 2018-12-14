@@ -123,7 +123,7 @@ sub _gather_files ($self) {
     }
 
     # add dist-id.yaml
-    $tree->add_file( 'share/dist-id.yaml', P->data->to_json( $self->{dist}->id, readable => 1 ) );
+    $tree->add_file( 'share/dist-id.yaml', P->data->to_yaml( $self->{dist}->id ) );
 
     # add "t/author-pod-syntax.t"
     my $t = <<'PERL';
