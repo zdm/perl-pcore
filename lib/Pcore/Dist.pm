@@ -212,7 +212,6 @@ sub _build_id ($self) {
         tags             => undef,
         bookmark         => undef,
         branch           => undef,
-        desc             => undef,
         date             => undef,
         release          => undef,
         release_distance => undef,
@@ -221,10 +220,6 @@ sub _build_id ($self) {
     if ( !$self->{is_installed} && $self->scm ) {
         if ( my $scm_id = $self->scm->scm_id ) {
             $id->@{ keys $scm_id->{data}->%* } = values $scm_id->{data}->%*;
-        }
-
-        if ( $id->{release} && defined $id->{release_distance} && $id->{release_distance} == 1 ) {
-            $id->{release_distance} = 0 if $id->{desc} =~ /added tag.+$id->{release}/smi;
         }
     }
     elsif ( -f "$self->{share_dir}/dist-id.yaml" ) {

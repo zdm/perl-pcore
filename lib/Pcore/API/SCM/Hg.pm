@@ -134,13 +134,12 @@ sub scm_id ( $self, $cb = undef ) {
                     tags             => undef,
                     bookmark         => undef,
                     branch           => undef,
-                    desc             => undef,
                     date             => undef,
                     release          => undef,
                     release_distance => undef,
                 );
 
-                ( $res{node}, $res{phase}, $res{tags}, $res{bookmark}, $res{branch}, $res{desc}, $res{date}, $res{release} ) = split /\n/sm, $res->{data}->[0];
+                ( $res{node}, $res{phase}, $res{tags}, $res{bookmark}, $res{branch}, my $desc, $res{date}, $res{release} ) = split /\n/sm, $res->{data}->[0];
 
                 $res{tags} = $res{tags} ? [ split /\x00/sm, $res{tags} ] : undef;
 
@@ -148,6 +147,11 @@ sub scm_id ( $self, $cb = undef ) {
                     ( $res{release}, $res{release_distance} ) = split /\x00/sm, $res{release};
 
                     $res{release} = undef if $res{release} eq 'null';
+                }
+
+                # fix release distance
+                if ( $res{release} && defined $res{release_distance} && $res{release_distance} == 1 ) {
+                    $res{release_distance} = 0 if $desc =~ /added tag.+$res{release}/smi;
                 }
 
                 $res->{data} = \%res;
