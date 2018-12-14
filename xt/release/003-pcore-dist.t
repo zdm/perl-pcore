@@ -229,7 +229,7 @@ sub test_dist ( $type, $dist, $t ) {
 
         ok( $dist->{share_dir} eq $t->{cpan_share_dir}, $t->{test_id} . '_dist_share_dir' );
 
-        ok( $dist->{is_cpan_dist}, $t->{test_id} . '_dist_is_cpan_dist' );
+        ok( $dist->{is_installed}, $t->{test_id} . '_dist_is_installed' );
 
         ok( $dist->module->name eq $t->{module_name}, $t->{test_id} . '_dist_module_name' );
 
@@ -244,7 +244,7 @@ sub test_dist ( $type, $dist, $t ) {
 
         ok( $dist->{share_dir} eq $t->{dist_share_dir}, $t->{test_id} . '_dist_share_dir' );
 
-        ok( !$dist->{is_cpan_dist}, $t->{test_id} . '_dist_is_cpan_dist' );
+        ok( !$dist->{is_installed}, $t->{test_id} . '_dist_is_installed' );
 
         ok( $dist->module->name eq $t->{module_name}, $t->{test_id} . '_dist_module_name' );
 
@@ -259,7 +259,7 @@ sub test_dist ( $type, $dist, $t ) {
 
         ok( $dist->{share_dir} eq $t->{dist_share_dir}, $t->{test_id} . '_dist_share_dir' );
 
-        ok( $dist->{is_cpan_dist}, $t->{test_id} . '_dist_is_cpan_dist' );
+        ok( $dist->{is_installed}, $t->{test_id} . '_dist_is_installed' );
 
         ok( $dist->module->name eq $t->{module_name}, $t->{test_id} . '_dist_module_name' );
 

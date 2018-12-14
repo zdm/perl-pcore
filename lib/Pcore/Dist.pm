@@ -5,7 +5,7 @@ use Config;
 use Pcore::Util::Scalar qw[is_path];
 
 has root         => ( required => 1 );    # Maybe [Str], absolute path to the dist root
-has is_cpan_dist => ( required => 1 );    # dist is installed as CPAN module, root is undefined
+has is_installed => ( required => 1 );    # dist is installed to @INC as CPAN module, root is undefined
 has share_dir    => ( required => 1 );    # absolute path to the dist share dir
 
 has module => ( is => 'lazy' );           # InstanceOf ['Pcore::Util::Perl::Module']
@@ -32,7 +32,7 @@ around new => sub ( $orig, $self, $dist ) {
         # dist is the PAR dist
         return $self->$orig( {
             root         => undef,
-            is_cpan_dist => 1,
+            is_installed => 1,
             share_dir    => P->path("$ENV{PAR_TEMP}/inc/share"),
         } );
     }
@@ -53,7 +53,7 @@ around new => sub ( $orig, $self, $dist ) {
             # path is a part of the dist
             return $self->$orig( {
                 root         => $root,
-                is_cpan_dist => 0,
+                is_installed => 0,
                 share_dir    => "$root/share",
             } );
         }
@@ -110,7 +110,7 @@ around new => sub ( $orig, $self, $dist ) {
         # module is installed
         return $self->$orig( {
             root         => undef,
-            is_cpan_dist => 1,
+            is_installed => 1,
             share_dir    => "$module_lib/auto/share/dist/$dist_name",
             module       => P->perl->module( $module_name, $module_lib ),
         } );
@@ -121,7 +121,7 @@ around new => sub ( $orig, $self, $dist ) {
         # module is a dist
         return $self->$orig( {
             root         => $root,
-            is_cpan_dist => 0,
+            is_installed => 0,
             share_dir    => "$root/share",
             module       => P->perl->module( $module_name, $module_lib ),
         } );
@@ -158,7 +158,7 @@ sub _build_module ($self) {
 
     my $module;
 
-    if ( $self->{is_cpan_dist} ) {
+    if ( $self->{is_installed} ) {
 
         # find main module in @INC
         $module = P->perl->module($module_name);
@@ -198,7 +198,7 @@ sub _build_name ($self) { return $self->cfg->{name} }
 sub _build_is_pcore ($self) { return $self->name eq 'Pcore' }
 
 sub _build_scm ($self) {
-    return if $self->{is_cpan_dist};
+    return if $self->{is_installed};
 
     return P->class->load('Pcore::API::SCM')->new( $self->{root} );
 }
@@ -218,7 +218,7 @@ sub _build_id ($self) {
         release_distance => undef,
     };
 
-    if ( !$self->{is_cpan_dist} && $self->scm ) {
+    if ( !$self->{is_installed} && $self->scm ) {
         if ( my $scm_id = $self->scm->scm_id ) {
             $id->@{ keys $scm_id->{data}->%* } = values $scm_id->{data}->%*;
         }
@@ -255,7 +255,7 @@ sub _build_version ($self) {
 }
 
 sub _build_is_commited ($self) {
-    if ( !$self->{is_cpan_dist} && $self->scm && ( my $scm_is_commited = $self->scm->scm_is_commited ) ) {
+    if ( !$self->{is_installed} && $self->scm && ( my $scm_is_commited = $self->scm->scm_is_commited ) ) {
         return $scm_is_commited->{data};
     }
 
@@ -263,7 +263,7 @@ sub _build_is_commited ($self) {
 }
 
 sub _build_releases ($self) {
-    if ( !$self->{is_cpan_dist} && $self->scm && ( my $scm_releases = $self->scm->scm_releases ) ) {
+    if ( !$self->{is_installed} && $self->scm && ( my $scm_releases = $self->scm->scm_releases ) ) {
         return $scm_releases->{data};
     }
 
