@@ -227,8 +227,8 @@ sub _build_id ($self) {
             $id->{release_distance} = 0 if $id->{desc} =~ /added tag.+$id->{release}/smi;
         }
     }
-    elsif ( -f "$self->{share_dir}/dist-id.json" ) {
-        $id = P->cfg->read("$self->{share_dir}/dist-id.json");
+    elsif ( -f "$self->{share_dir}/dist-id.yaml" ) {
+        $id = P->cfg->read("$self->{share_dir}/dist-id.yaml");
     }
 
     # convert date to UTC

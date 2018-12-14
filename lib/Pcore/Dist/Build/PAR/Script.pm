@@ -400,16 +400,16 @@ sub _add_dist ( $self, $dist ) {
         # add main dist share
         $self->tree->add_dir( $dist->{share_dir}, 'share' );
 
-        # add main dist dist-id.json
-        $self->tree->add_file( 'share/dist-id.json', P->data->to_json( $dist->id, readable => 1 ) );
+        # add main dist dist-id.yaml
+        $self->tree->add_file( 'share/dist-id.yaml', P->data->to_json( $dist->id, readable => 1 ) );
     }
     else {
 
         # add dist share
         $self->tree->add_dir( $dist->{share_dir}, "lib/auto/share/dist/@{[ $dist->name ]}" );
 
-        # add dist-id.json
-        $self->tree->add_file( "lib/auto/share/dist/@{[ $dist->name ]}/dist-id.json", P->data->to_json( $dist->id, readable => 1 ) );
+        # add dist-id.yaml
+        $self->tree->add_file( "lib/auto/share/dist/@{[ $dist->name ]}/dist-id.yaml", P->data->to_json( $dist->id, readable => 1 ) );
     }
 
     say 'dist added: ' . $dist->name;

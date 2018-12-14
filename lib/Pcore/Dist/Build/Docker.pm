@@ -562,6 +562,7 @@ sub trigger_build ( $self, $tag ) {
 
 sub build_local ( $self, $tag, $args ) {
     require Pcore::API::SCM;
+    require Pcore::API::Docker::Engine;
 
     my $dist = $self->{dist};
 
@@ -579,7 +580,7 @@ sub build_local ( $self, $tag, $args ) {
 
     my $repo = Pcore::Dist->new( $res->{root} );
 
-    $res = $repo->scm->scm_update('v0.1.0');
+    $res = $repo->scm->scm_update($tag);
 
     return $res if !$res;
 
@@ -590,6 +591,10 @@ sub build_local ( $self, $tag, $args ) {
     my $tgz = $repo->build->tgz;
 
     say dump $tgz;
+
+    my $docker = Pcore::API::Docker::Engine->new;
+
+    # $res = $docker->buid_image();
 
     print 'Press ENTER to continue...';
     <STDIN>;
