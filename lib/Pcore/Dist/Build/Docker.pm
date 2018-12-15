@@ -566,13 +566,11 @@ sub build_local ( $self, $tag, $args ) {
 
     my $dist = $self->{dist};
 
-    # TODO
-    # clone to temp dir + checkout to tag
-    # get repo id
+    print 'Cloning ... ';
+    my $res = Pcore::API::SCM->scm_clone( $dist->{root} );
 
-    # my $res = Pcore::API::SCM->scm_clone( $dist->{root} );
-    my $res = Pcore::API::SCM->scm_clone( $dist->scm->upstream->get_clone_url );
-
+    # my $res = Pcore::API::SCM->scm_clone( $dist->scm->upstream->get_clone_url );
+    say $res;
     return $res if !$res;
 
     # TODO
@@ -580,24 +578,43 @@ sub build_local ( $self, $tag, $args ) {
 
     my $repo = Pcore::Dist->new( $res->{root} );
 
+    print 'Checking out ... ';
     $res = $repo->scm->scm_update($tag);
-
+    say $res;
     return $res if !$res;
 
     my $id = $repo->id;
 
-    say dump $id;
+    my $tar = do {
+        require Archive::Tar;
 
-    my $tgz = $repo->build->tgz;
+        my $_tar = Archive::Tar->new;
 
-    say dump $tgz;
+        my $base_dir = $repo->name . q[-] . $repo->version;
+
+        for my $path ( $root->read_dir( max_depth => 0, is_dir => 0 )->@* ) {
+            my $mode;
+
+            if ( $path =~ m[\A(script|t)/]sm ) {
+                $mode = P->file->calc_chmod('rwxr-xr-x');
+            }
+            else {
+                $mode = P->file->calc_chmod('rw-r--r--');
+            }
+
+            $_tar->add_data( "$path", P->file->read_bin("$root/$path")->$*, { mode => $mode } );
+        }
+
+        $_tar->write;
+    };
+
+    say length $tar;
 
     my $docker = Pcore::API::Docker::Engine->new;
 
-    # $res = $docker->buid_image();
-
-    print 'Press ENTER to continue...';
-    <STDIN>;
+    print 'Building image ... ';
+    $res = $docker->build_image($tar);
+    say $res;
 
     return res 200;
 }

@@ -15,8 +15,27 @@ sub get_images ($self) {
 }
 
 # https://docs.docker.com/engine/api/v1.39/#operation/ImageBuild
-sub build_image ($self) {
-    return $self->_req( 'POST', 'build' );
+sub build_image ( $self, $tar ) {
+
+    # return $self->_req( 'POST', 'build' );
+
+    my $url = $self->_create_url('build') . '?';
+
+    my $res = P->http->request(
+        method => 'POST',
+        url    => $url,
+        data   => $tar,
+    );
+
+    for my $stream ( split /\r\n/sm, $res->{data}->$* ) {
+        my $data = P->data->from_json($stream);
+
+        print $data->{stream} if exists $data->{stream};
+
+        say dump $data if !exists $data->{stream};
+    }
+
+    return $res;
 }
 
 # CONTAINERS
@@ -30,7 +49,7 @@ sub _req ( $self, $method, $path, $data = undef ) {
 
     my $res = P->http->request(
         method => $method,
-        url    => $self->_create_url($path),
+        url    => $url,
         data   => $data,
     );
 
