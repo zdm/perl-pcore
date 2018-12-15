@@ -22,9 +22,10 @@ sub build_image ( $self, $tar ) {
     my $url = $self->_create_url('build') . '?';
 
     my $res = P->http->request(
-        method => 'POST',
-        url    => $url,
-        data   => $tar,
+        method  => 'POST',
+        url     => $url,
+        data    => $tar,
+        timeout => 0,
     );
 
     for my $stream ( split /\r\n/sm, $res->{data}->$* ) {

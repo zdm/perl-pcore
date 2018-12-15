@@ -590,8 +590,6 @@ sub build_local ( $self, $tag, $args ) {
 
         my $_tar = Archive::Tar->new;
 
-        my $base_dir = $repo->name . q[-] . $repo->version;
-
         for my $path ( $root->read_dir( max_depth => 0, is_dir => 0 )->@* ) {
             my $mode;
 
@@ -607,8 +605,6 @@ sub build_local ( $self, $tag, $args ) {
 
         $_tar->write;
     };
-
-    say length $tar;
 
     my $docker = Pcore::API::Docker::Engine->new;
 
