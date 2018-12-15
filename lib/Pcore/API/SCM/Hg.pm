@@ -55,11 +55,23 @@ sub _server ( $self ) {
 sub _read ( $self ) {
     my $hg = $self->_server;
 
-    my $header = $hg->{stdout}->read_chunk(5);
+    my $header = $hg->{stdout}->read_chunk( 5, timeout => undef );
+
+    if ( !defined $header ) {
+        delete $self->{_server};
+
+        return [ 'er', $hg->{stdout} ? 'Unknown error' : "$hg->{stdout}" ];
+    }
 
     my $channel = substr $header->$*, 0, 1, $EMPTY;
 
     my $data = $hg->{stdout}->read_chunk( unpack 'L>', $header->$* );
+
+    if ( !defined $data ) {
+        delete $self->{_server};
+
+        return [ 'er', $hg->{stdout} ? 'Unknown error' : "$hg->{stdout}" ];
+    }
 
     return [ $channel, $data->$* ];
 }
@@ -81,18 +93,24 @@ sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
     while () {
         my $data = $self->_read;
 
-        if ( $data->[0] ne 'r' ) {
+        # "er" channel - error + return
+        if ( $data->[0] eq 'er' ) {
+            push $res->{'e'}->@*, $data->[1];
+
+            last;
+        }
+
+        # "r" channel - request is finished
+        elsif ( $data->[0] eq 'r' ) {
+            last;
+        }
+        else {
             chomp $data->[1];
 
             decode_utf8( $data->[1], encoding => $Pcore::WIN_ENC );
 
             push $res->{ $data->[0] }->@*, $data->[1];
-
-            next;
         }
-
-        # "r" channel - request is finished
-        last;
     }
 
     my $result;
@@ -248,7 +266,7 @@ sub scm_get_changesets ( $self, $tag = undef, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 128                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 146                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
