@@ -25,7 +25,7 @@ sub build_image ( $self, $tar ) {
         method  => 'POST',
         url     => $url,
         data    => $tar,
-        timeout => 0,
+        timeout => undef,
     );
 
     for my $stream ( split /\r\n/sm, $res->{data}->$* ) {

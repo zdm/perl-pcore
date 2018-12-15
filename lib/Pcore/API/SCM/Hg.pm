@@ -55,7 +55,7 @@ sub _server ( $self ) {
 sub _read ( $self ) {
     my $hg = $self->_server;
 
-    my $header = $hg->{stdout}->read_chunk( 5, timeout => 0 );
+    my $header = $hg->{stdout}->read_chunk( 5, timeout => undef );
 
     if ( !defined $header ) {
         delete $self->{_server};
