@@ -80,7 +80,7 @@ sub update_all ( $self ) {
     }
 
     # update pub. suffixes, should be updated after TLDs
-    print 'updating pub_suffix.dat ... ';
+    print 'updating pub-suffix.dat ... ';
 
     if ( my $res = P->http->get('https://publicsuffix.org/list/effective_tld_names.dat') ) {
         my $suffixes = {};
@@ -123,7 +123,7 @@ sub update_all ( $self ) {
             }
         }
 
-        $ENV->{share}->write( '/Pcore/data/pub_suffix.dat', \encode_utf8( join $LF, map {"$suffixes->{$_};$_"} sort { $suffixes->{$a} cmp $suffixes->{$b} } keys $suffixes->%* ) );
+        $ENV->{share}->write( '/Pcore/data/pub-suffix.dat', \encode_utf8( join $LF, map {"$suffixes->{$_};$_"} sort { $suffixes->{$a} cmp $suffixes->{$b} } keys $suffixes->%* ) );
 
         undef $PUB_SUFFIX;
 
@@ -158,7 +158,7 @@ sub pub_suffixes ( $self ) {
     $PUB_SUFFIX //= do {
         my $pub_suffix;
 
-        for my $rec ( split /\n/sm, P->file->read_text( $ENV->{share}->get('data/pub_suffix.dat') )->$* ) {
+        for my $rec ( split /\n/sm, P->file->read_text( $ENV->{share}->get('data/pub-suffix.dat') )->$* ) {
             my ( $utf8, $ascii ) = split /;/sm, $rec;
 
             $pub_suffix->{$ascii} = $utf8;
