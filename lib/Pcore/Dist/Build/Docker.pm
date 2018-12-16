@@ -660,7 +660,7 @@ sub build_local ( $self, $tag, $args ) {
     my $docker = Pcore::API::Docker::Engine->new;
 
     print 'Building image ... ';
-    $res = $docker->build_image( $tar, \$tags );
+    $res = $docker->build_image( $tar, \@tags );
     say $res;
 
     return res 200;
