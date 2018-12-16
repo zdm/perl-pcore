@@ -19,18 +19,16 @@ sub build_image ( $self, $tar ) {
 
     # return $self->_req( 'POST', 'build' );
 
-    my $params = {
+    my $params = [
+        rm      => 1,    # remove intermediate containers after a successful build
+        forcerm => 1,    # always remove intermediate containers, even upon failure
 
-        # rm      => 'true',                  # remove intermediate containers after a successful build
-        # forcerm => 'true',                  # always remove intermediate containers, even upon failure
-        # squash  => 'true',                  # squash the resulting images layers into a single layer
-        # nocache => 'true',                  # do not use the cache when building the image
-        t => 'softvisio/pcore:tip',
-    };
+        # squash  => 1,                       # NOTE not works, squash the resulting images layers into a single layer
+        nocache => 1,                       # do not use the cache when building the image
+        t       => 'softvisio/pcore:tip',
+    ];
 
     my $url = $self->_create_url('build') . '?' . P->data->to_uri($params);
-
-    say dump $url;
 
     my $res = P->http->request(
         method  => 'POST',
@@ -38,8 +36,6 @@ sub build_image ( $self, $tar ) {
         data    => $tar,
         timeout => undef,
     );
-
-    say dump $res;
 
     for my $stream ( split /\r\n/sm, $res->{data}->$* ) {
         my $data = P->data->from_json($stream);
