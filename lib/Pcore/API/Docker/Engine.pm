@@ -15,18 +15,20 @@ sub get_images ($self) {
 }
 
 # https://docs.docker.com/engine/api/v1.39/#operation/ImageBuild
-sub build_image ( $self, $tar ) {
+sub build_image ( $self, $tar, $tags ) {
 
     # return $self->_req( 'POST', 'build' );
 
     my $params = [
-        rm      => 1,    # remove intermediate containers after a successful build
-        forcerm => 1,    # always remove intermediate containers, even upon failure
 
         # squash  => 1,                       # NOTE not works, squash the resulting images layers into a single layer
-        nocache => 1,                       # do not use the cache when building the image
-        t       => 'softvisio/pcore:tip',
+        rm      => 1,    # remove intermediate containers after a successful build
+        forcerm => 1,    # always remove intermediate containers, even upon failure
+        nocache => 1,    # do not use the cache when building the image
+        pull    => 1,    # attempt to pull the image even if an older image exists locally
     ];
+
+    push $params->@*, map { t => $_ } $tags->@*;
 
     my $url = $self->_create_url('build') . '?' . P->data->to_uri($params);
 

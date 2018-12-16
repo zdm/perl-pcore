@@ -573,17 +573,24 @@ sub build_local ( $self, $tag, $args ) {
     say $res;
     return $res if !$res;
 
-    # TODO
     my $root = $res->{root};
 
-    my $repo = Pcore::Dist->new( $res->{root} );
+    my $repo = Pcore::Dist->new($root);
 
     print 'Checking out ... ';
     $res = $repo->scm->scm_update($tag);
     say $res;
     return $res if !$res;
 
-    my $id = $repo->id;
+    # create duild tags
+    my $id      = $repo->id;
+    my $repo_id = $repo->docker->{repo_id};
+
+    my @tags;
+
+    for ( $id->{bookmark}->@*, $id->{tags}->@* ) {
+        push @tags, "$repo_id:$_";
+    }
 
     my ( $exclude, $include );
 
@@ -653,7 +660,7 @@ sub build_local ( $self, $tag, $args ) {
     my $docker = Pcore::API::Docker::Engine->new;
 
     print 'Building image ... ';
-    $res = $docker->build_image($tar);
+    $res = $docker->build_image( $tar, \$tags );
     say $res;
 
     return res 200;
