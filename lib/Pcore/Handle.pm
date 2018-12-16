@@ -279,6 +279,8 @@ sub read ( $self, %args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomon
 # $args{read_size}
 sub read_eof ( $self, %args ) {
     if ($self) {
+        $args{timeout} = $self->{timeout} if !exists $args{timeout};
+
         while ( $self->_read( $args{read_size}, $args{timeout} ) ) { }
     }
 
@@ -372,6 +374,7 @@ sub read_chunk ( $self, $length, %args ) {
 }
 
 # returns: undef or total bytes written
+# $args{timeout}
 sub write ( $self, $buf, %args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     $args{timeout} = $self->{timeout} if !exists $args{timeout};
 
@@ -780,11 +783,11 @@ sub read_http_chunked_data ( $self, %args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 492                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
+## |    3 | 495                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 676                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
+## |    3 | 679                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 737                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 740                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
