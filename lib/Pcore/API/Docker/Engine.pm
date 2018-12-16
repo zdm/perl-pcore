@@ -29,12 +29,16 @@ sub build_image ( $self, $tar ) {
 
     my $url = $self->_create_url('build') . '?' . P->data->to_uri($params);
 
+    say dump $url;
+
     my $res = P->http->request(
         method  => 'POST',
         url     => $url,
         data    => $tar,
         timeout => undef,
     );
+
+    say dump $res;
 
     for my $stream ( split /\r\n/sm, $res->{data}->$* ) {
         my $data = P->data->from_json($stream);
