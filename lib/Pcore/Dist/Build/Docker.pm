@@ -592,13 +592,48 @@ sub build_local ( $self, $tag, $args ) {
         push @tags, "$repo_id:$_";
     }
 
+    my $dockerignore = $self->_build_dockerignore("$root/.dockerignore");
+
+    my $tar = do {
+        require Archive::Tar;
+
+        my $_tar = Archive::Tar->new;
+
+        for my $path ( $root->read_dir( max_depth => 0, is_dir => 0 )->@* ) {
+            next if $dockerignore->($path);
+
+            my $mode;
+
+            if ( $path =~ m[\A(script|t)/]sm ) {
+                $mode = P->file->calc_chmod('rwxr-xr-x');
+            }
+            else {
+                $mode = P->file->calc_chmod('rw-r--r--');
+            }
+
+            $_tar->add_data( "$path", P->file->read_bin("$root/$path")->$*, { mode => $mode } );
+        }
+
+        $_tar->write;
+    };
+
+    my $docker = Pcore::API::Docker::Engine->new;
+
+    print 'Building image ... ';
+    $res = $docker->build_image( $tar, \@tags );
+    say $res;
+
+    return res 200;
+}
+
+sub _build_dockerignore ( $self, $path ) {
     my ( $exclude, $include );
 
     # https://docs.docker.com/engine/reference/builder/#dockerignore-file
-    if ( -f "$root/.dockerignore" ) {
+    if ( -f $path ) {
         my ( @exclude, @include );
 
-        for my $line ( P->file->read_lines("$root/.dockerignore")->@* ) {
+        for my $line ( P->file->read_lines($path)->@* ) {
 
             # skip comments
             next if $line =~ /\A\s*#/sm;
@@ -632,38 +667,15 @@ sub build_local ( $self, $tag, $args ) {
         }
     }
 
-    my $tar = do {
-        require Archive::Tar;
-
-        my $_tar = Archive::Tar->new;
-
-        for my $path ( $root->read_dir( max_depth => 0, is_dir => 0 )->@* ) {
-            if ( defined $exclude && $path =~ $exclude ) {
-                next if !defined $include || $path !~ $include;
-            }
-
-            my $mode;
-
-            if ( $path =~ m[\A(script|t)/]sm ) {
-                $mode = P->file->calc_chmod('rwxr-xr-x');
-            }
-            else {
-                $mode = P->file->calc_chmod('rw-r--r--');
-            }
-
-            $_tar->add_data( "$path", P->file->read_bin("$root/$path")->$*, { mode => $mode } );
+    my $sub = sub ($path) {
+        if ( defined $exclude && $path =~ $exclude ) {
+            return 1 if !defined $include || $path !~ $include;
         }
 
-        $_tar->write;
+        return;
     };
 
-    my $docker = Pcore::API::Docker::Engine->new;
-
-    print 'Building image ... ';
-    $res = $docker->build_image( $tar, \@tags );
-    say $res;
-
-    return res 200;
+    return $sub;
 }
 
 1;

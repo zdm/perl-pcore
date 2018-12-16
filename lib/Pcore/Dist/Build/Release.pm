@@ -108,7 +108,7 @@ sub run ($self) {
         }
     }
 
-    if ( $self->{dist}->docker ) {
+    if ( 0 && $self->{dist}->docker ) {
         require Pcore::API::Docker::Hub;
 
         my $dockerhub_api = Pcore::API::Docker::Hub->new;
@@ -342,7 +342,7 @@ TXT
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (26)                       |
+## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (27)                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
