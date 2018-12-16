@@ -16,9 +16,6 @@ sub get_images ($self) {
 
 # https://docs.docker.com/engine/api/v1.39/#operation/ImageBuild
 sub build_image ( $self, $tar, $tags ) {
-
-    # return $self->_req( 'POST', 'build' );
-
     my $params = [
 
         # squash  => 1,                       # NOTE not works, squash the resulting images layers into a single layer
