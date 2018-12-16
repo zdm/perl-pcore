@@ -2,8 +2,6 @@
 .hg*
 .git*
 
-111/
-
 # pcore
 data/
 wiki/
