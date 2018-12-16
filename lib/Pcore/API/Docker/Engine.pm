@@ -19,7 +19,15 @@ sub build_image ( $self, $tar ) {
 
     # return $self->_req( 'POST', 'build' );
 
-    my $url = $self->_create_url('build') . '?';
+    my $params = {
+        rm      => 'true',                  # remove intermediate containers after a successful build
+        forcerm => 'true',                  # always remove intermediate containers, even upon failure
+        squash  => 'true',                  # squash the resulting images layers into a single layer
+        nocache => 'true',                  # do not use the cache when building the image
+        t       => 'softvisio/pcore:tip',
+    };
+
+    my $url = $self->_create_url('build') . '?' . P->data->to_uri($params);
 
     my $res = P->http->request(
         method  => 'POST',
