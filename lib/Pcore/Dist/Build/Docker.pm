@@ -591,6 +591,8 @@ sub build_local ( $self, $tag, $args ) {
         my $_tar = Archive::Tar->new;
 
         for my $path ( $root->read_dir( max_depth => 0, is_dir => 0 )->@* ) {
+            next if $path =~ m[[.]hg/]sm;
+
             my $mode;
 
             if ( $path =~ m[\A(script|t)/]sm ) {
