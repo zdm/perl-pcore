@@ -567,9 +567,9 @@ sub build_local ( $self, $tag, $args ) {
     my $dist = $self->{dist};
 
     print 'Cloning ... ';
-    my $res = Pcore::API::SCM->scm_clone( $dist->{root} );
 
     # my $res = Pcore::API::SCM->scm_clone( $dist->scm->upstream->get_clone_url );
+    my $res = Pcore::API::SCM->scm_clone( $dist->{root} );
     say $res;
     return $res if !$res;
 
@@ -585,13 +585,55 @@ sub build_local ( $self, $tag, $args ) {
 
     my $id = $repo->id;
 
+    my ( $exclude, $include );
+
+    # https://docs.docker.com/engine/reference/builder/#dockerignore-file
+    if ( -f "$root/.dockerignore" ) {
+        my ( @exclude, @include );
+
+        for my $line ( P->file->read_lines("$root/.dockerignore")->@* ) {
+
+            # skip comments
+            next if $line =~ /\A\s*#/sm;
+
+            my $pattern = quotemeta $line;
+
+            $pattern =~ s[\\[?]][[^/]]smg;
+
+            $pattern =~ s[\\[*]][[^/]*]smg;
+
+            if ( substr( $line, 0, 2 ) eq '\!' ) {
+                substr $line, 0, 2, $EMPTY;
+
+                push @include, $pattern;
+            }
+            else {
+                push @exclude, $pattern;
+            }
+        }
+
+        if (@exclude) {
+            my $pattern = join '|', @exclude;
+
+            $exclude = qr/\A(?:$pattern)/sm;
+        }
+
+        if (@include) {
+            my $pattern = join '|', @include;
+
+            $include = qr/\A(?:$pattern)/sm;
+        }
+    }
+
     my $tar = do {
         require Archive::Tar;
 
         my $_tar = Archive::Tar->new;
 
         for my $path ( $root->read_dir( max_depth => 0, is_dir => 0 )->@* ) {
-            next if $path =~ m[[.]hg/]sm;
+            if ( defined $exclude && $path =~ $exclude ) {
+                next if !defined $include || $path !~ $include;
+            }
 
             my $mode;
 
