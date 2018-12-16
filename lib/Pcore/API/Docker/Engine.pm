@@ -28,7 +28,7 @@ sub build_image ( $self, $tar, $tags ) {
         pull    => 1,    # attempt to pull the image even if an older image exists locally
     ];
 
-    push $params->@*, map { t => $_ } $tags->@*;
+    for ( $tags->@* ) { push $params->@*, t => $_ }
 
     my $url = $self->_create_url('build') . '?' . P->data->to_uri($params);
 
