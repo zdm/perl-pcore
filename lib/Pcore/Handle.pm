@@ -10,9 +10,9 @@ use Errno qw[];
 use IO::Socket::SSL qw[$SSL_ERROR SSL_WANT_READ SSL_WANT_WRITE SSL_VERIFY_NONE SSL_VERIFY_PEER];
 use Coro::EV qw[];
 use overload    #
-  q[bool]  => sub { return $_[0]->{is_connected} },
-  q[0+]    => sub { return $_[0]->{status} },
-  q[""]    => sub { return $_[0]->{status} . $SPACE . $_[0]->{reason} },
+  'bool'   => sub { return $_[0]->{is_connected} },
+  '0+'     => sub { return $_[0]->{status} },
+  '""'     => sub { return $_[0]->{status} . $SPACE . $_[0]->{reason} },
   fallback => 1;
 
 our $EXPORT = {
