@@ -63,9 +63,9 @@ our $SCHEME_CACHE = {};
 
 has fh               => ();
 has read_size        => 1024 * 1024;
-has timeout          => 30;
+has timeout          => 30;              # undef - no timeout
 has timeout_is_fatal => 1;
-has connect_timeout  => 10;
+has connect_timeout  => 10;              # undef - no timeout
 has persistent       => ();
 has tls_ctx          => $TLS_CTX_HIGH;
 has bind_ip          => ();
