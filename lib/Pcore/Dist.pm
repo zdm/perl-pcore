@@ -229,7 +229,7 @@ sub _build_id ($self) {
     # convert date to UTC
     $id->{date} = P->date->from_string( $id->{date} )->at_utc->to_string if defined $id->{date};
 
-    $id->{release} //= 'v0.0.0';
+    $id->{release} //= $self->version;
 
     $id->{release_id} = $id->{release};
 
@@ -284,7 +284,9 @@ sub clear ($self) {
 }
 
 sub version_string ($self) {
-    if ( !$self->scm ) {
+    my $id = $self->id;
+
+    if ( !$id->{node} ) {
         return join $SPACE, $self->name, $self->version, 'no build info';
     }
 
@@ -292,9 +294,9 @@ sub version_string ($self) {
 
     $is_commited //= 1;
 
-    my @tags = $self->id->{tags} ? $self->id->{tags}->@* : ();
+    my @tags = $id->{tags} ? $id->{tags}->@* : ();
 
-    return join $SPACE, $self->name, $self->id->{release_id}, join( $SPACE, grep {$_} $self->id->{branch}, $self->id->{bookmark}, sort @tags ), $self->id->{node} . ( $is_commited ? $EMPTY : q[+] ), $self->id->{date};
+    return join $SPACE, $self->name, $id->{release_id}, join( $SPACE, grep {$_} $id->{branch}, $id->{bookmark}, sort @tags ), $id->{node} . ( $is_commited ? $EMPTY : q[+] ), $id->{date};
 }
 
 sub _build_docker ($self) {
