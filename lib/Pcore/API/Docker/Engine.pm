@@ -2,9 +2,11 @@ package Pcore::API::Docker::Engine;
 
 use Pcore -class, -const;
 
-const our $API_VER => 'v1.39';
+const our $API_VER               => 'v1.39';
+const our $DEFAULT_BUILD_TIMEOUT => 60 * 60 * 2;
 
-has host => '/var/run/docker.sock';
+has host          => '/var/run/docker.sock';
+has build_timeout => $DEFAULT_BUILD_TIMEOUT;
 
 # NOTE https://docs.docker.com/engine/api/v1.39/
 
@@ -33,18 +35,24 @@ sub build_image ( $self, $tar, $tags ) {
         method  => 'POST',
         url     => $url,
         data    => $tar,
-        timeout => undef,
+        timeout => $self->{build_timeout},
     );
+
+    return res $res if !$res;
+
+    my ( $log, $error );
 
     for my $stream ( split /\r\n/sm, $res->{data}->$* ) {
         my $data = P->data->from_json($stream);
 
-        print $data->{stream} if exists $data->{stream};
+        $log .= $data->{stream} if exists $data->{stream};
 
-        say dump $data if !exists $data->{stream};
+        $erorr = 1 if exists $data->{error};
     }
 
-    return $res;
+    return res 500, log => $log if $error;
+
+    return res 200;
 }
 
 # CONTAINERS

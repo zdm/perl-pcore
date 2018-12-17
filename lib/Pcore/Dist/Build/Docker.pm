@@ -623,6 +623,14 @@ sub build_local ( $self, $tag, $args ) {
     $res = $docker->build_image( $tar, \@tags );
     say $res;
 
+    if ( !$res ) {
+        P->file->write_text( "$repo->{DATA_DIR}/.build/docker-build.log", $res->{log} );
+
+        return $res;
+    }
+
+    # TODO push
+
     return res 200;
 }
 
