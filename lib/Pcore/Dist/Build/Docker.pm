@@ -592,6 +592,9 @@ sub build_local ( $self, $tag, $args ) {
         push @tags, "$repo_id:$_";
     }
 
+    # add dist-id.yaml
+    P->cfg->write( "$repo->{root}/share/dist-id.yaml", $id );
+
     my $dockerignore = $self->_build_dockerignore("$root/.dockerignore");
 
     my $tar = do {
