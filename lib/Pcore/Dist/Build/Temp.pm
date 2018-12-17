@@ -39,14 +39,14 @@ sub run ( $self, $keep = 0 ) {
     my $path;
 
     if ($keep) {
-        $path = P->path( "$ENV->{PCORE_TEMP_DIR}/build/" . $self->{dist}->name . '-' . P->uuid->v4_hex );
+        $path = P->path( "$self->{dist}->{root}/data/.build/" . $self->{dist}->name . '-' . P->uuid->v4_hex );
 
         $path->mkpath;
 
         $tree->write_to( $path, manifest => 1 );
     }
     else {
-        $path = $tree->write_to_temp( manifest => 1, prefix => "$ENV->{PCORE_TEMP_DIR}/build", name => $self->{dist}->name . '-' . P->uuid->v4_hex );
+        $path = $tree->write_to_temp( manifest => 1, prefix => "$self->{dist}->{root}/data/.build", name => $self->{dist}->name . '-' . P->uuid->v4_hex );
     }
 
     return $path;
