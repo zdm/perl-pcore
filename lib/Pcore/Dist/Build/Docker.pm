@@ -620,16 +620,29 @@ sub build_local ( $self, $tag, $args ) {
     my $docker = Pcore::API::Docker::Engine->new;
 
     print 'Building image ... ';
-    $res = $docker->build_image( $tar, \@tags );
+    $res = $docker->image_build( $tar, \@tags );
     say $res;
 
+    # docker image build error
     if ( !$res ) {
-        P->file->write_text( "$repo->{DATA_DIR}/.build/docker-build.log", $res->{log} );
+
+        # store build log
+        if ( defined $res->{log} ) {
+            my $logdir = "$dist->{root}/data/.build";
+
+            P->file->mkpath($logdir) if !-d $logdir;
+
+            P->file->write_text( "$logdir/docker-build.log", $res->{log} );
+        }
 
         return $res;
     }
 
-    # TODO push
+    # push images
+    print 'Pusing images ... ';
+    $res = $docker->image_push( \@tags );
+    say $res;
+    return $res if !$res;
 
     return res 200;
 }
