@@ -5,6 +5,9 @@ use Pcore -class, -const, -res;
 const our $API_VER               => 'v1.39';
 const our $DEFAULT_BUILD_TIMEOUT => 60 * 60 * 2;
 
+has username => sub { $ENV->user_cfg->{DOCKERHUB}->{username} };
+has password => sub { $ENV->user_cfg->{DOCKERHUB}->{password} };
+
 has host          => '/var/run/docker.sock';
 has build_timeout => $DEFAULT_BUILD_TIMEOUT;
 
@@ -64,7 +67,16 @@ sub image_push ( $self, $tag ) {
 
     my $res = P->http->request(
         method  => 'POST',
-        url     => $url,
+        url     => "$url?t=softvisio/pcore:tip",
+        headers => [
+            'X-Registry-Auth' => P->data->to_b64(
+                P->data->to_json( {
+                    username => $self->{username},
+                    password => $self->{password},
+                } )->$*,
+                $EMPTY
+            ),
+        ],
         timeout => undef,
     );
 

@@ -617,7 +617,7 @@ sub build_local ( $self, $tag, $args ) {
         $_tar->write;
     };
 
-    my $docker = Pcore::API::Docker::Engine->new;
+    # my $docker = Pcore::API::Docker::Engine->new;
 
     print 'Building image ... ';
     $res = $docker->image_build( $tar, \@tags );
