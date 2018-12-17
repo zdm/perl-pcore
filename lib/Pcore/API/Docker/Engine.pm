@@ -47,9 +47,11 @@ sub image_build ( $self, $tar, $tags ) {
 
         $log .= $data->{stream} if exists $data->{stream};
 
-        say dump $data->{error} if exists $data->{error};
+        if ( exists $data->{error} ) {
+            $error = 1;
 
-        $error = 1 if exists $data->{error};
+            $log .= $data->{error};
+        }
     }
 
     return res 500, log => $log if $error;
@@ -57,10 +59,16 @@ sub image_build ( $self, $tar, $tags ) {
     return res 200;
 }
 
-sub image_push ( $self, $images ) {
-    say dump $images;
+sub image_push ( $self, $tag ) {
+    my $url = $self->_create_url("images/$tag/push");
 
-    return res 200;
+    my $res = P->http->request(
+        method  => 'POST',
+        url     => $url,
+        timeout => undef,
+    );
+
+    return $res;
 }
 
 # CONTAINERS

@@ -639,10 +639,11 @@ sub build_local ( $self, $tag, $args ) {
     }
 
     # push images
-    print 'Pusing images ... ';
-    $res = $docker->image_push( \@tags );
-    say $res;
-    return $res if !$res;
+    for my $tag (@tags) {
+        print "Pusing image $tag ... ";
+        $res = $docker->image_push($tag);
+        say $res;
+    }
 
     return res 200;
 }
