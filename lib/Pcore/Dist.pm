@@ -284,6 +284,10 @@ sub clear ($self) {
 }
 
 sub version_string ($self) {
+    if ( !$self->scm ) {
+        return join $SPACE, $self->name, $self->version, 'no build info';
+    }
+
     my $is_commited = $self->is_commited;
 
     $is_commited //= 1;

@@ -8,10 +8,6 @@ sub CLI ($self) {
     return {
         abstract => 'build image',
         opt      => {
-            upload => {
-                desc    => 'upload to the DockerHub',
-                default => 0,
-            },
             remove => {
                 desc    => 'remove images after build',
                 default => 1,
