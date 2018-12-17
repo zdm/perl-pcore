@@ -642,10 +642,20 @@ sub build_local ( $self, $tag, $args ) {
     }
 
     # push images
-    for my $tag (@tags) {
-        print qq[Pusing image "$tag" ... ];
-        $res = $docker->image_push($tag);
-        say $res;
+    if ( $args->{push} ) {
+        for my $tag (@tags) {
+            print qq[Pusing image "$tag" ... ];
+            $res = $docker->image_push($tag);
+            say $res;
+        }
+    }
+
+    if ( $args->{remove} ) {
+        for my $tag (@tags) {
+            print qq[Removing image "$tag" ... ];
+            $res = $docker->image_remove($tag);
+            say $res;
+        }
     }
 
     return res 200;

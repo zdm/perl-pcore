@@ -10,7 +10,7 @@ sub CLI ($self) {
         opt      => {
             remove => {
                 desc    => 'remove images after build',
-                default => 1,
+                default => 0,
             },
             push => {
                 desc    => 'push images after build',
