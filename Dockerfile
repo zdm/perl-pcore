@@ -20,6 +20,7 @@ WORKDIR $DIST_PATH
 
 # --develop
 RUN /bin/bash -c ' \
+	exit 21 \
     \
     # install prereqs
     yum -y install ca-certificates wget \

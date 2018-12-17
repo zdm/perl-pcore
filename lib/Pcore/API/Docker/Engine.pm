@@ -47,6 +47,8 @@ sub image_build ( $self, $tar, $tags ) {
 
         $log .= $data->{stream} if exists $data->{stream};
 
+        say dump $data->{error} if exists $data->{error};
+
         $error = 1 if exists $data->{error};
     }
 

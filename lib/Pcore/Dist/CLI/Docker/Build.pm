@@ -16,6 +16,10 @@ sub CLI ($self) {
                 desc    => 'remove images after build',
                 default => 1,
             },
+            push => {
+                desc    => 'push images after build',
+                default => 1,
+            },
         },
         arg => [
             tag => {
