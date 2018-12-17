@@ -1,3 +1,6 @@
+v0.78.2 2018-12-17T10:52:35Z
+ - bug fixed
+
 v0.78.1 2018-12-17T10:47:26Z
  - docker build
  - PCORE_TEMP_DIR removed
