@@ -67,7 +67,7 @@ sub image_push ( $self, $tag ) {
 
     my $res = P->http->request(
         method  => 'POST',
-        url     => '$url?t=softvisio/pcore:test&t=' . P->data->to_uri($tag),
+        url     => '$url?t=' . P->data->to_uri($tag),
         headers => [
             'X-Registry-Auth' => P->data->to_b64(
                 P->data->to_json( {
