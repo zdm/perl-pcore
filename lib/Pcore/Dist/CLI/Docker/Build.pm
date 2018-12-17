@@ -31,8 +31,6 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 
     my $res = $dist->build->docker->build_local( $arg->{tag}, $opt );
 
-    say $res;
-
     return;
 }
 
