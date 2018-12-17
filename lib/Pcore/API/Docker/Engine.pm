@@ -62,12 +62,13 @@ sub image_build ( $self, $tar, $tags ) {
     return res 200;
 }
 
+# https://docs.docker.com/engine/api/v1.39/#operation/ImagePush
 sub image_push ( $self, $tag ) {
     my $url = $self->_create_url("images/$tag/push");
 
     my $res = P->http->request(
         method  => 'POST',
-        url     => '$url?t=' . P->data->to_uri($tag),
+        url     => "$url?t=" . P->data->to_uri($tag),
         headers => [
             'X-Registry-Auth' => P->data->to_b64(
                 P->data->to_json( {
@@ -130,16 +131,6 @@ sub _create_url ( $self, $path ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    1 | 70                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
