@@ -1,3 +1,7 @@
+v0.78.1 2018-12-17T10:47:26Z
+ - docker build
+ - PCORE_TEMP_DIR removed
+
 v0.78.0 2018-12-16T20:35:52Z
  - pod
  - poll fixed
