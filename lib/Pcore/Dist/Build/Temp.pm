@@ -46,7 +46,8 @@ sub run ( $self, $keep = 0 ) {
         $tree->write_to( $path, manifest => 1 );
     }
     else {
-        $path = $tree->write_to_temp( manifest => 1, prefix => "$self->{dist}->{root}/data/.build", name => $self->{dist}->name . '-' . P->uuid->v4_hex );
+        # $path = $tree->write_to_temp( manifest => 1, prefix => "$self->{dist}->{root}/data/.build", name => $self->{dist}->name . '-' . P->uuid->v4_hex );
+        $path = $tree->write_to_temp( manifest => 1 );
     }
 
     return $path;
@@ -275,7 +276,7 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 55                   | Subroutines::ProhibitExcessComplexity - Subroutine "_gather_files" with high complexity score (22)             |
+## |    3 | 56                   | Subroutines::ProhibitExcessComplexity - Subroutine "_gather_files" with high complexity score (22)             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
