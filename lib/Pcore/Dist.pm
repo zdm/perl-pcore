@@ -225,6 +225,9 @@ sub _build_id ($self) {
     elsif ( -f "$self->{share_dir}/dist-id.yaml" ) {
         $id = P->cfg->read("$self->{share_dir}/dist-id.yaml");
     }
+    else {
+        $id->{release_distance} = '?';
+    }
 
     # convert date to UTC
     $id->{date} = P->date->from_string( $id->{date} )->at_utc->to_string if defined $id->{date};
@@ -232,7 +235,6 @@ sub _build_id ($self) {
     $id->{release} //= $self->version;
 
     $id->{release_id} = $id->{release};
-
     $id->{release_id} .= "+$id->{release_distance}" if $id->{release_distance};
 
     return $id;
@@ -287,7 +289,7 @@ sub version_string ($self) {
     my $id = $self->id;
 
     if ( !$id->{node} ) {
-        return join $SPACE, $self->name, $self->version, 'no build info';
+        return join $SPACE, $self->name, $id->{release_id};
     }
 
     my $is_commited = $self->is_commited;
