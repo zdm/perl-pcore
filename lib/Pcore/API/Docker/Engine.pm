@@ -1,6 +1,6 @@
 package Pcore::API::Docker::Engine;
 
-use Pcore -class, -const;
+use Pcore -class, -const, -res;
 
 const our $API_VER               => 'v1.39';
 const our $DEFAULT_BUILD_TIMEOUT => 60 * 60 * 2;
@@ -47,7 +47,7 @@ sub build_image ( $self, $tar, $tags ) {
 
         $log .= $data->{stream} if exists $data->{stream};
 
-        $erorr = 1 if exists $data->{error};
+        $error = 1 if exists $data->{error};
     }
 
     return res 500, log => $log if $error;
