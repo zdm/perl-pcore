@@ -152,7 +152,12 @@ sub tgz ($self) {
 
     my $path = "$self->{dist}->{root}/data/.build/$base_dir..tar.gz";
 
-    unlink $path or die qq[Can't unlink "$path"] if -e $path;
+    if ( -e $path ) {
+        unlink $path or die qq[Can't unlink "$path"];
+    }
+    elsif ( !-d "$self->{dist}->{root}/data/.build" ) {
+        P->file->mkpath("$self->{dist}->{root}/data/.build");
+    }
 
     $tgz->write( $path, Archive::Tar::COMPRESS_GZIP() );
 
