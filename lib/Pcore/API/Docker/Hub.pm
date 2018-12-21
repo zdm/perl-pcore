@@ -84,7 +84,7 @@ sub _req ( $self, $method, $endpoint, $require_auth, $data, $cb = undef ) {
     my $cv = P->cv;
 
     my $request = sub {
-        P->http->$method(
+        P->http->request(
             method  => $method,
             url     => $BASE_URL . $endpoint,
             headers => [
