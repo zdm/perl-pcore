@@ -64,21 +64,24 @@ sub WRITE {
         for my $str ( split /($ANSI_RE)/sm, $buf ) {
             next if $str eq $EMPTY;
 
-            if ( substr( $str, 0, 1 ) eq qq[\e] ) {    # ANSII escape sequence
+            # ANSII escape sequence
+            if ( substr( $str, 0, 1 ) eq "\e" ) {
 
                 print {$fh} $str;
 
                 $fh->flush;
             }
-            else {                                     #
+
+            # text
+            else {
                 while ( length $str ) {
-                    write_console( $handle, $UTF16->encode( substr $str, 0, $MAX_BUFFER_SIZE, $EMPTY ) . "\N{NULL}" );
+                    write_console( $handle, $UTF16->encode( substr $str, 0, $MAX_BUFFER_SIZE, $EMPTY ) . "\x00" );
                 }
             }
         }
     }
-    else {                                             # redirected filehandle, |, >, ...
-        $buf =~ s/$ANSI_RE//smg;                       # strip ANSI escape sequencies
+    else {    # redirected filehandle, |, >, ...
+        $buf =~ s/$ANSI_RE//smg;    # strip ANSI escape sequencies
 
         print {$fh} $buf;
 
@@ -89,6 +92,16 @@ sub WRITE {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    2 | 78                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
