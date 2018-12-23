@@ -78,9 +78,9 @@ sub _read ( $self ) {
 
 # NOTE status + pattern (status *.txt) not works under linux - http://bz.selenic.com/show_bug.cgi?id=4526
 sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
-    my $buf = join "\N{NULL}", $cmd->@*;
+    my $buf = join "\x00", $cmd->@*;
 
-    $buf .= "\N{NULL}--repository\N{NULL}$root" if $root;
+    $buf .= "\x00--repository\x00$root" if $root;
 
     $buf = Encode::encode( $Pcore::WIN_ENC, $buf, Encode::FB_CROAK );
 

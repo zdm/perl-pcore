@@ -509,10 +509,10 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
     my $hash = $md5->hexdigest;
 
     # writing cache id
-    $fh->print( pack( 'Z40', $hash ) . "\N{NULL}CACHE" );
+    $fh->print( pack( 'Z40', $hash ) . "\x00CACHE" );
 
     # writing overlay length
-    $fh->print( pack( 'N', $fh->tell - $exe_header_length ) . "\N{NULL}PAR.pm$LF" );
+    $fh->print( pack( 'N', $fh->tell - $exe_header_length ) . "\x00PAR.pm$LF" );
 
     my $out_len = $fh->tell;
 

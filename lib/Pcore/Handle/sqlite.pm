@@ -233,7 +233,7 @@ sub quote ( $self, $var ) {
     else {
 
         # quote \x00 in literal
-        if ( index( $var, "\N{NULL}" ) != -1 ) {
+        if ( index( $var, "\x00" ) != -1 ) {
             utf8::encode $var if utf8::is_utf8 $var;
 
             return q[CAST(x'] . unpack( 'H*', $var ) . q[' AS TEXT)];
