@@ -30,7 +30,7 @@ our $COLOR = {
     refs    => $BOLD . $WHITE,
     unknown => $BLACK . $ON_YELLOW,                  # potential new Perl datatypes
     undef   => $BOLD . $RED,                         # the 'undef' value
-    escaped => $BOLD . $RED,                         # escaped characters (\t, \n, etc)
+    ctrl    => $BOLD . $RED,                         # escaped control characters (\t, \n, etc)
     seen    => $WHITE . $ON_RED,                     # references to seen values
 };
 
@@ -308,7 +308,8 @@ sub SCALAR {
         my $item         = $_[0];                  # scalar become untied
         my $bytes_length = bytes::length($item);
         my $length       = length $item;
-        escape_scalar( $item, esc_color => $COLOR->{escaped}, reset_color => $COLOR->{string} );
+
+        escape_scalar( $item, readable => 1, quote => 1, color => 1, color_ctrl => $COLOR->{ctrl}, color_reset => $COLOR->{string} );
 
         if ( utf8::is_utf8 $item ) {               # characters
             push $tags->@*, 'UTF8';
@@ -335,7 +336,7 @@ sub SCALAR {
 
         push $tags->@*, 'tied to ' . ref tied $_[0] if tainted $_[0];
 
-        $res = 'qq[' . $COLOR->{string} . $item . $RESET . ']';
+        $res = $COLOR->{string} . $item . $RESET;
     }
 
     $self->_tied_to( tied $_[0], $tags );
@@ -409,13 +410,8 @@ sub HASH {
         for ( nsort keys $hash_ref->%* ) {
             my $indexed_key = {
                 raw_key     => $_,
-                escaped_key => \escape_scalar( $_, esc_color => $COLOR->{escaped}, reset_color => $COLOR->{hash} ),
+                escaped_key => \escape_scalar( $_, quote => 2, readable => 1, color => 1, color_ctrl => $COLOR->{ctrl}, color_reset => $COLOR->{hash} ),
             };
-
-            # hash key requires to be quoted
-            if ( $_ eq $EMPTY || /[^[:alnum:]_]/sm ) {
-                $indexed_key->{escaped_key} = \( 'q[' . $indexed_key->{escaped_key}->$* . ']' );
-            }
 
             $indexed_key->{escaped_key_nc} = $indexed_key->{escaped_key}->$*;
 

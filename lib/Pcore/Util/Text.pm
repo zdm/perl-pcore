@@ -6,16 +6,6 @@ use Text::Xslate qw[mark_raw unmark_raw];
 
 our $ENC_CACHE = {};
 
-our %ESC_ANSI_CTRL = (
-    qq[\a] => q[\a],
-    qq[\b] => q[\b],
-    qq[\t] => q[\t],
-    qq[\n] => q[\n],
-    qq[\f] => q[\f],
-    qq[\r] => q[\r],
-    qq[\e] => q[\e],
-);
-
 our $EXPORT = [ qw[
       cut
       cut_all
@@ -223,69 +213,83 @@ sub remove_ansi {
     }
 }
 
-sub escape_scalar {
-    local $_;
-
-    if ( defined wantarray ) {
-        $_ = $_[0];
-    }
-    else {
-        \$_ = \$_[0];
-    }
-
-    my %args = (
-        bin         => undef,    # if TRUE - always treats scalar as binary data
-        utf8_encode => 1,        # if FALSE - in bin mode escape utf8 multi-byte chars as \x{...}
-        esc_color   => undef,
-        reset_color => $RESET,
-        splice @_, 1,
+sub escape_scalar ( $str, @args ) {
+    state %CTRL = (
+        "\a" => '\a',
+        "\b" => '\b',
+        "\e" => '\e',
+        "\f" => '\f',
+        "\n" => '\n',
+        "\r" => '\r',
+        "\t" => '\t',
     );
 
-    # automatically detect scalar type
-    if ( !defined $args{bin} ) {
-        if ( utf8::is_utf8 $_ ) {    # UTF-8 scalar
-            $args{bin} = 0;
+    my %args = (
+        quote       => 1,              # 1 - always quote, 2 - quote for fat-comma ("=>")
+        readable    => 0,
+        color       => 0,
+        color_ctrl  => $BOLD . $RED,
+        color_reset => $RESET,
+        @args,
+    );
+
+    if ( $str eq $EMPTY ) {
+        if ( defined wantarray ) {
+            return $args{quote} ? q[''] : $EMPTY;
         }
-        elsif (/[[:^ascii:]]/sm) {    # latin1 octets
-            $args{bin} = 1;
-        }
-        else {                        # ASCII bytes
-            $args{bin} = 0;
+        else {
+            $_[0] = $args{quote} ? q[''] : $EMPTY;
+
+            return;
         }
     }
 
-    # escape scalar
-    if ( $args{bin} ) {
-        if ( utf8::is_utf8 $_ ) {
-            if ( $args{utf8_encode} ) {
-                encode_utf8 $_;
+    my $color_ctrl  = $args{color} && $args{color_ctrl}  ? $args{color_ctrl}  : $EMPTY;
+    my $color_reset = $color_ctrl  && $args{color_reset} ? $args{color_reset} : $EMPTY;
 
-                s/(.)/sprintf '\x%02X', ord $1/smge;
-            }
-            else {
-                s/([[:ascii:]])/sprintf '\x%02X', ord $1/smge;
+    my $interpolation;
 
-                s/([[:^ascii:]])/sprintf '\x{%X}', ord $1/smge;
-            }
+    # downgrade, if possible
+    Encode::_utf8_off $str if utf8::is_utf8 $str && length $str == bytes::length $str;
+
+    # escape '/'
+    $str =~ s[/][\/]smg if $args{quote};
+
+    # escape control characters
+    $interpolation = 1 if $str =~ s/([\a\b\e\f\n\r\t])/$color_ctrl . $CTRL{$1} . $color_reset/smge;
+    $interpolation = 1 if $str =~ s/([\x00-\x06\x0B\x0E-\x1A\x1C-\x1F\x7F-\x9F])/$color_ctrl . sprintf('\x%02X', ord $1) . $color_reset/smge;
+
+    if ( utf8::is_utf8 $str) {
+        if ( $args{readable} ) {
+            $interpolation = 1 if $str =~ s/([\x80-\xFF])/sprintf '\x%02X', ord $1/smge;
         }
         else {
-            s/(.)/sprintf '\x%02X', ord $1/smge;
+            $interpolation = 1 if $str =~ s/([[:^ascii:]])/sprintf((ord $1 > 255 ? '\x{%X}' : '\x%02X'), ord $1)/smge;
+
+            Encode::_utf8_off $str;
         }
     }
     else {
-        my $esc_color = $args{esc_color} || $EMPTY;
+        $interpolation = 1 if $str =~ s/([[:^ascii:]])/sprintf '\x%02X', ord $1/smge;
+    }
 
-        my $reset_color = $args{esc_color} ? $args{reset_color} : $EMPTY;
-
-        s/([\a\b\t\n\f\r\e])/${esc_color}$ESC_ANSI_CTRL{$1}${reset_color}/smg;    # escape ANSI
-
-        s/([\x00-\x1A\x1C-\x1F\x7F])/$esc_color . sprintf( '\x%02X', ord $1 ) . $reset_color/smge;    # hex ANSI non-printable chars
+    if ( $args{quote} ) {
+        if ($interpolation) {
+            $str =~ s/"/\\"/smg;
+            $str = qq["$str"];
+        }
+        elsif ( $args{quote} != 2 || $str =~ /[^A-Za-z0-9_]/sm ) {
+            $str =~ s/'/\\'/smg;
+            $str = qq['$str'];
+        }
     }
 
     if ( defined wantarray ) {
-        return $_;
+        return $str;
     }
     else {
+        $_[0] = $str;
+
         return;
     }
 }
@@ -574,18 +578,24 @@ sub to_camel_case {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 203                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 193                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 227, 415             | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
+## |      | 216                  | * Subroutine "escape_scalar" with high complexity score (28)                                                   |
+## |      | 297                  | * Subroutine "wrap" with high complexity score (28)                                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 293                  | Subroutines::ProhibitExcessComplexity - Subroutine "wrap" with high complexity score (28)                      |
+## |    3 | 253, 269             | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | NamingConventions::ProhibitAmbiguousNames                                                                      |
-## |      | 399, 400             | * Ambiguously named variable "left"                                                                            |
-## |      | 400                  | * Ambiguously named variable "right"                                                                           |
+## |      | 403, 404             | * Ambiguously named variable "left"                                                                            |
+## |      | 404                  | * Ambiguously named variable "right"                                                                           |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 10, 11, 12, 13, 14,  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
-## |      | 15, 16               |                                                                                                                |
+## |    3 | 419                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 218, 219, 220, 221,  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |      | 222, 223, 224        |                                                                                                                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 281                  | RegularExpressions::ProhibitEnumeratedClasses - Use named character classes ([^A-Za-z0-9_] vs. \W)             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
