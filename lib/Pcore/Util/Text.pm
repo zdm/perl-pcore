@@ -214,15 +214,23 @@ sub remove_ansi {
 }
 
 sub escape_scalar ( $str, @args ) {
-    state %CTRL = (
-        "\a" => '\a',
-        "\b" => '\b',
-        "\e" => '\e',
-        "\f" => '\f',
-        "\n" => '\n',
-        "\r" => '\r',
-        "\t" => '\t',
-    );
+    state @map = do {
+        my @_map;
+
+        $_map[ ord "\a" ] = '\a';
+        $_map[ ord "\b" ] = '\b';
+        $_map[ ord "\e" ] = '\e';
+        $_map[ ord "\f" ] = '\f';
+        $_map[ ord "\n" ] = '\n';
+        $_map[ ord "\r" ] = '\r';
+        $_map[ ord "\t" ] = '\t';
+
+        for ( 0x00 .. 0x1F, 0x7F .. 0xFF ) { $_map[$_] = sprintf '\x%02X', $_ if !defined $_map[$_] }
+
+        for ( 0x20 .. 0x7E ) { $_map[$_] = chr if !defined $_map[$_] }
+
+        @_map;
+    };
 
     my %args = (
         quote       => 1,              # 1 - always quote, 2 - quote for fat-comma ("=>")
@@ -256,21 +264,20 @@ sub escape_scalar ( $str, @args ) {
     $str =~ s[/][\/]smg if $args{quote};
 
     # escape control characters
-    $interpolation = 1 if $str =~ s/([\a\b\e\f\n\r\t])/$color_ctrl . $CTRL{$1} . $color_reset/smge;
-    $interpolation = 1 if $str =~ s/([\x00-\x06\x0B\x0E-\x1A\x1C-\x1F\x7F-\x9F])/$color_ctrl . sprintf('\x%02X', ord $1) . $color_reset/smge;
+    $interpolation = 1 if $str =~ s/([\x00-\x1F\x7F])/$color_ctrl . $map[ ord $1 ] . $color_reset/smge;
 
     if ( utf8::is_utf8 $str) {
         if ( $args{readable} ) {
-            $interpolation = 1 if $str =~ s/([\x80-\xFF])/sprintf '\x%02X', ord $1/smge;
+            $interpolation = 1 if $str =~ s/([\x80-\xFF])/$map[ ord $1 ]/smge;
         }
         else {
-            $interpolation = 1 if $str =~ s/([[:^ascii:]])/sprintf((ord $1 > 255 ? '\x{%X}' : '\x%02X'), ord $1)/smge;
+            $interpolation = 1 if $str =~ s[([[:^ascii:]])][$map[ ord $1 ] // sprintf '\x{%X}', ord $1]smge;
 
             Encode::_utf8_off $str;
         }
     }
     else {
-        $interpolation = 1 if $str =~ s/([[:^ascii:]])/sprintf '\x%02X', ord $1/smge;
+        $interpolation = 1 if $str =~ s/([[:^ascii:]])/$map[ ord $1 ]/smge;
     }
 
     if ( $args{quote} ) {
@@ -581,21 +588,21 @@ sub to_camel_case {
 ## |    3 | 193                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 216                  | * Subroutine "escape_scalar" with high complexity score (28)                                                   |
-## |      | 297                  | * Subroutine "wrap" with high complexity score (28)                                                            |
+## |      | 216                  | * Subroutine "escape_scalar" with high complexity score (31)                                                   |
+## |      | 304                  | * Subroutine "wrap" with high complexity score (28)                                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 253, 269             | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 261, 276             | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | NamingConventions::ProhibitAmbiguousNames                                                                      |
-## |      | 403, 404             | * Ambiguously named variable "left"                                                                            |
-## |      | 404                  | * Ambiguously named variable "right"                                                                           |
+## |      | 410, 411             | * Ambiguously named variable "left"                                                                            |
+## |      | 411                  | * Ambiguously named variable "right"                                                                           |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 419                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 426                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 218, 219, 220, 221,  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
-## |      | 222, 223, 224        |                                                                                                                |
+## |    1 | 220, 221, 222, 223,  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |      | 224, 225, 226, 228   |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 281                  | RegularExpressions::ProhibitEnumeratedClasses - Use named character classes ([^A-Za-z0-9_] vs. \W)             |
+## |    1 | 288                  | RegularExpressions::ProhibitEnumeratedClasses - Use named character classes ([^A-Za-z0-9_] vs. \W)             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
