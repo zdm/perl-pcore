@@ -86,7 +86,7 @@ sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
 
     my $hg = $self->_server;
 
-    $hg->{stdin}->write( "runcommand$LF" . pack( 'L>', length $buf ) . $buf );
+    $hg->{stdin}->write( "runcommand\n" . pack( 'L>', length $buf ) . $buf );
 
     my $res = {};
 

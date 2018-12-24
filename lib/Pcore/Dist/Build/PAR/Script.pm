@@ -55,7 +55,7 @@ sub _build_exe_filename ($self) {
 
 # TODO enable repack
 sub run ($self) {
-    say qq[\nBuilding ] . ( $self->{crypt} ? $BLACK . $ON_GREEN . ' crypted ' : $BOLD . $WHITE . $ON_RED . q[ not crypted ] ) . $RESET . $SPACE . $BLACK . $ON_GREEN . ( $self->{clean} ? ' clean ' : ' cached ' ) . $RESET . qq[ "@{[$self->exe_filename]}" for $Config{archname}$LF];
+    say qq[\nBuilding ] . ( $self->{crypt} ? $BLACK . $ON_GREEN . ' crypted ' : $BOLD . $WHITE . $ON_RED . q[ not crypted ] ) . $RESET . $SPACE . $BLACK . $ON_GREEN . ( $self->{clean} ? ' clean ' : ' cached ' ) . $RESET . qq[ "@{[$self->exe_filename]}" for $Config{archname}\n];
 
     # add main script
     $self->_add_perl_source( $self->{script}->to_abs->{path}, 'script/main.pl' );
@@ -512,7 +512,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
     $fh->print( pack( 'Z40', $hash ) . "\x00CACHE" );
 
     # writing overlay length
-    $fh->print( pack( 'N', $fh->tell - $exe_header_length ) . "\x00PAR.pm$LF" );
+    $fh->print( pack( 'N', $fh->tell - $exe_header_length ) . "\x00PAR.pm\n" );
 
     my $out_len = $fh->tell;
 

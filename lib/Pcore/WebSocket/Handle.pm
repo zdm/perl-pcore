@@ -196,7 +196,7 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
     );
 
     # write headers
-    $h->write( join( $CRLF, @headers ) . $CRLF . $CRLF );
+    $h->write( join( "\r\n", @headers ) . "\r\n\r\n" );
 
     # write headers error
     return $on_error->( $self, $h->{status}, $h->{reason} ) if !$h;

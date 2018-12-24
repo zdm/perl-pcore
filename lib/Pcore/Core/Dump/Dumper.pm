@@ -357,7 +357,7 @@ sub ARRAY {
         $res = $COLOR->{refs} . '[]' . $RESET;
     }
     else {
-        $res = $COLOR->{refs} . '[' . $RESET . $LF;
+        $res = "$COLOR->{refs}\[$RESET\n";
 
         my $max_index_length = length( $#{$array_ref} ) + 2;
 
@@ -400,7 +400,7 @@ sub HASH {
         $res = $COLOR->{refs} . '{}' . $RESET;
     }
     else {
-        $res = $COLOR->{refs} . '{' . $RESET . $LF;
+        $res = "$COLOR->{refs}\{$RESET\n";
 
         my $keys;
         my $max_length = 0;

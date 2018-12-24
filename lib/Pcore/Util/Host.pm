@@ -67,7 +67,7 @@ sub update_all ( $self ) {
             $domains->{$domain_ascii} = domain_to_utf8($domain_ascii);
         }
 
-        $ENV->{share}->write( '/Pcore/data/tld.dat', \encode_utf8( join $LF, map {"$domains->{$_};$_"} sort { $domains->{$a} cmp $domains->{$b} } keys $domains->%* ) );
+        $ENV->{share}->write( '/Pcore/data/tld.dat', \encode_utf8( join "\n", map {"$domains->{$_};$_"} sort { $domains->{$a} cmp $domains->{$b} } keys $domains->%* ) );
 
         undef $TLD;
 
@@ -123,7 +123,7 @@ sub update_all ( $self ) {
             }
         }
 
-        $ENV->{share}->write( '/Pcore/data/pub-suffix.dat', \encode_utf8( join $LF, map {"$suffixes->{$_};$_"} sort { $suffixes->{$a} cmp $suffixes->{$b} } keys $suffixes->%* ) );
+        $ENV->{share}->write( '/Pcore/data/pub-suffix.dat', \encode_utf8( join "\n", map {"$suffixes->{$_};$_"} sort { $suffixes->{$a} cmp $suffixes->{$b} } keys $suffixes->%* ) );
 
         undef $PUB_SUFFIX;
 

@@ -104,11 +104,11 @@ sub connect_connect ( $self, $uri, @args ) {
     # connect error
     return $h if !$h;
 
-    my $buf = "CONNECT $uri->{host}:" . $uri->connect_port . " HTTP/1.1$CRLF";
+    my $buf = "CONNECT $uri->{host}:" . $uri->connect_port . " HTTP/1.1\r\n";
 
-    $buf .= 'Proxy-Authorization: Basic ' . $self->{uri}->userinfo_b64 . $CRLF if $self->{uri}->{userinfo};
+    $buf .= 'Proxy-Authorization: Basic ' . $self->{uri}->userinfo_b64 . "\r\n" if $self->{uri}->{userinfo};
 
-    $buf .= $CRLF;
+    $buf .= "\r\n";
 
     $h->write($buf) or return $h;
 
