@@ -10,6 +10,8 @@ our $EXPORT = {    #
 our $LOCALE             = undef;    # current locale
 our $MESSAGES           = {};
 our $LOCALE_PLURAL_FORM = {};
+our $PROCESSED;                     # all dists are processed
+our $LOADED_DIST_LOCALES;
 
 tie our $l10n->%*, 'Pcore::Core::L10N::_l10n';
 
@@ -20,16 +22,16 @@ sub set_locale ($locale = undef) {
 }
 
 sub load_locale : prototype($) ($locale) {
-    return if $ENV->{l10n_processed} && exists $Pcore::Core::L10N::MESSAGES->{$locale};
+    return if $PROCESSED && exists $Pcore::Core::L10N::MESSAGES->{$locale};
 
-    $ENV->{l10n_processed} = 1;
+    $PROCESSED = 1;
 
     my $messages = $MESSAGES->{$locale} //= {};
 
     for my $dist ( $ENV->{dists_order}->@* ) {
-        next if $dist->{loaded_locales}->{$locale};
+        next if $LOADED_DIST_LOCALES->{ $dist->{name} }->{$locale};
 
-        $dist->{loaded_locales}->{$locale} = 1;
+        $LOADED_DIST_LOCALES->{ $dist->{name} }->{$locale} = 1;
 
         my $po_path = "$dist->{share_dir}l10n/$locale.po";
 
@@ -164,7 +166,7 @@ sub to_string ( $self, $num = undef ) {
     goto DEFAULT if !defined $LOCALE;
 
     # load locale, if not loaded
-    Pcore::Core::L10N::load_locale($LOCALE) if !$ENV->{l10n_processed} || !exists $Pcore::Core::L10N::MESSAGES->{$LOCALE};
+    Pcore::Core::L10N::load_locale($LOCALE) if !$PROCESSED || !exists $Pcore::Core::L10N::MESSAGES->{$LOCALE};
 
     if ( my $msg = $Pcore::Core::L10N::MESSAGES->{$LOCALE}->{ $self->{msgid} } ) {
         my $idx = 0;
@@ -208,11 +210,11 @@ sub FETCH {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 22                   | Subroutines::ProhibitExcessComplexity - Subroutine "load_locale" with high complexity score (25)               |
+## |    3 | 24                   | Subroutines::ProhibitExcessComplexity - Subroutine "load_locale" with high complexity score (25)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 57, 60, 112          | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 59, 62, 114          | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 14                   | Miscellanea::ProhibitTies - Tied variable used                                                                 |
+## |    2 | 16                   | Miscellanea::ProhibitTies - Tied variable used                                                                 |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

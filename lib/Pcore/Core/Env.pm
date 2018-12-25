@@ -18,7 +18,6 @@ has cli           => ( init_arg => undef );                        # HashRef, pa
 has share         => ( init_arg => undef );                        # InstanceOf ['Pcore::Core::Env::Share'], share object
 has user_cfg_path => ( is       => 'lazy', init_arg => undef );
 has user_cfg      => ( is       => 'lazy', init_arg => undef );    # $HOME/.pcore/pcore.ini config
-has l10n_processed => ();
 
 has PCORE_SHARE_DIR => ();
 has USER_DIR        => ();                                         # OS user profile dir
@@ -318,7 +317,7 @@ sub register_dist ( $self, $dist ) {
     # register dist share lib
     $self->{share}->register_lib( $dist->name, $dist->{share_dir} );
 
-    $self->{l10n_processed} = 0;
+    $Pcore::Core::L10N::PROCESSED = 0;
 
     return;
 }
@@ -425,14 +424,14 @@ END {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 208                  | * Subroutine "BUILD1" with high complexity score (23)                                                          |
-## |      | 335                  | * Subroutine "END" with high complexity score (23)                                                             |
+## |      | 207                  | * Subroutine "BUILD1" with high complexity score (23)                                                          |
+## |      | 334                  | * Subroutine "END" with high complexity score (23)                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 346                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 345                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 386                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 385                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 413                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
+## |    2 | 412                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
