@@ -83,10 +83,10 @@ sub encode_data ( $type, $data, @ ) {
         $res = \to_yaml($data);
     }
     elsif ( $type == $DATA_TYPE_XML ) {
-        $res = to_xml( $data, $args{xml}->%*, readable => $args{readable} );
+        $res = \to_xml( $data, $args{xml}->%*, readable => $args{readable} );
     }
     elsif ( $type == $DATA_TYPE_INI ) {
-        $res = to_ini($data);
+        $res = \to_ini($data);
     }
     else {
         die qq[Unknown serializer "$type"];
@@ -484,12 +484,12 @@ sub to_xml ( $data, %args ) {
     my $readable = delete $args{readable};
 
     if (%args) {
-        return \$xml->hash2xml( $data, %args );
+        return $xml->hash2xml( $data, %args );
     }
     else {
         my $root = ( keys $data->%* )[0];
 
-        return \$xml->hash2xml( $data->{$root}, root => $root, utf8 => 0, $readable ? ( canonical => 1, indent => 4 ) : () );
+        return $xml->hash2xml( $data->{$root}, root => $root, utf8 => 0, $readable ? ( canonical => 1, indent => 4 ) : () );
     }
 }
 
@@ -530,7 +530,7 @@ sub to_ini ( $data, @ ) {
 
     encode_utf8 $buf;
 
-    return \$buf;
+    return $buf;
 }
 
 sub from_ini ( $data, @ ) {
