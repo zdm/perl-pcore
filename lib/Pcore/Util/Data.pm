@@ -77,7 +77,7 @@ sub encode_data ( $type, $data, @ ) {
         $res = \to_json( $data, $args{json}->%*, readable => $args{readable} );
     }
     elsif ( $type == $DATA_TYPE_CBOR ) {
-        $res = to_cbor($data);
+        $res = \to_cbor($data);
     }
     elsif ( $type == $DATA_TYPE_YAML ) {
         $res = to_yaml($data);
@@ -416,7 +416,7 @@ sub get_cbor ( @args ) {
 sub to_cbor ( $data, @ ) {
     state $cbor = get_cbor();
 
-    return \$cbor->encode($data);
+    return $cbor->encode($data);
 }
 
 sub from_cbor ( $data, @ ) {

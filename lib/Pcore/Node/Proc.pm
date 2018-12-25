@@ -79,7 +79,7 @@ around new => sub ( $orig, $self, $type, % ) {
         $proc = P->sys->run_proc( [ $perl, "-MPcore::Node=$type" ], stdin => 1, kill_on_destroy => 0 );
 
         # send configuration to the proc STDIN
-        $proc->{stdin}->write( unpack( 'H*', to_cbor($boot_args)->$* ) . "\n" );
+        $proc->{stdin}->write( unpack( 'H*', to_cbor $boot_args ) . "\n" );
 
         my $res = $self->_handshake($fh_r);
     }
