@@ -240,7 +240,7 @@ sub read_text ( $path, % ) {
             goto READ;
         }
         else {
-            return \$tail;
+            return $tail;
         }
     }
 }

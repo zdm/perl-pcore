@@ -16,7 +16,7 @@ sub _build_upstream ($self) {
     if ( -f "$self->{root}/.hg/hgrc" ) {
         my $hgrc = P->file->read_text("$self->{root}/.hg/hgrc");
 
-        return Pcore::API::SCM::Upstream->new( { uri => $1, local_scm_type => $SCM_TYPE_HG } ) if $hgrc->$* =~ /default\s*=\s*(.+?)$/sm;
+        return Pcore::API::SCM::Upstream->new( { uri => $1, local_scm_type => $SCM_TYPE_HG } ) if $hgrc =~ /default\s*=\s*(.+?)$/sm;
     }
 
     return;
