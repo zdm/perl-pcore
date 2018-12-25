@@ -61,7 +61,7 @@ sub run ($self) {
     $self->_add_perl_source( $self->{script}->to_abs->{path}, 'script/main.pl' );
 
     # add META.yml
-    $self->tree->add_file( 'META.yml', P->data->to_yaml( { par => { clean => 1 } } ) ) if $self->{clean};
+    $self->tree->add_file( 'META.yml', \P->data->to_yaml( { par => { clean => 1 } } ) ) if $self->{clean};
 
     # add modules
     print 'adding modules ... ';
@@ -401,7 +401,7 @@ sub _add_dist ( $self, $dist ) {
         $self->tree->add_dir( $dist->{share_dir}, 'share' );
 
         # add main dist dist-id.yaml
-        $self->tree->add_file( 'share/dist-id.yaml', P->data->to_yaml( $dist->id ) );
+        $self->tree->add_file( 'share/dist-id.yaml', \P->data->to_yaml( $dist->id ) );
     }
     else {
 
@@ -409,7 +409,7 @@ sub _add_dist ( $self, $dist ) {
         $self->tree->add_dir( $dist->{share_dir}, "lib/auto/share/dist/@{[ $dist->name ]}" );
 
         # add dist-id.yaml
-        $self->tree->add_file( "lib/auto/share/dist/@{[ $dist->name ]}/dist-id.yaml", P->data->to_yaml( $dist->id ) );
+        $self->tree->add_file( "lib/auto/share/dist/@{[ $dist->name ]}/dist-id.yaml", \P->data->to_yaml( $dist->id ) );
     }
 
     say 'dist added: ' . $dist->name;

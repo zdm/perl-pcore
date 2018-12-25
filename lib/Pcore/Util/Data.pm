@@ -80,7 +80,7 @@ sub encode_data ( $type, $data, @ ) {
         $res = \to_cbor($data);
     }
     elsif ( $type == $DATA_TYPE_YAML ) {
-        $res = to_yaml($data);
+        $res = \to_yaml($data);
     }
     elsif ( $type == $DATA_TYPE_XML ) {
         $res = to_xml( $data, $args{xml}->%*, readable => $args{readable} );
@@ -432,7 +432,7 @@ sub to_yaml ( $data, @ ) {
     local $YAML::XS::DumpCode = 0;
     local $YAML::XS::Indent   = 4;
 
-    return \YAML::XS::Dump($data);
+    return YAML::XS::Dump($data);
 }
 
 sub from_yaml ( $data, @ ) {
