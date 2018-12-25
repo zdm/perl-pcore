@@ -200,14 +200,14 @@ sub table {
     return Pcore::Util::Text::Table->new( {@_} );
 }
 
-sub remove_ansi {
+sub remove_ansi ($str) {
+    $str =~ s/\e.+?m//smg;
+
     if ( defined wantarray ) {
-        return join $EMPTY, map {s/\e.+?m//smgr} @_;
+        return $str;
     }
     else {
-        for (@_) {    # convert in-place
-            s/\e.+?m//smg;
-        }
+        $_[0] = $str;
 
         return;
     }
