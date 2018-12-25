@@ -198,7 +198,7 @@ sub read_bin ( $path, % ) {
             goto READ;
         }
         else {
-            return \$tail;
+            return $tail;
         }
     }
 }

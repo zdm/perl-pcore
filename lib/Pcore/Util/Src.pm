@@ -274,7 +274,7 @@ sub _process_file ( $args, $action, $filter_profile, $path = undef, $data = unde
     # read file
     if ( !defined $data ) {
         if ( defined $path && -f $path ) {
-            $data = P->file->read_bin( $path->encoded )->$*;
+            $data = P->file->read_bin( $path->encoded );
 
             $write_data = 1;
         }

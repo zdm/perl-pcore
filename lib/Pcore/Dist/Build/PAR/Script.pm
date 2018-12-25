@@ -342,7 +342,7 @@ sub _process_main_modules ($self) {
 }
 
 sub _add_perl_source ( $self, $source, $target, $is_cpan_module = 0, $module = undef ) {
-    my $src = P->file->read_bin($source);
+    my $src = \P->file->read_bin($source);
 
     if ($module) {
 
@@ -421,7 +421,7 @@ sub _add_dist ( $self, $dist ) {
 sub _repack_parl ( $self, $parl_path, $zip ) {
     print 'repacking parl ... ';
 
-    my $src = P->file->read_bin($parl_path);
+    my $src = \P->file->read_bin($parl_path);
 
     my $in_len = length $src->$*;
 
@@ -491,7 +491,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 
     # adding files sections
     for my $filename ( sort keys $file_section->%* ) {
-        my $content = ref $file_section->{$filename} ? $file_section->{$filename} : P->file->read_bin( $file_section->{$filename} );
+        my $content = ref $file_section->{$filename} ? $file_section->{$filename} : \P->file->read_bin( $file_section->{$filename} );
 
         $fh->print( 'FILE' . pack( 'N', length($filename) + 9 ) . sprintf( '%08x', Archive::Zip::computeCRC32( $content->$* ) ) . q[/] . $filename . pack( 'N', length $content->$* ) . $content->$* );
 
