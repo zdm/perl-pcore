@@ -10,19 +10,20 @@ has share_dir    => ( required => 1 );    # absolute path to the dist share dir
 
 has module => ( is => 'lazy' );           # InstanceOf ['Pcore::Util::Perl::Module']
 
-has is_main     => ( init_arg => undef );                        # main process dist
-has cfg         => ( is       => 'lazy', init_arg => undef );    # dist cfg
-has docker_cfg  => ( is       => 'lazy', init_arg => undef );    # Maybe [HashRef], docker.yaml
-has par_cfg     => ( is       => 'lazy', init_arg => undef );    # Maybe [HashRef], par.yaml
-has name        => ( is       => 'lazy', init_arg => undef );    # Dist-Name
-has is_pcore    => ( is       => 'lazy', init_arg => undef );
-has scm         => ( is       => 'lazy', init_arg => undef );    # Maybe [ ConsumerOf ['Pcore::API::SCM'] ]
-has build       => ( is       => 'lazy', init_arg => undef );    # InstanceOf ['Pcore::Dist::Build']
-has id          => ( is       => 'lazy', init_arg => undef );
-has version     => ( is       => 'lazy', init_arg => undef );
-has is_commited => ( is       => 'lazy', init_arg => undef );    # Maybe [Bool]
-has releases    => ( is       => 'lazy', init_arg => undef );    # Maybe [ArrayRef]
-has docker      => ( is       => 'lazy', init_arg => undef );    # Maybe [HashRef]
+has is_main        => ( init_arg => undef );                        # main process dist
+has cfg            => ( is       => 'lazy', init_arg => undef );    # dist cfg
+has docker_cfg     => ( is       => 'lazy', init_arg => undef );    # Maybe [HashRef], docker.yaml
+has par_cfg        => ( is       => 'lazy', init_arg => undef );    # Maybe [HashRef], par.yaml
+has name           => ( is       => 'lazy', init_arg => undef );    # Dist-Name
+has is_pcore       => ( is       => 'lazy', init_arg => undef );
+has scm            => ( is       => 'lazy', init_arg => undef );    # Maybe [ ConsumerOf ['Pcore::API::SCM'] ]
+has build          => ( is       => 'lazy', init_arg => undef );    # InstanceOf ['Pcore::Dist::Build']
+has id             => ( is       => 'lazy', init_arg => undef );
+has version        => ( is       => 'lazy', init_arg => undef );
+has is_commited    => ( is       => 'lazy', init_arg => undef );    # Maybe [Bool]
+has releases       => ( is       => 'lazy', init_arg => undef );    # Maybe [ArrayRef]
+has docker         => ( is       => 'lazy', init_arg => undef );    # Maybe [HashRef]
+has loaded_locales => ( init_arg => undef );                        # index of loaded locales
 
 around new => sub ( $orig, $self, $dist ) {
 

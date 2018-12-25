@@ -20,9 +20,17 @@ sub set_locale ($locale = undef) {
 }
 
 sub load_locale : prototype($) ($locale) {
+    return if $ENV->{l10n_processed} && exists $Pcore::Core::L10N::MESSAGES->{$locale};
+
+    $ENV->{l10n_processed} = 1;
+
     my $messages = $MESSAGES->{$locale} //= {};
 
-    for my $dist ( values $ENV->{_dist_idx}->%* ) {
+    for my $dist ( $ENV->{dists_order}->@* ) {
+        next if $dist->{loaded_locales}->{$locale};
+
+        $dist->{loaded_locales}->{$locale} = 1;
+
         my $po_path = "$dist->{share_dir}l10n/$locale.po";
 
         next if !-f $po_path;
@@ -156,7 +164,7 @@ sub to_string ( $self, $num = undef ) {
     goto DEFAULT if !defined $LOCALE;
 
     # load locale, if not loaded
-    Pcore::Core::L10N::load_locale($LOCALE) if !exists $Pcore::Core::L10N::MESSAGES->{$LOCALE};
+    Pcore::Core::L10N::load_locale($LOCALE) if !$ENV->{l10n_processed} || !exists $Pcore::Core::L10N::MESSAGES->{$LOCALE};
 
     if ( my $msg = $Pcore::Core::L10N::MESSAGES->{$LOCALE}->{ $self->{msgid} } ) {
         my $idx = 0;
@@ -200,9 +208,9 @@ sub FETCH {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 22                   | Subroutines::ProhibitExcessComplexity - Subroutine "load_locale" with high complexity score (22)               |
+## |    3 | 22                   | Subroutines::ProhibitExcessComplexity - Subroutine "load_locale" with high complexity score (25)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 49, 52, 104          | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 57, 60, 112          | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 14                   | Miscellanea::ProhibitTies - Tied variable used                                                                 |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
