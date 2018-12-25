@@ -45,7 +45,7 @@ our $JSON_CACHE;
 # JSON can't serialize ScalarRefs
 # objects should have TO_JSON method, otherwise object will be serialized as null
 # base64 encoder is used by default, it generates more compressed data
-sub encode_data ( $type, $data, @ ) {
+sub encode_data ( $type, $data, @args ) {
     my %args = (
         readable           => undef,               # make serialized data readable for humans
         compress           => undef,               # use compression
@@ -57,7 +57,7 @@ sub encode_data ( $type, $data, @ ) {
         cipher             => $DATA_CIPHER_DES,    # cipher to use
         json               => undef,               # HashRef with additional params for Cpanel::JSON::XS
         xml                => undef,               # HashRef with additional params for XML::Hash::XS
-        splice @_, 2,
+        @args,
     );
 
     if ( $args{readable} && $type != $DATA_TYPE_CBOR ) {
@@ -71,22 +71,22 @@ sub encode_data ( $type, $data, @ ) {
 
     # encode
     if ( $type == $DATA_TYPE_PERL ) {
-        $res = \to_perl( $data, readable => $args{readable} );
+        $res = to_perl( $data, readable => $args{readable} );
     }
     elsif ( $type == $DATA_TYPE_JSON ) {
-        $res = \to_json( $data, $args{json}->%*, readable => $args{readable} );
+        $res = to_json( $data, $args{json}->%*, readable => $args{readable} );
     }
     elsif ( $type == $DATA_TYPE_CBOR ) {
-        $res = \to_cbor($data);
+        $res = to_cbor($data);
     }
     elsif ( $type == $DATA_TYPE_YAML ) {
-        $res = \to_yaml($data);
+        $res = to_yaml($data);
     }
     elsif ( $type == $DATA_TYPE_XML ) {
-        $res = \to_xml( $data, $args{xml}->%*, readable => $args{readable} );
+        $res = to_xml( $data, $args{xml}->%*, readable => $args{readable} );
     }
     elsif ( $type == $DATA_TYPE_INI ) {
-        $res = \to_ini($data);
+        $res = to_ini($data);
     }
     else {
         die qq[Unknown serializer "$type"];
@@ -94,11 +94,11 @@ sub encode_data ( $type, $data, @ ) {
 
     # compress
     if ( $args{compress} ) {
-        if ( bytes::length $res->$* >= $args{compress_threshold} ) {
+        if ( bytes::length $res >= $args{compress_threshold} ) {
             if ( $args{compress} == $DATA_COMPRESS_ZLIB ) {
                 require Compress::Zlib;
 
-                $res = \Compress::Zlib::compress( $res->$* );
+                $res = Compress::Zlib::compress($res);
             }
             else {
                 die qq[Unknown compressor type "$args{compress}"];
@@ -123,10 +123,10 @@ sub encode_data ( $type, $data, @ ) {
         if ( defined $secret ) {
             require Crypt::CBC;
 
-            $res = \Crypt::CBC->new(
+            $res = Crypt::CBC->new(
                 -key    => $secret,
                 -cipher => $CIPHER_NAME->{ $args{cipher} },
-            )->encrypt( $res->$* );
+            )->encrypt($res);
         }
         else {
             $args{secret} = undef;
@@ -136,10 +136,10 @@ sub encode_data ( $type, $data, @ ) {
     # encode
     if ( $args{encode} ) {
         if ( $args{encode} == $DATA_ENC_B64 ) {
-            $res = \to_b64_url( $res->$* );
+            $res = to_b64_url($res);
         }
         elsif ( $args{encode} == $DATA_ENC_HEX ) {
-            $res = \unpack 'H*', $res->$*;
+            $res = unpack 'H*', $res;
         }
         else {
             die qq[Unknown encoder "$args{encode}"];
@@ -148,7 +148,7 @@ sub encode_data ( $type, $data, @ ) {
 
     # add token
     if ( $args{token} ) {
-        $res->$* .= sprintf( '#%x', ( $args{compress} // 0 ) . ( defined $args{secret} ? $args{cipher} : 0 ) . ( $args{secret_index} // 0 ) . ( $args{encode} // 0 ) . $type ) . sprintf '#%x', bytes::length $res->$*;
+        $res .= sprintf( '#%x', ( $args{compress} // 0 ) . ( defined $args{secret} ? $args{cipher} : 0 ) . ( $args{secret_index} // 0 ) . ( $args{encode} // 0 ) . $type ) . sprintf '#%x', bytes::length $res;
     }
 
     return $res;
@@ -156,8 +156,8 @@ sub encode_data ( $type, $data, @ ) {
 
 # JSON data should be without UTF8 flag
 # objects aren't deserialized automatically from JSON
-sub decode_data ( $type, @ ) {
-    my $data_ref = ref $_[1] ? $_[1] : \$_[1];
+sub decode_data ( $type, $data_ref, @args ) {
+    $data_ref = \$data_ref if !is_ref $_[1];
 
     my %args = (
         compress     => undef,
@@ -169,7 +169,7 @@ sub decode_data ( $type, @ ) {
         json         => undef,              # HashRef with additional params for Cpanel::JSON::XS
         xml          => undef,              # HashRef with additional params for XML::Hash::XS
         return_token => 0,                  # return token
-        splice( @_, 2 ),
+        @args,
         type => $type,
     );
 
