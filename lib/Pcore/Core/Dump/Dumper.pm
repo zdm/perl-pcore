@@ -2,7 +2,7 @@ package Pcore::Core::Dump::Dumper;
 
 use Pcore -class, -ansi;
 use Pcore::Util::Scalar qw[refaddr isweak reftype blessed looks_like_number tainted];
-use Pcore::Util::Text qw[escape_scalar remove_ansi add_num_sep];
+use Pcore::Util::Text qw[escape_perl remove_ansi add_num_sep];
 use re qw[];
 use Sort::Naturally qw[nsort];
 use PerlIO::Layers qw[];
@@ -309,7 +309,7 @@ sub SCALAR {
         my $bytes_length = bytes::length($item);
         my $length       = length $item;
 
-        escape_scalar( $item, readable => 1, quote => 1, color => 1, color_ctrl => $COLOR->{ctrl}, color_reset => $COLOR->{string} );
+        escape_perl( $item, readable => 1, quote => 1, color => 1, color_ctrl => $COLOR->{ctrl}, color_reset => $COLOR->{string} );
 
         if ( utf8::is_utf8 $item ) {               # characters
             push $tags->@*, 'UTF8';
@@ -410,7 +410,7 @@ sub HASH {
         for ( nsort keys $hash_ref->%* ) {
             my $indexed_key = {
                 raw_key     => $_,
-                escaped_key => \escape_scalar( $_, quote => 2, readable => 1, color => 1, color_ctrl => $COLOR->{ctrl}, color_reset => $COLOR->{hash} ),
+                escaped_key => \escape_perl( $_, quote => 2, readable => 1, color => 1, color_ctrl => $COLOR->{ctrl}, color_reset => $COLOR->{hash} ),
             };
 
             $indexed_key->{escaped_key_nc} = $indexed_key->{escaped_key}->$*;

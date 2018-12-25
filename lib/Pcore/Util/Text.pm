@@ -17,7 +17,7 @@ our $EXPORT = [ qw[
       encode_html_attr
       encode_js_string
       encode_utf8
-      escape_scalar
+      escape_perl
       expand_num
       add_num_sep
       fullchomp
@@ -213,7 +213,7 @@ sub remove_ansi {
     }
 }
 
-sub escape_scalar ( $str, @args ) {
+sub escape_perl ( $str, @args ) {
     state @map = do {
         my @_map;
 
@@ -588,7 +588,7 @@ sub to_camel_case {
 ## |    3 | 193                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 216                  | * Subroutine "escape_scalar" with high complexity score (31)                                                   |
+## |      | 216                  | * Subroutine "escape_perl" with high complexity score (31)                                                     |
 ## |      | 304                  | * Subroutine "wrap" with high complexity score (28)                                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 261, 276             | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |

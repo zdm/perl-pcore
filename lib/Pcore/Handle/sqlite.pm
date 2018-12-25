@@ -84,7 +84,7 @@ sub BUILD ( $self, $args ) {
         # HandleError => sub {
         #     my $msg = shift;
         #
-        #     # escape_scalar $msg;
+        #     # escape_perl $msg;
         #
         #     P->sendlog( 'Pcore-DBH.ERROR', $msg );
         #

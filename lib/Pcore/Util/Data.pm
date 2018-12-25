@@ -1,7 +1,7 @@
 package Pcore::Util::Data;
 
 use Pcore -const, -export;
-use Pcore::Util::Text qw[decode_utf8 encode_utf8 escape_scalar trim];
+use Pcore::Util::Text qw[decode_utf8 encode_utf8 escape_perl trim];
 use Pcore::Util::List qw[pairs];
 use Sort::Naturally qw[nsort];
 use Pcore::Util::Scalar qw[is_ref is_blessed_ref is_plain_scalarref is_plain_arrayref is_plain_hashref];
@@ -300,7 +300,7 @@ sub to_perl ( $data, %args ) {
     else {
         no warnings qw[redefine];
 
-        local *Data::Dumper::qquote = sub ( $str, $use_qqote ) { return escape_scalar $str };
+        local *Data::Dumper::qquote = sub ( $str, $use_qqote ) { return escape_perl $str };
 
         $res = \Data::Dumper->Dump( [$data] );
     }
