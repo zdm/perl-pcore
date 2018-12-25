@@ -459,13 +459,13 @@ sub expand_num ($num) {
 
     my ( $abs, $sign, $exp ) = ( $1, $2, $3 );
 
-    my $sig = $sign eq q[-] ? q[.] . ( $exp - 1 + length $abs ) : $EMPTY;
+    my $sig = $sign eq '-' ? '.' . ( $exp - 1 + length $abs ) : $EMPTY;
 
     return sprintf "%${sig}f", $num;
 }
 
 # pretty print number 1234567 -> 1_234_567
-sub add_num_sep ( $num, $sep = q[_] ) {
+sub add_num_sep ( $num, $sep = '_' ) {
     my $sign = $num =~ s/\A([^\d])//sm ? $1 : $EMPTY;
 
     my $fraction = $num =~ s/[.](\d+)\z//sm ? $1 : undef;
