@@ -74,7 +74,7 @@ sub encode_data ( $type, $data, @ ) {
         $res = to_perl( $data, readable => $args{readable} );
     }
     elsif ( $type == $DATA_TYPE_JSON ) {
-        $res = to_json( $data, $args{json}->%*, readable => $args{readable} );
+        $res = \to_json( $data, $args{json}->%*, readable => $args{readable} );
     }
     elsif ( $type == $DATA_TYPE_CBOR ) {
         $res = to_cbor($data);
@@ -364,17 +364,17 @@ sub to_json ( $data, %args ) {
     my $readable = delete $args{readable};
 
     if (%args) {
-        return \get_json(%args)->encode($data);
+        return get_json(%args)->encode($data);
     }
     elsif ($readable) {
         state $json = get_json( utf8 => 1, canonical => 1, indent => 1, indent_length => 4, space_after => 1 );
 
-        return \$json->encode($data);
+        return $json->encode($data);
     }
     else {
         state $json = get_json( ascii => 1, utf8 => 1 );
 
-        return \$json->encode($data);
+        return $json->encode($data);
     }
 }
 

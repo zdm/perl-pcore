@@ -61,7 +61,7 @@ sub forward_event ( $self, $ev ) {
         if ( defined $ev->{data} ) {
 
             # serialize reference
-            $ev->{text} = is_ref $ev->{data} ? to_json( $ev->{data}, readable => 1 )->$* : $ev->{data};
+            $ev->{text} = is_ref $ev->{data} ? to_json $ev->{data}, readable => 1 : $ev->{data};
 
             # indent
             $ev->{text} =~ s/^/$INDENT/smg;
