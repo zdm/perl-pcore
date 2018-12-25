@@ -71,7 +71,7 @@ sub encode_data ( $type, $data, @ ) {
 
     # encode
     if ( $type == $DATA_TYPE_PERL ) {
-        $res = to_perl( $data, readable => $args{readable} );
+        $res = \to_perl( $data, readable => $args{readable} );
     }
     elsif ( $type == $DATA_TYPE_JSON ) {
         $res = \to_json( $data, $args{json}->%*, readable => $args{readable} );
@@ -278,37 +278,36 @@ sub to_perl ( $data, %args ) {
         return [ nsort keys $_[0]->%* ];
     };
 
-    local $Data::Dumper::Indent     = 0;
-    local $Data::Dumper::Purity     = 1;
-    local $Data::Dumper::Pad        = $EMPTY;
-    local $Data::Dumper::Terse      = 1;
-    local $Data::Dumper::Deepcopy   = 0;
-    local $Data::Dumper::Quotekeys  = 0;
-    local $Data::Dumper::Pair       = '=>';
-    local $Data::Dumper::Maxdepth   = 0;
-    local $Data::Dumper::Deparse    = 0;
-    local $Data::Dumper::Sparseseen = 1;
-    local $Data::Dumper::Useperl    = 1;
-    local $Data::Dumper::Useqq      = 1;
-    local $Data::Dumper::Sortkeys   = $args{readable} ? $sort_keys : 0;
-
     my $res;
 
     if ( !defined $data ) {
-        $res = \'undef';
+        $res = 'undef';
     }
     else {
         no warnings qw[redefine];
 
-        local *Data::Dumper::qquote = sub ( $str, $use_qqote ) { return escape_perl $str };
+        local $Data::Dumper::Indent     = 0;
+        local $Data::Dumper::Purity     = 1;
+        local $Data::Dumper::Pad        = $EMPTY;
+        local $Data::Dumper::Terse      = 1;
+        local $Data::Dumper::Deepcopy   = 0;
+        local $Data::Dumper::Quotekeys  = 0;
+        local $Data::Dumper::Pair       = '=>';
+        local $Data::Dumper::Maxdepth   = 0;
+        local $Data::Dumper::Deparse    = 0;
+        local $Data::Dumper::Sparseseen = 1;
+        local $Data::Dumper::Useperl    = 1;
+        local $Data::Dumper::Useqq      = 1;
+        local $Data::Dumper::Sortkeys   = $args{readable} ? $sort_keys : 0;
+        local *Data::Dumper::qquote     = sub ( $str, $use_qqote ) { return escape_perl $str };
 
-        $res = \Data::Dumper->Dump( [$data] );
+        $res = Data::Dumper->Dump( [$data] );
     }
 
     if ( $args{readable} ) {
-        $res = \P->src->decompress(
+        $res = P->src->decompress(
             path   => 'config.perl',    # mark file as perl config
-            data   => $res->$*,
+            data   => $res,
             filter => {
                 perl_tidy   => '--comma-arrow-breakpoints=0',
                 perl_critic => 0,
@@ -1039,10 +1038,10 @@ sub from_uri_query_utf8 : prototype($) ($uri) {
 ## |      | 159                  | * Subroutine "decode_data" with high complexity score (27)                                                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | ControlStructures::ProhibitPostfixControls                                                                     |
-## |      | 358, 411             | * Postfix control "for" used                                                                                   |
-## |      | 619                  | * Postfix control "while" used                                                                                 |
+## |      | 357, 410             | * Postfix control "for" used                                                                                   |
+## |      | 618                  | * Postfix control "while" used                                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 954                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 953                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -105,11 +105,11 @@ sub seralizer_json_compressed_precached {
 }
 
 sub serializer_data_dumper_raw {
-    return P->data->to_perl($TEST_DATA)->$*;
+    return P->data->to_perl($TEST_DATA);
 }
 
 sub serializer_data_dumper_compressed {
-    return P->data->to_perl( $TEST_DATA, compress => 1 )->$*;
+    return P->data->to_perl( $TEST_DATA, compress => 1 );
 }
 
 sub json_raw {
