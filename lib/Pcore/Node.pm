@@ -847,7 +847,7 @@ sub rpc_call ( $self, $type, $method, @args ) {
     if ( !defined $h ) {
         my $res = res [ 404, qq[Node type "$type" is not available] ];
 
-        my $cb = is_plain_coderef $args[-1] || is_callback $args[-1] ? pop @args : undef;
+        my $cb = is_callback $args[-1] ? pop @args : undef;
 
         return $cb ? $cb->($res) : $res;
     }
