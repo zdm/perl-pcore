@@ -49,7 +49,7 @@ sub _run_parse_thread {
     $THREADS++;
 
     Coro::async_pool {
-        my $parser = HTML5::DOM->new;
+        my $parser = HTML5::DOM->new( { utf8 => 1 } );
 
         while () {
             if ( my $task = shift @QUEUE ) {

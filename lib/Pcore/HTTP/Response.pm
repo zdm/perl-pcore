@@ -32,9 +32,9 @@ sub _build_tree ($self) {
 
     return if !is_plain_scalarref $self->{data};
 
-    return P->html->tree( $self->{data}->$* );
+    # return P->html->tree( $self->{data}->$* );
 
-    # return P->html->tree( $self->decoded_data );
+    return P->html->tree( $self->decoded_data, encoding => HTML5::DOM::Encoding->UTF_8 );
 }
 
 1;
