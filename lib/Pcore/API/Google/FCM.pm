@@ -5,8 +5,6 @@ use Pcore::Util::Data qw[to_json from_json];
 
 extends qw[Pcore::API::Google::OAuth];
 
-has project_id => ( required => 1 );
-
 has scope => ( 'https://www.googleapis.com/auth/firebase.messaging', init_arg => undef );
 
 # https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages#Message
@@ -15,7 +13,7 @@ sub send ( $self, $data ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomon
 
     return $token if !$token;
 
-    my $url = "https://fcm.googleapis.com/v1/projects/$self->{project_id}/messages:send";
+    my $url = "https://fcm.googleapis.com/v1/projects/$self->{key}->{project_id}/messages:send";
 
     my $res = P->http->post(
         $url,
