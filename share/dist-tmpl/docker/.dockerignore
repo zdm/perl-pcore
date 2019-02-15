@@ -5,3 +5,10 @@
 # pcore
 data/
 wiki/
+
+# cordova / phonegap
+hooks/
+node_modules/
+platforms/
+plugins/
+package-lock.json

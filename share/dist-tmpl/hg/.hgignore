@@ -1,2 +1,9 @@
 # pcore
 re:^data/
+
+# cordova / phonegap
+re:^hooks/
+re:^node_modules/
+re:^platforms/
+re:^plugins/
+re:^package-lock[.]json
