@@ -6,7 +6,7 @@
 data/
 wiki/
 
-# cordova / phonegap
+# phonegap / cordova
 hooks/
 node_modules/
 platforms/

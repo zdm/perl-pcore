@@ -1,7 +1,7 @@
 # pcore
 re:^data/
 
-# cordova / phonegap
+# phonegap / cordova
 re:^hooks/
 re:^node_modules/
 re:^platforms/
