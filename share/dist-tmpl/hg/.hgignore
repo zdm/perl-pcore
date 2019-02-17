@@ -6,4 +6,5 @@ re:^hooks/
 re:^node_modules/
 re:^platforms/
 re:^plugins/
+re:^package[.]json
 re:^package-lock[.]json
