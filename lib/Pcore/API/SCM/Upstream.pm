@@ -97,6 +97,9 @@ sub BUILDARGS ( $self, $args ) {
             # uri is file://
             $args->{hosting}  //= undef;
             $args->{scm_type} //= $args->{local_scm_type};
+            $args->{repo_namespace} = undef;
+            $args->{repo_name}      = undef;
+            $args->{repo_id}        = undef;
         }
     }
     else {
@@ -280,7 +283,7 @@ sub get_hosting_api ( $self, $args = undef ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 65, 79               | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 116, 169             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 119, 172             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
