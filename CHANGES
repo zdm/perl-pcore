@@ -1,3 +1,6 @@
+v0.79.1 2019-02-18T10:59:23Z
+ - scm upstream fix for file upstream
+
 v0.79.0 2019-02-18T10:34:12Z
  - phonegap template
  - undef scm phase for git
