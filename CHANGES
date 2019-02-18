@@ -1,3 +1,9 @@
+v0.79.0 2019-02-18T10:34:12Z
+ - phonegap template
+ - undef scm phase for git
+ - .ignore templates updated
+ - cdn resource tag improved
+
 v0.78.13 2019-02-15T15:33:20Z
  - resources updated
 
