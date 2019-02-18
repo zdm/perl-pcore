@@ -86,7 +86,10 @@ sub BUILDARGS ( $self, $args ) {
             }
         }
         else {
-            die 'SCM upstream URL is invalid';
+
+            # uri is file://
+            $args->{hosting}  //= undef;
+            $args->{scm_type} //= $args->{local_scm_type};
         }
     }
     else {
@@ -270,7 +273,7 @@ sub get_hosting_api ( $self, $args = undef ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 76                   | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 106, 159             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 109, 162             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
