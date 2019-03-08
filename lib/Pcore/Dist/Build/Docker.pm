@@ -640,7 +640,7 @@ sub build_local ( $self, $tag, $args ) {
     # push images
     if ( $args->{push} ) {
         for my $tag (@tags) {
-            print qq[Pusing image "$tag" ... ];
+            print qq[Pushing image "$tag" ... ];
             $res = $docker->image_push($tag);
             say $res;
         }
