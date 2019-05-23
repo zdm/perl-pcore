@@ -1,20 +1,23 @@
 package Pcore::API::Facebook;
 
 use Pcore -class, -res;
+use Pcore::HTTP qw[:TLS_CTX];
 
 with qw[Pcore::API::Facebook::User Pcore::API::Facebook::Marketing];
 
 has token => ( required => 1 );
 
+# TODO $TLS_CTX_LOW - for linix
 sub _req ( $self, $method, $path, $params, $data, $cb = undef ) {
     my $url = "https://graph.facebook.com/$path?access_token=$self->{token}";
 
     $url .= '&' . P->data->to_uri($params) if $params;
 
     return P->http->request(
-        method => $method,
-        url    => $url,
-        data   => $data,
+        method  => $method,
+        url     => $url,
+        data    => $data,
+        tls_ctx => $TLS_CTX_LOW,
         sub ($res) {
             my $api_res = res 200, P->data->from_json( $res->{data} );
 
@@ -30,9 +33,9 @@ sub _req ( $self, $method, $path, $params, $data, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 9                    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 11                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 9                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_req' declared but not used         |
+## |    3 | 11                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_req' declared but not used         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

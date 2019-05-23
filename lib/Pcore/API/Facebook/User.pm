@@ -8,6 +8,10 @@ sub me ( $self, $cb = undef ) {
     return $self->_req( 'GET', 'me', undef, undef, $cb );
 }
 
+sub debug_token ( $self, $cb = undef ) {
+    return $self->_req( 'GET', "v$VER/debug_token", { input_token => $self->{token} }, undef, $cb );
+}
+
 1;
 __END__
 =pod
