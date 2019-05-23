@@ -14,7 +14,7 @@ P->file->chdir($temp_dir);
     P->file->rmtree($temp_dir);
 
     print 'Press ENTER to continue...';
-    <STDIN>;
+    <>;
 }
 
 say 'DONE';
