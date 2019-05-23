@@ -5,7 +5,7 @@ use Pcore -role, -const;
 const our $VER => 3.3;
 
 sub me ( $self, $cb = undef ) {
-    return $self->_req( 'GET', 'me', undef, undef, $cb );
+    return $self->_req( 'GET', "me", undef, undef, $cb );
 }
 
 sub debug_token ( $self, $cb = undef ) {
@@ -13,6 +13,16 @@ sub debug_token ( $self, $cb = undef ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 8                    | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

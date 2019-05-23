@@ -23,7 +23,7 @@ sub get_campaigns ( $self, $adaccount_id, $cb = undef ) {
 sub get_adsets ( $self, $adaccount_id, $cb = undef ) {
     $adaccount_id = "act_$adaccount_id" if substr( $adaccount_id, 0, 4 ) ne 'act_';
 
-    return $self->_req( 'GET', "v$VER/$adaccount_id/adsets", { fields => 'id,daily_budget,effective_status,lifetime_budget,budget_remaining', }, undef, $cb );
+    return $self->_req( 'GET', "v$VER/$adaccount_id/adsets", { fields => 'id,daily_budget,effective_status,lifetime_budget,budget_remaining,campaign', }, undef, $cb );
 }
 
 sub get_adset ( $self, $adset_id, $cb = undef ) {
