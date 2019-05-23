@@ -11,21 +11,30 @@ sub get_adaccounts ( $self, $user_id, $cb = undef ) {
     return $self->_req( 'GET', "v$VER/$user_id/adaccounts", undef, undef, $cb );
 }
 
-sub get_adaccount_campaigns ( $self, $adaccount_id, $cb = undef ) {
+# CAMPAIGNS
+sub get_campaigns ( $self, $adaccount_id, $cb = undef ) {
     $adaccount_id = "act_$adaccount_id" if substr( $adaccount_id, 0, 4 ) ne 'act_';
 
     return $self->_req( 'GET', "v$VER/$adaccount_id/campaigns", undef, undef, $cb );
 }
 
-sub get_adaccount_adsets ( $self, $adaccount_id, $cb = undef ) {
+# ADSETS
+# https://developers.facebook.com/docs/marketing-api/reference/ad-campaign/
+sub get_adsets ( $self, $adaccount_id, $cb = undef ) {
     $adaccount_id = "act_$adaccount_id" if substr( $adaccount_id, 0, 4 ) ne 'act_';
 
-    return $self->_req( 'GET', "v$VER/$adaccount_id/adsets", undef, undef, $cb );
+    return $self->_req( 'GET', "v$VER/$adaccount_id/adsets", { fields => 'id,daily_budget,effective_status,lifetime_budget,budget_remaining', }, undef, $cb );
 }
 
+sub get_adset ( $self, $adset_id, $cb = undef ) {
+    return $self->_req( 'GET', "v$VER/$adset_id", { fields => 'id,daily_budget,effective_status,lifetime_budget,budget_remaining', }, undef, $cb );
+}
+
+# INSIGHTS
 # https://developers.facebook.com/docs/marketing-api/insights
+# https://developers.facebook.com/docs/marketing-api/reference/ads-insights/
 sub get_insights ( $self, $id, $cb = undef ) {
-    return $self->_req( 'GET', "v$VER/$id/insights", undef, undef, $cb );
+    return $self->_req( 'GET', "v$VER/$id/insights", { fields => 'impressions,ad_id,clicks,spend,cpc,ctr,reach,adset_name,adset_id', }, undef, $cb );
 }
 
 1;
