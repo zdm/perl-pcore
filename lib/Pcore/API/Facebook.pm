@@ -19,7 +19,9 @@ sub _req ( $self, $method, $path, $params, $data, $cb = undef ) {
         data    => $data,
         tls_ctx => $TLS_CTX_LOW,
         sub ($res) {
-            my $api_res = res 200, P->data->from_json( $res->{data} );
+            my $api_res = res $res;
+
+            $api_res->{data} = P->data->from_json( $res->{data} ) if $res->{data};
 
             return $cb ? $cb->($api_res) : $api_res;
         }
