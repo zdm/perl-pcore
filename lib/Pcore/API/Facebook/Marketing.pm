@@ -7,6 +7,17 @@ use Pcore -role, -const;
 # https://developers.facebook.com/docs/graph-api/changelog
 const our $VER => 3.3;
 
+const our $FB_ADACC_STATUS_ACTIVE              => 1;
+const our $FB_ADACC_STATUS_DISABLED            => 2;
+const our $FB_ADACC_STATUS_UNSETTLED           => 3;
+const our $FB_ADACC_STATUS_PENDING_RISK_REVIEW => 7;
+const our $FB_ADACC_STATUS_PENDING_SETTLEMENT  => 8;
+const our $FB_ADACC_STATUS_IN_GRACE_PERIOD     => 9;
+const our $FB_ADACC_STATUS_PENDING_CLOSURE     => 100;
+const our $FB_ADACC_STATUS_CLOSED              => 101;
+const our $FB_ADACC_STATUS_ANY_ACTIVE          => 201;
+const our $FB_ADACC_STATUS_ANY_CLOSED          => 202;
+
 const our $FB_ADACC_DISABLE_REASON_NONE                    => 0;
 const our $FB_ADACC_DISABLE_REASON_ADS_INTEGRITY_POLICY    => 1;
 const our $FB_ADACC_DISABLE_REASON_ADS_IP_REVIEW           => 2;
@@ -21,7 +32,7 @@ const our $FB_ADACC_DISABLE_REASON_UNUSED_ACCOUNT          => 9;
 # ADACCOUNTS
 # # https://developers.facebook.com/docs/marketing-api/reference/ad-account/
 sub get_adaccounts ( $self, $user_id, $cb = undef ) {
-    return $self->_req( 'GET', "v$VER/$user_id/adaccounts", { fields => 'account_id,id,name,age,amount_spent,balance,currency,disable_reason', }, undef, $cb );
+    return $self->_req( 'GET', "v$VER/$user_id/adaccounts", { fields => 'account_id,id,name,age,amount_spent,balance,currency,account_status,disable_reason,is_prepay_account,spend_cap,min_campaign_group_spend_cap,min_daily_budget', }, undef, $cb );
 }
 
 # CAMPAIGNS
