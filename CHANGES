@@ -1,3 +1,8 @@
+v0.84.0 2019-05-24T06:18:41Z
+ - captcha api
+ - telegram bot api
+ - FB api
+
 v0.83.0 2019-05-23T09:41:39Z
  - cloudflare api
  - tg bot
