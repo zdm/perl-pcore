@@ -63,8 +63,9 @@ const our $FB_ADACC_DISABLE_REASON_TEXT => {
 
 # ADACCOUNTS
 # https://developers.facebook.com/docs/marketing-api/reference/ad-account/
+# '/act_' . $act_id . '/?_reqName=adaccount&_reqSrc=AdsAccountDataLoader&fields=["account_id","account_status","agencies{id,name,access_status,permitted_roles,picture}","agency_client_declaration","business_city","business_country_code","business{id,name,profile_picture_uri}","business_ad_account_requests","business_name","business_state","business_street","business_street2","business_zip","currency","dcaf","id","is_notifications_enabled","is_personal","is_update_timezone_currency_too_recently","name","owner","tax_id","tax_id_type","timezone_id","timezone_name","timezone_offset_hours_utc","users{id,is_active,name,permissions,role,roles}","user_role","is_oba_opt_out","can_pay_now","can_repay_now","prepay_account_balance","min_billing_threshold","max_billing_threshold","current_unbilled_spend","next_bill_date"]&include_headers=false&locale=ru_RU&method=get&pretty=0&suppress_http_code=1
 sub get_adaccounts ( $self, $user_id, $cb = undef ) {
-    return $self->_req( 'GET', "v$VER/$user_id/adaccounts", { fields => 'account_id,id,name,age,amount_spent,balance,currency,account_status,disable_reason,is_prepay_account,spend_cap,min_campaign_group_spend_cap,min_daily_budget', }, undef, $cb );
+    return $self->_req( 'GET', "v$VER/$user_id/adaccounts", { fields => 'account_id,id,name,age,amount_spent,balance,currency,account_status,disable_reason,is_prepay_account,spend_cap,min_campaign_group_spend_cap,min_daily_budget,current_unbilled_spend,next_bill_date' }, undef, $cb );
 }
 
 # CAMPAIGNS
