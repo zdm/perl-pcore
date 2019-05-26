@@ -18,6 +18,7 @@ has perl_compress_keep_ln     => 1;
 has perl_strip_ws             => 1;
 has perl_strip_comment        => 1;
 has perl_strip_pod            => 1;
+has perl_encrypt              => 0;
 
 const our $PERLCRITIC_ERROR => 4;
 const our $SEVERITY         => {
@@ -296,6 +297,30 @@ SQL
 
     $self->{data}->$* = $code . $data_section;
 
+    if ( $self->{perl_encrypt} ) {
+        require Filter::Crypto::CryptFile;
+
+        my $temp = P->file1->tempfile;
+
+        P->file->write_bin( $temp, $self->{data} );
+
+        Filter::Crypto::CryptFile::crypt_file( "$temp", Filter::Crypto::CryptFile::CRYPT_MODE_ENCRYPTED() );
+
+        if ($Filter::Crypto::CryptFile::ErrStr) {
+            return res [ 500, $Filter::Crypto::CryptFile::ErrStr ];
+        }
+        else {
+            my $hashbang = $EMPTY;
+
+            # copy hasbang
+            if ( $code =~ /\A(#!.+?\n)/sm ) {
+                $hashbang = $1;
+            }
+
+            $self->{data}->$* = $hashbang . P->file->read_bin($temp);
+        }
+    }
+
     return res $SEVERITY->{0};
 }
 
@@ -407,9 +432,9 @@ sub _cut_log ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 39                   | Subroutines::ProhibitExcessComplexity - Subroutine "decompress" with high complexity score (29)                |
+## |    3 | 40                   | Subroutines::ProhibitExcessComplexity - Subroutine "decompress" with high complexity score (29)                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 173                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 174                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

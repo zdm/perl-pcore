@@ -16,6 +16,10 @@ sub CLI ($self) {
                 desc    => 'push images after build',
                 default => 1,
             },
+            encrypt => {
+                desc    => 'Encrypt perl code',
+                default => 0,
+            },
         },
         arg => [
             tag => {
