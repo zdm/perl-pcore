@@ -5,10 +5,15 @@ use Pcore -class, -ansi;
 extends qw[Pcore::Dist::CLI];
 
 sub CLI ($self) {
-    return { abstract => 'encrypt distribution' };
+    return {
+        abstract => 'encrypt distribution',
+        opt      => { force => { desc => 'perform encryption', }, },
+    };
 }
 
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
+    return if !$opt->{force};
+
     my $dist = $self->get_dist;
 
     for my $path ( $dist->{root}->read_dir( max_depth => 0, is_dir => 0 )->@* ) {

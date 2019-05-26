@@ -300,24 +300,28 @@ SQL
     if ( $self->{perl_encrypt} ) {
         require Filter::Crypto::CryptFile;
 
-        my $temp = P->file1->tempfile;
+        my $hashbang = $EMPTY;
 
-        P->file->write_bin( $temp, $self->{data} );
-
-        Filter::Crypto::CryptFile::crypt_file( "$temp", Filter::Crypto::CryptFile::CRYPT_MODE_ENCRYPTED() );
-
-        if ($Filter::Crypto::CryptFile::ErrStr) {
-            return res [ 500, $Filter::Crypto::CryptFile::ErrStr ];
+        # remove hashbang
+        if ( $code =~ s/\A(#!.+?\n)//sm ) {
+            $hashbang = $1;
         }
-        else {
-            my $hashbang = $EMPTY;
 
-            # copy hasbang
-            if ( $code =~ /\A(#!.+?\n)/sm ) {
-                $hashbang = $1;
+        # file is not encrypted
+        if ( $code !~ /\Ause Filter::Crypto::Decrypt;/sm ) {
+            my $temp = P->file1->tempfile;
+
+            P->file->write_bin( $temp, $code );
+
+            Filter::Crypto::CryptFile::crypt_file( "$temp", Filter::Crypto::CryptFile::CRYPT_MODE_ENCRYPTED() );
+
+            # encryption error
+            if ($Filter::Crypto::CryptFile::ErrStr) {
+                return res [ 500, $Filter::Crypto::CryptFile::ErrStr ];
             }
-
-            $self->{data}->$* = $hashbang . P->file->read_bin($temp);
+            else {
+                $self->{data}->$* = $hashbang . P->file->read_bin($temp);
+            }
         }
     }
 
