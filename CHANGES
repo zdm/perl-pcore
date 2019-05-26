@@ -1,3 +1,7 @@
+v0.86.0 2019-05-26T04:31:48Z
+ - docker build encrypt
+ - dist encrypt
+
 v0.85.3 2019-05-26T02:44:20Z
  - FB api
 
