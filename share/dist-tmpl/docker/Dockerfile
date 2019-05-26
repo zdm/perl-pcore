@@ -24,7 +24,7 @@ RUN /bin/bash -c ' \
     \
     # deploy and test distribution
     && pcore deploy --recommends --suggests \
-    # && pcore encrypt --force \
+    # && pcore crypt encrypt --force --recursive \
     && pcore test -j $(nproc) \
     \
     # cleanup perl build env
