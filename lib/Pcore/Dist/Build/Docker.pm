@@ -601,21 +601,6 @@ sub build_local ( $self, $tag, $args ) {
         for my $path ( $root->read_dir( max_depth => 0, is_dir => 0 )->@* ) {
             next if $dockerignore->($path);
 
-            # encrypt
-            if ( $args->{encrypt} && ( $path->mime_has_tag( 'perl', 1 ) && !$path->mime_has_tag( 'perl-cpanfile', 1 ) ) ) {
-                my $eres = P->src->compress(
-                    path   => "$root/$path",
-                    filter => {
-                        perl_compress_keep_ln => 1,
-                        perl_strip_comment    => 1,
-                        perl_strip_pod        => 1,
-                        perl_encrypt          => 1,
-                    }
-                );
-
-                die qq[Can't encrypt "$root/$path", $eres] if !$eres;
-            }
-
             my $mode;
 
             if ( $path =~ m[\A(script|t)/]sm ) {
