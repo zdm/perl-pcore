@@ -602,7 +602,7 @@ sub build_local ( $self, $tag, $args ) {
             next if $dockerignore->($path);
 
             # encrypt
-            if ( $args->{encrypt} && $path->mime_has_tag( 'perl', 1 ) ) {
+            if ( $args->{encrypt} && ( $path->mime_has_tag( 'perl', 1 ) && !$path->mime_has_tag( 'perl-cpanfile', 1 ) ) ) {
                 my $eres = P->src->compress(
                     path   => "$root/$path",
                     filter => {
