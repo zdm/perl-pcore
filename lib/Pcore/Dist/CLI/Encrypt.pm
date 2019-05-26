@@ -8,20 +8,27 @@ sub CLI ($self) {
     return {
         abstract => 'encrypt distribution',
         opt      => { force => { desc => 'perform encryption', }, },
+        arg      => [
+            path => {
+                desc => 'path to the root directory to encrypt perl files recursively',
+                isa  => 'Path',
+                min  => 0,
+            },
+        ],
     };
 }
 
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     return if !$opt->{force};
 
-    my $dist = $self->get_dist;
+    my $root = $arg->{path} ? P->path( $arg->{path} ) : $self->get_dist->{root};
 
-    for my $path ( $dist->{root}->read_dir( max_depth => 0, is_dir => 0 )->@* ) {
+    for my $path ( $root->read_dir( max_depth => 0, is_dir => 0 )->@* ) {
 
         # encrypt
         if ( $path->mime_has_tag( 'perl', 1 ) && !$path->mime_has_tag( 'perl-cpanfile', 1 ) ) {
             my $res = P->src->compress(
-                path   => "$dist->{root}/$path",
+                path   => "$root/$path",
                 filter => {
                     perl_compress_keep_ln => 1,
                     perl_strip_comment    => 1,
@@ -30,7 +37,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
                 }
             );
 
-            die qq[Can't encrypt "$dist->{root}/$path", $res] if !$res;
+            die qq[Can't encrypt "$root/$path", $res] if !$res;
         }
     }
 
