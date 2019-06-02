@@ -28,14 +28,13 @@ const our $TLS_CTX      => {
         SSL_verify_mode => SSL_VERIFY_NONE,
         SSL_dh_file     => undef,
         SSL_dh          => undef,
-        SSL_ecdh_curve  => undef,
+        SSL_ecdh_curve  => undef,             # if you don't want to have ECDH key exchange this could be set to undef
     },
     $TLS_CTX_HIGH => {
         $MSWIN ? ( SSL_ca_file => Pcore::Util::CA->ca_file ) : (),
         SSL_verify_mode => SSL_VERIFY_PEER,
         SSL_dh_file     => $ENV->{share}->get('data/dhparam-4096.pem'),
-        SSL_dh          => undef,
-        SSL_ecdh_curve  => 'secp384r1',                                   # prime256v1
+        SSL_ecdh_curve  => 'X25519:secp521r1:secp384r1:prime256v1',
     },
 };
 
@@ -783,11 +782,11 @@ sub read_http_chunked_data ( $self, %args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 495                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
+## |    3 | 494                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 679                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
+## |    3 | 678                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 740                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 739                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
