@@ -1,3 +1,6 @@
+v0.88.1 2019-06-02T15:37:36Z
+ - tls curves use auto
+
 v0.88.0 2019-06-02T15:22:30Z
  - pub suffixes updated
  - perl 5.30
