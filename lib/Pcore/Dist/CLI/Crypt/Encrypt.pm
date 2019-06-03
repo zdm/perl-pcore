@@ -11,6 +11,7 @@ sub CLI ($self) {
             force     => { desc => 'skip prompt', },
             recursive => { desc => 'recursive', },
             protect   => { desc => 'remove Filter::Crypto::CryptFile from the perl distribution' },
+            verebode  => { desc => 'verbose output' },
         },
         arg => [
             path => {
@@ -33,11 +34,11 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     my $root = $arg->{path} ? P->path( $arg->{path} ) : $self->get_dist->{root};
 
     if ( -f $root ) {
-        $self->_process_file($root);
+        $self->_process_file( $root, $opt->{verbose} );
     }
     elsif ( -d $root ) {
         for my $path ( $root->read_dir( max_depth => $opt->{recursive} ? 0 : 1, abs => 1, is_dir => 0 )->@* ) {
-            $self->_process_file($path);
+            $self->_process_file( $path, $opt->{verbose} );
         }
     }
     else {
@@ -48,21 +49,26 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
         if ( my $mod = P->perl->module('Filter/Crypto/CryptFile.pm') ) {
             my $auto_deps = $mod->auto_deps;
 
-            say qq[unlink: "@{[ $mod->path ]}"];
+            say qq[unlink: "@{[ $mod->path ]}"] if $opt->{verbose};
+
             unlink $mod->path or die $!;
 
             for my $dep ( values $auto_deps->%* ) {
-                say qq[unlink: "$dep"];
+                say qq[unlink: "$dep"] if $opt->{verbose};
+
                 unlink $dep or die $!;
             }
         }
     }
 
+    say 'DONE' if $opt->{verbose};
+
     return;
 }
 
-sub _process_file ( $self, $path ) {
+sub _process_file ( $self, $path, $verbose ) {
     if ( $path->mime_has_tag( 'perl', 1 ) && !$path->mime_has_tag( 'perl-cpanfile', 1 ) ) {
+        print qq[encrypt: "$path" ... ] if $verbose;
         my $res = P->src->compress(
             path   => $path,
             filter => {
@@ -74,6 +80,8 @@ sub _process_file ( $self, $path ) {
         );
 
         die qq[Can't encrypt "$path", $res] if !$res;
+
+        say 'done' if $verbose;
     }
 
     return;
@@ -86,7 +94,7 @@ sub _process_file ( $self, $path ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 28                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 29                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
