@@ -1,3 +1,12 @@
+v0.89.0 2019-06-03T08:37:45Z
+ - par encrypt fixed
+ - PAR scripts names as args
+ - PAR repack removed
+ - comments
+ - pcore.ini -> pcore.yaml
+ - docker api refactored
+ - pcore crypt protect option
+
 v0.88.1 2019-06-02T15:37:36Z
  - tls curves use auto
 
