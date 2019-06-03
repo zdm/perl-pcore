@@ -1,5 +1,3 @@
-Dockerfile
-
 # SCM
 .hg*
 .git*
