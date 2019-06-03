@@ -108,32 +108,6 @@ sub run ($self) {
         }
     }
 
-    if ( 0 && $self->{dist}->docker ) {
-        require Pcore::API::Docker::Hub;
-
-        my $dockerhub_api = Pcore::API::Docker::Hub->new;
-
-      CREATE_DOCKERHUB_LATEST_TAG:
-        if ( !$self->{dist}->build->docker->create_tag( 'latest', 'latest', $Pcore::API::Docker::Hub::DOCKERHUB_SOURCE_TYPE_TAG, '/' ) ) {
-            goto CREATE_DOCKERHUB_LATEST_TAG if P->term->prompt( q[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
-        }
-
-      CREATE_DOCKERHUB_VERSION_TAG:
-        if ( !$self->{dist}->build->docker->create_tag( $new_ver, $new_ver, $Pcore::API::Docker::Hub::DOCKERHUB_SOURCE_TYPE_TAG, '/' ) ) {
-            goto CREATE_DOCKERHUB_VERSION_TAG if P->term->prompt( q[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
-        }
-
-      TRIGGER_BUILD_LATEST_TAG:
-        if ( !$self->{dist}->build->docker->trigger_build('latest') ) {
-            goto TRIGGER_BUILD_LATEST_TAG if P->term->prompt( q[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
-        }
-
-      TRIGGER_BUILD_VERSION_TAG:
-        if ( !$self->{dist}->build->docker->trigger_build($new_ver) ) {
-            goto TRIGGER_BUILD_VERSION_TAG if P->term->prompt( q[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
-        }
-    }
-
     # upload to the CPAN if this is the CPAN distribution, prompt before upload
     $self->_upload_to_cpan if $self->{dist}->cfg->{cpan};
 
@@ -336,16 +310,6 @@ TXT
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (27)                       |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

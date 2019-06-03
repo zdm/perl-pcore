@@ -403,48 +403,6 @@ sub get_autobuild_settings ( $self, $repo_id, $cb = undef ) {
     return $self->_req( 'GET', "/repositories/$repo_id/autobuild/", 1, undef, $cb );
 }
 
-sub unlink_tag ( $self, $repo_id, $tag_name, $cb = undef ) {
-    my ( $delete_autobuild_tag_status, $delete_tag_status );
-
-    my $cv = P->cv->begin( sub ($cv) {
-        my $res = res [ 200, "autobuild: $delete_autobuild_tag_status->{reason}, tag: $delete_tag_status->{reason}" ];
-
-        $cv->( $cb ? $cb->($res) : $res );
-
-        return;
-    } );
-
-    $cv->begin;
-    $self->delete_autobuild_tag_by_name(
-        $repo_id,
-        $tag_name,
-        sub ($res) {
-            $delete_autobuild_tag_status = $res;
-
-            $cv->end;
-
-            return;
-        }
-    );
-
-    $cv->begin;
-    $self->delete_tag(
-        $repo_id,
-        $tag_name,
-        sub ($res) {
-            $delete_tag_status = $res;
-
-            $cv->end;
-
-            return;
-        }
-    );
-
-    $cv->end;
-
-    return defined wantarray ? $cv->recv : ();
-}
-
 # AUTOBUILD TAGS
 sub get_autobuild_tags ( $self, $repo_id, $cb = undef ) {
     return $self->_req(
@@ -587,9 +545,8 @@ sub trigger_autobuild_by_tag_name ( $self, $repo_id, $autobuild_tag_name, $cb = 
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 83, 189, 317, 327,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 343, 369, 373, 406,  |                                                                                                                |
-## |      | 470, 489, 493, 531,  |                                                                                                                |
-## |      | 544                  |                                                                                                                |
+## |      | 343, 369, 373, 428,  |                                                                                                                |
+## |      | 447, 451, 489, 502   |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 167                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
