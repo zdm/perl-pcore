@@ -11,7 +11,7 @@ sub CLI ($self) {
             force     => { desc => 'skip prompt', },
             recursive => { desc => 'recursive', },
             protect   => { desc => 'remove Filter::Crypto::CryptFile from the perl distribution' },
-            verebode  => { desc => 'verbose output' },
+            verbose   => { desc => 'verbose output' },
         },
         arg => [
             path => {
