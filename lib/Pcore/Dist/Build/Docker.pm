@@ -25,7 +25,7 @@ sub init ( $self, $args ) {
         exit 3;
     }
 
-    my $repo_namespace = $args->{namespace} || $ENV->user_cfg->{DOCKERHUB}->{default_namespace} || $ENV->user_cfg->{DOCKERHUB}->{username};
+    my $repo_namespace = $args->{namespace} || $ENV->user_cfg->{DOCKER}->{default_namespace} || $ENV->user_cfg->{DOCKER}->{username};
 
     if ( !$repo_namespace ) {
         say 'DockerHub repo namespace is not defined';

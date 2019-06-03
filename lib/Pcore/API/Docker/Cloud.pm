@@ -1,4 +1,4 @@
-package Pcore::API::Docker::Hub;
+package Pcore::API::Docker::Cloud;
 
 use Pcore -const, -class, -res, -export;
 use Pcore::Util::Scalar qw[is_plain_coderef];
@@ -602,7 +602,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::Docker::Hub
+Pcore::API::Docker::Cloud
 
 =head1 SYNOPSIS
 
