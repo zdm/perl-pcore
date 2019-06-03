@@ -173,7 +173,19 @@ sub ls ( $self ) {
                 width  => 35,
                 align  => 1,
                 format => sub ( $val, $id, $row ) {
-                    return $val ? P->date->from_string($val)->to_http_date : q[-];
+                    return q[-] if !$val;
+
+                    my $duration = P->date->duration( P->date->from_string($val), P->date->now_utc );
+
+                    if ( $duration->days ) {
+                        return sprintf '%d days %d hours %d minutes ago', $duration->dhm->@*;
+                    }
+                    elsif ( $duration->hours ) {
+                        return sprintf '%d hours %d minutes ago', $duration->hm->@*;
+                    }
+                    else {
+                        return sprintf '%d minutes ago', $duration->minutes;
+                    }
                 }
             },
         ],
