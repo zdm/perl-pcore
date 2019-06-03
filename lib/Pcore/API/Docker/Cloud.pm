@@ -161,11 +161,12 @@ sub get_user_orgs ( $self, $cb = undef ) {
 }
 
 # CREATE REPO / AUTOMATED BUILD
-sub create_repo ( $self, $repo_id, $desc, @args ) {
+sub create_repo ( $self, $repo_id, @args ) {
     my $cb = is_plain_coderef $args[-1] ? pop @args : undef;
 
     my %args = (
         private   => 0,
+        desc      => $EMPTY,
         full_desc => $EMPTY,
         @args
     );
@@ -179,13 +180,14 @@ sub create_repo ( $self, $repo_id, $desc, @args ) {
         {   namespace        => $namespace,
             name             => $name,
             is_private       => $args{private},
-            description      => $desc,
+            description      => $args{desc},
             full_description => $args{full_desc},
         },
         $cb
     );
 }
 
+# TODO not work
 sub create_autobuild ( $self, $repo_id, $scm_provider, $scm_repo_id, $desc, @args ) {
     my $cb = is_plain_coderef $args[-1] ? pop @args : undef;
 
@@ -281,14 +283,6 @@ sub get_repo ( $self, $repo_id, $cb = undef ) {
 
 sub remove_repo ( $self, $repo_id, $cb = undef ) {
     return $self->_req( 'DELETE', "/repositories/$repo_id/", 1, undef, $cb );
-}
-
-sub set_desc ( $self, $repo_id, $desc, $cb = undef ) {
-    return $self->_req( 'PATCH', "/repositories/$repo_id/", 1, { description => $desc }, $cb );
-}
-
-sub set_full_desc ( $self, $repo_id, $desc, $cb = undef ) {
-    return $self->_req( 'PATCH', "/repositories/$repo_id/", 1, { full_description => $desc }, $cb );
 }
 
 # REPO TAGS
@@ -544,9 +538,9 @@ sub trigger_autobuild_by_tag_name ( $self, $repo_id, $autobuild_tag_name, $cb = 
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 83, 189, 317, 327,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 343, 369, 373, 428,  |                                                                                                                |
-## |      | 447, 451, 489, 502   |                                                                                                                |
+## |    3 | 83, 191, 311, 321,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 337, 363, 367, 422,  |                                                                                                                |
+## |      | 441, 445, 483, 496   |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 167                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

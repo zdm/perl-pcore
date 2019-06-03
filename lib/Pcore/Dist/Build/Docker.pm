@@ -3,10 +3,10 @@ package Pcore::Dist::Build::Docker;
 use Pcore -class, -ansi, -res;
 use Pcore::Util::Scalar qw[is_plain_arrayref];
 
-has dist          => ();                                     # InstanceOf ['Pcore::Dist']
-has dockerhub_api => ( is => 'lazy', init_arg => undef );    # InstanceOf ['Pcore::API::Docker::Cloud']
+has dist => ();                                     # InstanceOf ['Pcore::Dist']
+has api  => ( is => 'lazy', init_arg => undef );    # InstanceOf ['Pcore::API::Docker::Cloud']
 
-sub _build_dockerhub_api($self) {
+sub _build_api($self) {
     require Pcore::API::Docker::Cloud;
 
     return Pcore::API::Docker::Cloud->new;
@@ -45,17 +45,15 @@ sub init ( $self, $args ) {
         exit 3;
     }
     elsif ( $confirm eq 'yes' ) {
-        my $api = $self->dockerhub_api;
+        my $api = $self->api;
 
         print q[Creating DockerHub repository ... ];
 
-        my $res = $api->create_autobuild(
+        my $res = $api->create_repo(
             $repo_id,
-            $scm_upstream->{hosting},
-            $scm_upstream->{repo_id},
-            $self->{dist}->module->abstract || $self->{dist}->name,
-            private => 0,
-            active  => 1
+            desc      => $self->{dist}->module->abstract || $self->{dist}->name,
+            full_desc => $EMPTY,
+            private   => 0,
         );
 
         say $res->{reason};
@@ -130,7 +128,7 @@ sub ls ( $self ) {
     my $cv = P->cv->begin;
 
     $cv->begin;
-    $self->dockerhub_api->get_tags(
+    $self->api->get_tags(
         $self->{dist}->docker->{repo_id},
         sub ($res) {
             $tags = $res;
@@ -221,7 +219,7 @@ sub remove_tag ( $self, $keep, $tags ) {
         for my $tag ( is_plain_arrayref $tags ? $tags->@* : $tags ) {
             $cv->begin;
 
-            $self->dockerhub_api->delete_tag(
+            $self->api->delete_tag(
                 $self->{dist}->docker->{repo_id},
                 $tag,
                 sub($res) {
@@ -244,7 +242,7 @@ sub remove_tag ( $self, $keep, $tags ) {
     if ( !defined $tags ) {
         print q[Get docker tags ... ];
 
-        $tags = $self->dockerhub_api->get_tags(
+        $tags = $self->api->get_tags(
             $self->{dist}->docker->{repo_id},
             sub ($res) {
                 say $res;
