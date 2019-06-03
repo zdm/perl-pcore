@@ -358,13 +358,19 @@ sub _add_perl_source ( $self, $source, $target, $is_cpan_module = 0, $module = u
 
     if ($encrypt) {
 
-        # crypt sources, do not crypt CPAN modules
-        if ( !$is_cpan_module && ( !$module || $module ne 'Filter/Crypto/Decrypt.pm' ) ) {
+        # do not encrypt modules, that are located on CPAN
+        if ($is_cpan_module) {
+            $encrypt = 0;
+        }
 
-            # do not crypt modules, that belongs to the CPAN distribution
-            if ( !$is_cpan_module && ( my $dist = Pcore::Dist->new( P->path($source)->{dirname} ) ) ) {
-                $encrypt = 0 if $dist->cfg->{cpan};
-            }
+        # do not encrypt Filter::Crypto::Decrypt
+        elsif ( $module && $module eq 'Filter/Crypto/Decrypt.pm' ) {
+            $encrypt = 0;
+        }
+
+        # do not encrypt modules, that are belongs to Pcore CPAN distributions
+        elsif ( !$is_cpan_module && ( my $dist = Pcore::Dist->new( P->path($source)->{dirname} ) ) ) {
+            $encrypt = 0 if $dist->cfg->{cpan};
         }
     }
 
@@ -551,9 +557,9 @@ sub _error ( $self, $msg ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 343                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 411                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_repack_parl' declared but not used |
+## |    3 | 417                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_repack_parl' declared but not used |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 422                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    3 | 428                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 159                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
