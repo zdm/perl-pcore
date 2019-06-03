@@ -43,27 +43,29 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     }
     else {
         say qq[Can't open "$root".];
+
+        exit 3;
     }
 
-    if ( $opt->{protect} ) {
-        if ( my $mod = P->perl->module('Filter/Crypto/CryptFile.pm') ) {
-            my $auto_deps = $mod->auto_deps;
+    say 'ENCRYPTED' if $opt->{verbose};
 
-            say qq[unlink: "@{[ $mod->path ]}"] if $opt->{verbose};
+    if ( $opt->{protect} && ( my $mod = P->perl->module('Filter/Crypto/CryptFile.pm') ) ) {
+        my $auto_deps = $mod->auto_deps;
 
-            unlink $mod->path or die $!;
+        say qq[unlink: "@{[ $mod->path ]}"] if $opt->{verbose};
 
-            for my $dep ( values $auto_deps->%* ) {
-                say qq[unlink: "$dep"] if $opt->{verbose};
+        unlink $mod->path or die $!;
 
-                unlink $dep or die $!;
-            }
+        for my $dep ( values $auto_deps->%* ) {
+            say qq[unlink: "$dep"] if $opt->{verbose};
+
+            unlink $dep or die $!;
         }
+
+        say 'PROTECTED' if $opt->{verbose};
     }
 
-    say 'DONE' if $opt->{verbose};
-
-    exit 0;
+    return;
 }
 
 sub _process_file ( $self, $path, $verbose ) {
