@@ -63,7 +63,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 
     say 'DONE' if $opt->{verbose};
 
-    return;
+    exit 0;
 }
 
 sub _process_file ( $self, $path, $verbose ) {
