@@ -10,6 +10,7 @@ sub CLI ($self) {
         opt      => {
             force     => { desc => 'skip prompt', },
             recursive => { desc => 'recursive', },
+            protect   => { desc => 'remove Filter::Crypto::CryptFile from the perl distribution' },
         },
         arg => [
             path => {
@@ -43,6 +44,20 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
         say qq[Can't open "$root".];
     }
 
+    if ( $opt->{protect} ) {
+        if ( my $mod = P->perl->module('Filter/Crypto/CryptFile.pm') ) {
+            my $auto_deps = $mod->auto_deps;
+
+            say qq[unlink: "@{[ $mod->path ]}"];
+            unlink $mod->path or die $!;
+
+            for my $dep ( values $auto_deps->%* ) {
+                say qq[unlink: "$dep"];
+                unlink $dep or die $!;
+            }
+        }
+    }
+
     return;
 }
 
@@ -71,7 +86,7 @@ sub _process_file ( $self, $path ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 27                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 28                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
