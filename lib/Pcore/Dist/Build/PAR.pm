@@ -93,7 +93,7 @@ sub run ($self) {
         $profile->{mod}->@{ grep { !/\A[(]eval\s/sm } $pardeps->@* } = ();
 
         # remove Inline.pm
-        # TODO maybe remove all Inline::* family???
+        # TODO maybe remove all Inline::* modules???
         delete $profile->{mod}->{'Inline.pm'};
 
         # add Filter::Crypto::Decrypt deps if crypt mode is used
