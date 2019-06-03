@@ -2,6 +2,10 @@ package Pcore::Dist::CLI::Crypt::Encrypt;
 
 use Pcore -class, -ansi;
 
+# preload required modules or avoid "Can't run with Perl compiler backend" error when they will be encrypted
+use Pcore::Util::Perl;
+use Pcore::Util::Perl::Module;
+
 extends qw[Pcore::Dist::CLI];
 
 sub CLI ($self) {
@@ -96,7 +100,7 @@ sub _process_file ( $self, $path, $verbose ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 29                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 33                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
