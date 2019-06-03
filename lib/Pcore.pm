@@ -1,4 +1,4 @@
-package Pcore v0.89.0;
+package Pcore v0.89.1;
 
 use v5.30;
 no strict qw[refs];    ## no critic qw[TestingAndDebugging::ProhibitProlongedStrictureOverride]

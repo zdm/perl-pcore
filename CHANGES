@@ -1,3 +1,6 @@
+v0.89.1 2019-06-03T09:33:37Z
+ - pcore crypt protect option
+
 v0.89.0 2019-06-03T08:37:45Z
  - par encrypt fixed
  - PAR scripts names as args
