@@ -1,3 +1,5 @@
+Dockerfile
+
 # SCM
 .hg*
 .git*
