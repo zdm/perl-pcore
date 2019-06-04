@@ -1,3 +1,7 @@
+v0.90.0 2019-06-04T15:32:25Z
+ - docker ls show duration
+ - refactored
+
 v0.89.8 2019-06-03T15:56:47Z
  - dist version deep rec fixed
 
