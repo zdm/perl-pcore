@@ -87,6 +87,12 @@ around run => sub ( $orig, $self ) {
     $self->{router}->init;
     say 'done';
 
+    if ( defined $self->{ext} ) {
+        print 'Clearing Ext build cache ... ';
+        $self->{ext}->clear_cache;
+        say 'done';
+    }
+
     $res = $self->$orig;
     exit 3 if !$res;
 
