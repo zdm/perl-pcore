@@ -3,36 +3,53 @@ package Pcore::Util::Class;
 use Pcore;
 use Sub::Util qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
-sub load ( $class, @ ) {
+sub load ( $module, @ ) {
     my %args = (
         ns  => undef,
-        isa => undef,    # InstanceOf
+        isa => undef,
         splice @_, 1,
     );
 
-    my $module;
+    my $package = module_to_package($module);
 
-    if ( substr( $class, -3 ) eq '.pm' ) {
-        $module = $class;
+    $package = resolve_class_name( $package, $args{ns} );
 
-        $class =~ s[/][::]smg;
-
-        substr $class, -3, 3, $EMPTY;
-    }
-    else {
-        $class = resolve_class_name( $class, $args{ns} );
-
-        $module = ( $class =~ s[::][/]smgr ) . '.pm';
-    }
+    $module = package_to_module($package);
 
     require $module;
 
-    die qq[Error loading class "$class". Class must be instance of "$args{isa}"] if $args{isa} && !$class->isa( $args{isa} );
+    die qq[Error loading module "$module". Module must be instance of "$args{isa}"] if $args{isa} && !$package->isa( $args{isa} );
 
-    return $class;
+    return $package;
 }
 
-sub find ( $class, @ ) {
+sub find ( $module, @ ) {
+    my %args = (
+        ns => undef,
+        splice @_, 1,
+    );
+
+    my $package = module_to_package($module);
+
+    $package = resolve_class_name( $package, $args{ns} );
+
+    $module = package_to_module($package);
+
+    my $found;
+
+    # find class in @INC
+    for my $inc ( grep { !is_ref $_ } @INC ) {
+        if ( -f "$inc/$module" ) {
+            $found = "$inc/$module";
+
+            last;
+        }
+    }
+
+    return $found;
+}
+
+sub find1 ( $class, @ ) {
     my %args = (
         ns => undef,
         splice @_, 1,
@@ -70,6 +87,26 @@ sub resolve_class_name ( $class, $ns = undef ) {
     else {
         return $ns ? "${ns}::$class" : $class;
     }
+}
+
+sub module_to_package ($module) {
+    if ( substr( $module, -3 ) eq '.pm' ) {
+        $module =~ s[/][::]smg;
+
+        substr $module, -3, 3, $EMPTY;
+    }
+
+    return $module;
+}
+
+sub package_to_module ($package) {
+    if ( substr( $package, -3 ) ne '.pm' ) {
+        $package =~ s[::][/]smg;
+
+        $package .= '.pm';
+    }
+
+    return $package;
 }
 
 sub set_sub_prototype {
