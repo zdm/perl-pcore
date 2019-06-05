@@ -2,6 +2,7 @@ package Pcore::Util::Class;
 
 use Pcore;
 use Sub::Util qw[];    ## no critic qw[Modules::ProhibitEvilModules]
+use Package::Stash::XS qw[];
 
 sub load ( $module, @ ) {
     my %args = (
@@ -49,66 +50,67 @@ sub find ( $module, @ ) {
     return $found;
 }
 
-sub find1 ( $class, @ ) {
-    my %args = (
-        ns => undef,
-        splice @_, 1,
-    );
+sub unload ( $package, $delete_inc = 1 ) {
+    ( my $module, $package ) = get_module_package($package);
 
-    my $class_filename;
+    my $stash = Package::Stash::XS->new($package);
 
-    if ( $class =~ /[.]pm\z/sm ) {
-        $class_filename = $class;
-    }
-    else {
-        $class = resolve_class_name( $class, $args{ns} );
+    for my $sym ( $stash->list_all_symbols ) {
+        next if substr( $sym, -1, 1 ) eq ':';
 
-        $class_filename = ( $class =~ s[::][/]smgr ) . q[.pm];
+        $stash->remove_glob($sym);
     }
 
-    my $found;
+    delete $INC{$module} if $delete_inc;
 
-    # find class in @INC
-    for my $inc ( grep { !ref } @INC ) {
-        if ( -f "$inc/$class_filename" ) {
-            $found = "$inc/$class_filename";
-
-            last;
-        }
-    }
-
-    return $found;
+    return;
 }
 
-sub resolve_class_name ( $class, $ns = undef ) {
-    if ( substr( $class, 0, 1 ) eq '+' ) {
-        return $class;
+sub resolve_class_name ( $package, $ns = undef ) {
+    if ( substr( $package, 0, 1 ) eq '+' ) {
+        return $package;
     }
     else {
-        return $ns ? "${ns}::$class" : $class;
+        return $ns ? "${ns}::$package" : $package;
     }
 }
 
+# MODULE <-> PACKAGE CONVERSION
 sub module_to_package ($module) {
-    if ( substr( $module, -3 ) eq '.pm' ) {
-        $module =~ s[/][::]smg;
-
-        substr $module, -3, 3, $EMPTY;
-    }
-
-    return $module;
-}
-
-sub package_to_module ($package) {
-    if ( substr( $package, -3 ) ne '.pm' ) {
-        $package =~ s[::][/]smg;
-
-        $package .= '.pm';
-    }
+    ( $module, my $package ) = get_module_package($module);
 
     return $package;
 }
 
+sub package_to_module ($package) {
+    ( my $module, $package ) = get_module_package($package);
+
+    return $module;
+}
+
+sub get_module_package ($module) {
+    my $package;
+
+    # $module is module
+    if ( substr( $module, -3 ) eq '.pm' ) {
+        $package = $module =~ s[/][::]smgr;
+
+        substr $package, -3, 3, $EMPTY;
+    }
+
+    # $module is package
+    else {
+        $package = $module;
+
+        $module =~ s[::][/]smg;
+
+        $module .= '.pm';
+    }
+
+    return $module, $package;
+}
+
+# SUB
 sub set_sub_prototype {
     return &Sub::Util::set_prototype;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
