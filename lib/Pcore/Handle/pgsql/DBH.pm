@@ -689,8 +689,18 @@ sub prepare ( $self, $query ) {
     return $self->{pool}->prepare($query);
 }
 
-# TODO
-sub dbh ($self) { return $self }
+sub get_dbh ( $self, $cb = undef ) {
+
+    # self is ready
+    if ( $self->{state} == $STATE_READY && $self->{tx_status} eq $TX_STATUS_IDLE ) {
+        return $cb ? $cb->( res(200), $self ) : ( res(200), $self );
+    }
+
+    # self is not ready
+    else {
+        return $self->{pool}->get_dbh($cb);
+    }
+}
 
 # TODO
 sub destroy_sth ( $self, $id ) {
@@ -1072,11 +1082,11 @@ sub encode_json ( $self, $var ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 165                  | ControlStructures::ProhibitCascadingIfElse - Cascading if-elsif chain                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 617, 947             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 617, 957             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 756, 947             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 766, 957             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 795                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 805                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
