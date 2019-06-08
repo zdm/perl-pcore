@@ -207,11 +207,31 @@ sub _on_error ( $self, $reason, $fatal ) {
 
     warn qq[DBI: "$reason"] . ( defined $self->{query} ? qq[, current query: "$self->{query}->$*"] : $EMPTY );
 
-    if ( $state == $STATE_BUSY ) {
-        $self->{sth}->{error} = $reason;
-    }
-    elsif ( $state == $STATE_CONNECT ) {
+    if ( $state == $STATE_CONNECT ) {
         delete( $self->{_on_connect} )->( res [ 500, $reason ] );
+    }
+    elsif ( $state == $STATE_BUSY ) {
+        $self->{sth}->{error} = $reason;
+
+        # finish sth in case of fatal error
+        $self->_finish_sth if $fatal;
+    }
+
+    return;
+}
+
+sub _finish_sth ($self) {
+    my $sth = delete $self->{sth};
+
+    return if !defined $sth;
+
+    my $cb = delete $sth->{cb};
+
+    if ( $sth->{error} ) {
+        $cb->( $sth, res [ 500, $sth->{error} ] );
+    }
+    else {
+        $cb->( $sth, res 200, $sth->{tag}->%* );
     }
 
     return;
@@ -280,16 +300,7 @@ sub _ON_READY_FOR_QUERY ( $self, $dataref ) {
         delete( $self->{_on_connect} )->( res 200 );
     }
     elsif ( $state == $STATE_BUSY ) {
-        my $sth = delete $self->{sth};
-
-        my $cb = delete $sth->{cb};
-
-        if ( $sth->{error} ) {
-            $cb->( $sth, res [ 500, $sth->{error} ] );
-        }
-        else {
-            $cb->( $sth, res 200, $sth->{tag}->%* );
-        }
+        $self->_finish_sth;
     }
 
     return;
@@ -1081,15 +1092,15 @@ sub encode_json ( $self, $var ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 120                  | * Subroutine "_connect" with high complexity score (23)                                                        |
-## |      | 530                  | * Subroutine "_execute" with high complexity score (29)                                                        |
+## |      | 541                  | * Subroutine "_execute" with high complexity score (29)                                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 166                  | ControlStructures::ProhibitCascadingIfElse - Cascading if-elsif chain                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 620, 960             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 631, 971             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 769, 960             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 780, 971             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 808                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 819                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
