@@ -14,7 +14,7 @@ has is_pgsql => ( 1, init_arg => undef );
 has state => ( $STATE_CONNECT, init_arg => undef );    # Enum [ $STATE_CONNECT, $STATE_READY, $STATE_BUSY, $STATE_DISCONNECTED ]
 
 has _on_connect  => ( init_arg => undef );             # CodeRef
-has h            => ( init_arg => undef );             # InstanceOf ['Pcore::Handle::pgsql::AEHandle']
+has h            => ( init_arg => undef );             # InstanceOf['Pcore::Handle']
 has parameter    => ( init_arg => undef );             # HashRef, backen run-time parameters
 has key_data     => ( init_arg => undef );             # HashRef, backend key data, can be used to cancel request
 has tx_status    => ( init_arg => undef );             # Enum [ $TX_STATUS_IDLE, $TX_STATUS_TRANS, $TX_STATUS_ERROR ], current transaction status
