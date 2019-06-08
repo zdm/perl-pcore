@@ -7,25 +7,22 @@ use Pcore::Util::Scalar qw[weaken looks_like_number is_plain_arrayref is_plain_c
 use Pcore::Util::UUID qw[uuid_v1mc_str];
 use Pcore::Util::Digest qw[md5_hex];
 use Pcore::Util::Data qw[from_json];
-use Pcore::Handle::pgsql::AEHandle;
 
-has handle     => ( required => 1 );    # InstanceOf ['Pcore::Handle::pgsql']
+has pool       => ( required => 1 );    # InstanceOf ['Pcore::Handle::pgsql']
 has on_connect => ( required => 1 );    # CodeRef
-has password => ();                     # Str
 
-has is_pgsql => 1, init_arg => undef;
+has is_pgsql => ( 1, init_arg => undef );
+has state        => ( $STATE_CONNECT, init_arg => undef );    # Enum [ $STATE_CONNECT, $STATE_READY, $STATE_BUSY, $STATE_DISCONNECTED ]
+has h            => ( init_arg                 => undef );    # InstanceOf ['Pcore::Handle::pgsql::AEHandle']
+has parameter    => ( init_arg                 => undef );    # HashRef
+has key_data     => ( init_arg                 => undef );    # HashRef
+has tx_status    => ( init_arg                 => undef );    # Enum [ $TX_STATUS_IDLE, $TX_STATUS_TRANS, $TX_STATUS_ERROR ], current transaction status
+has wbuf         => ( init_arg                 => undef );    # ArrayRef, outgoing messages buffer
+has sth          => ( init_arg                 => undef );    # HashRef, currently executed sth
+has prepared_sth => ( init_arg                 => undef );    # HashRef
+has query        => ( init_arg                 => undef );    # ScalarRef, ref to the last query
 
-has state        => $STATE_CONNECT, init_arg => undef;    # Enum [ $STATE_CONNECT, $STATE_READY, $STATE_BUSY, $STATE_DISCONNECTED ]
-has h            => ( init_arg => undef );                # InstanceOf ['Pcore::Handle::pgsql::AEHandle']
-has parameter    => ( init_arg => undef );                # HashRef
-has key_data     => ( init_arg => undef );                # HashRef
-has tx_status    => ( init_arg => undef );                # Enum [ $TX_STATUS_IDLE, $TX_STATUS_TRANS, $TX_STATUS_ERROR ], current transaction status
-has wbuf         => ( init_arg => undef );                # ArrayRef, outgoing messages buffer
-has sth          => ( init_arg => undef );                # HashRef, currently executed sth
-has prepared_sth => ( init_arg => undef );                # HashRef
-has query        => ( init_arg => undef );                # ScalarRef, ref to the last query
-
-const our $PROTOCOL_VER => "\x00\x03\x00\x00";            # v3
+const our $PROTOCOL_VER => "\x00\x03\x00\x00";                # v3
 
 # FRONTEND
 const our $PG_MSG_BIND             => 'B';
@@ -98,112 +95,89 @@ const our $ERROR_STRING_TYPE => {
 };
 
 sub DESTROY ( $self ) {
-    $self->{handle}->push_dbh($self) if ( ${^GLOBAL_PHASE} ne 'DESTRUCT' ) && defined $self->{handle};
+    $self->{pool}->push_dbh($self) if ( ${^GLOBAL_PHASE} ne 'DESTRUCT' ) && defined $self->{pool};
 
     return;
 }
 
 # https://www.postgresql.org/docs/current/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
 # https://www.postgresql.org/docs/current/static/protocol-message-formats.html
-sub connect ( $self, %args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    my $on_connect = delete $args{on_connect};
+sub BUILD ( $self, $args ) {
+    weaken $self->{pool};
 
-    $self = bless \%args, $self;
-
-    $self->{is_pgsql} = 1;
-
-    $self->{state} = $STATE_CONNECT;
-
-    $self->{on_connect} = sub ( $dbh, $res ) {
-        undef $self;
-
-        $on_connect->(@_);
-
-        return;
-    };
-
-    my $host = $self->{handle}->host;
-    my $port = $self->{handle}->{port};
-
-    Pcore::Handle::pgsql::AEHandle->new(
-        connect => "pgsql://$host:$port",
-        on_error => sub ( $h, $fatal, $reason ) {
-            $self->_on_error( $reason, 1 );
-
-            return;
-        },
-        on_connect => sub ( $h, $host, $port, $retry ) {
-            $self->{h} = $h;
-
-            my $params = [
-                user                        => $self->{handle}->username,
-                database                    => $self->{handle}->database,
-                client_encoding             => 'UTF8',
-                bytea_output                => 'hex',
-                backslash_quote             => 'off',
-                standard_conforming_strings => 'on',
-                options                     => '--client-min-messages=warning',
-            ];
-
-            # send start message
-            push $self->{wbuf}->@*, [ $PG_MSG_STARTUP_MESSAGE, $PROTOCOL_VER . join( "\x00", $params->@* ) . "\x00\x00" ];
-
-            $self->_flush;
-
-            # start listen for messages
-            $self->_start_listen;
-
-            return;
-        }
-    );
+    $self->_connect;
 
     return;
 }
 
-sub _start_listen ($self) {
-    weaken $self;
+# TODO
+sub _connect ($self) {
+    Coro::async {
 
-    $self->{h}->on_read( sub {
-        my \$rbuf = \$_[0]->{rbuf};
+        # weaken $self;
 
-      REDO:
-        if ( length $rbuf > 4 ) {
-            my ( $type, $msg_len ) = unpack 'AN', $rbuf;
+        # TODO remove timeout
+        my $h = $self->{h} = P->handle( [ $self->{pool}->{uri}->connect ] );
 
-            if ( length $rbuf > $msg_len ) {
-                my $data = substr $rbuf, 0, $msg_len + 1, $EMPTY;
+        # TODO connection error
+        die $h if !$h;
 
-                substr $data, 0, 5, $EMPTY;
+        # create start message params
+        my $params = [
+            user                        => $self->{pool}->{uri}->{username},
+            database                    => $self->{pool}->{uri}->query_params->{db},
+            client_encoding             => 'UTF8',
+            bytea_output                => 'hex',
+            backslash_quote             => 'off',
+            standard_conforming_strings => 'on',
+            options                     => '--client-min-messages=warning',
+        ];
 
-                # GENERAL MESSAGES
-                if    ( $type eq $PG_MSG_AUTHENTICATION )   { $self->_ON_AUTHENTICATION( \$data ) }
-                elsif ( $type eq $PG_MSG_PARAMETER_STATUS ) { $self->_ON_PARAMETER_STATUS( \$data ) }
-                elsif ( $type eq $PG_MSG_BACKEND_KEY_DATA ) { $self->_ON_BACKEND_KEY_DATA( \$data ) }
-                elsif ( $type eq $PG_MSG_READY_FOR_QUERY )  { $self->_ON_READY_FOR_QUERY( \$data ) }
-                elsif ( $type eq $PG_MSG_ERROR_RESPONSE )   { $self->_ON_ERROR_RESPONSE( \$data ) }
-                elsif ( $type eq $PG_MSG_NOTICE_RESPONSE )  { $self->_ON_NOTICE_RESPONSE( \$data ) }
+        # send start message
+        push $self->{wbuf}->@*, [ $PG_MSG_STARTUP_MESSAGE, $PROTOCOL_VER . join( "\x00", $params->@* ) . "\x00\x00" ];
 
-                # STH RELATED MESSAGES
-                elsif ( $type eq $PG_MSG_PARSE_COMPLETE )   { $self->_ON_PARSE_COMPLETE }
-                elsif ( $type eq $PG_MSG_BIND_COMPLETE )    { $self->_ON_BIND_COMPLETE }
-                elsif ( $type eq $PG_MSG_ROW_DESCRIPTION )  { $self->_ON_ROW_DESCRIPTION( \$data ) }
-                elsif ( $type eq $PG_MSG_NO_DATA )          { $self->_ON_NO_DATA }
-                elsif ( $type eq $PG_MSG_DATA_ROW )         { $self->_ON_DATA_ROW( \$data ) }
-                elsif ( $type eq $PG_MSG_PORTAL_SUSPENDED ) { $self->_ON_PORTAL_SUSPENDED }
-                elsif ( $type eq $PG_MSG_COMMAND_COMPLETE ) { $self->_ON_COMMAND_COMPLETE( \$data ) }
-                elsif ( $type eq $PG_MSG_CLOSE_COMPLETE )   { $self->_ON_CLOSE_COMPLETE }
+        $self->_flush;
 
-                # UNSUPPORTED MESSAGE EXCEPTION
-                else {
-                    die qq[Unknown message "$type"];
-                }
+        while () {
+            my $chunk = $h->read_chunk(5);
 
-                goto REDO;
+            # TODO error handle
+
+            # unpack message type and length
+            my ( $type, $msg_len ) = unpack 'AN', $chunk->$*;
+
+            say $type;
+
+            my $data = $h->read_chunk( $msg_len - 4 );
+
+            # TODO error handle
+
+            # GENERAL MESSAGES
+            if    ( $type eq $PG_MSG_AUTHENTICATION )   { $self->_ON_AUTHENTICATION($data) }
+            elsif ( $type eq $PG_MSG_PARAMETER_STATUS ) { $self->_ON_PARAMETER_STATUS($data) }
+            elsif ( $type eq $PG_MSG_BACKEND_KEY_DATA ) { $self->_ON_BACKEND_KEY_DATA($data) }
+            elsif ( $type eq $PG_MSG_READY_FOR_QUERY )  { $self->_ON_READY_FOR_QUERY($data) }
+            elsif ( $type eq $PG_MSG_ERROR_RESPONSE )   { $self->_ON_ERROR_RESPONSE($data) }
+            elsif ( $type eq $PG_MSG_NOTICE_RESPONSE )  { $self->_ON_NOTICE_RESPONSE($data) }
+
+            # STH RELATED MESSAGES
+            elsif ( $type eq $PG_MSG_PARSE_COMPLETE )   { $self->_ON_PARSE_COMPLETE }
+            elsif ( $type eq $PG_MSG_BIND_COMPLETE )    { $self->_ON_BIND_COMPLETE }
+            elsif ( $type eq $PG_MSG_ROW_DESCRIPTION )  { $self->_ON_ROW_DESCRIPTION($data) }
+            elsif ( $type eq $PG_MSG_NO_DATA )          { $self->_ON_NO_DATA }
+            elsif ( $type eq $PG_MSG_DATA_ROW )         { $self->_ON_DATA_ROW($data) }
+            elsif ( $type eq $PG_MSG_PORTAL_SUSPENDED ) { $self->_ON_PORTAL_SUSPENDED }
+            elsif ( $type eq $PG_MSG_COMMAND_COMPLETE ) { $self->_ON_COMMAND_COMPLETE($data) }
+            elsif ( $type eq $PG_MSG_CLOSE_COMPLETE )   { $self->_ON_CLOSE_COMPLETE }
+
+            # UNSUPPORTED MESSAGE EXCEPTION
+            else {
+                die qq[Unknown message "$type"];
             }
         }
 
         return;
-    } );
+    };
 
     return;
 }
@@ -234,6 +208,7 @@ sub _on_error ( $self, $reason, $fatal ) {
 }
 
 # PG MESSAGES HANDLERS
+# TODO erro handling
 sub _ON_AUTHENTICATION ( $self, $dataref ) {
 
     # we are expecting authentication messages only on connect state
@@ -242,15 +217,17 @@ sub _ON_AUTHENTICATION ( $self, $dataref ) {
     my $auth_type = unpack 'N', substr $dataref->$*, 0, 4, $EMPTY;
 
     if ( $auth_type != $PG_MSG_AUTHENTICATION_OK ) {
+        my $password = $self->{pool}->{uri}->{password} // $EMPTY;
+
         if ( $auth_type == $PG_MSG_AUTHENTICATION_CLEARTEXT_PASSWORD ) {
-            $self->{h}->push_write( $PG_MSG_PASSWORD_MESSAGE . pack 'NZ*', 5 + length $self->{handle}->password, $self->{handle}->password );
+            $self->{h}->write( $PG_MSG_PASSWORD_MESSAGE . pack 'NZ*', 5 + length $password, $password );
         }
         elsif ( $auth_type == $PG_MSG_AUTHENTICATION_MD5_PASSWORD ) {
-            my $pwdhash = md5_hex $self->{handle}->password . $self->{handle}->username;
+            my $pwdhash = md5_hex $password . $self->{pool}->{uri}->{username};
 
             my $hash = 'md5' . md5_hex $pwdhash . $dataref->$*;
 
-            $self->{h}->push_write( $PG_MSG_PASSWORD_MESSAGE . pack 'NZ*', 5 + length $hash, $hash );
+            $self->{h}->write( $PG_MSG_PASSWORD_MESSAGE . pack 'NZ*', 5 + length $hash, $hash );
         }
 
         # unsupported auth type
@@ -285,7 +262,7 @@ sub _ON_READY_FOR_QUERY ( $self, $dataref ) {
 
     # connected
     if ( $state == $STATE_CONNECT ) {
-        delete( $self->{on_connect} )->( $self, res 200 );
+        delete( $self->{on_connect} )->( res(200), $self );
     }
     elsif ( $state == $STATE_BUSY ) {
         my $sth = delete $self->{sth};
@@ -511,6 +488,7 @@ sub _ON_CLOSE_COMPLETE ( $self ) {
 }
 
 # flush outgoing messages buffer
+# TODO error handler
 sub _flush ( $self ) {
     my $buf;
 
@@ -525,7 +503,11 @@ sub _flush ( $self ) {
         }
     }
 
-    $self->{h}->push_write($buf) if defined $buf;
+    if ( defined $buf ) {
+        my $total_bytes = $self->{h}->write($buf);
+
+        # TODO handle errors
+    }
 
     return;
 }
@@ -566,7 +548,7 @@ sub _execute ( $self, $query, $bind, $cb, %args ) {
 
     # query is ArrayRef
     elsif ( is_plain_arrayref $query) {
-        ( $query, $bind ) = $self->{handle}->prepare_query($query);
+        ( $query, $bind ) = $self->{pool}->prepare_query($query);
 
         $use_extended_query = defined $bind;
     }
@@ -692,9 +674,10 @@ sub _parse_args ( $args ) {
 
 # STH
 sub prepare ( $self, $query ) {
-    return $self->{handle}->prepare($query);
+    return $self->{pool}->prepare($query);
 }
 
+# TODO
 sub dbh ($self) { return $self }
 
 # TODO
@@ -1049,19 +1032,19 @@ sub rollback ( $self, $cb = undef ) {
 
 # QUOTE
 sub quote_id ( $self, $id ) {
-    return $self->{handle}->quote_id($id);
+    return $self->{pool}->quote_id($id);
 }
 
 sub quote ( $self, $var ) {
-    return $self->{handle}->quote($var);
+    return $self->{pool}->quote($var);
 }
 
 sub encode_array ( $self, $var ) {
-    return $self->{handle}->encode_array($var);
+    return $self->{pool}->encode_array($var);
 }
 
 sub encode_json ( $self, $var ) {
-    return $self->{handle}->encode_json($var);
+    return $self->{pool}->encode_json($var);
 }
 
 1;
@@ -1071,15 +1054,15 @@ sub encode_json ( $self, $var ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 179                  | ControlStructures::ProhibitCascadingIfElse - Cascading if-elsif chain                                          |
+## |    3 | 156                  | ControlStructures::ProhibitCascadingIfElse - Cascading if-elsif chain                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 533                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (29)                  |
+## |    3 | 515                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (29)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 623, 952             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 605, 935             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 761, 952             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 744, 935             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 800                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 783                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

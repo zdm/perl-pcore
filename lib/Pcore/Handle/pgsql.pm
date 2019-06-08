@@ -24,34 +24,13 @@ const our $TX_STATUS_ERROR => 'E';    # in a failed transaction block (queries w
 
 require Pcore::Handle::pgsql::DBH;
 
-has max_dbh  => 3;                    # PositiveInt
-has backlog  => 1_000;                # Maybe [PositiveInt]
-has host     => ( is => 'lazy' );     # Str
-has port     => 5432;                 # PositiveOrZeroInt
-has username => ( is => 'lazy' );     # Str
-has password => ( is => 'lazy' );     # Str
-has database => ( is => 'lazy' );     # Str
+has max_dbh => 3;                     # PositiveInt
+has backlog => 1_000;                 # Maybe [PositiveInt]
 
 has is_pgsql   => 1, init_arg => undef;
 has active_dbh => 0, init_arg => undef;
 has _dbh_pool      => ( init_arg => undef );            # ArrayRef
 has _get_dbh_queue => sub { [] }, init_arg => undef;    # ArrayRef
-
-sub _build_host ($self) {
-    return $self->{uri}->{path} eq '/' ? "$self->{uri}->{host}" : "$self->{uri}->{path}";
-}
-
-sub _build_username ($self) {
-    return $self->{uri}->{username};
-}
-
-sub _build_password ($self) {
-    return $self->{uri}->{password} // $EMPTY;
-}
-
-sub _build_database ($self) {
-    return $self->{uri}->query_params->{db};
-}
 
 # DBH POOL METHODS
 sub get_dbh ( $self, $cb = undef ) {
@@ -126,9 +105,9 @@ sub push_dbh ( $self, $dbh ) {
 sub _create_dbh ($self) {
     $self->{active_dbh}++;
 
-    Pcore::Handle::pgsql::DBH->connect(
-        handle     => $self,
-        on_connect => sub ( $dbh, $res ) {
+    Pcore::Handle::pgsql::DBH->new(
+        pool       => $self,
+        on_connect => sub ( $res, $dbh ) {
             if ( !$res ) {
                 $self->{active_dbh}--;
 
@@ -138,8 +117,6 @@ sub _create_dbh ($self) {
                 }
             }
             else {
-                $self->{on_connect}->($dbh) if $self->{on_connect};
-
                 $self->push_dbh($dbh);
             }
 
@@ -326,7 +303,7 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 174                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_schema_patch_table_query'      |
+## |    3 | 151                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_schema_patch_table_query'      |
 ## |      |                      | declared but not used                                                                                          |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
