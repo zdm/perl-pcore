@@ -8,19 +8,19 @@ use Pcore::Util::UUID qw[uuid_v1mc_str];
 use Pcore::Util::Digest qw[md5_hex];
 use Pcore::Util::Data qw[from_json];
 
-has pool       => ( required => 1 );    # InstanceOf ['Pcore::Handle::pgsql']
-has on_connect => ( required => 1 );    # CodeRef
+has pool => ( required => 1 );    # InstanceOf ['Pcore::Handle::pgsql']
 
-has is_pgsql => ( 1, init_arg => undef );
+has _on_connect  => ( init_arg => undef );                    # CodeRef
+has is_pgsql     => ( 1, init_arg => undef );
 has state        => ( $STATE_CONNECT, init_arg => undef );    # Enum [ $STATE_CONNECT, $STATE_READY, $STATE_BUSY, $STATE_DISCONNECTED ]
-has h            => ( init_arg                 => undef );    # InstanceOf ['Pcore::Handle::pgsql::AEHandle']
-has parameter    => ( init_arg                 => undef );    # HashRef
-has key_data     => ( init_arg                 => undef );    # HashRef
-has tx_status    => ( init_arg                 => undef );    # Enum [ $TX_STATUS_IDLE, $TX_STATUS_TRANS, $TX_STATUS_ERROR ], current transaction status
-has wbuf         => ( init_arg                 => undef );    # ArrayRef, outgoing messages buffer
-has sth          => ( init_arg                 => undef );    # HashRef, currently executed sth
-has prepared_sth => ( init_arg                 => undef );    # HashRef
-has query        => ( init_arg                 => undef );    # ScalarRef, ref to the last query
+has h            => ( init_arg => undef );                    # InstanceOf ['Pcore::Handle::pgsql::AEHandle']
+has parameter    => ( init_arg => undef );                    # HashRef
+has key_data     => ( init_arg => undef );                    # HashRef
+has tx_status    => ( init_arg => undef );                    # Enum [ $TX_STATUS_IDLE, $TX_STATUS_TRANS, $TX_STATUS_ERROR ], current transaction status
+has wbuf         => ( init_arg => undef );                    # ArrayRef, outgoing messages buffer
+has sth          => ( init_arg => undef );                    # HashRef, currently executed sth
+has prepared_sth => ( init_arg => undef );                    # HashRef
+has query        => ( init_arg => undef );                    # ScalarRef, ref to the last query
 
 const our $PROTOCOL_VER => "\x00\x03\x00\x00";                # v3
 
@@ -105,22 +105,25 @@ sub DESTROY ( $self ) {
 sub BUILD ( $self, $args ) {
     weaken $self->{pool};
 
+    $self->{_on_connect} = sub ($res) {
+        $self->{pool}->on_connect_dbh( $res, $self ) if defined $self->{pool};
+
+        return;
+    };
+
     $self->_connect;
 
     return;
 }
 
-# TODO
 sub _connect ($self) {
     Coro::async {
+        weaken $self;
 
-        # weaken $self;
+        my $h = $self->{h} = P->handle( [ $self->{pool}->{uri}->connect ], timeout => undef );
 
-        # TODO remove timeout
-        my $h = $self->{h} = P->handle( [ $self->{pool}->{uri}->connect ] );
-
-        # TODO connection error
-        die $h if !$h;
+        # connection error
+        return $self->_on_error( $h->{reason}, 1 ) if !$h;
 
         # create start message params
         my $params = [
@@ -139,18 +142,24 @@ sub _connect ($self) {
         $self->_flush;
 
         while () {
+            return if !defined $self;
+
             my $chunk = $h->read_chunk(5);
 
-            # TODO error handle
+            return if !defined $self;
+
+            # read error
+            return $self->_on_error( $h->{reason}, 1 ) if !$h;
 
             # unpack message type and length
             my ( $type, $msg_len ) = unpack 'AN', $chunk->$*;
 
-            say $type;
-
             my $data = $h->read_chunk( $msg_len - 4 );
 
-            # TODO error handle
+            return if !defined $self;
+
+            # read error
+            return $self->_on_error( $h->{reason}, 1 ) if !$h;
 
             # GENERAL MESSAGES
             if    ( $type eq $PG_MSG_AUTHENTICATION )   { $self->_ON_AUTHENTICATION($data) }
@@ -172,7 +181,7 @@ sub _connect ($self) {
 
             # UNSUPPORTED MESSAGE EXCEPTION
             else {
-                die qq[Unknown message "$type"];
+                return $self->_on_error( qq[Unknown message "$type"], 1 );
             }
         }
 
@@ -201,7 +210,7 @@ sub _on_error ( $self, $reason, $fatal ) {
         $self->{sth}->{error} = $reason;
     }
     elsif ( $state == $STATE_CONNECT ) {
-        delete( $self->{on_connect} )->( undef, res [ 500, $reason ] );
+        delete( $self->{_on_connect} )->( res [ 500, $reason ] );
     }
 
     return;
@@ -262,7 +271,7 @@ sub _ON_READY_FOR_QUERY ( $self, $dataref ) {
 
     # connected
     if ( $state == $STATE_CONNECT ) {
-        delete( $self->{on_connect} )->( res(200), $self );
+        delete( $self->{_on_connect} )->( res 200 );
     }
     elsif ( $state == $STATE_BUSY ) {
         my $sth = delete $self->{sth};
@@ -488,7 +497,6 @@ sub _ON_CLOSE_COMPLETE ( $self ) {
 }
 
 # flush outgoing messages buffer
-# TODO error handler
 sub _flush ( $self ) {
     my $buf;
 
@@ -506,7 +514,8 @@ sub _flush ( $self ) {
     if ( defined $buf ) {
         my $total_bytes = $self->{h}->write($buf);
 
-        # TODO handle errors
+        # write error
+        return $self->_on_error( $self->{h}->{reason}, 1 ) if !$self->{h};
     }
 
     return;
@@ -1054,15 +1063,17 @@ sub encode_json ( $self, $var ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 156                  | ControlStructures::ProhibitCascadingIfElse - Cascading if-elsif chain                                          |
+## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
+## |      | 119                  | * Subroutine "_connect" with high complexity score (23)                                                        |
+## |      | 524                  | * Subroutine "_execute" with high complexity score (29)                                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 515                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (29)                  |
+## |    3 | 165                  | ControlStructures::ProhibitCascadingIfElse - Cascading if-elsif chain                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 605, 935             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 614, 944             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 744, 935             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 753, 944             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 783                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 792                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

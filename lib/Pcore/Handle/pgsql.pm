@@ -105,24 +105,23 @@ sub push_dbh ( $self, $dbh ) {
 sub _create_dbh ($self) {
     $self->{active_dbh}++;
 
-    Pcore::Handle::pgsql::DBH->new(
-        pool       => $self,
-        on_connect => sub ( $res, $dbh ) {
-            if ( !$res ) {
-                $self->{active_dbh}--;
+    Pcore::Handle::pgsql::DBH->new( pool => $self, );
 
-                # throw connection error for all pending requests
-                while ( my $cb = shift $self->{_get_dbh_queue}->@* ) {
-                    $cb->( $res, undef );
-                }
-            }
-            else {
-                $self->push_dbh($dbh);
-            }
+    return;
+}
 
-            return;
+sub on_connect_dbh ( $self, $res, $dbh ) {
+    if ( !$res ) {
+        $self->{active_dbh}--;
+
+        # throw connection error for all pending requests
+        while ( my $cb = shift $self->{_get_dbh_queue}->@* ) {
+            $cb->( $res, undef );
         }
-    );
+    }
+    else {
+        $self->push_dbh($dbh);
+    }
 
     return;
 }
@@ -303,7 +302,7 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 151                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_schema_patch_table_query'      |
+## |    3 | 150                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_schema_patch_table_query'      |
 ## |      |                      | declared but not used                                                                                          |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
