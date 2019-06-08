@@ -994,7 +994,7 @@ sub selectcol ( $self, $query, @args ) {
 # TRANSACTIONS
 sub begin_work ( $self, $cb = undef ) {
     my $on_finish = sub ( $sth, $res ) {
-        return $cb ? $cb->( $self, $res ) : ( $self, $res );
+        return $cb ? $cb->($res) : $res;
     };
 
     if ( defined wantarray ) {

@@ -83,16 +83,21 @@ sub _create_dbh ($self) {
 
 sub _get_dbh ( $self, $cb ) {
     while ( my $dbh = shift $self->{_dbh_pool}->@* ) {
+
+        # DBH is ready
         if ( $dbh->{state} == $STATE_READY && $dbh->{tx_status} eq $TX_STATUS_IDLE ) {
             $cb->( res(200), $dbh );
 
             return;
         }
+
+        # DBH is not ready, forget it
         else {
             $self->{active_dbh}--;
         }
     }
 
+    # backlog is full
     if ( $self->{backlog} && $self->{_get_dbh_queue}->@* > $self->{backlog} ) {
         warn 'DBI: backlog queue is full';
 
@@ -101,8 +106,10 @@ sub _get_dbh ( $self, $cb ) {
         return;
     }
 
+    # push callback to the backlog queue
     push $self->{_get_dbh_queue}->@*, $cb;
 
+    # create dbh if limit is not reached
     $self->_create_dbh if $self->{active_dbh} < $self->{max_dbh};
 
     return;
@@ -264,12 +271,19 @@ sub encode_array ( $self, $var ) {
     return \( '{' . join( q[,], @buf ) . '}' );
 }
 
-sub dbh ($self) {
-    my $cv = P->cv;
+sub get_dbh ( $self, $cb = undef ) {
+    if ( defined wantarray ) {
+        my $cv = P->cv;
 
-    $self->_get_dbh($cv);
+        $self->_get_dbh($cv);
 
-    return $cv->recv;
+        return $cb ? $cb->( $cv->recv ) : $cv->recv;
+    }
+    else {
+        $self->_get_dbh($cb);
+
+        return;
+    }
 }
 
 # DBI METHODS
@@ -279,7 +293,7 @@ for my $method (qw[do selectall selectall_arrayref selectrow selectrow_arrayref 
             my \$cb = is_plain_coderef \$args[-1] ? \$args[-1] : undef;
 
             if ( defined wantarray ) {
-                my ( \$res, \$dbh ) = \$self->dbh;
+                my ( \$res, \$dbh ) = \$self->get_dbh;
 
                 if ( !\$res ) {
                     return \$cb ? \$cb->(\$res) : \$res;
@@ -289,7 +303,7 @@ for my $method (qw[do selectall selectall_arrayref selectrow selectrow_arrayref 
                 }
             }
             else {
-                \$self->_get_dbh(
+                \$self->get_dbh(
                     sub ( \$res, \$dbh ) {
                         if ( !\$res ) {
                             \$cb->( \$res ) if \$cb;
@@ -308,38 +322,6 @@ for my $method (qw[do selectall selectall_arrayref selectrow selectrow_arrayref 
 PERL
 }
 
-# TRANSACTIONS
-sub begin_work ( $self, @args ) {
-    my $cb = is_plain_coderef $args[-1] ? $args[-1] : undef;
-
-    if ( defined wantarray ) {
-        my ( $res, $dbh ) = $self->dbh;
-
-        if ( !$res ) {
-            return $cb ? $cb->($res) : $res;
-        }
-        else {
-            return $dbh->begin_work(@args);
-        }
-    }
-    else {
-        $self->_get_dbh(
-            sub ( $res, $dbh ) {
-                if ( !$res ) {
-                    $cb->( undef, $res ) if $cb;
-                }
-                else {
-                    $dbh->begin_work(@args);
-                }
-
-                return;
-            }
-        );
-
-        return;
-    }
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -347,7 +329,7 @@ sub begin_work ( $self, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 155                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_schema_patch_table_query'      |
+## |    3 | 162                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_schema_patch_table_query'      |
 ## |      |                      | declared but not used                                                                                          |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##

@@ -26,7 +26,15 @@ sub add_schema_patch ( $self, $id, $query ) {
 }
 
 sub upgrade_schema ( $self ) {
-    my ( $dbh, $res ) = $self->begin_work;
+    my ( $res, $dbh ) = $self->get_dbh;
+
+    # unable to get dbh
+    die $res if !$res;
+
+    $res = $dbh->begin_work;
+
+    # unable to start transaction
+    die $res if !$res;
 
     my $on_finish = sub {
         delete $self->{_schema_patch};
