@@ -221,6 +221,8 @@ sub _on_error ( $self, $reason, $fatal ) {
 }
 
 sub _finish_sth ($self) {
+    delete $self->{query};
+
     my $sth = delete $self->{sth};
 
     return if !defined $sth;
@@ -1092,15 +1094,15 @@ sub encode_json ( $self, $var ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 120                  | * Subroutine "_connect" with high complexity score (23)                                                        |
-## |      | 541                  | * Subroutine "_execute" with high complexity score (29)                                                        |
+## |      | 543                  | * Subroutine "_execute" with high complexity score (29)                                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 166                  | ControlStructures::ProhibitCascadingIfElse - Cascading if-elsif chain                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 631, 971             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 633, 973             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 780, 971             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 782, 973             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 819                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 821                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
