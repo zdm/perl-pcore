@@ -81,40 +81,6 @@ sub _create_dbh ($self) {
     return;
 }
 
-sub _get_dbh ( $self, $cb ) {
-    while ( my $dbh = shift $self->{_dbh_pool}->@* ) {
-
-        # DBH is ready
-        if ( $dbh->{state} == $STATE_READY && $dbh->{tx_status} eq $TX_STATUS_IDLE ) {
-            $cb->( res(200), $dbh );
-
-            return;
-        }
-
-        # DBH is not ready, forget it
-        else {
-            $self->{active_dbh}--;
-        }
-    }
-
-    # backlog is full
-    if ( $self->{backlog} && $self->{_get_dbh_queue}->@* > $self->{backlog} ) {
-        warn 'DBI: backlog queue is full';
-
-        $cb->( res( [ 500, 'backlog queue is full' ] ), undef );
-
-        return;
-    }
-
-    # push callback to the backlog queue
-    push $self->{_get_dbh_queue}->@*, $cb;
-
-    # create dbh if limit is not reached
-    $self->_create_dbh if $self->{active_dbh} < $self->{max_dbh};
-
-    return;
-}
-
 sub push_dbh ( $self, $dbh ) {
 
     # dbh is ready for query
@@ -272,18 +238,49 @@ sub encode_array ( $self, $var ) {
 }
 
 sub get_dbh ( $self, $cb = undef ) {
+    while ( my $dbh = shift $self->{_dbh_pool}->@* ) {
+
+        # DBH is ready
+        if ( $dbh->{state} == $STATE_READY && $dbh->{tx_status} eq $TX_STATUS_IDLE ) {
+            return $cb ? $cb->( res(200), $dbh ) : ( res(200), $dbh );
+        }
+
+        # DBH is not ready, forget it
+        else {
+            $self->{active_dbh}--;
+        }
+    }
+
+    # backlog is full
+    if ( $self->{backlog} && $self->{_get_dbh_queue}->@* > $self->{backlog} ) {
+        warn 'DBI: backlog queue is full';
+
+        my $res = res [ 500, 'backlog queue is full' ];
+
+        return $cb ? $cb->( $res, undef ) : ( $res, undef );
+    }
+
     if ( defined wantarray ) {
         my $cv = P->cv;
 
-        $self->_get_dbh($cv);
+        # push callback to the backlog queue
+        push $self->{_get_dbh_queue}->@*, $cv;
 
+        # create dbh if limit is not reached
+        $self->_create_dbh if $self->{active_dbh} < $self->{max_dbh};
+
+        # block thread
         return $cb ? $cb->( $cv->recv ) : $cv->recv;
     }
     else {
-        $self->_get_dbh($cb);
+        # push callback to the backlog queue
+        push $self->{_get_dbh_queue}->@*, $cb if $cb;
 
-        return;
+        # create dbh if limit is not reached
+        $self->_create_dbh if $self->{active_dbh} < $self->{max_dbh};
     }
+
+    return;
 }
 
 # DBI METHODS
@@ -329,7 +326,7 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 162                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_schema_patch_table_query'      |
+## |    3 | 128                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_schema_patch_table_query'      |
 ## |      |                      | declared but not used                                                                                          |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
