@@ -111,8 +111,6 @@ sub _create_dbh ($self) {
 }
 
 sub on_connect_dbh ( $self, $res, $dbh ) {
-    say "CONNECT: $res";
-
     if ( !$res ) {
         $self->{active_dbh}--;
 
@@ -304,7 +302,7 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 152                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_schema_patch_table_query'      |
+## |    3 | 150                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_schema_patch_table_query'      |
 ## |      |                      | declared but not used                                                                                          |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
