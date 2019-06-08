@@ -10,19 +10,20 @@ use Pcore::Util::Data qw[from_json];
 
 has pool => ( required => 1 );    # InstanceOf ['Pcore::Handle::pgsql']
 
-has _on_connect  => ( init_arg => undef );                    # CodeRef
-has is_pgsql     => ( 1, init_arg => undef );
-has state        => ( $STATE_CONNECT, init_arg => undef );    # Enum [ $STATE_CONNECT, $STATE_READY, $STATE_BUSY, $STATE_DISCONNECTED ]
-has h            => ( init_arg => undef );                    # InstanceOf ['Pcore::Handle::pgsql::AEHandle']
-has parameter    => ( init_arg => undef );                    # HashRef
-has key_data     => ( init_arg => undef );                    # HashRef
-has tx_status    => ( init_arg => undef );                    # Enum [ $TX_STATUS_IDLE, $TX_STATUS_TRANS, $TX_STATUS_ERROR ], current transaction status
-has wbuf         => ( init_arg => undef );                    # ArrayRef, outgoing messages buffer
-has sth          => ( init_arg => undef );                    # HashRef, currently executed sth
-has prepared_sth => ( init_arg => undef );                    # HashRef
-has query        => ( init_arg => undef );                    # ScalarRef, ref to the last query
+has is_pgsql => ( 1, init_arg => undef );
+has state => ( $STATE_CONNECT, init_arg => undef );    # Enum [ $STATE_CONNECT, $STATE_READY, $STATE_BUSY, $STATE_DISCONNECTED ]
 
-const our $PROTOCOL_VER => "\x00\x03\x00\x00";                # v3
+has _on_connect  => ( init_arg => undef );             # CodeRef
+has h            => ( init_arg => undef );             # InstanceOf ['Pcore::Handle::pgsql::AEHandle']
+has parameter    => ( init_arg => undef );             # HashRef, backen run-time parameters
+has key_data     => ( init_arg => undef );             # HashRef, backend key data, can be used to cancel request
+has tx_status    => ( init_arg => undef );             # Enum [ $TX_STATUS_IDLE, $TX_STATUS_TRANS, $TX_STATUS_ERROR ], current transaction status
+has wbuf         => ( init_arg => undef );             # ArrayRef, outgoing messages buffer
+has sth          => ( init_arg => undef );             # HashRef, currently executed sth
+has prepared_sth => ( init_arg => undef );             # HashRef
+has query        => ( init_arg => undef );             # ScalarRef, ref to the last query
+
+const our $PROTOCOL_VER => "\x00\x03\x00\x00";         # v3
 
 # FRONTEND
 const our $PG_MSG_BIND             => 'B';
@@ -259,6 +260,8 @@ sub _ON_PARAMETER_STATUS ( $self, $dataref ) {
     return;
 }
 
+# Identifies the message as cancellation key data.
+# The frontend must save these values if it wishes to be able to issue CancelRequest messages later.
 sub _ON_BACKEND_KEY_DATA ( $self, $dataref ) {
     ( $self->{key_data}->{pid}, $self->{key_data}->{secret} ) = unpack 'NN', $dataref->$*;
 
@@ -1077,16 +1080,16 @@ sub encode_json ( $self, $var ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 119                  | * Subroutine "_connect" with high complexity score (23)                                                        |
-## |      | 527                  | * Subroutine "_execute" with high complexity score (29)                                                        |
+## |      | 120                  | * Subroutine "_connect" with high complexity score (23)                                                        |
+## |      | 530                  | * Subroutine "_execute" with high complexity score (29)                                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 165                  | ControlStructures::ProhibitCascadingIfElse - Cascading if-elsif chain                                          |
+## |    3 | 166                  | ControlStructures::ProhibitCascadingIfElse - Cascading if-elsif chain                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 617, 957             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 620, 960             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 766, 957             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 769, 960             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 805                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 808                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
