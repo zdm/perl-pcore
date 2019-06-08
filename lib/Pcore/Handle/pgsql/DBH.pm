@@ -199,7 +199,7 @@ sub _on_error ( $self, $reason, $fatal ) {
 
     # disconnect on fatal error
     if ($fatal) {
-        $self->{h}->destroy if defined $self->{h};
+        $self->{h}->shutdown if defined $self->{h};
 
         $self->{state} = $STATE_DISCONNECTED;
     }
@@ -217,7 +217,6 @@ sub _on_error ( $self, $reason, $fatal ) {
 }
 
 # PG MESSAGES HANDLERS
-# TODO erro handling
 sub _ON_AUTHENTICATION ( $self, $dataref ) {
 
     # we are expecting authentication messages only on connect state
@@ -229,14 +228,18 @@ sub _ON_AUTHENTICATION ( $self, $dataref ) {
         my $password = $self->{pool}->{uri}->{password} // $EMPTY;
 
         if ( $auth_type == $PG_MSG_AUTHENTICATION_CLEARTEXT_PASSWORD ) {
-            $self->{h}->write( $PG_MSG_PASSWORD_MESSAGE . pack 'NZ*', 5 + length $password, $password );
+            push $self->{wbuf}->@*, [ $PG_MSG_PASSWORD_MESSAGE, "$password\x00" ];
+
+            $self->_flush;
         }
         elsif ( $auth_type == $PG_MSG_AUTHENTICATION_MD5_PASSWORD ) {
             my $pwdhash = md5_hex $password . $self->{pool}->{uri}->{username};
 
             my $hash = 'md5' . md5_hex $pwdhash . $dataref->$*;
 
-            $self->{h}->write( $PG_MSG_PASSWORD_MESSAGE . pack 'NZ*', 5 + length $hash, $hash );
+            push $self->{wbuf}->@*, [ $PG_MSG_PASSWORD_MESSAGE, "$hash\x00" ];
+
+            $self->_flush;
         }
 
         # unsupported auth type
@@ -512,7 +515,7 @@ sub _flush ( $self ) {
     }
 
     if ( defined $buf ) {
-        my $total_bytes = $self->{h}->write($buf);
+        $self->{h}->write($buf);
 
         # write error
         return $self->_on_error( $self->{h}->{reason}, 1 ) if !$self->{h};
@@ -1065,15 +1068,15 @@ sub encode_json ( $self, $var ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 119                  | * Subroutine "_connect" with high complexity score (23)                                                        |
-## |      | 524                  | * Subroutine "_execute" with high complexity score (29)                                                        |
+## |      | 527                  | * Subroutine "_execute" with high complexity score (29)                                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 165                  | ControlStructures::ProhibitCascadingIfElse - Cascading if-elsif chain                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 614, 944             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 617, 947             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 753, 944             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 756, 947             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 792                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 795                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
