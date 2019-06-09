@@ -95,6 +95,28 @@ const our $ERROR_STRING_TYPE => {
     V => 'text',
 };
 
+const our $MESSAGE_METHOD => {
+
+    # GENERAL MESSAGES
+    $PG_MSG_AUTHENTICATION        => \&_ON_AUTHENTICATION,
+    $PG_MSG_PARAMETER_STATUS      => \&_ON_PARAMETER_STATUS,
+    $PG_MSG_BACKEND_KEY_DATA      => \&_ON_BACKEND_KEY_DATA,
+    $PG_MSG_READY_FOR_QUERY       => \&_ON_READY_FOR_QUERY,
+    $PG_MSG_ERROR_RESPONSE        => \&_ON_ERROR_RESPONSE,
+    $PG_MSG_NOTICE_RESPONSE       => \&_ON_NOTICE_RESPONSE,
+    $PG_MSG_NOTIFICATION_RESPONSE => \&_ON_NOTIFICATION_RESPONSE,
+
+    # STH RELATED MESSAGES
+    $PG_MSG_PARSE_COMPLETE   => \&_ON_PARSE_COMPLETE,
+    $PG_MSG_BIND_COMPLETE    => \&_ON_BIND_COMPLETE,
+    $PG_MSG_ROW_DESCRIPTION  => \&_ON_ROW_DESCRIPTION,
+    $PG_MSG_NO_DATA          => \&_ON_NO_DATA,
+    $PG_MSG_DATA_ROW         => \&_ON_DATA_ROW,
+    $PG_MSG_PORTAL_SUSPENDED => \&_ON_PORTAL_SUSPENDED,
+    $PG_MSG_COMMAND_COMPLETE => \&_ON_COMMAND_COMPLETE,
+    $PG_MSG_CLOSE_COMPLETE   => \&_ON_CLOSE_COMPLETE,
+};
+
 sub DESTROY ( $self ) {
     $self->{pool}->push_dbh($self) if ( ${^GLOBAL_PHASE} ne 'DESTRUCT' ) && defined $self->{pool};
 
@@ -162,24 +184,9 @@ sub _connect ($self) {
             # read error
             return $self->_on_error( $h->{reason}, 1 ) if !$h;
 
-            # GENERAL MESSAGES
-            if    ( $type eq $PG_MSG_AUTHENTICATION )        { $self->_ON_AUTHENTICATION($data) }
-            elsif ( $type eq $PG_MSG_PARAMETER_STATUS )      { $self->_ON_PARAMETER_STATUS($data) }
-            elsif ( $type eq $PG_MSG_BACKEND_KEY_DATA )      { $self->_ON_BACKEND_KEY_DATA($data) }
-            elsif ( $type eq $PG_MSG_READY_FOR_QUERY )       { $self->_ON_READY_FOR_QUERY($data) }
-            elsif ( $type eq $PG_MSG_ERROR_RESPONSE )        { $self->_ON_ERROR_RESPONSE($data) }
-            elsif ( $type eq $PG_MSG_NOTICE_RESPONSE )       { $self->_ON_NOTICE_RESPONSE($data) }
-            elsif ( $type eq $PG_MSG_NOTIFICATION_RESPONSE ) { $self->_ON_NOTIFICATION_RESPONSE($data) }
-
-            # STH RELATED MESSAGES
-            elsif ( $type eq $PG_MSG_PARSE_COMPLETE )   { $self->_ON_PARSE_COMPLETE }
-            elsif ( $type eq $PG_MSG_BIND_COMPLETE )    { $self->_ON_BIND_COMPLETE }
-            elsif ( $type eq $PG_MSG_ROW_DESCRIPTION )  { $self->_ON_ROW_DESCRIPTION($data) }
-            elsif ( $type eq $PG_MSG_NO_DATA )          { $self->_ON_NO_DATA }
-            elsif ( $type eq $PG_MSG_DATA_ROW )         { $self->_ON_DATA_ROW($data) }
-            elsif ( $type eq $PG_MSG_PORTAL_SUSPENDED ) { $self->_ON_PORTAL_SUSPENDED }
-            elsif ( $type eq $PG_MSG_COMMAND_COMPLETE ) { $self->_ON_COMMAND_COMPLETE($data) }
-            elsif ( $type eq $PG_MSG_CLOSE_COMPLETE )   { $self->_ON_CLOSE_COMPLETE }
+            if ( my $method = $MESSAGE_METHOD->{$type} ) {
+                $method->( $self, $data );
+            }
 
             # UNSUPPORTED MESSAGE EXCEPTION
             else {
@@ -353,7 +360,7 @@ sub _ON_NOTIFICATION_RESPONSE ( $self, $dataref ) {
     return;
 }
 
-sub _ON_PARSE_COMPLETE ($self) {
+sub _ON_PARSE_COMPLETE ( $self, $dataref ) {
     $self->{sth}->{is_parse_complete} = 1;
 
     # store query id in prepared sth
@@ -362,7 +369,7 @@ sub _ON_PARSE_COMPLETE ($self) {
     return;
 }
 
-sub _ON_BIND_COMPLETE ($self) {
+sub _ON_BIND_COMPLETE ( $self, $dataref ) {
     $self->{sth}->{is_bind_complete} = 1;
 
     return;
@@ -403,7 +410,7 @@ sub _ON_ROW_DESCRIPTION ( $self, $dataref ) {
     return;
 }
 
-sub _ON_NO_DATA ( $self ) {
+sub _ON_NO_DATA ( $self, $dataref ) {
     $self->{sth}->{cols} = [];
 
     # store description in prepared sth
@@ -477,7 +484,7 @@ sub _ON_DATA_ROW ( $self, $dataref ) {
     return;
 }
 
-sub _ON_PORTAL_SUSPENDED ( $self ) {
+sub _ON_PORTAL_SUSPENDED ( $self, $dataref ) {
     $self->{sth}->{portal_suspended} = 1;
 
     return;
@@ -528,7 +535,7 @@ sub _ON_COMMAND_COMPLETE ( $self, $dataref ) {
     return;
 }
 
-sub _ON_CLOSE_COMPLETE ( $self ) {
+sub _ON_CLOSE_COMPLETE ( $self, $dataref ) {
     return;
 }
 
@@ -1109,17 +1116,13 @@ sub encode_json ( $self, $var ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 120                  | * Subroutine "_connect" with high complexity score (24)                                                        |
-## |      | 560                  | * Subroutine "_execute" with high complexity score (29)                                                        |
+## |    3 | 567                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (29)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 166                  | ControlStructures::ProhibitCascadingIfElse - Cascading if-elsif chain                                          |
+## |    3 | 657, 997             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 650, 990             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    2 | 806, 997             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 799, 990             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 838                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 845                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
