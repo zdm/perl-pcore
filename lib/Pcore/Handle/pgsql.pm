@@ -5,6 +5,7 @@ use Pcore::Handle::DBI::Const qw[:CONST];
 use Pcore::Util::Scalar qw[looks_like_number is_plain_arrayref is_blessed_arrayref is_plain_coderef];
 use Pcore::Util::UUID qw[uuid_v1mc_str];
 use Pcore::Util::Data qw[to_json];
+use Pcore::Util::Hash::HashArray;
 
 with qw[Pcore::Handle::DBI];
 
@@ -17,6 +18,7 @@ const our $STATE_CONNECT      => 1;
 const our $STATE_READY        => 2;
 const our $STATE_BUSY         => 3;
 const our $STATE_DISCONNECTED => 4;
+const our $STATE_REMOVED      => 5;
 
 const our $TX_STATUS_IDLE  => 'I';    # idle (not in a transaction block)
 const our $TX_STATUS_TRANS => 'T';    # in a transaction block
@@ -30,23 +32,14 @@ has on_notification => ();            # CodeRef->( $self, $pid, $channel, $paylo
 
 has is_pgsql   => 1, init_arg => undef;
 has active_dbh => 0, init_arg => undef;
-has _dbh_pool      => ( init_arg => undef );            # ArrayRef
+has _dbh_pool => sub { Pcore::Util::Hash::HashArray->new }, init_arg => undef;
 has _get_dbh_queue => sub { [] }, init_arg => undef;    # ArrayRef
 
 # DBH POOL METHODS
 sub get_dbh ( $self, $cb = undef ) {
-    while ( my $dbh = shift $self->{_dbh_pool}->@* ) {
+    my $dbh = pop $self->{_dbh_pool}->@*;
 
-        # DBH is ready
-        if ( $dbh->{state} == $STATE_READY && $dbh->{tx_status} eq $TX_STATUS_IDLE ) {
-            return $cb ? $cb->( res(200), $dbh ) : ( res(200), $dbh );
-        }
-
-        # DBH is not ready, forget it
-        else {
-            $self->{active_dbh}--;
-        }
-    }
+    return $cb ? $cb->( res(200), $dbh ) : ( res(200), $dbh ) if defined $dbh;
 
     # backlog is full
     if ( $self->{backlog} && $self->{_get_dbh_queue}->@* > $self->{backlog} ) {
@@ -80,7 +73,20 @@ sub get_dbh ( $self, $cb = undef ) {
     return;
 }
 
+sub remove_dbh ( $self, $dbh ) {
+    $dbh = delete $self->{_dbh_pool}->{ $dbh->{id} };
+
+    if ( defined $dbh ) {
+        $dbh->{state} = $STATE_REMOVED;
+
+        $self->{active_dbh}--;
+    }
+
+    return;
+}
+
 sub push_dbh ( $self, $dbh ) {
+    return if $dbh->{state} == $STATE_REMOVED;
 
     # dbh is ready for query
     if ( $dbh->{state} == $STATE_READY && $dbh->{tx_status} eq $TX_STATUS_IDLE ) {
@@ -88,7 +94,7 @@ sub push_dbh ( $self, $dbh ) {
             $cb->( res(200), $dbh );
         }
         else {
-            push $self->{_dbh_pool}->@*, $dbh;
+            $self->{_dbh_pool}->{ $dbh->{id} } = $dbh;
         }
 
     }
@@ -96,8 +102,6 @@ sub push_dbh ( $self, $dbh ) {
     # dbh is disconnected or in the transaction state
     else {
         $self->{active_dbh}--;
-
-        $self->_create_dbh if $self->{_get_dbh_queue}->@* && $self->{active_dbh} < $self->{max_dbh};
     }
 
     return;
@@ -303,7 +307,7 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 151                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_schema_patch_table_query'      |
+## |    3 | 155                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_schema_patch_table_query'      |
 ## |      |                      | declared but not used                                                                                          |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##

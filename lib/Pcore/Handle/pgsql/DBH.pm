@@ -11,19 +11,20 @@ use Pcore::Util::Data qw[from_json];
 has pool => ( required => 1 );    # InstanceOf ['Pcore::Handle::pgsql']
 
 has is_pgsql => ( 1, init_arg => undef );
-has state => ( $STATE_CONNECT, init_arg => undef );    # Enum [ $STATE_CONNECT, $STATE_READY, $STATE_BUSY, $STATE_DISCONNECTED ]
+has state => ( $STATE_CONNECT, init_arg => undef );          # Enum [ $STATE_CONNECT, $STATE_READY, $STATE_BUSY, $STATE_DISCONNECTED ]
+has id    => sub { P->uuid->v1mc_str }, init_arg => undef;
 
-has _on_connect  => ( init_arg => undef );             # CodeRef
-has h            => ( init_arg => undef );             # InstanceOf['Pcore::Handle']
-has parameter    => ( init_arg => undef );             # HashRef, backen run-time parameters
-has key_data     => ( init_arg => undef );             # HashRef, backend key data, can be used to cancel request
-has tx_status    => ( init_arg => undef );             # Enum [ $TX_STATUS_IDLE, $TX_STATUS_TRANS, $TX_STATUS_ERROR ], current transaction status
-has wbuf         => ( init_arg => undef );             # ArrayRef, outgoing messages buffer
-has sth          => ( init_arg => undef );             # HashRef, currently executed sth
-has prepared_sth => ( init_arg => undef );             # HashRef
-has query        => ( init_arg => undef );             # ScalarRef, ref to the last query
+has _on_connect  => ( init_arg => undef );                   # CodeRef
+has h            => ( init_arg => undef );                   # InstanceOf['Pcore::Handle']
+has parameter    => ( init_arg => undef );                   # HashRef, backen run-time parameters
+has key_data     => ( init_arg => undef );                   # HashRef, backend key data, can be used to cancel request
+has tx_status    => ( init_arg => undef );                   # Enum [ $TX_STATUS_IDLE, $TX_STATUS_TRANS, $TX_STATUS_ERROR ], current transaction status
+has wbuf         => ( init_arg => undef );                   # ArrayRef, outgoing messages buffer
+has sth          => ( init_arg => undef );                   # HashRef, currently executed sth
+has prepared_sth => ( init_arg => undef );                   # HashRef
+has query        => ( init_arg => undef );                   # ScalarRef, ref to the last query
 
-const our $PROTOCOL_VER => "\x00\x03\x00\x00";         # v3
+const our $PROTOCOL_VER => "\x00\x03\x00\x00";               # v3
 
 # FRONTEND
 const our $PG_MSG_BIND             => 'B';
@@ -223,6 +224,9 @@ sub _on_error ( $self, $reason, $fatal ) {
 
         # finish sth in case of fatal error
         $self->_finish_sth if $fatal;
+    }
+    else {
+        $self->{pool}->remove_dbh($self) if $fatal;
     }
 
     return;
@@ -1116,13 +1120,13 @@ sub encode_json ( $self, $var ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 567                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (29)                  |
+## |    3 | 571                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (29)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 657, 997             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 661, 1001            | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 806, 997             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 810, 1001            | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 845                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 849                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
