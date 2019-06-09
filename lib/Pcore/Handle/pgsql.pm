@@ -10,15 +10,16 @@ use Pcore::Util::Hash::HashArray;
 with qw[Pcore::Handle::DBI];
 
 our $EXPORT = {
-    STATE     => [qw[$STATE_CONNECT $STATE_READY $STATE_BUSY $STATE_DISCONNECTED]],
+    STATE     => [qw[$STATE_CONNECT $STATE_READY $STATE_BUSY $STATE_ERROR $STATE_CONNECT_ERROR $STATE_REMOVED]],
     TX_STATUS => [qw[$TX_STATUS_IDLE $TX_STATUS_TRANS $TX_STATUS_ERROR]],
 };
 
-const our $STATE_CONNECT      => 1;
-const our $STATE_READY        => 2;
-const our $STATE_BUSY         => 3;
-const our $STATE_DISCONNECTED => 4;
-const our $STATE_REMOVED      => 5;
+const our $STATE_CONNECT       => 1;
+const our $STATE_READY         => 2;
+const our $STATE_BUSY          => 3;
+const our $STATE_ERROR         => 4;
+const our $STATE_CONNECT_ERROR => 5;
+const our $STATE_REMOVED       => 6;
 
 const our $TX_STATUS_IDLE  => 'I';    # idle (not in a transaction block)
 const our $TX_STATUS_TRANS => 'T';    # in a transaction block
@@ -73,23 +74,28 @@ sub get_dbh ( $self, $cb = undef ) {
     return;
 }
 
-sub remove_dbh ( $self, $dbh ) {
-    $dbh = delete $self->{_dbh_pool}->{ $dbh->{id} };
+sub push_dbh ( $self, $dbh ) {
+    my $state = $dbh->{state};
 
-    if ( defined $dbh ) {
+    # handle is already removed
+    return if $state == $STATE_REMOVED;
+
+    if ( $state >= $STATE_ERROR ) {
         $dbh->{state} = $STATE_REMOVED;
 
+        delete $self->{_dbh_pool}->{ $dbh->{id} };
+
         $self->{active_dbh}--;
+
+        if ( $state == $STATE_CONNECT_ERROR ) {
+            while ( my $cb = shift $self->{_get_dbh_queue}->@* ) {
+                $cb->( res(500), undef );
+            }
+        }
     }
 
-    return;
-}
-
-sub push_dbh ( $self, $dbh ) {
-    return if $dbh->{state} == $STATE_REMOVED;
-
     # dbh is ready for query
-    if ( $dbh->{state} == $STATE_READY && $dbh->{tx_status} eq $TX_STATUS_IDLE ) {
+    elsif ( $state == $STATE_READY && $dbh->{tx_status} eq $TX_STATUS_IDLE ) {
         if ( my $cb = shift $self->{_get_dbh_queue}->@* ) {
             $cb->( res(200), $dbh );
         }
@@ -99,9 +105,11 @@ sub push_dbh ( $self, $dbh ) {
 
     }
 
-    # dbh is disconnected or in the transaction state
+    # dbh is not ready or in the transaction state
     else {
-        $self->{active_dbh}--;
+        $dbh->_on_fatal_error(q[DBH is not ready for query or is in the transaction state (you need to finish transaction)]);
+
+        return;
     }
 
     return;
@@ -111,22 +119,6 @@ sub _create_dbh ($self) {
     $self->{active_dbh}++;
 
     Pcore::Handle::pgsql::DBH->new( pool => $self, );
-
-    return;
-}
-
-sub on_connect_dbh ( $self, $res, $dbh ) {
-    if ( !$res ) {
-        $self->{active_dbh}--;
-
-        # throw connection error for all pending requests
-        while ( my $cb = shift $self->{_get_dbh_queue}->@* ) {
-            $cb->( $res, undef );
-        }
-    }
-    else {
-        $self->push_dbh($dbh);
-    }
 
     return;
 }
@@ -307,7 +299,7 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 155                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_schema_patch_table_query'      |
+## |    3 | 147                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_schema_patch_table_query'      |
 ## |      |                      | declared but not used                                                                                          |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##

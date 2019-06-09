@@ -11,20 +11,20 @@ use Pcore::Util::Data qw[from_json];
 has pool => ( required => 1 );    # InstanceOf ['Pcore::Handle::pgsql']
 
 has is_pgsql => ( 1, init_arg => undef );
-has state => ( $STATE_CONNECT, init_arg => undef );          # Enum [ $STATE_CONNECT, $STATE_READY, $STATE_BUSY, $STATE_DISCONNECTED ]
+has state => ( $STATE_CONNECT, init_arg => undef );
 has id    => sub { P->uuid->v1mc_str }, init_arg => undef;
 
-has _on_connect  => ( init_arg => undef );                   # CodeRef
-has h            => ( init_arg => undef );                   # InstanceOf['Pcore::Handle']
-has parameter    => ( init_arg => undef );                   # HashRef, backen run-time parameters
-has key_data     => ( init_arg => undef );                   # HashRef, backend key data, can be used to cancel request
-has tx_status    => ( init_arg => undef );                   # Enum [ $TX_STATUS_IDLE, $TX_STATUS_TRANS, $TX_STATUS_ERROR ], current transaction status
-has wbuf         => ( init_arg => undef );                   # ArrayRef, outgoing messages buffer
-has sth          => ( init_arg => undef );                   # HashRef, currently executed sth
-has prepared_sth => ( init_arg => undef );                   # HashRef
-has query        => ( init_arg => undef );                   # ScalarRef, ref to the last query
+has _on_connect_guard => ( init_arg => undef );    # $self
+has h                 => ( init_arg => undef );    # InstanceOf['Pcore::Handle']
+has parameter         => ( init_arg => undef );    # HashRef, backen run-time parameters
+has key_data          => ( init_arg => undef );    # HashRef, backend key data, can be used to cancel request
+has tx_status         => ( init_arg => undef );    # Enum [ $TX_STATUS_IDLE, $TX_STATUS_TRANS, $TX_STATUS_ERROR ], current transaction status
+has wbuf              => ( init_arg => undef );    # ArrayRef, outgoing messages buffer
+has sth               => ( init_arg => undef );    # HashRef, currently executed sth
+has prepared_sth      => ( init_arg => undef );    # HashRef
+has query             => ( init_arg => undef );    # ScalarRef, ref to the last query
 
-const our $PROTOCOL_VER => "\x00\x03\x00\x00";               # v3
+const our $PROTOCOL_VER => "\x00\x03\x00\x00";     # v3
 
 # FRONTEND
 const our $PG_MSG_BIND             => 'B';
@@ -129,11 +129,7 @@ sub DESTROY ( $self ) {
 sub BUILD ( $self, $args ) {
     weaken $self->{pool};
 
-    $self->{_on_connect} = sub ($res) {
-        $self->{pool}->on_connect_dbh( $res, $self ) if defined $self->{pool};
-
-        return;
-    };
+    $self->{_on_connect_guard} = $self;
 
     $self->_connect;
 
@@ -147,7 +143,7 @@ sub _connect ($self) {
         my $h = $self->{h} = P->handle( [ $self->{pool}->{uri}->connect ], timeout => undef );
 
         # connection error
-        return $self->_on_error( $h->{reason}, 1 ) if !$h;
+        return $self->_on_fatal_error if !$h;
 
         # create start message params
         my $params = [
@@ -166,24 +162,24 @@ sub _connect ($self) {
         $self->_flush;
 
         while () {
-            return if !defined $self;
+            return if !defined $self || $self->{state} >= $STATE_ERROR;
 
             my $chunk = $h->read_chunk(5);
 
-            return if !defined $self;
+            return if !defined $self || $self->{state} >= $STATE_ERROR;
 
             # read error
-            return $self->_on_error( $h->{reason}, 1 ) if !$h;
+            return $self->_on_fatal_error if !$h;
 
             # unpack message type and length
             my ( $type, $msg_len ) = unpack 'AN', $chunk->$*;
 
             my $data = $h->read_chunk( $msg_len - 4 );
 
-            return if !defined $self;
+            return if !defined $self || $self->{state} >= $STATE_ERROR;
 
             # read error
-            return $self->_on_error( $h->{reason}, 1 ) if !$h;
+            return $self->_on_fatal_error if !$h;
 
             if ( my $method = $MESSAGE_METHOD->{$type} ) {
                 $method->( $self, $data );
@@ -191,7 +187,7 @@ sub _connect ($self) {
 
             # UNSUPPORTED MESSAGE EXCEPTION
             else {
-                return $self->_on_error( qq[Unknown message "$type"], 1 );
+                return $self->_on_fatal_error(qq[Unknown message "$type"]);
             }
         }
 
@@ -201,32 +197,40 @@ sub _connect ($self) {
     return;
 }
 
-sub _on_error ( $self, $reason, $fatal ) {
+sub _on_fatal_error ( $self, $reason = undef ) {
     my $state = $self->{state};
 
-    # error on connect state is always fatal
-    $fatal = 1 if $state == $STATE_CONNECT;
+    # fatal error is already processed
+    return if $state >= $STATE_ERROR;
 
-    # disconnect on fatal error
-    if ($fatal) {
-        $self->{h}->shutdown if defined $self->{h};
+    $self->{state} = $state == $STATE_CONNECT ? $STATE_CONNECT_ERROR : $STATE_ERROR;
 
-        $self->{state} = $STATE_DISCONNECTED;
-    }
+    $reason //= $self->{h}->{reason};
 
     warn qq[DBI: "$reason"] . ( defined $self->{query} ? qq[, current query: "$self->{query}->$*"] : $EMPTY );
 
+    $self->{h}->shutdown;
+
     if ( $state == $STATE_CONNECT ) {
-        delete( $self->{_on_connect} )->( res [ 500, $reason ] );
+        delete $self->{_on_connect_guard};
     }
     elsif ( $state == $STATE_BUSY ) {
         $self->{sth}->{error} = $reason;
 
-        # finish sth in case of fatal error
-        $self->_finish_sth if $fatal;
+        $self->_finish_sth;
     }
-    else {
-        $self->{pool}->remove_dbh($self) if $fatal;
+
+    $self->{pool}->push_dbh($self);
+
+    return;
+}
+
+# TODO
+sub _on_error ( $self, $reason ) {
+    warn qq[DBI: "$reason"] . ( defined $self->{query} ? qq[, current query: "$self->{query}->$*"] : $EMPTY );
+
+    if ( $self->{state} == $STATE_BUSY ) {
+        $self->{sth}->{error} = $reason;
     }
 
     return;
@@ -279,7 +283,7 @@ sub _ON_AUTHENTICATION ( $self, $dataref ) {
 
         # unsupported auth type
         else {
-            $self->_on_error( qq[Unimplemented authentication type: "$auth_type"], 1 );
+            $self->_on_fatal_error(qq[Unimplemented authentication type: "$auth_type"]);
         }
     }
 
@@ -311,7 +315,7 @@ sub _ON_READY_FOR_QUERY ( $self, $dataref ) {
 
     # connected
     if ( $state == $STATE_CONNECT ) {
-        delete( $self->{_on_connect} )->( res 200 );
+        delete $self->{_on_connect_guard};
     }
     elsif ( $state == $STATE_BUSY ) {
         $self->_finish_sth;
@@ -329,7 +333,12 @@ sub _ON_ERROR_RESPONSE ( $self, $dataref ) {
         $error->{ $ERROR_STRING_TYPE->{$str_type} } = $str if exists $ERROR_STRING_TYPE->{$str_type};
     }
 
-    $self->_on_error( $error->{message}, 0 );
+    if ( $self->{state} == $STATE_CONNECT ) {
+        $self->_on_fatal_error( $error->{message} );
+    }
+    else {
+        $self->_on_error( $error->{message} );
+    }
 
     return;
 }
@@ -349,8 +358,6 @@ sub _ON_NOTICE_RESPONSE ( $self, $dataref ) {
 }
 
 sub _ON_NOTIFICATION_RESPONSE ( $self, $dataref ) {
-    say dump $dataref;
-
     my $pid = unpack 'N', substr $dataref->$*, 0, 4, $EMPTY;
 
     my ( $channel, $payload ) = split /\x00/sm, $dataref->$*;
@@ -562,7 +569,7 @@ sub _flush ( $self ) {
         $self->{h}->write($buf);
 
         # write error
-        return $self->_on_error( $self->{h}->{reason}, 1 ) if !$self->{h};
+        return $self->_on_fatal_error if !$self->{h};
     }
 
     return;
@@ -1120,13 +1127,13 @@ sub encode_json ( $self, $var ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 571                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (29)                  |
+## |    3 | 578                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (29)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 661, 1001            | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 668, 1008            | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 810, 1001            | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 817, 1008            | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 849                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 856                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
