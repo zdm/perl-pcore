@@ -24,8 +24,9 @@ const our $TX_STATUS_ERROR => 'E';    # in a failed transaction block (queries w
 
 require Pcore::Handle::pgsql::DBH;
 
-has max_dbh => 3;                     # PositiveInt
-has backlog => 1_000;                 # Maybe [PositiveInt]
+has max_dbh         => 3;             # PositiveInt
+has backlog         => 1_000;         # Maybe [PositiveInt]
+has on_notification => ();            # CodeRef->( $self, $pid, $channel, $payload )
 
 has is_pgsql   => 1, init_arg => undef;
 has active_dbh => 0, init_arg => undef;
@@ -302,7 +303,7 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 150                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_schema_patch_table_query'      |
+## |    3 | 151                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_schema_patch_table_query'      |
 ## |      |                      | declared but not used                                                                                          |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##

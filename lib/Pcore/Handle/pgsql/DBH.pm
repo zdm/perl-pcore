@@ -163,12 +163,13 @@ sub _connect ($self) {
             return $self->_on_error( $h->{reason}, 1 ) if !$h;
 
             # GENERAL MESSAGES
-            if    ( $type eq $PG_MSG_AUTHENTICATION )   { $self->_ON_AUTHENTICATION($data) }
-            elsif ( $type eq $PG_MSG_PARAMETER_STATUS ) { $self->_ON_PARAMETER_STATUS($data) }
-            elsif ( $type eq $PG_MSG_BACKEND_KEY_DATA ) { $self->_ON_BACKEND_KEY_DATA($data) }
-            elsif ( $type eq $PG_MSG_READY_FOR_QUERY )  { $self->_ON_READY_FOR_QUERY($data) }
-            elsif ( $type eq $PG_MSG_ERROR_RESPONSE )   { $self->_ON_ERROR_RESPONSE($data) }
-            elsif ( $type eq $PG_MSG_NOTICE_RESPONSE )  { $self->_ON_NOTICE_RESPONSE($data) }
+            if    ( $type eq $PG_MSG_AUTHENTICATION )        { $self->_ON_AUTHENTICATION($data) }
+            elsif ( $type eq $PG_MSG_PARAMETER_STATUS )      { $self->_ON_PARAMETER_STATUS($data) }
+            elsif ( $type eq $PG_MSG_BACKEND_KEY_DATA )      { $self->_ON_BACKEND_KEY_DATA($data) }
+            elsif ( $type eq $PG_MSG_READY_FOR_QUERY )       { $self->_ON_READY_FOR_QUERY($data) }
+            elsif ( $type eq $PG_MSG_ERROR_RESPONSE )        { $self->_ON_ERROR_RESPONSE($data) }
+            elsif ( $type eq $PG_MSG_NOTICE_RESPONSE )       { $self->_ON_NOTICE_RESPONSE($data) }
+            elsif ( $type eq $PG_MSG_NOTIFICATION_RESPONSE ) { $self->_ON_NOTIFICATION_RESPONSE($data) }
 
             # STH RELATED MESSAGES
             elsif ( $type eq $PG_MSG_PARSE_COMPLETE )   { $self->_ON_PARSE_COMPLETE }
@@ -332,6 +333,22 @@ sub _ON_NOTICE_RESPONSE ( $self, $dataref ) {
     }
 
     warn join q[, ], $warn->{message} // $EMPTY, $warn->{hint} // $EMPTY;
+
+    return;
+}
+
+sub _ON_NOTIFICATION_RESPONSE ( $self, $dataref ) {
+    say dump $dataref;
+
+    my $pid = unpack 'N', substr $dataref->$*, 0, 4, $EMPTY;
+
+    my ( $channel, $payload ) = split /\x00/sm, $dataref->$*;
+
+    my $pool = $self->{pool};
+
+    if ( my $cb = $pool->{on_notification} ) {
+        $cb->( $pool, $pid, $channel, $payload );
+    }
 
     return;
 }
@@ -1093,16 +1110,16 @@ sub encode_json ( $self, $var ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 120                  | * Subroutine "_connect" with high complexity score (23)                                                        |
-## |      | 543                  | * Subroutine "_execute" with high complexity score (29)                                                        |
+## |      | 120                  | * Subroutine "_connect" with high complexity score (24)                                                        |
+## |      | 560                  | * Subroutine "_execute" with high complexity score (29)                                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 166                  | ControlStructures::ProhibitCascadingIfElse - Cascading if-elsif chain                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 633, 973             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 650, 990             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 782, 973             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 799, 990             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 821                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 838                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
