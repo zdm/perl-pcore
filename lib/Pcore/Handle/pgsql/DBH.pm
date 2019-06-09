@@ -296,6 +296,7 @@ sub _ON_BACKEND_KEY_DATA ( $self, $dataref ) {
     return;
 }
 
+# READY FOR QUERY
 sub _ON_READY_FOR_QUERY ( $self, $dataref ) {
     $self->{tx_status} = $dataref->$*;
 
@@ -314,6 +315,7 @@ sub _ON_READY_FOR_QUERY ( $self, $dataref ) {
     return;
 }
 
+# QUERY ERROR
 sub _ON_ERROR_RESPONSE ( $self, $dataref ) {
     my $error;
 
@@ -1119,13 +1121,13 @@ sub encode_json ( $self, $var ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 570                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (29)                  |
+## |    3 | 572                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (29)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 660, 1000            | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 662, 1002            | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 809, 1000            | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 811, 1002            | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 848                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 850                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
