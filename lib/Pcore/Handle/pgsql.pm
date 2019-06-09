@@ -123,26 +123,6 @@ sub _create_dbh ($self) {
     return;
 }
 
-# STH
-sub prepare ( $self, $query ) {
-    utf8::encode $query if utf8::is_utf8 $query;
-
-    # convert "?" placeholders to "$1" style
-    if ( index( $query, '?' ) != -1 ) {
-        my $i;
-
-        $query =~ s/[?]/'$' . ++$i/smge;
-    }
-
-    my $sth = bless {
-        id    => uuid_v1mc_str,
-        query => $query,
-      },
-      'Pcore::Handle::DBI::STH';
-
-    return $sth;
-}
-
 # SCHEMA PATCH
 sub _get_schema_patch_table_query ( $self, $table_name ) {
     return <<"SQL";
@@ -299,7 +279,7 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 147                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_schema_patch_table_query'      |
+## |    3 | 127                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_schema_patch_table_query'      |
 ## |      |                      | declared but not used                                                                                          |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##

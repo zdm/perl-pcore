@@ -21,7 +21,7 @@ has key_data          => ( init_arg => undef );    # HashRef, backend key data, 
 has tx_status         => ( init_arg => undef );    # Enum [ $TX_STATUS_IDLE, $TX_STATUS_TRANS, $TX_STATUS_ERROR ], current transaction status
 has wbuf              => ( init_arg => undef );    # ArrayRef, outgoing messages buffer
 has sth               => ( init_arg => undef );    # HashRef, currently executed sth
-has prepared_sth      => ( init_arg => undef );    # HashRef
+has prepared_sth      => ( init_arg => undef );    # HashRef, index of akready prepares sth for this dbh
 has query             => ( init_arg => undef );    # ScalarRef, ref to the last query
 has error_status      => ( init_arg => undef );    # fatal error status
 
@@ -745,17 +745,6 @@ sub get_dbh ( $self, $cb = undef ) {
     }
 }
 
-# TODO
-sub destroy_sth ( $self, $id ) {
-    if ( exists $self->{prepared_sth}->{$id} ) {
-
-        # TODO run command and delete after command complete
-        # delete $self->{prepared_sth}->{$id};
-    }
-
-    return;
-}
-
 # PUBLIC DBI METHODS
 sub do ( $self, $query, @args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my ( $bind, $args, $cb ) = _parse_args( \@args );
@@ -1121,13 +1110,13 @@ sub encode_json ( $self, $var ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 570                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (29)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 660, 1000            | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 660, 989             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 519, 526             | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 809, 1000            | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 798, 989             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 848                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 837                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
