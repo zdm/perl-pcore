@@ -89,7 +89,7 @@ sub push_dbh ( $self, $dbh ) {
 
         if ( $state == $STATE_CONNECT_ERROR ) {
             while ( my $cb = shift $self->{_get_dbh_queue}->@* ) {
-                $cb->( res(500), undef );
+                $cb->( $dbh->{error_status} );
             }
         }
     }

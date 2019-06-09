@@ -23,6 +23,7 @@ has wbuf              => ( init_arg => undef );    # ArrayRef, outgoing messages
 has sth               => ( init_arg => undef );    # HashRef, currently executed sth
 has prepared_sth      => ( init_arg => undef );    # HashRef
 has query             => ( init_arg => undef );    # ScalarRef, ref to the last query
+has error_status      => ( init_arg => undef );    # fatal error status
 
 const our $PROTOCOL_VER => "\x00\x03\x00\x00";     # v3
 
@@ -205,9 +206,9 @@ sub _on_fatal_error ( $self, $reason = undef ) {
 
     $self->{state} = $state == $STATE_CONNECT ? $STATE_CONNECT_ERROR : $STATE_ERROR;
 
-    $reason //= $self->{h}->{reason};
+    my $status = $self->{error_status} = defined $reason ? res [ 500, $reason ] : res [ $self->{h}->{status}, $self->{h}->{reason} ];
 
-    warn qq[DBI FATAL ERROR: "$reason"] . ( defined $self->{query} ? qq[, current query: "$self->{query}->$*"] : $EMPTY );
+    warn qq[DBI FATAL ERROR: "$status"] . ( defined $self->{query} ? qq[, current query: "$self->{query}->$*"] : $EMPTY );
 
     $self->{h}->shutdown;
 
@@ -1118,13 +1119,13 @@ sub encode_json ( $self, $var ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 569                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (29)                  |
+## |    3 | 570                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (29)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 659, 999             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 660, 1000            | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 808, 999             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 809, 1000            | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 847                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 848                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
