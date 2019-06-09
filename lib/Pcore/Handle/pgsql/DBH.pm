@@ -504,29 +504,27 @@ sub _ON_COMMAND_COMPLETE ( $self, $dataref ) {
 
     my $tag;
 
-    if ( $val[0] eq 'INSERT' ) {
-        $tag = {
-            tag  => $val[0],
-            oid  => $val[1],
-            rows => $val[2],
-        };
-    }
-    elsif ( $val[0] eq 'CREATE' ) {
-        $tag = {
-            tag  => $val[0],
-            rows => 0,
-        };
-    }
-    elsif ( $val[0] eq 'ALTER' ) {
-        $tag = {
-            tag  => $val[0],
-            rows => 0,
-        };
+    if ( looks_like_number $val[-1] ) {
+        if ( $val[0] eq 'INSERT' ) {
+            $tag = {
+                tag  => $val[0],
+                oid  => $val[1],
+                rows => $val[2],
+            };
+        }
+        else {
+            my $rows = pop @val;
+
+            $tag = {
+                tag  => join( ' ', @val ),
+                rows => $rows,
+            };
+        }
     }
     else {
         $tag = {
-            tag  => $val[0],
-            rows => $val[1],
+            tag  => join( ' ', @val ),
+            rows => 0,
         };
     }
 
@@ -1121,13 +1119,15 @@ sub encode_json ( $self, $var ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 572                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (29)                  |
+## |    3 | 570                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (29)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 662, 1002            | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 660, 1000            | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 811, 1002            | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 519, 526             | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 850                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 809, 1000            | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 848                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
