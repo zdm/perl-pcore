@@ -256,7 +256,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::Hash::HashArray
+Pcore::Util::Hash::HashArray - efficiently access hash values using pop, shift or array index.
 
 =head1 SYNOPSIS
 
@@ -264,17 +264,23 @@ Pcore::Util::Hash::HashArray
 
     $hash->{1} = 'v1';
     $hash->{2} = 'v2';
+    $hash->{3} = 'v3';
 
     say dump [ keys $hash->%* ];
     say dump [ values $hash->%* ];
 
-    shift $hash->@*;
-    pop $hash->@*;
+    say $hash->[1];
+    say shift $hash->@*;
+    say pop $hash->@*;
 
     say $hash->rand_key;
     say $hash->rand_val;
 
 =head1 DESCRIPTION
+
+Efficiently access hash values using pop, shift or array index.
+
+C<$hash->[$idx]> works much faster, than standard C<( values $hash->%* )[$idx]>.
 
 =head1 ATTRIBUTES
 
