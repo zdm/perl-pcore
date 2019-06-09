@@ -630,7 +630,7 @@ sub _execute ( $self, $query, $bind, $cb, %args ) {
     # extended query mode
     else {
         my $query_id  = $self->{sth}->{id} // $EMPTY;
-        my $portal_id = $EMPTY;                         # uuid_v1mc_str;
+        my $portal_id = $EMPTY;                         # uuid_v1mc_str, currently we use unnamed portals
 
         # parse query
         if ( !$self->{sth}->{is_parse_complete} ) {
