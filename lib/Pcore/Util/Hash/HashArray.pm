@@ -183,7 +183,7 @@ sub POP {
     return DELETE( $_[0], $_[0]->$*->[$ARRAY]->$#* );
 }
 
-sub SHIFT {
+sub UNSHIFT {
     return DELETE( $_[0], 0 );
 }
 
