@@ -207,7 +207,7 @@ sub _on_fatal_error ( $self, $reason = undef ) {
 
     $reason //= $self->{h}->{reason};
 
-    warn qq[DBI: "$reason"] . ( defined $self->{query} ? qq[, current query: "$self->{query}->$*"] : $EMPTY );
+    warn qq[DBI FATAL ERROR: "$reason"] . ( defined $self->{query} ? qq[, current query: "$self->{query}->$*"] : $EMPTY );
 
     $self->{h}->shutdown;
 
@@ -221,17 +221,6 @@ sub _on_fatal_error ( $self, $reason = undef ) {
     }
 
     $self->{pool}->push_dbh($self);
-
-    return;
-}
-
-# TODO
-sub _on_error ( $self, $reason ) {
-    warn qq[DBI: "$reason"] . ( defined $self->{query} ? qq[, current query: "$self->{query}->$*"] : $EMPTY );
-
-    if ( $self->{state} == $STATE_BUSY ) {
-        $self->{sth}->{error} = $reason;
-    }
 
     return;
 }
@@ -337,7 +326,9 @@ sub _ON_ERROR_RESPONSE ( $self, $dataref ) {
         $self->_on_fatal_error( $error->{message} );
     }
     else {
-        $self->_on_error( $error->{message} );
+        $self->{sth}->{error} = $error->{message};
+
+        warn qq[DBI: "$error->{message}"] . ( defined $self->{query} ? qq[, current query: "$self->{query}->$*"] : $EMPTY );
     }
 
     return;
@@ -1127,13 +1118,13 @@ sub encode_json ( $self, $var ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 578                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (29)                  |
+## |    3 | 569                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (29)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 668, 1008            | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 659, 999             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 817, 1008            | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 808, 999             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 856                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 847                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
