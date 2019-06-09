@@ -61,6 +61,17 @@ sub rand_val ($self) {
     return $obj->[$HASH]->{$key}->[$EL_VAL];
 }
 
+sub TO_DUMP ( $self, $dumper, @ ) {
+    my %args = (
+        path => undef,
+        splice @_, 2,
+    );
+
+    my $tags;
+
+    return $dumper->_dump( $INSIDEOUT->{$self}->[$HASH] ), $tags;
+}
+
 package HashArray::_TIED_HASH;
 
 use Pcore -const;
