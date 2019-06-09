@@ -280,7 +280,7 @@ Pcore::Util::Hash::HashArray - efficiently access hash values using pop, shift o
 
 Efficiently access hash values using pop, shift or array index.
 
-C<$hash->[$idx]> works much faster, than standard C<( values $hash->%* )[$idx]>.
+C<$hash-E<gt>[$idx]> works much faster, than standard C<( values $hash-E<gt>%* )[$idx]>.
 
 =head1 ATTRIBUTES
 
