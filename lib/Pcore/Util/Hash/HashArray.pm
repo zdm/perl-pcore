@@ -45,6 +45,22 @@ sub new ($self) {
     return $self;
 }
 
+sub rand_key ($self) {
+    my $array = $INSIDEOUT->{$self}->[$ARRAY];
+
+    return $array->[ rand $array->@* ];
+}
+
+sub rand_val ($self) {
+    my $obj = $INSIDEOUT->{$self};
+
+    my $array = $obj->[$ARRAY];
+
+    my $key = $array->[ rand $array->@* ];
+
+    return $obj->[$HASH]->{$key}->[$EL_VAL];
+}
+
 package HashArray::_TIED_HASH;
 
 use Pcore -const;
@@ -125,6 +141,26 @@ sub CLEAR {
     return;
 }
 
+sub FIRSTKEY {
+    my $data = $_[0]->$*;
+
+    my $keys = scalar keys $data->[$HASH]->%*;
+
+    return each $data->[$HASH]->%*;
+}
+
+sub NEXTKEY {
+    my $data = $_[0]->$*;
+
+    return each $data->[$HASH]->%*;
+}
+
+sub SCALAR {
+    my $data = $_[0]->$*;
+
+    return scalar $data->[$HASH]->%*;
+}
+
 package HashArray::_TIED_ARRAY;
 
 use Pcore;
@@ -134,6 +170,12 @@ sub TIEARRAY ( $self, $data_ref ) {
     weaken $data_ref;
 
     return bless \$data_ref, $self;
+}
+
+sub EXISTS {
+    my $data = $_[0]->$*;
+
+    return exists $data->[$ARRAY]->[ $_[1] ];
 }
 
 sub FETCH {
@@ -183,7 +225,7 @@ sub POP {
     return DELETE( $_[0], $_[0]->$*->[$ARRAY]->$#* );
 }
 
-sub UNSHIFT {
+sub SHIFT {
     return DELETE( $_[0], 0 );
 }
 
@@ -217,6 +259,20 @@ __END__
 Pcore::Util::Hash::HashArray
 
 =head1 SYNOPSIS
+
+    my $hash = Pcore::Util::Hash::HashArray->new;
+
+    $hash->{1} = 'v1';
+    $hash->{2} = 'v2';
+
+    say dump [ keys $hash->%* ];
+    say dump [ values $hash->%* ];
+
+    shift $hash->@*;
+    pop $hash->@*;
+
+    say $hash->rand_key;
+    say $hash->rand_val;
 
 =head1 DESCRIPTION
 
