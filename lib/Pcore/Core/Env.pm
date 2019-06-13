@@ -175,7 +175,7 @@ sub BUILD ( $self, $args ) {
 
     if ( !$self->{is_par} ) {
         $self->{INLINE_DIR} = "$self->{PCORE_USER_DIR}/inline/$Config{version}-$Config{archname}";
-        mkdir "$self->{PCORE_USER_DIR}/inline" || die qq[Error creating ""$self->{PCORE_USER_DIR}/inline""] if !-d "$self->{PCORE_USER_DIR}/inline";
+        mkdir "$self->{PCORE_USER_DIR}/inline" || die qq[Error creating "$self->{PCORE_USER_DIR}/inline"] if !-d "$self->{PCORE_USER_DIR}/inline";
         mkdir $self->{INLINE_DIR} || die qq[Error creating "$self->{INLINE_DIR}"] if !-d $self->{INLINE_DIR};
     }
 
