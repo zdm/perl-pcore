@@ -93,7 +93,7 @@ sub _run_thread ($self) {
                     if ( $res->{data} ) {
                         my $res_data = P->data->from_json( $res->{data} );
 
-                        if ( $res_data->{paging} ) {
+                        if ( $res_data->{paging} || is_plain_arrayref $res_data->{data} ) {
                             push $data->@*, $res_data->{data}->@*;
 
                             # get all records
@@ -111,7 +111,14 @@ sub _run_thread ($self) {
 
                 # request error
                 else {
-                    $req->[$REQ_CB]->( res $res);
+                    if ( $res->{data} ) {
+                        my $res_data = P->data->from_json( $res->{data} );
+
+                        $req->[$REQ_CB]->( res [ $res->{status}, $res_data->{error}->{message} ] );
+                    }
+                    else {
+                        $req->[$REQ_CB]->( res $res);
+                    }
                 }
 
                 next;
