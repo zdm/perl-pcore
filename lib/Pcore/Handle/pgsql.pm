@@ -173,9 +173,9 @@ sub quote ( $self, $var ) {
             # encode and quote
             $var = $self->encode_json( $var->[1] );
 
-            $var =~ s/'/''/smg;
+            $var->$* =~ s/'/''/smg;
 
-            return "'$var'";
+            return q['] . $var->$* . q['];
         }
         else {
             die 'Unsupported SQL type';
@@ -213,7 +213,7 @@ sub quote ( $self, $var ) {
 sub encode_json ( $self, $var ) {
 
     # encode
-    return to_json $var;
+    return \to_json $var;
 }
 
 sub encode_array ( $self, $var ) {
