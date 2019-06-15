@@ -137,12 +137,16 @@ sub prepare_query ( $self, $query ) {
     return join( $SPACE, @sql ), @bind ? \@bind : undef;
 }
 
-sub query_to_string ( $self, $query ) {
-    my ( $sql, $bind ) = $self->prepare_query($query);
+sub query_to_string ( $self, $query, $bind = undef ) {
+    if ( is_plain_arrayref $query) {
+        ( $query, my $bind1 ) = $self->prepare_query($query);
 
-    $sql =~ s/\$(\d+)/$self->quote($bind->[$1 - 1])/smge;
+        $bind //= $bind1;
+    }
 
-    return $sql;
+    $query =~ s/\$(\d+)/$self->quote($bind->[$1 - 1])/smge;
+
+    return $query;
 }
 
 sub prepare ( $self, $query ) {
