@@ -1,8 +1,7 @@
 package Pcore::Util::Hash::HashArray;
 
 use Pcore -const;
-
-our $INSIDEOUT = {};
+use Pcore::Util::Scalar qw[refaddr];
 
 const our $HASH       => 0;
 const our $ARRAY      => 1;
@@ -14,51 +13,39 @@ const our $EL_IDX => 1;
 
 use overload    #
   '%{}' => sub {
-    return $INSIDEOUT->{ $_[0] }->[$TIED_HASH];
+    return $_[0]->$*->[$TIED_HASH];
   },
   '@{}' => sub {
-    return $INSIDEOUT->{ $_[0] }->[$TIED_ARRAY];
+    return $_[0]->$*->[$TIED_ARRAY];
   },
   fallback => 1;
 
-sub DESTROY ($self) {
-    delete $INSIDEOUT->{$self};
-
-    return;
-}
-
 sub new ($self) {
-    my $obj;
+    $self = bless \[
+        {},     # hash
+        [],     # array
+        {},     # tied hash
+        [],     # tied array
+    ], $self;
 
-    $self = bless \$obj, $self;
-
-    my $data = $INSIDEOUT->{$self} = [
-        {},    # hash
-        [],    # array
-        {},    # tied hash
-        [],    # tied array
-    ];
-
-    tie $data->[$TIED_HASH]->%*,  'HashArray::_TIED_HASH',  $data;
-    tie $data->[$TIED_ARRAY]->@*, 'HashArray::_TIED_ARRAY', $data;
+    tie $self->$*->[$TIED_HASH]->%*,  'HashArray::_TIED_HASH',  $self->$*;
+    tie $self->$*->[$TIED_ARRAY]->@*, 'HashArray::_TIED_ARRAY', $self->$*;
 
     return $self;
 }
 
 sub rand_key ($self) {
-    my $array = $INSIDEOUT->{$self}->[$ARRAY];
+    my $array = $self->$*->[$ARRAY];
 
     return $array->[ rand $array->@* ];
 }
 
 sub rand_val ($self) {
-    my $obj = $INSIDEOUT->{$self};
-
-    my $array = $obj->[$ARRAY];
+    my $array = $self->$*->[$ARRAY];
 
     my $key = $array->[ rand $array->@* ];
 
-    return $obj->[$HASH]->{$key}->[$EL_VAL];
+    return $self->$*->[$HASH]->{$key}->[$EL_VAL];
 }
 
 sub TO_DUMP ( $self, $dumper, @ ) {
@@ -69,7 +56,7 @@ sub TO_DUMP ( $self, $dumper, @ ) {
 
     my $tags;
 
-    return $dumper->_dump( $INSIDEOUT->{$self}->[$HASH] ), $tags;
+    return $dumper->_dump( $self->$*->[$HASH] ), $tags;
 }
 
 package HashArray::_TIED_HASH;
@@ -256,7 +243,7 @@ sub CLEAR {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 42, 43               | Miscellanea::ProhibitTies - Tied variable used                                                                 |
+## |    2 | 31, 32               | Miscellanea::ProhibitTies - Tied variable used                                                                 |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
