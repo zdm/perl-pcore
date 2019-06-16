@@ -143,8 +143,10 @@ sub BUILD ( $self, $args ) {
 sub _get_schema_patch_table_query ( $self, $table_name ) {
     return <<"SQL";
         CREATE TABLE IF NOT EXISTS "$table_name" (
-            "id" INTEGER PRIMARY KEY NOT NULL,
-            "timestamp" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            "module" TEXT NOT NULL,
+            "id" INTEGER NOT NULL,
+            "timestamp" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY ("module", "id")
         )
 SQL
 }
@@ -750,13 +752,13 @@ sub attach ( $self, $name, $path = undef ) {
 ## |    3 | 143                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_schema_patch_table_query'      |
 ## |      |                      | declared but not used                                                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 368                  | Subroutines::ProhibitExcessComplexity - Subroutine "do" with high complexity score (28)                        |
+## |    3 | 370                  | Subroutines::ProhibitExcessComplexity - Subroutine "do" with high complexity score (28)                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 451                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 453                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 334                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 336                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 658                  | ControlStructures::ProhibitPostfixControls - Postfix control "while" used                                      |
+## |    2 | 660                  | ControlStructures::ProhibitPostfixControls - Postfix control "while" used                                      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

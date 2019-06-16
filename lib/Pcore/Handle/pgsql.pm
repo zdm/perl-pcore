@@ -127,9 +127,10 @@ sub _create_dbh ($self) {
 sub _get_schema_patch_table_query ( $self, $table_name ) {
     return <<"SQL";
         CREATE TABLE IF NOT EXISTS "$table_name" (
-            "id" INT NOT NULL,
-            "timestamp" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-            PRIMARY KEY ("id")
+            "module" TEXT NOT NULL,
+            "id" INT4 NOT NULL,
+            "timestamp" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY ("module", "id")
         )
 SQL
 }
