@@ -23,7 +23,7 @@ use Digest::SHA3 qw[sha3_224 sha3_224_hex sha3_256 sha3_256_hex sha3_384 sha3_38
 
 our $EXPORT = {
     CRC  => [qw[crc32]],
-    MD5  => [qw[md5 md5_hex]],
+    MD5  => [qw[md5 md5_hex md5_stream]],
     SHA1 => [ qw[
         sha1 sha1_hex sha1_b64
         sha224 sha224_hex sha224_b64
@@ -76,6 +76,10 @@ sub crc32 {
     require String::CRC32;
 
     return &String::CRC32::crc32;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+}
+
+sub md5_stream {
+    return Digest::MD5->new;
 }
 
 1;
