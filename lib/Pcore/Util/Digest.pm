@@ -25,7 +25,7 @@ our $EXPORT = {
     CRC  => [qw[crc32]],
     MD5  => [qw[md5 md5_hex md5_stream]],
     SHA1 => [ qw[
-        sha1 sha1_hex sha1_b64
+        sha1 sha1_hex sha1_b64 sha1_stream
         sha224 sha224_hex sha224_b64
         sha256 sha256_hex sha256_b64
         sha384 sha384_hex sha384_b64
@@ -80,6 +80,10 @@ sub crc32 {
 
 sub md5_stream {
     return Digest::MD5->new;
+}
+
+sub sha1_stream {
+    return Digest::SHA1->new;
 }
 
 1;
