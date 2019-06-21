@@ -403,7 +403,6 @@ SQL
 }
 
 sub create_user_token ( $self, $user_id, $desc, $permissions ) {
-    my $type = $TOKEN_TYPE_USER_TOKEN;
 
     # resolve user
     my $user = $self->_db_get_user( $self->{dbh}, $user_id );
@@ -412,7 +411,7 @@ sub create_user_token ( $self, $user_id, $desc, $permissions ) {
     return $user if !$user;
 
     # generate user token
-    my $token = $self->_generate_token($type);
+    my $token = $self->_generate_token($TOKEN_TYPE_USER_TOKEN);
 
     # token generation error
     return $token if !$token;
@@ -461,14 +460,14 @@ sub create_user_token ( $self, $user_id, $desc, $permissions ) {
 
             return res 200,
               { id    => $token->{data}->{id},
-                type  => $type,
+                type  => $TOKEN_TYPE_USER_TOKEN,
                 token => $token->{data}->{token},
               };
         }
     };
 
     # insert token
-    $res = $dbh->do( 'INSERT INTO "auth_user_token" ("id", "type", "user_id", "hash", "desc" ) VALUES (?, ?, ?, ?, ?)', [ SQL_UUID $token->{data}->{id}, $type, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash}, $desc ] );
+    $res = $dbh->do( 'INSERT INTO "auth_user_token" ("id", "type", "user_id", "hash", "desc" ) VALUES (?, ?, ?, ?, ?)', [ SQL_UUID $token->{data}->{id}, $TOKEN_TYPE_USER_TOKEN, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash}, $desc ] );
 
     return $on_finish->($res) if !$res;
 
@@ -496,7 +495,6 @@ sub remove_user_token ( $self, $user_token_id ) {
 
 # USER SESSION
 sub create_user_session ( $self, $user_id ) {
-    my $type = $TOKEN_TYPE_USER_SESSION;
 
     # resolve user
     my $user = $self->_db_get_user( $self->{dbh}, $user_id );
@@ -505,19 +503,19 @@ sub create_user_session ( $self, $user_id ) {
     return $user if !$user;
 
     # generate session token
-    my $token = $self->_generate_token($type);
+    my $token = $self->_generate_token($TOKEN_TYPE_USER_SESSION);
 
     # token generation error
     return $token if !$token;
 
     # token geneerated
-    my $res = $self->{dbh}->do( 'INSERT INTO "auth_user_token" ("id", "type", "user_id", "hash") VALUES (?, ?, ?, ?)', [ SQL_UUID $token->{data}->{id}, $type, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash} ] );
+    my $res = $self->{dbh}->do( 'INSERT INTO "auth_user_token" ("id", "type", "user_id", "hash") VALUES (?, ?, ?, ?)', [ SQL_UUID $token->{data}->{id}, $TOKEN_TYPE_USER_SESSION, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash} ] );
 
     return res 500 if !$res->{rows};
 
     return res 200,
       { id    => $token->{data}->{id},
-        type  => $type,
+        type  => $TOKEN_TYPE_USER_SESSION,
         token => $token->{data}->{token},
       };
 }
