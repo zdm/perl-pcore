@@ -21,18 +21,15 @@ WORKDIR $DIST_PATH
 # --develop
 RUN /bin/bash -c ' \
     \
-    # install prereqs
-    yum -y install ca-certificates wget \
-    \
     # setup host
-    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/setup-host.sh || echo false ) \
+    && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/tip/setup-host.sh || echo false ) \
     \
     # setup perl build env
-    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh || echo false ) setup \
+    && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh || echo false ) setup \
     \
     # install && update perl
     && yum -y install perl-$PERL_VERSION \
-    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-modules.sh || echo false ) \
+    && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/tip/perl-modules.sh || echo false ) \
     # && cpan-outdated | cpanm \
     \
     # deploy pcore
@@ -40,5 +37,5 @@ RUN /bin/bash -c ' \
     && pcore test -j $(nproc) \
     \
     # cleanup perl build env
-    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh || echo false ) cleanup \
+    && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh || echo false ) cleanup \
 '
