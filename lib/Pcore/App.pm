@@ -68,7 +68,7 @@ around run => sub ( $orig, $self ) {
 
         my $requires = defined $node_req ? { $node_req->%* } : {};
 
-        $requires->{'Pcore::App::Auth::Node'} = undef if $self->{app_cfg}->{api}->{connect};
+        $requires->{'Pcore::App::Auth::Node'} = undef if $self->{app_cfg}->{auth}->{backend};
 
         $self->{node} = Pcore::Node->new( {
             type     => ref $self,
@@ -101,7 +101,7 @@ around run => sub ( $orig, $self ) {
     say 'Auth initialization ... ' . $res;
     exit 3 if !$res;
 
-    # connect api
+    # init api
     $res = $self->{api}->init;
     say 'API initialization ... ' . $res;
     exit 3 if !$res;

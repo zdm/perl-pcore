@@ -33,8 +33,8 @@ sub new ( $self, $app ) {
         wss    => 'Pcore::App::Auth::Backend::Remote',
     };
 
-    if ( defined $app->{app_cfg}->{api}->{connect} ) {
-        my $uri = P->uri( $app->{app_cfg}->{api}->{connect} );
+    if ( defined $app->{app_cfg}->{auth}->{backend} ) {
+        my $uri = P->uri( $app->{app_cfg}->{auth}->{backend} );
 
         if ( my $class = $scheme_class->{ $uri->{scheme} } ) {
             return P->class->load($class)->new( { app => $app } );
