@@ -1,4 +1,4 @@
-package Pcore::App::Auth::LocalNoAuth;
+package Pcore::App::Auth::Backend::NoAuth;
 
 use Pcore -class, -res;
 
@@ -50,7 +50,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::Auth::LocalNoAuth
+Pcore::App::Auth::Backend::NoAuth
 
 =head1 SYNOPSIS
 

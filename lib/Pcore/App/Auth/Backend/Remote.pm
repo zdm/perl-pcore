@@ -1,4 +1,4 @@
-package Pcore::App::Auth::Remote;
+package Pcore::App::Auth::Backend::Remote;
 
 use Pcore -class;
 
@@ -28,7 +28,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::Auth::Remote
+Pcore::App::Auth::Backend::Remote
 
 =head1 SYNOPSIS
 

@@ -1,4 +1,4 @@
-package Pcore::App::Auth::Local;
+package Pcore::App::Auth::Backend::Local;
 
 use Pcore -const, -role, -res, -sql;
 use Pcore::App::Auth qw[:CONST];
@@ -614,7 +614,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::Auth::Local
+Pcore::App::Auth::Backend::Local
 
 =head1 SYNOPSIS
 

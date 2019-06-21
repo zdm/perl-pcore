@@ -27,10 +27,10 @@ const our $TOKEN_TYPE => {
 
 sub new ( $self, $app ) {
     state $scheme_class = {
-        sqlite => 'Pcore::App::Auth::Local::sqlite',
-        pgsql  => 'Pcore::App::Auth::Local::pgsql',
-        ws     => 'Pcore::App::Auth::Local::Remote',
-        wss    => 'Pcore::App::Auth::Local::Remote',
+        sqlite => 'Pcore::App::Auth::Backend::Local::sqlite',
+        pgsql  => 'Pcore::App::Auth::Backend::Local::pgsql',
+        ws     => 'Pcore::App::Auth::Backend::Remote',
+        wss    => 'Pcore::App::Auth::Backend::Remote',
     };
 
     if ( defined $app->{app_cfg}->{api}->{connect} ) {
@@ -44,7 +44,7 @@ sub new ( $self, $app ) {
         }
     }
     else {
-        return P->class->load('Pcore::App::Auth::LocalNoAuth')->new( { app => $app } );
+        return P->class->load('Pcore::App::Auth::Backend::NoAuth')->new( { app => $app } );
     }
 }
 
