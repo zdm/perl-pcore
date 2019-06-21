@@ -1,8 +1,8 @@
-package Pcore::App::API::Auth;
+package Pcore::App::Auth::Descriptor;
 
 use Pcore -class, -res;
-use Pcore::App::API qw[:CONST];
-use Pcore::App::API::Auth::Request;
+use Pcore::App::Auth qw[:CONST];
+use Pcore::App::API::Request;
 use Pcore::Util::Scalar qw[is_callback is_plain_coderef];
 
 use overload    #
@@ -45,7 +45,7 @@ sub TO_DUMP ( $self, $dumper, @ ) {
 
 sub api_can_call ( $self, $method_id ) {
     if ( $self->{is_authenticated} ) {
-        my $auth = $self->{app}->{api}->authenticate_private( $self->{private_token} );
+        my $auth = $self->{app}->{auth}->authenticate_private( $self->{private_token} );
 
         return $auth->_check_permissions($method_id);
     }
@@ -57,7 +57,7 @@ sub api_can_call ( $self, $method_id ) {
 sub _check_permissions ( $self, $method_id ) {
 
     # find method
-    my $method_cfg = $self->{app}->{api}->{map}->{method}->{$method_id};
+    my $method_cfg = $self->{app}->{api}->{method}->{$method_id};
 
     # method wasn't found
     if ( !$method_cfg ) {
@@ -120,12 +120,12 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
         return $can_call;
     }
     else {
-        my $map = $self->{app}->{api}->{map};
+        my $api = $self->{app}->{api};
 
         # get method
-        my $method_cfg = $map->{method}->{$method_id};
+        my $method_cfg = $api->{method}->{$method_id};
 
-        my $obj = $map->{obj}->{ $method_cfg->{class_name} };
+        my $obj = $api->{obj}->{ $method_cfg->{class_name} };
 
         my $method_name = $method_cfg->{local_method_name};
 
@@ -139,7 +139,7 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
                     auth => $self,
                     _cb  => $cv,
                   },
-                  'Pcore::App::API::Auth::Request';
+                  'Pcore::App::API::Request';
 
                 # call method
                 if ( !eval { $obj->$method_name( $req, $args ? $args->@* : () ); 1 } ) {
@@ -158,7 +158,7 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
                 auth => $self,
                 _cb  => $cb,
               },
-              'Pcore::App::API::Auth::Request';
+              'Pcore::App::API::Request';
 
             # call method
             if ( !eval { $obj->$method_name( $req, $args ? $args->@* : () ); 1 } ) {
@@ -178,7 +178,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Auth
+Pcore::App::Auth::Descriptor
 
 =head1 SYNOPSIS
 

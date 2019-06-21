@@ -1,8 +1,8 @@
-package Pcore::App::API::Remote;
+package Pcore::App::Auth::Remote;
 
 use Pcore -class;
 
-with qw[Pcore::App::API];
+with qw[Pcore::App::Auth];
 
 sub init ( $self, $cb ) {
     ...;
@@ -28,7 +28,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Remote
+Pcore::App::Auth::Remote
 
 =head1 SYNOPSIS
 

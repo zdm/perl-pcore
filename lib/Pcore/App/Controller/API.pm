@@ -28,7 +28,7 @@ sub run ( $self, $req ) {
             max_message_size => $WS_MAX_MESSAGE_SIZE,
             compression      => $WS_COMPRESSION,
             on_auth          => sub ( $h, $token ) {
-                return $self->{app}->{api}->authenticate($token);
+                return $self->{app}->{auth}->authenticate($token);
             },
             on_bind => sub ( $h, $binding ) {
                 return $self->on_bind( $h, $binding );

@@ -13,13 +13,13 @@ sub API_app_init : Perms('*') ( $self, $req, $data = undef ) {
 }
 
 sub API_signin : Perms('*') ( $self, $req, $data ) {
-    my $auth = $self->{app}->{api}->authenticate( [ $data->{user_name}, $data->{password} ] );
+    my $auth = $self->{app}->{auth}->authenticate( [ $data->{user_name}, $data->{password} ] );
 
     # authentication error
     return $req->(401) if !$auth;
 
     # create user session
-    my $session = $self->{app}->{api}->create_user_session( $auth->{user_id} );
+    my $session = $self->{app}->{auth}->create_user_session( $auth->{user_id} );
 
     # user session creation error
     return $req->(500) if !$session;
@@ -34,7 +34,7 @@ sub API_signout : Perms('*') ( $self, $req, @ ) {
     if ( $req->{auth}->{private_token}->[0] && $req->{auth}->{private_token}->[0] == $TOKEN_TYPE_USER_SESSION ) {
 
         # remove user session
-        return $req->( $self->{app}->{api}->remove_user_session( $req->{auth}->{private_token}->[1] ) );
+        return $req->( $self->{app}->{auth}->remove_user_session( $req->{auth}->{private_token}->[1] ) );
     }
 
     # not a session token

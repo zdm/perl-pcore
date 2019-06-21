@@ -1,8 +1,8 @@
-package Pcore::App::API::LocalNoAuth;
+package Pcore::App::Auth::LocalNoAuth;
 
 use Pcore -class, -res;
 
-with qw[Pcore::App::API];
+with qw[Pcore::App::Auth];
 
 sub init ( $self ) {
     return res 200;
@@ -10,13 +10,13 @@ sub init ( $self ) {
 
 # AUTHENTICATE
 sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
-    $cb->( bless { app => $self->{app} }, 'Pcore::App::API::Auth' );
+    $cb->( bless { app => $self->{app} }, 'Pcore::App::Auth::Descriptor' );
 
     return;
 }
 
 sub authenticate_private ( $self, $private_token, $cb ) {
-    $cb->( bless { app => $self->{app} }, 'Pcore::App::API::Auth' );
+    $cb->( bless { app => $self->{app} }, 'Pcore::App::Auth::Descriptor' );
 
     return;
 }
@@ -50,7 +50,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::LocalNoAuth
+Pcore::App::Auth::LocalNoAuth
 
 =head1 SYNOPSIS
 

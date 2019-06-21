@@ -1,13 +1,13 @@
-package Pcore::App::API::Local;
+package Pcore::App::Auth::Local;
 
 use Pcore -const, -role, -res, -sql;
-use Pcore::App::API qw[:CONST];
+use Pcore::App::Auth qw[:CONST];
 use Pcore::Util::Data qw[to_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
 use Pcore::Util::Text qw[encode_utf8];
 use Pcore::Util::UUID qw[uuid_v4 looks_like_uuid];
 
-with qw[Pcore::App::API];
+with qw[Pcore::App::Auth];
 
 has dbh         => ( init_arg => undef );    # InstanceOf ['Pcore::Handle::DBI']
 has _hash_cache => ( init_arg => undef );    # InstanceOf ['Pcore::Util::Hash::LRU']
@@ -37,13 +37,13 @@ sub init ( $self ) {
     print 'Starting API RPC node ... ';
 
     say $self->{app}->{node}->run_node(
-        {   type      => 'Pcore::App::API::Node',
+        {   type      => 'Pcore::App::Auth::Node',
             workers   => $self->{app}->{app_cfg}->{api}->{rpc}->{workers},
             buildargs => $self->{app}->{app_cfg}->{api}->{rpc}->{argon},
         },
     );
 
-    $self->{app}->{node}->wait_node('Pcore::App::API::Node');
+    $self->{app}->{node}->wait_node('Pcore::App::Auth::Node');
 
     print 'Creating root user ... ';
 
@@ -90,7 +90,7 @@ sub _verify_token_hash ( $self, $private_token_hash, $hash ) {
         return $self->{_hash_cache}->{$cache_id};
     }
     else {
-        my $res = $self->{app}->{node}->rpc_call( 'Pcore::App::API::Node', 'verify_hash', $private_token_hash, $hash );
+        my $res = $self->{app}->{node}->rpc_call( 'Pcore::App::Auth::Node', 'verify_hash', $private_token_hash, $hash );
 
         return $self->{_hash_cache}->{$cache_id} = $res->{data} ? res 200 : res [ 400, 'Invalid token' ];
     }
@@ -103,7 +103,7 @@ sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8 )
 
     my $private_token_hash = sha3_512 $user_password_bin . $user_name_bin;
 
-    my $res = $self->{app}->{node}->rpc_call( 'Pcore::App::API::Node', 'create_hash', $private_token_hash );
+    my $res = $self->{app}->{node}->rpc_call( 'Pcore::App::Auth::Node', 'create_hash', $private_token_hash );
 
     return $res if !$res;
 
@@ -117,7 +117,7 @@ sub _generate_token ( $self, $token_type ) {
 
     my $private_token_hash = sha3_512 $public_token;
 
-    my $res = $self->{app}->{node}->rpc_call( 'Pcore::App::API::Node', 'create_hash', $private_token_hash );
+    my $res = $self->{app}->{node}->rpc_call( 'Pcore::App::Auth::Node', 'create_hash', $private_token_hash );
 
     return $res if !$res;
 
@@ -614,7 +614,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Local
+Pcore::App::Auth::Local
 
 =head1 SYNOPSIS
 

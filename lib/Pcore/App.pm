@@ -4,6 +4,7 @@ use Pcore -role, -const;
 use Pcore::Service::Nginx;
 use Pcore::HTTP::Server;
 use Pcore::App::Router;
+use Pcore::App::Auth;
 use Pcore::App::API;
 use Pcore::CDN;
 
@@ -12,7 +13,8 @@ has devel   => 0;                    # Bool
 
 has server => ( init_arg => undef ); # InstanceOf ['Pcore::HTTP::Server']
 has router => ( init_arg => undef ); # InstanceOf ['Pcore::App::Router']
-has api    => ( init_arg => undef ); # Maybe [ ConsumerOf ['Pcore::App::API'] ]
+has auth   => ( init_arg => undef ); # Maybe [ ConsumerOf ['Pcore::App::Auth'] ]
+has api    => ( init_arg => undef ); # Maybe [ InstanceOf ['Pcore::App::API'] ]
 has node   => ( init_arg => undef ); # InstanceOf ['Pcore::Node']
 has cdn    => ( init_arg => undef ); # InstanceOf['Pcore::CDN']
 has ext    => ( init_arg => undef ); # InstanceOf['Pcore::Ext']
@@ -36,8 +38,11 @@ sub BUILD ( $self, $args ) {
     # create CDN object
     $self->{cdn} = Pcore::CDN->new( $self->{app_cfg}->{cdn} ) if $self->{app_cfg}->{cdn};
 
+    # create Auth object
+    $self->{auth} = Pcore::App::Auth->new($self);
+
     # create API object
-    $self->{api} = Pcore::App::API->new($self);
+    $self->{api} = Pcore::App::API->new( app => $self );
 
     return;
 }
@@ -63,7 +68,7 @@ around run => sub ( $orig, $self ) {
 
         my $requires = defined $node_req ? { $node_req->%* } : {};
 
-        $requires->{'Pcore::App::API::Node'} = undef if $self->{app_cfg}->{api}->{connect};
+        $requires->{'Pcore::App::Auth::Node'} = undef if $self->{app_cfg}->{api}->{connect};
 
         $self->{node} = Pcore::Node->new( {
             type     => ref $self,
@@ -91,8 +96,13 @@ around run => sub ( $orig, $self ) {
         } );
     }
 
+    # init auth
+    my $res = $self->{auth}->init;
+    say 'Auth initialization ... ' . $res;
+    exit 3 if !$res;
+
     # connect api
-    my $res = $self->{api}->init;
+    $res = $self->{api}->init;
     say 'API initialization ... ' . $res;
     exit 3 if !$res;
 
@@ -123,7 +133,7 @@ around run => sub ( $orig, $self ) {
 };
 
 sub api_call ( $self, @args ) {
-    my $auth = bless { app => $self }, 'Pcore::App::API::Auth';
+    my $auth = bless { app => $self }, 'Pcore::App::Auth::Descriptor';
 
     return $auth->api_call(@args);
 }

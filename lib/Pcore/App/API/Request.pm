@@ -1,4 +1,4 @@
-package Pcore::App::API::Auth::Request;
+package Pcore::App::API::Request;
 
 use Pcore -class, -res;
 use Pcore::Util::Scalar qw[is_res];
@@ -9,7 +9,7 @@ use overload    #
   },
   fallback => 1;
 
-has auth       => ( required => 1 );       # InstanceOf ['Pcore::App::API::Auth']
+has auth       => ( required => 1 );       # InstanceOf ['Pcore::App::Auth::Descriptor']
 has _cb        => ();                      # Maybe [CodeRef]
 has _responded => 0, init_arg => undef;    # Bool, already responded
 
@@ -58,7 +58,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Auth::Request
+Pcore::App::API::Request
 
 =head1 SYNOPSIS
 
