@@ -4,7 +4,6 @@ use Pcore -class, -res, -const;
 use Pcore::Handle::DBI::Const qw[:CONST];
 use Pcore::Handle::pgsql qw[:ALL];
 use Pcore::Util::Scalar qw[weaken looks_like_number is_plain_arrayref is_plain_coderef is_blessed_arrayref];
-use Pcore::Util::UUID qw[uuid_v1mc_str];
 use Pcore::Util::Digest qw[md5_hex];
 use Pcore::Util::Data qw[from_json];
 
@@ -239,7 +238,7 @@ sub _finish_sth ($self) {
         $cb->( $sth, res [ 500, $sth->{error} ] );
     }
     else {
-        $cb->( $sth, res 200, $sth->{tag}->%* );
+        $cb->( $sth, res 200, rows => $sth->{rows_tag} );
     }
 
     return;
@@ -501,39 +500,8 @@ sub _ON_COMMAND_COMPLETE ( $self, $dataref ) {
     # remove trailing "\x00"
     chop $dataref->$*;
 
-    my @val = split /\s/sm, $dataref->$*;
-
-    my $tag;
-
-    if ( looks_like_number $val[-1] ) {
-        if ( $val[0] eq 'INSERT' ) {
-            $tag = {
-                tag  => $val[0],
-                oid  => $val[1],
-                rows => $val[2],
-            };
-        }
-        else {
-            my $rows = pop @val;
-
-            $tag = {
-                tag  => join( ' ', @val ),
-                rows => $rows,
-            };
-        }
-    }
-    else {
-        $tag = {
-            tag  => join( ' ', @val ),
-            rows => 0,
-        };
-    }
-
-    if ( exists $self->{sth}->{tag} ) {
-        $self->{sth}->{tag}->{rows} += $tag->{rows};
-    }
-    else {
-        $self->{sth}->{tag} = $tag;
+    if ( $dataref->$* =~ /\s(\d+)\z/sm ) {
+        $self->{sth}->{rows_tag} = $1;
     }
 
     return;
@@ -1109,15 +1077,13 @@ sub encode_json ( $self, $var ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 571                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (29)                  |
+## |    3 | 539                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (29)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 661, 990             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 629, 958             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 520, 527             | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 767, 958             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 799, 990             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 838                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 806                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -1133,6 +1099,8 @@ Pcore::Handle::pgsql::DBH
 =head1 SYNOPSIS
 
 =head1 DESCRIPTION
+
+->selectrow method don't returns number of rows.
 
 =head1 ATTRIBUTES
 
