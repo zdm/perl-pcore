@@ -65,7 +65,9 @@ sub _db_add_roles ( $self, $dbh, $roles ) {
 sub _db_create_user ( $self, $dbh, $user_name, $hash, $enabled ) {
     my $user_id = uuid_v4_str;
 
-    my $res = $dbh->do( 'INSERT INTO "auth_user" ("id", "name", "hash", "enabled") VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING', [ SQL_UUID $user_id, SQL_UUID $user_name, SQL_BYTEA $hash, SQL_BOOL $enabled ] );
+    state $q1 = $dbh->prepare('INSERT INTO "auth_user" ("id", "name", "hash", "enabled") VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING');
+
+    my $res = $dbh->do( $q1, [ SQL_UUID $user_id, SQL_UUID $user_name, SQL_BYTEA $hash, SQL_BOOL $enabled ] );
 
     if ( !$res->{rows} ) {
         return res 500;
@@ -111,9 +113,9 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $roles_ids ) {
 ## |      | 8                    | * Private subroutine/method '_db_add_schema_patch' declared but not used                                       |
 ## |      | 61                   | * Private subroutine/method '_db_add_roles' declared but not used                                              |
 ## |      | 65                   | * Private subroutine/method '_db_create_user' declared but not used                                            |
-## |      | 78                   | * Private subroutine/method '_db_set_user_permissions' declared but not used                                   |
+## |      | 80                   | * Private subroutine/method '_db_set_user_permissions' declared but not used                                   |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 65, 78               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 65, 80               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
