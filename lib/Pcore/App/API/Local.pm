@@ -162,7 +162,7 @@ sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
 sub _auth_user_password ( $self, $private_token ) {
 
     # get user
-    my $user = $self->{dbh}->selectrow( q[SELECT "id", "hash", "enabled" FROM "api_user" WHERE "name" = ?], [ $private_token->[1] ] );
+    my $user = $self->{dbh}->selectrow( q[SELECT "id", "hash", "enabled" FROM "auth_user" WHERE "name" = ?], [ $private_token->[1] ] );
 
     # user not found
     return res [ 404, 'User not found' ] if !$user->{data};
@@ -329,7 +329,7 @@ sub set_user_password ( $self, $user_id, $password ) {
     return $password_hash if !$password_hash;
 
     # password hash generated
-    my $res = $self->{dbh}->do( q[UPDATE "api_user" SET "hash" = ? WHERE "id" = ?], [ SQL_BYTEA $password_hash->{data}->{hash}, SQL_UUID $user->{data}->{id} ] );
+    my $res = $self->{dbh}->do( q[UPDATE "auth_user" SET "hash" = ? WHERE "id" = ?], [ SQL_BYTEA $password_hash->{data}->{hash}, SQL_UUID $user->{data}->{id} ] );
 
     return res 500 if !$res->{rows};
 
@@ -350,7 +350,7 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
     $enabled = 0+ !!$enabled;
 
     if ( $enabled ^ $user->{data}->{enabled} ) {
-        my $res = $self->{dbh}->do( q[UPDATE "api_user" SET "enabled" = ? WHERE "id" = ?], [ SQL_BOOL $enabled, SQL_UUID $user->{data}->{id} ] );
+        my $res = $self->{dbh}->do( q[UPDATE "auth_user" SET "enabled" = ? WHERE "id" = ?], [ SQL_BOOL $enabled, SQL_UUID $user->{data}->{id} ] );
 
         return $res if !$res;
 
@@ -375,16 +375,16 @@ sub _auth_user_token ( $self, $private_token ) {
     my $user_token = $self->{dbh}->selectrow(
         <<'SQL',
             SELECT
-                "api_user"."id" AS "user_id",
-                "api_user"."name" AS "user_name",
-                "api_user"."enabled" AS "user_enabled",
-                "api_user_token"."hash" AS "user_token_hash"
+                "auth_user"."id" AS "user_id",
+                "auth_user"."name" AS "user_name",
+                "auth_user"."enabled" AS "user_enabled",
+                "auth_user_token"."hash" AS "user_token_hash"
             FROM
-                "api_user",
-                "api_user_token"
+                "auth_user",
+                "auth_user_token"
             WHERE
-                "api_user"."id" = "api_user_token"."user_id"
-                AND "api_user_token"."id" = ?
+                "auth_user"."id" = "auth_user_token"."user_id"
+                AND "auth_user_token"."id" = ?
 SQL
         [ SQL_UUID $private_token->[1] ]
     );
@@ -468,7 +468,7 @@ sub create_user_token ( $self, $user_id, $desc, $permissions ) {
     };
 
     # insert token
-    $res = $dbh->do( 'INSERT INTO "api_user_token" ("id", "type", "user_id", "hash", "desc" ) VALUES (?, ?, ?, ?, ?)', [ SQL_UUID $token->{data}->{id}, $type, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash}, $desc ] );
+    $res = $dbh->do( 'INSERT INTO "auth_user_token" ("id", "type", "user_id", "hash", "desc" ) VALUES (?, ?, ?, ?, ?)', [ SQL_UUID $token->{data}->{id}, $type, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash}, $desc ] );
 
     return $on_finish->($res) if !$res;
 
@@ -476,13 +476,13 @@ sub create_user_token ( $self, $user_id, $desc, $permissions ) {
     return $on_finish->($res) if !$user_permissions->@*;
 
     # insert user token permissions
-    $res = $dbh->do( [ q[INSERT INTO "api_user_token_permission"], VALUES [ map { { user_token_id => SQL_UUID $token->{data}->{id}, user_permission_id => SQL_UUID $_->{id} } } $user_permissions->{data}->@* ] ] );
+    $res = $dbh->do( [ q[INSERT INTO "auth_user_token_permission"], VALUES [ map { { user_token_id => SQL_UUID $token->{data}->{id}, user_permission_id => SQL_UUID $_->{id} } } $user_permissions->{data}->@* ] ] );
 
     return $on_finish->($res);
 }
 
 sub remove_user_token ( $self, $user_token_id ) {
-    my $res = $self->{dbh}->do( 'DELETE FROM "api_user_token" WHERE "id" = ? AND "type" = ?', [ SQL_UUID $user_token_id, $TOKEN_TYPE_USER_TOKEN ] );
+    my $res = $self->{dbh}->do( 'DELETE FROM "auth_user_token" WHERE "id" = ? AND "type" = ?', [ SQL_UUID $user_token_id, $TOKEN_TYPE_USER_TOKEN ] );
 
     return $res if !$res;
 
@@ -511,7 +511,7 @@ sub create_user_session ( $self, $user_id ) {
     return $token if !$token;
 
     # token geneerated
-    my $res = $self->{dbh}->do( 'INSERT INTO "api_user_token" ("id", "type", "user_id", "hash") VALUES (?, ?, ?, ?)', [ SQL_UUID $token->{data}->{id}, $type, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash} ] );
+    my $res = $self->{dbh}->do( 'INSERT INTO "auth_user_token" ("id", "type", "user_id", "hash") VALUES (?, ?, ?, ?)', [ SQL_UUID $token->{data}->{id}, $type, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash} ] );
 
     return res 500 if !$res->{rows};
 
@@ -523,7 +523,7 @@ sub create_user_session ( $self, $user_id ) {
 }
 
 sub remove_user_session ( $self, $user_sid ) {
-    my $res = $self->{dbh}->do( 'DELETE FROM "api_user_token" WHERE "id" = ? AND "type" = ?', [ SQL_UUID $user_sid, $TOKEN_TYPE_USER_SESSION ] );
+    my $res = $self->{dbh}->do( 'DELETE FROM "auth_user_token" WHERE "id" = ? AND "type" = ?', [ SQL_UUID $user_sid, $TOKEN_TYPE_USER_SESSION ] );
 
     return $res if !$res;
 
@@ -537,13 +537,13 @@ sub remove_user_session ( $self, $user_sid ) {
 
 # DB METHODS
 sub _db_get_users ( $self, $dbh ) {
-    return $dbh->selectall(q[SELECT "id", "name", "enabled", "created" FROM "api_user"]);
+    return $dbh->selectall(q[SELECT "id", "name", "enabled", "created" FROM "auth_user"]);
 }
 
 sub _db_get_user ( $self, $dbh, $user_id ) {
     my $is_uuid = looks_like_uuid $user_id;
 
-    my $user = $dbh->selectrow( qq[SELECT "id", "name", "enabled", "created" FROM "api_user" WHERE "@{[$is_uuid ? 'id' : 'name']}" = ?], $is_uuid ? [ SQL_UUID $user_id ] : [$user_id] );
+    my $user = $dbh->selectrow( qq[SELECT "id", "name", "enabled", "created" FROM "auth_user" WHERE "@{[$is_uuid ? 'id' : 'name']}" = ?], $is_uuid ? [ SQL_UUID $user_id ] : [$user_id] );
 
     # query error
     return $user if !$user;
@@ -555,22 +555,22 @@ sub _db_get_user ( $self, $dbh, $user_id ) {
 }
 
 sub _db_get_roles ( $self, $dbh ) {
-    return $dbh->selectall( q[SELECT * FROM "api_role"], key_field => 'id' );
+    return $dbh->selectall( q[SELECT * FROM "auth_role"], key_field => 'id' );
 }
 
 sub _db_get_user_permissions ( $self, $dbh, $user_id ) {
     return $dbh->selectall(
         <<'SQL',
             SELECT
-                "api_user_permission"."id" AS "id",
-                "api_role"."id" AS "role_id",
-                "api_role"."name" AS "role_name"
+                "auth_user_permission"."id" AS "id",
+                "auth_role"."id" AS "role_id",
+                "auth_role"."name" AS "role_name"
             FROM
-                "api_user_permission",
-                "api_role"
+                "auth_user_permission",
+                "auth_role"
             WHERE
-                "api_user_permission"."role_id" = "api_role"."id"
-                AND "api_user_permission"."user_id" = ?
+                "auth_user_permission"."role_id" = "auth_role"."id"
+                AND "auth_user_permission"."user_id" = ?
 SQL
         [ SQL_UUID $user_id ]
     );
@@ -580,17 +580,17 @@ sub _db_get_user_token_permissions ( $self, $dbh, $user_token_id ) {
     return $dbh->selectall(
         <<'SQL',
             SELECT
-                "api_user_token_permission"."id" AS "id",
-                "api_role"."id" AS "role_id",
-                "api_role"."name" AS "role_name"
+                "auth_user_token_permission"."id" AS "id",
+                "auth_role"."id" AS "role_id",
+                "auth_role"."name" AS "role_name"
             FROM
-                "api_user_token_permission",
-                "api_user_permission",
-                "api_role"
+                "auth_user_token_permission",
+                "auth_user_permission",
+                "auth_role"
             WHERE
-                "api_user_token_permission"."user_permission_id" = "api_user_permission"."id"
-                AND "api_user_permission"."role_id" = "api_role"."id"
-                AND "api_user_token_permission"."user_token_id" = ?
+                "auth_user_token_permission"."user_permission_id" = "auth_user_permission"."id"
+                AND "auth_user_permission"."role_id" = "auth_role"."id"
+                AND "auth_user_token_permission"."user_token_id" = ?
 SQL
         [ SQL_UUID $user_token_id ]
     );

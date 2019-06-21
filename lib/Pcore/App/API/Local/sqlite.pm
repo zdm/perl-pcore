@@ -10,13 +10,13 @@ sub _db_add_schema_patch ( $self, $dbh ) {
         1, 'auth', <<"SQL"
 
             -- ROLE
-            CREATE TABLE IF NOT EXISTS "api_role" (
+            CREATE TABLE IF NOT EXISTS "auth_role" (
                 "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
                 "name" BLOB NOT NULL UNIQUE
             );
 
             -- USER
-            CREATE TABLE IF NOT EXISTS "api_user" (
+            CREATE TABLE IF NOT EXISTS "auth_user" (
                 "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
                 "name" TEXT NOT NULL UNIQUE,
                 "hash" BLOB NOT NULL,
@@ -25,32 +25,32 @@ sub _db_add_schema_patch ( $self, $dbh ) {
             );
 
             -- USER PERMISSION
-            CREATE TABLE IF NOT EXISTS "api_user_permission" (
+            CREATE TABLE IF NOT EXISTS "auth_user_permission" (
                 "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
-                "user_id" BLOB NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE, -- remove role assoc., on user delete
-                "role_id" BLOB NOT NULL REFERENCES "api_role" ("id") ON DELETE RESTRICT -- prevent deleting role, if has assigned users
+                "user_id" BLOB NOT NULL REFERENCES "auth_user" ("id") ON DELETE CASCADE, -- remove role assoc., on user delete
+                "role_id" BLOB NOT NULL REFERENCES "auth_role" ("id") ON DELETE RESTRICT -- prevent deleting role, if has assigned users
             );
 
-            CREATE UNIQUE INDEX IF NOT EXISTS "idx_uniq_api_user_permission" ON "api_user_permission" ("user_id", "role_id");
+            CREATE UNIQUE INDEX IF NOT EXISTS "idx_uniq_auth_user_permission" ON "auth_user_permission" ("user_id", "role_id");
 
             -- USER TOKEN
-            CREATE TABLE IF NOT EXISTS "api_user_token" (
+            CREATE TABLE IF NOT EXISTS "auth_user_token" (
                 "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
                 "type" INTEGER NOT NULL,
-                "user_id" BLOB NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE,
+                "user_id" BLOB NOT NULL REFERENCES "auth_user" ("id") ON DELETE CASCADE,
                 "hash" BLOB NOT NULL,
                 "desc" TEXT,
                 "created" INTEGER NOT NULL DEFAULT(CAST(STRFTIME('%s', 'NOW') AS INT))
             );
 
             -- USER TOKEN PERMISSION
-            CREATE TABLE IF NOT EXISTS "api_user_token_permission" (
+            CREATE TABLE IF NOT EXISTS "auth_user_token_permission" (
                 "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
-                "user_token_id" BLOB NOT NULL REFERENCES "api_user_token" ("id") ON DELETE CASCADE,
-                "user_permission_id" BLOB NOT NULL REFERENCES "api_user_permission" ("id") ON DELETE CASCADE
+                "user_token_id" BLOB NOT NULL REFERENCES "auth_user_token" ("id") ON DELETE CASCADE,
+                "user_permission_id" BLOB NOT NULL REFERENCES "auth_user_permission" ("id") ON DELETE CASCADE
             );
 
-            CREATE UNIQUE INDEX IF NOT EXISTS "idx_uniq_api_user_token_permission" ON "api_user_token_permission" ("user_token_id", "user_permission_id");
+            CREATE UNIQUE INDEX IF NOT EXISTS "idx_uniq_auth_user_token_permission" ON "auth_user_token_permission" ("user_token_id", "user_permission_id");
 SQL
     );
 
@@ -58,13 +58,13 @@ SQL
 }
 
 sub _db_add_roles ( $self, $dbh, $roles ) {
-    return $dbh->do( [ q[INSERT OR IGNORE INTO "api_role"], VALUES [ map { { name => $_ } } $roles->@* ] ] );
+    return $dbh->do( [ q[INSERT OR IGNORE INTO "auth_role"], VALUES [ map { { name => $_ } } $roles->@* ] ] );
 }
 
 sub _db_create_user ( $self, $dbh, $user_name, $hash, $enabled ) {
     my $user_id = uuid_v4_str;
 
-    my $res = $dbh->do( 'INSERT OR IGNORE INTO "api_user" ("id", "name", "hash", "enabled") VALUES (?, ?, ?, ?)', [ SQL_UUID $user_id, $user_name, SQL_BYTEA $hash, SQL_BOOL $enabled ] );
+    my $res = $dbh->do( 'INSERT OR IGNORE INTO "auth_user" ("id", "name", "hash", "enabled") VALUES (?, ?, ?, ?)', [ SQL_UUID $user_id, $user_name, SQL_BYTEA $hash, SQL_BOOL $enabled ] );
 
     if ( !$res->{rows} ) {
         return res 500;
@@ -75,14 +75,14 @@ sub _db_create_user ( $self, $dbh, $user_name, $hash, $enabled ) {
 }
 
 sub _db_set_user_permissions ( $self, $dbh, $user_id, $roles_ids ) {
-    my $res = $dbh->do( [ 'INSERT OR IGNORE INTO "api_user_permission"', VALUES [ map { { role_id => SQL_UUID $_, user_id => SQL_UUID $user_id } } $roles_ids->@* ] ] );
+    my $res = $dbh->do( [ 'INSERT OR IGNORE INTO "auth_user_permission"', VALUES [ map { { role_id => SQL_UUID $_, user_id => SQL_UUID $user_id } } $roles_ids->@* ] ] );
 
     return res 500 if !$res;
 
     my $modified = $res->{rows};
 
     # remove permissions
-    $res = $dbh->do( [ 'DELETE FROM "api_user_permission" WHERE "user_id" =', SQL_UUID $user_id, 'AND "role_id" NOT', IN [ map { SQL_UUID $_} $roles_ids->@* ] ] );
+    $res = $dbh->do( [ 'DELETE FROM "auth_user_permission" WHERE "user_id" =', SQL_UUID $user_id, 'AND "role_id" NOT', IN [ map { SQL_UUID $_} $roles_ids->@* ] ] );
 
     if ( !$res ) {
         return res 500;

@@ -11,13 +11,13 @@ sub _db_add_schema_patch ( $self, $dbh ) {
             CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
             -- ROLE
-            CREATE TABLE IF NOT EXISTS "api_role" (
+            CREATE TABLE IF NOT EXISTS "auth_role" (
                 "id" UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
                 "name" TEXT NOT NULL UNIQUE
             );
 
             -- USER
-            CREATE TABLE IF NOT EXISTS "api_user" (
+            CREATE TABLE IF NOT EXISTS "auth_user" (
                 "id" UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
                 "name" TEXT NOT NULL UNIQUE,
                 "hash" BYTEA NOT NULL,
@@ -26,32 +26,32 @@ sub _db_add_schema_patch ( $self, $dbh ) {
             );
 
             -- USER PERMISSION
-            CREATE TABLE IF NOT EXISTS "api_user_permission" (
+            CREATE TABLE IF NOT EXISTS "auth_user_permission" (
                 "id" UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
-                "user_id" UUID NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE, -- remove role assoc., on user delete
-                "role_id" UUID NOT NULL REFERENCES "api_role" ("id") ON DELETE RESTRICT -- prevent deleting role, if has assigned users
+                "user_id" UUID NOT NULL REFERENCES "auth_user" ("id") ON DELETE CASCADE, -- remove role assoc., on user delete
+                "role_id" UUID NOT NULL REFERENCES "auth_role" ("id") ON DELETE RESTRICT -- prevent deleting role, if has assigned users
             );
 
-            CREATE UNIQUE INDEX IF NOT EXISTS "idx_uniq_api_user_permission" ON "api_user_permission" ("user_id", "role_id");
+            CREATE UNIQUE INDEX IF NOT EXISTS "idx_uniq_auth_user_permission" ON "auth_user_permission" ("user_id", "role_id");
 
             -- USER TOKEN
-            CREATE TABLE IF NOT EXISTS "api_user_token" (
+            CREATE TABLE IF NOT EXISTS "auth_user_token" (
                 "id" UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
                 "type" INT2 NOT NULL,
-                "user_id" UUID NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE,
+                "user_id" UUID NOT NULL REFERENCES "auth_user" ("id") ON DELETE CASCADE,
                 "hash" BYTEA NOT NULL,
                 "desc" TEXT,
                 "created" INT8 NOT NULL DEFAULT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)
             );
 
             -- USER TOKEN PERMISSION
-            CREATE TABLE IF NOT EXISTS "api_user_token_permission" (
+            CREATE TABLE IF NOT EXISTS "auth_user_token_permission" (
                 "id" UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
-                "user_token_id" UUID NOT NULL REFERENCES "api_user_token" ("id") ON DELETE CASCADE,
-                "user_permission_id" UUID NOT NULL REFERENCES "api_user_permission" ("id") ON DELETE CASCADE
+                "user_token_id" UUID NOT NULL REFERENCES "auth_user_token" ("id") ON DELETE CASCADE,
+                "user_permission_id" UUID NOT NULL REFERENCES "auth_user_permission" ("id") ON DELETE CASCADE
             );
 
-            CREATE UNIQUE INDEX IF NOT EXISTS "idx_uniq_api_user_token_permission" ON "api_user_token_permission" ("user_token_id", "user_permission_id");
+            CREATE UNIQUE INDEX IF NOT EXISTS "idx_uniq_auth_user_token_permission" ON "auth_user_token_permission" ("user_token_id", "user_permission_id");
 SQL
     );
 
@@ -59,13 +59,13 @@ SQL
 }
 
 sub _db_add_roles ( $self, $dbh, $roles ) {
-    return $dbh->do( [ q[INSERT INTO "api_role"], VALUES [ map { { name => $_ } } $roles->@* ], 'ON CONFLICT DO NOTHING' ] );
+    return $dbh->do( [ q[INSERT INTO "auth_role"], VALUES [ map { { name => $_ } } $roles->@* ], 'ON CONFLICT DO NOTHING' ] );
 }
 
 sub _db_create_user ( $self, $dbh, $user_name, $hash, $enabled ) {
     my $user_id = uuid_v4_str;
 
-    my $res = $dbh->do( 'INSERT INTO "api_user" ("id", "name", "hash", "enabled") VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING', [ SQL_UUID $user_id, SQL_UUID $user_name, SQL_BYTEA $hash, SQL_BOOL $enabled ] );
+    my $res = $dbh->do( 'INSERT INTO "auth_user" ("id", "name", "hash", "enabled") VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING', [ SQL_UUID $user_id, SQL_UUID $user_name, SQL_BYTEA $hash, SQL_BOOL $enabled ] );
 
     if ( !$res->{rows} ) {
         return res 500;
@@ -76,14 +76,14 @@ sub _db_create_user ( $self, $dbh, $user_name, $hash, $enabled ) {
 }
 
 sub _db_set_user_permissions ( $self, $dbh, $user_id, $roles_ids ) {
-    my $res = $dbh->do( [ 'INSERT INTO "api_user_permission"', VALUES [ map { { role_id => SQL_UUID $_, user_id => SQL_UUID $user_id } } $roles_ids->@* ], 'ON CONFLICT DO NOTHING' ] );
+    my $res = $dbh->do( [ 'INSERT INTO "auth_user_permission"', VALUES [ map { { role_id => SQL_UUID $_, user_id => SQL_UUID $user_id } } $roles_ids->@* ], 'ON CONFLICT DO NOTHING' ] );
 
     return res 500 if !$res;
 
     my $modified = $res->{rows};
 
     # remove permissions
-    $res = $dbh->do( [ 'DELETE FROM "api_user_permission" WHERE "user_id" =', SQL_UUID $user_id, 'AND "role_id" NOT', IN $roles_ids ] );
+    $res = $dbh->do( [ 'DELETE FROM "auth_user_permission" WHERE "user_id" =', SQL_UUID $user_id, 'AND "role_id" NOT', IN $roles_ids ] );
 
     if ( !$res ) {
         return res 500;
