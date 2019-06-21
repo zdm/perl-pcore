@@ -162,7 +162,9 @@ sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
 sub _auth_user_password ( $self, $private_token ) {
 
     # get user
-    my $user = $self->{dbh}->selectrow( q[SELECT "id", "hash", "enabled" FROM "auth_user" WHERE "name" = ?], [ $private_token->[1] ] );
+    state $q1 = $self->{dbh}->prepare(q[SELECT "id", "hash", "enabled" FROM "auth_user" WHERE "name" = ?]);
+
+    my $user = $self->{dbh}->selectrow( $q1, [ $private_token->[1] ] );
 
     # user not found
     return res [ 404, 'User not found' ] if !$user->{data};
@@ -329,7 +331,9 @@ sub set_user_password ( $self, $user_id, $password ) {
     return $password_hash if !$password_hash;
 
     # password hash generated
-    my $res = $self->{dbh}->do( q[UPDATE "auth_user" SET "hash" = ? WHERE "id" = ?], [ SQL_BYTEA $password_hash->{data}->{hash}, SQL_UUID $user->{data}->{id} ] );
+    state $q1 = $self->{dbh}->prepare(q[UPDATE "auth_user" SET "hash" = ? WHERE "id" = ?]);
+
+    my $res = $self->{dbh}->do( $q1, [ SQL_BYTEA $password_hash->{data}->{hash}, SQL_UUID $user->{data}->{id} ] );
 
     return res 500 if !$res->{rows};
 
@@ -350,7 +354,9 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
     $enabled = 0+ !!$enabled;
 
     if ( $enabled ^ $user->{data}->{enabled} ) {
-        my $res = $self->{dbh}->do( q[UPDATE "auth_user" SET "enabled" = ? WHERE "id" = ?], [ SQL_BOOL $enabled, SQL_UUID $user->{data}->{id} ] );
+        state $q1 = $self->{dbh}->prepare(q[UPDATE "auth_user" SET "enabled" = ? WHERE "id" = ?]);
+
+        my $res = $self->{dbh}->do( $q1, [ SQL_BOOL $enabled, SQL_UUID $user->{data}->{id} ] );
 
         return $res if !$res;
 
@@ -372,7 +378,7 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
 sub _auth_user_token ( $self, $private_token ) {
 
     # get user token
-    my $user_token = $self->{dbh}->selectrow(
+    state $q1 = $self->{dbh}->prepare(
         <<'SQL',
             SELECT
                 "auth_user"."id" AS "user_id",
@@ -388,6 +394,8 @@ sub _auth_user_token ( $self, $private_token ) {
 SQL
         [ SQL_UUID $private_token->[1] ]
     );
+
+    my $user_token = $self->{dbh}->selectrow( $q1, [ SQL_UUID $private_token->[1] ] );
 
     # user is disabled
     return res 404 if !$user_token->{data}->{user_enabled};
@@ -467,7 +475,9 @@ sub create_user_token ( $self, $user_id, $desc, $permissions ) {
     };
 
     # insert token
-    $res = $dbh->do( 'INSERT INTO "auth_user_token" ("id", "type", "user_id", "hash", "desc" ) VALUES (?, ?, ?, ?, ?)', [ SQL_UUID $token->{data}->{id}, $TOKEN_TYPE_USER_TOKEN, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash}, $desc ] );
+    state $q1 = $dbh->prepare('INSERT INTO "auth_user_token" ("id", "type", "user_id", "hash", "desc" ) VALUES (?, ?, ?, ?, ?)');
+
+    $res = $dbh->do( $q1, [ SQL_UUID $token->{data}->{id}, $TOKEN_TYPE_USER_TOKEN, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash}, $desc ] );
 
     return $on_finish->($res) if !$res;
 
@@ -481,7 +491,9 @@ sub create_user_token ( $self, $user_id, $desc, $permissions ) {
 }
 
 sub remove_user_token ( $self, $user_token_id ) {
-    my $res = $self->{dbh}->do( 'DELETE FROM "auth_user_token" WHERE "id" = ? AND "type" = ?', [ SQL_UUID $user_token_id, $TOKEN_TYPE_USER_TOKEN ] );
+    state $q1 = $self->{dbh}->prepare('DELETE FROM "auth_user_token" WHERE "id" = ? AND "type" = ?');
+
+    my $res = $self->{dbh}->do( $q1, [ SQL_UUID $user_token_id, $TOKEN_TYPE_USER_TOKEN ] );
 
     return $res if !$res;
 
@@ -509,7 +521,9 @@ sub create_user_session ( $self, $user_id ) {
     return $token if !$token;
 
     # token geneerated
-    my $res = $self->{dbh}->do( 'INSERT INTO "auth_user_token" ("id", "type", "user_id", "hash") VALUES (?, ?, ?, ?)', [ SQL_UUID $token->{data}->{id}, $TOKEN_TYPE_USER_SESSION, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash} ] );
+    state $q1 = $self->{dbh}->prepare('INSERT INTO "auth_user_token" ("id", "type", "user_id", "hash") VALUES (?, ?, ?, ?)');
+
+    my $res = $self->{dbh}->do( $q1, [ SQL_UUID $token->{data}->{id}, $TOKEN_TYPE_USER_SESSION, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash} ] );
 
     return res 500 if !$res->{rows};
 
@@ -521,7 +535,9 @@ sub create_user_session ( $self, $user_id ) {
 }
 
 sub remove_user_session ( $self, $user_sid ) {
-    my $res = $self->{dbh}->do( 'DELETE FROM "auth_user_token" WHERE "id" = ? AND "type" = ?', [ SQL_UUID $user_sid, $TOKEN_TYPE_USER_SESSION ] );
+    state $q1 = $self->{dbh}->prepare('DELETE FROM "auth_user_token" WHERE "id" = ? AND "type" = ?');
+
+    my $res = $self->{dbh}->do( $q1, [ SQL_UUID $user_sid, $TOKEN_TYPE_USER_SESSION ] );
 
     return $res if !$res;
 
@@ -535,9 +551,12 @@ sub remove_user_session ( $self, $user_sid ) {
 
 # DB METHODS
 sub _db_get_users ( $self, $dbh ) {
-    return $dbh->selectall(q[SELECT "id", "name", "enabled", "created" FROM "auth_user"]);
+    state $q1 = $dbh->prepare(q[SELECT "id", "name", "enabled", "created" FROM "auth_user"]);
+
+    return $dbh->selectall($q1);
 }
 
+# TODO
 sub _db_get_user ( $self, $dbh, $user_id ) {
     my $is_uuid = looks_like_uuid $user_id;
 
@@ -553,11 +572,13 @@ sub _db_get_user ( $self, $dbh, $user_id ) {
 }
 
 sub _db_get_roles ( $self, $dbh ) {
-    return $dbh->selectall( q[SELECT * FROM "auth_role"], key_field => 'id' );
+    state $q1 = $dbh->prepare(q[SELECT * FROM "auth_role"]);
+
+    return $dbh->selectall( $q1, key_field => 'id' );
 }
 
 sub _db_get_user_permissions ( $self, $dbh, $user_id ) {
-    return $dbh->selectall(
+    state $q1 = $dbh->prepare(
         <<'SQL',
             SELECT
                 "auth_user_permission"."id" AS "id",
@@ -570,12 +591,13 @@ sub _db_get_user_permissions ( $self, $dbh, $user_id ) {
                 "auth_user_permission"."role_id" = "auth_role"."id"
                 AND "auth_user_permission"."user_id" = ?
 SQL
-        [ SQL_UUID $user_id ]
     );
+
+    return $dbh->selectall( $q1, [ SQL_UUID $user_id ] );
 }
 
 sub _db_get_user_token_permissions ( $self, $dbh, $user_token_id ) {
-    return $dbh->selectall(
+    state $q1 = $dbh->prepare(
         <<'SQL',
             SELECT
                 "auth_user_token_permission"."id" AS "id",
@@ -590,8 +612,9 @@ sub _db_get_user_token_permissions ( $self, $dbh, $user_token_id ) {
                 AND "auth_user_permission"."role_id" = "auth_role"."id"
                 AND "auth_user_token_permission"."user_token_id" = ?
 SQL
-        [ SQL_UUID $user_token_id ]
     );
+
+    return $dbh->selectall( $q1, [ SQL_UUID $user_token_id ] );
 }
 
 1;
@@ -601,7 +624,7 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 99, 127, 183         | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 99, 127, 185         | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
