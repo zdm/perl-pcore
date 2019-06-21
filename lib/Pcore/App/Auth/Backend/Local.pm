@@ -379,7 +379,7 @@ sub _auth_user_token ( $self, $private_token ) {
 
     # get user token
     state $q1 = $self->{dbh}->prepare(
-        <<'SQL',
+        <<'SQL'
             SELECT
                 "auth_user"."id" AS "user_id",
                 "auth_user"."name" AS "user_name",
@@ -392,7 +392,6 @@ sub _auth_user_token ( $self, $private_token ) {
                 "auth_user"."id" = "auth_user_token"."user_id"
                 AND "auth_user_token"."id" = ?
 SQL
-        [ SQL_UUID $private_token->[1] ]
     );
 
     my $user_token = $self->{dbh}->selectrow( $q1, [ SQL_UUID $private_token->[1] ] );
