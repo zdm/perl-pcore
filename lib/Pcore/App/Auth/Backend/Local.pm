@@ -556,11 +556,24 @@ sub _db_get_users ( $self, $dbh ) {
     return $dbh->selectall($q1);
 }
 
-# TODO
 sub _db_get_user ( $self, $dbh, $user_id ) {
     my $is_uuid = looks_like_uuid $user_id;
 
-    my $user = $dbh->selectrow( qq[SELECT "id", "name", "enabled", "created" FROM "auth_user" WHERE "@{[$is_uuid ? 'id' : 'name']}" = ?], $is_uuid ? [ SQL_UUID $user_id ] : [$user_id] );
+    my $user;
+
+    # find user by id
+    if ($is_uuid) {
+        state $q1 = $dbh->prepare(q[SELECT "id", "name", "enabled", "created" FROM "auth_user" WHERE "id" = ?]);
+
+        $user = $dbh->selectrow( $q1, [ SQL_UUID $user_id ] );
+    }
+
+    # find user by name
+    else {
+        state $q1 = $dbh->prepare(q[SELECT "id", "name", "enabled", "created" FROM "auth_user" WHERE "name" = ?]);
+
+        $user = $dbh->selectrow( $q1, [$user_id] );
+    }
 
     # query error
     return $user if !$user;
