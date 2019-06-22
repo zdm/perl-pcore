@@ -1,7 +1,7 @@
 package Pcore::App::Auth::Backend::Local;
 
 use Pcore -const, -role, -res, -sql;
-use Pcore::App::Auth qw[:CONST];
+use Pcore::App::Auth qw[:ALL];
 use Pcore::Util::Data qw[to_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
 use Pcore::Util::Text qw[encode_utf8];
@@ -293,7 +293,7 @@ sub set_user_permissions ( $self, $user_id, $permissions ) {
         return $res1 if !$res1;
 
         # fire event if user permissions was changed
-        P->fire_event('app.api.auth') if $res == 200;
+        P->fire_event( 'app.api.auth', { type => $INVALIDATE_USER, id => $user->{data}->{id} } ) if $res == 200;
 
         return $res;
     }
@@ -312,7 +312,7 @@ sub _set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
     for ( values $all_permissions->{data}->%* ) {
         $idx->{id}->{ $_->{id} } = $_->{name};
 
-        $idx->{name}->{ $_->{id} } = $_->{id};
+        $idx->{name}->{ $_->{name} } = $_->{id};
     }
 
     my $permissions_ids;
@@ -358,7 +358,7 @@ sub set_user_password ( $self, $user_id, $password ) {
     return res 500 if !$res->{rows};
 
     # fire AUTH event if user password was changed
-    P->fire_event('app.api.auth');
+    P->fire_event( 'app.api.auth', { type => $INVALIDATE_TOKEN, id => $user->{data}->{name} } );
 
     return res 200;
 }
@@ -383,7 +383,7 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
         return res 500 if !$res->{rows};
 
         # fire AUTH event if user was disabled
-        P->fire_event('app.api.auth') if !$enabled;
+        P->fire_event( 'app.api.auth', { type => $INVALIDATE_USER, id => $user->{data}->{id} } ) if !$enabled;
 
         return res 200, { enabled => $enabled };
     }
@@ -519,7 +519,7 @@ sub remove_user_token ( $self, $user_token_id ) {
     # not found
     return res 204 if !$res->{rows};
 
-    P->fire_event('app.api.auth');
+    P->fire_event( 'app.api.auth', { type => $INVALIDATE_TOKEN, id => $user_token_id } );
 
     return res 200;
 }
@@ -563,7 +563,7 @@ sub remove_user_session ( $self, $user_sid ) {
     # not found
     return res 204 if !$res->{rows};
 
-    P->fire_event('app.api.auth');
+    P->fire_event( 'app.api.auth', { type => $INVALIDATE_TOKEN, id => $user_sid } );
 
     return res 200;
 }

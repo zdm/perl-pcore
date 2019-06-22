@@ -1,7 +1,6 @@
 package Pcore::App::Auth::Descriptor;
 
 use Pcore -class, -res;
-use Pcore::App::Auth qw[:CONST];
 use Pcore::App::API::Request;
 use Pcore::Util::Scalar qw[is_callback is_plain_coderef];
 
