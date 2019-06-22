@@ -260,7 +260,7 @@ allows any authenticated user.
 
 =item ArrayRef[Str]
 
-array of roles names, that are allowed to run this method.
+array of permissions names, that are allowed to run this method.
 
 =back
 
