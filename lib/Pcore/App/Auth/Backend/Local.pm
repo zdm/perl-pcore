@@ -18,7 +18,7 @@ sub init ( $self ) {
     $self->{_hash_cache} = P->hash->limited( $self->{_hash_cache_size} );
 
     # create DBH
-    $self->{dbh} = P->handle( $self->{app}->{app_cfg}->{auth}->{backend} );
+    $self->{dbh} = P->handle( $self->{app}->{cfg}->{auth}->{backend} );
 
     # update schema
     $self->_db_add_schema_patch( $self->{dbh} );
@@ -39,8 +39,8 @@ sub init ( $self ) {
 
     say $self->{app}->{node}->run_node(
         {   type      => 'Pcore::App::Auth::Node',
-            workers   => $self->{app}->{app_cfg}->{auth}->{node}->{workers},
-            buildargs => $self->{app}->{app_cfg}->{auth}->{node}->{argon},
+            workers   => $self->{app}->{cfg}->{auth}->{node}->{workers},
+            buildargs => $self->{app}->{cfg}->{auth}->{node}->{argon},
         },
     );
 

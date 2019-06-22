@@ -8,16 +8,16 @@ use Pcore::App::Auth;
 use Pcore::App::API;
 use Pcore::CDN;
 
-has app_cfg => ( required => 1 );    # HashRef
-has devel   => 0;                    # Bool
+has cfg   => ( required => 1 );    # HashRef
+has devel => 0;                    # Bool
 
-has server => ( init_arg => undef ); # InstanceOf ['Pcore::HTTP::Server']
-has router => ( init_arg => undef ); # InstanceOf ['Pcore::App::Router']
-has auth   => ( init_arg => undef ); # Maybe [ ConsumerOf ['Pcore::App::Auth'] ]
-has api    => ( init_arg => undef ); # Maybe [ InstanceOf ['Pcore::App::API'] ]
-has node   => ( init_arg => undef ); # InstanceOf ['Pcore::Node']
-has cdn    => ( init_arg => undef ); # InstanceOf['Pcore::CDN']
-has ext    => ( init_arg => undef ); # InstanceOf['Pcore::Ext']
+has server => ( init_arg => undef );    # InstanceOf ['Pcore::HTTP::Server']
+has router => ( init_arg => undef );    # InstanceOf ['Pcore::App::Router']
+has auth   => ( init_arg => undef );    # Maybe [ ConsumerOf ['Pcore::App::Auth'] ]
+has api    => ( init_arg => undef );    # Maybe [ InstanceOf ['Pcore::App::API'] ]
+has node   => ( init_arg => undef );    # InstanceOf ['Pcore::Node']
+has cdn    => ( init_arg => undef );    # InstanceOf['Pcore::CDN']
+has ext    => ( init_arg => undef );    # InstanceOf['Pcore::Ext']
 
 const our $PERMISSIONS => [ 'admin', 'user' ];
 
@@ -34,11 +34,11 @@ sub BUILD ( $self, $args ) {
     # create HTTP router
     $self->{router} = Pcore::App::Router->new( {
         app   => $self,
-        hosts => $self->{app_cfg}->{router},
+        hosts => $self->{cfg}->{router},
     } );
 
     # create CDN object
-    $self->{cdn} = Pcore::CDN->new( $self->{app_cfg}->{cdn} ) if $self->{app_cfg}->{cdn};
+    $self->{cdn} = Pcore::CDN->new( $self->{cfg}->{cdn} ) if $self->{cfg}->{cdn};
 
     # create Auth object
     $self->{auth} = Pcore::App::Auth->new($self);
@@ -75,13 +75,13 @@ around run => sub ( $orig, $self ) {
 
         my $requires = defined $node_req ? { $node_req->%* } : {};
 
-        $requires->{'Pcore::App::Auth::Node'} = undef if $self->{app_cfg}->{auth}->{backend};
+        $requires->{'Pcore::App::Auth::Node'} = undef if $self->{cfg}->{auth}->{backend};
 
         $self->{node} = Pcore::Node->new( {
             type     => ref $self,
             requires => $requires,
-            server   => $self->{app_cfg}->{node}->{server},
-            listen   => $self->{app_cfg}->{node}->{listen},
+            server   => $self->{cfg}->{node}->{server},
+            listen   => $self->{cfg}->{node}->{listen},
             on_event => do {
                 if ( $self->can('NODE_ON_EVENT') ) {
                     sub ( $node, $ev ) {
@@ -128,10 +128,10 @@ around run => sub ( $orig, $self ) {
     exit 3 if !$res;
 
     # start HTTP server
-    if ( defined $self->{app_cfg}->{server}->{listen} ) {
-        $self->{server} = Pcore::HTTP::Server->new( { $self->{app_cfg}->{server}->%*, on_request => $self->{router} } );
+    if ( defined $self->{cfg}->{server}->{listen} ) {
+        $self->{server} = Pcore::HTTP::Server->new( { $self->{cfg}->{server}->%*, on_request => $self->{router} } );
 
-        say qq[Listen: $self->{app_cfg}->{server}->{listen}];
+        say qq[Listen: $self->{cfg}->{server}->{listen}];
     }
 
     say qq[App "@{[ref $self]}" started];
@@ -144,11 +144,11 @@ sub nginx_cfg ($self) {
     my $params = {
         name              => lc( ref $self ) =~ s/::/-/smgr,
         data_dir          => $ENV->{DATA_DIR},
-        root_dir          => undef,                                                                      # TODO
-        default_server    => 1,                                                                          # generate default server config
+        root_dir          => undef,                                                                  # TODO
+        default_server    => 1,                                                                      # generate default server config
         nginx_default_key => $ENV->{share}->get('data/nginx/default.key'),
         nginx_default_pem => $ENV->{share}->get('data/nginx/default.pem'),
-        upstream          => P->uri( $self->{app_cfg}->{server}->{listen} )->to_nginx_upstream_server,
+        upstream          => P->uri( $self->{cfg}->{server}->{listen} )->to_nginx_upstream_server,
     };
 
     for my $host ( keys $self->{router}->{path_ctrl}->%* ) {
@@ -172,7 +172,7 @@ sub nginx_cfg ($self) {
         push $params->{host}->{$host_name}->{location}->@*, $self->{cdn}->get_nginx_cfg if defined $self->{cdn};
     }
 
-    return P->tmpl->( $self->{app_cfg}->{server}->{ssl} ? 'nginx/host_conf.nginx' : 'nginx/host_conf_no_ssl.nginx', $params );
+    return P->tmpl->( $self->{cfg}->{server}->{ssl} ? 'nginx/host_conf.nginx' : 'nginx/host_conf_no_ssl.nginx', $params );
 }
 
 sub start_nginx ($self) {
@@ -211,7 +211,7 @@ Pcore::App
 =head1 SYNOPSIS
 
     my $app = Test::App->new( {    #
-        app_cfg => {
+        cfg => {
             server => {            # passed directly to the Pcore::HTTP::Server constructor
                 listen            => '*:80',    # 'unix:/var/run/test.sock'
                 keepalive_timeout => 180,

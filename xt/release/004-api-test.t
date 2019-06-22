@@ -29,9 +29,9 @@ package App {
 }
 
 my $app = bless {
-    app_cfg => {
+    cfg => {
         api => {
-            connect => 'sqlite:',
+            backend => 'sqlite:',
             rpc     => { workers => 1 }
         }
     },
