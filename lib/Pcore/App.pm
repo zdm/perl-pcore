@@ -139,12 +139,7 @@ around run => sub ( $orig, $self ) {
     return;
 };
 
-sub api_call ( $self, @args ) {
-    my $auth = bless { app => $self }, 'Pcore::App::Auth::Descriptor';
-
-    return $auth->api_call(@args);
-}
-
+# NGINX
 sub nginx_cfg ($self) {
     my $params = {
         name              => lc( ref $self ) =~ s/::/-/smgr,
@@ -195,6 +190,12 @@ sub start_nginx ($self) {
     $self->{nginx}->run;
 
     return;
+}
+
+sub api_call ( $self, @args ) {
+    my $auth = bless { app => $self }, 'Pcore::App::Auth::Descriptor';
+
+    return $auth->api_call(@args);
 }
 
 1;
