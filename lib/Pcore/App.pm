@@ -19,6 +19,8 @@ has node   => ( init_arg => undef ); # InstanceOf ['Pcore::Node']
 has cdn    => ( init_arg => undef ); # InstanceOf['Pcore::CDN']
 has ext    => ( init_arg => undef ); # InstanceOf['Pcore::Ext']
 
+const our $PERMISSIONS => [ 'admin', 'user' ];
+
 const our $LOCALES => {
     en => 'English',
 
@@ -45,6 +47,11 @@ sub BUILD ( $self, $args ) {
     $self->{api} = Pcore::App::API->new( app => $self );
 
     return;
+}
+
+# PERMISSIONS
+sub get_permissions ($self) {
+    return $PERMISSIONS;
 }
 
 # LOCALES

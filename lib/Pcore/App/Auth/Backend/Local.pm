@@ -29,7 +29,7 @@ sub init ( $self ) {
 
     return $res unless $res;
 
-    my $roles = ${ ref( $self->{app} ) . '::API_ROLES' };
+    my $roles = $self->{app}->get_permissions;
 
     # add api roles
     ( $res = $self->_db_add_roles( $self->{dbh}, $roles ) ) || return $res;

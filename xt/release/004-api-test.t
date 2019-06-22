@@ -17,7 +17,12 @@ package App {
 
     with qw[Pcore::App];
 
-    our $API_ROLES = [ 'admin', 'user' ];
+    our $PERMISSIONS = [ 'admin', 'user' ];
+
+    # PERMISSIONS
+    sub get_permissions ($self) {
+        return $PERMISSIONS;
+    }
 
     sub run { }
 

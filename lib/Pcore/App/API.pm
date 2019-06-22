@@ -17,7 +17,7 @@ sub init ($self) {
     my $method = {};
 
     # read api roles
-    my $roles = { map { $_ => 1 } ${ ref( $self->{app} ) . '::API_ROLES' }->@* };
+    my $roles = { map { $_ => 1 } $self->{app}->get_permissions->@* };
 
     my $ns_path = ( ref( $self->{app} ) =~ s[::][/]smgr ) . '/API';
 
