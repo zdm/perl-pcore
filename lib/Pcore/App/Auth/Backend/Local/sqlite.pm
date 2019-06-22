@@ -18,8 +18,8 @@ sub _db_add_schema_patch ( $self, $dbh ) {
                 "created" INTEGER NOT NULL DEFAULT(STRFTIME('%s', 'NOW'))
             );
 
-            -- ROLE
-            CREATE TABLE IF NOT EXISTS "auth_role" (
+            -- PERMISSION
+            CREATE TABLE IF NOT EXISTS "auth_permission" (
                 "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
                 "name" BLOB NOT NULL UNIQUE
             );
@@ -27,11 +27,11 @@ sub _db_add_schema_patch ( $self, $dbh ) {
             -- USER PERMISSION
             CREATE TABLE IF NOT EXISTS "auth_user_permission" (
                 "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
-                "user_id" BLOB NOT NULL REFERENCES "auth_user" ("id") ON DELETE CASCADE, -- remove role assoc., on user delete
-                "role_id" BLOB NOT NULL REFERENCES "auth_role" ("id") ON DELETE RESTRICT -- prevent deleting role, if has assigned users
+                "user_id" BLOB NOT NULL REFERENCES "auth_user" ("id") ON DELETE CASCADE, -- remove permission assoc., on user delete
+                "permission_id" BLOB NOT NULL REFERENCES "auth_permission" ("id") ON DELETE RESTRICT -- prevent deleting permission, if has assigned users
             );
 
-            CREATE UNIQUE INDEX IF NOT EXISTS "idx_uniq_auth_user_permission" ON "auth_user_permission" ("user_id", "role_id");
+            CREATE UNIQUE INDEX IF NOT EXISTS "idx_uniq_auth_user_permission" ON "auth_user_permission" ("user_id", "permission_id");
 
             -- USER TOKEN
             CREATE TABLE IF NOT EXISTS "auth_user_token" (
@@ -57,8 +57,8 @@ SQL
     return;
 }
 
-sub _db_add_roles ( $self, $dbh, $roles ) {
-    return $dbh->do( [ q[INSERT OR IGNORE INTO "auth_role"], VALUES [ map { { name => $_ } } $roles->@* ] ] );
+sub _db_add_permissions ( $self, $dbh, $permissions ) {
+    return $dbh->do( [ q[INSERT OR IGNORE INTO "auth_permission"], VALUES [ map { { name => $_ } } $permissions->@* ] ] );
 }
 
 sub _db_create_user ( $self, $dbh, $user_name, $hash, $enabled ) {
@@ -76,15 +76,15 @@ sub _db_create_user ( $self, $dbh, $user_name, $hash, $enabled ) {
     }
 }
 
-sub _db_set_user_permissions ( $self, $dbh, $user_id, $roles_ids ) {
-    my $res = $dbh->do( [ 'INSERT OR IGNORE INTO "auth_user_permission"', VALUES [ map { { role_id => SQL_UUID $_, user_id => SQL_UUID $user_id } } $roles_ids->@* ] ] );
+sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions_ids ) {
+    my $res = $dbh->do( [ 'INSERT OR IGNORE INTO "auth_user_permission"', VALUES [ map { { permission_id => SQL_UUID $_, user_id => SQL_UUID $user_id } } $permissions_ids->@* ] ] );
 
     return res 500 if !$res;
 
     my $modified = $res->{rows};
 
     # remove permissions
-    $res = $dbh->do( [ 'DELETE FROM "auth_user_permission" WHERE "user_id" =', SQL_UUID $user_id, 'AND "role_id" NOT', IN [ map { SQL_UUID $_} $roles_ids->@* ] ] );
+    $res = $dbh->do( [ 'DELETE FROM "auth_user_permission" WHERE "user_id" =', SQL_UUID $user_id, 'AND "permission_id" NOT', IN [ map { SQL_UUID $_} $permissions_ids->@* ] ] );
 
     if ( !$res ) {
         return res 500;
@@ -110,7 +110,7 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $roles_ids ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 8                    | * Private subroutine/method '_db_add_schema_patch' declared but not used                                       |
-## |      | 60                   | * Private subroutine/method '_db_add_roles' declared but not used                                              |
+## |      | 60                   | * Private subroutine/method '_db_add_permissions' declared but not used                                        |
 ## |      | 64                   | * Private subroutine/method '_db_create_user' declared but not used                                            |
 ## |      | 79                   | * Private subroutine/method '_db_set_user_permissions' declared but not used                                   |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|

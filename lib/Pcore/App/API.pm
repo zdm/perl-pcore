@@ -16,8 +16,8 @@ sub init ($self) {
 
     my $method = {};
 
-    # read api roles
-    my $roles = { map { $_ => 1 } $self->{app}->get_permissions->@* };
+    # index permissions
+    my $permissions = { map { $_ => 1 } $self->{app}->get_permissions->@* };
 
     my $ns_path = ( ref( $self->{app} ) =~ s[::][/]smgr ) . '/API';
 
@@ -147,17 +147,17 @@ sub init ($self) {
 
                 # check permissions
                 else {
-                    for my $role ( $method->{$method_id}->{permissions}->@* ) {
+                    for my $permission ( $method->{$method_id}->{permissions}->@* ) {
 
                         # expand "*"
-                        if ( $role eq q[*] ) {
-                            $method->{$method_id}->{permissions} = [ keys $roles->%* ];
+                        if ( $permission eq q[*] ) {
+                            $method->{$method_id}->{permissions} = [ keys $permissions->%* ];
 
                             last;
                         }
 
-                        if ( !exists $roles->{$role} ) {
-                            die qq[Invalid API method permission "$role" for method "$method_id"];
+                        if ( !exists $permissions->{$permission} ) {
+                            die qq[Invalid API method permission "$permission" for method "$method_id"];
                         }
                     }
                 }

@@ -84,8 +84,8 @@ sub _check_permissions ( $self, $method_id ) {
 
         # compare permissions
         else {
-            for my $role_name ( $method_cfg->{permissions}->@* ) {
-                if ( exists $self->{permissions}->{$role_name} ) {
+            for my $permission ( $method_cfg->{permissions}->@* ) {
+                if ( exists $self->{permissions}->{$permission} ) {
                     return res 200;
                 }
             }

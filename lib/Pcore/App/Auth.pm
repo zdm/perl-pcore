@@ -220,7 +220,7 @@ Private token structure is [ %token_type, $token_id, $token_hash ].
 
 Creates user and returns user id.
 
-C<$permissions> - ArrayRef[ 'role1', 'role2', ... ]
+C<$permissions> - ArrayRef[ 'permission1', 'permission2', ... ]
 
 =head2 get_users ( $cb )
 

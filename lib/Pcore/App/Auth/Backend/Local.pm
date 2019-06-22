@@ -29,10 +29,10 @@ sub init ( $self ) {
 
     return $res unless $res;
 
-    my $roles = $self->{app}->get_permissions;
+    my $permissions = $self->{app}->get_permissions;
 
-    # add api roles
-    ( $res = $self->_db_add_roles( $self->{dbh}, $roles ) ) || return $res;
+    # add permissions
+    ( $res = $self->_db_add_permissions( $self->{dbh}, $permissions ) ) || return $res;
 
     # run hash RPC
     print 'Starting API RPC node ... ';
@@ -147,7 +147,7 @@ sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
 
         return $res if !$res;
 
-        $auth->{permissions} = { map { $_->{role_name} => 1 } $res->{data}->@* };
+        $auth->{permissions} = { map { $_->{permission_name} => 1 } $res->{data}->@* };
 
         return res 200, $auth;
     }
@@ -156,7 +156,7 @@ sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
 
         return $res if !$res;
 
-        $auth->{permissions} = { map { $_->{role_name} => 1 } $res->{data}->@* };
+        $auth->{permissions} = { map { $_->{permission_name} => 1 } $res->{data}->@* };
 
         return res 200, $auth;
     }
@@ -299,29 +299,43 @@ sub set_user_permissions ( $self, $user_id, $permissions ) {
     }
 }
 
+# TODO
 sub _set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
     return res 204 if !$permissions || !$permissions->@*;    # not modified
 
-    my $roles = $self->_db_get_roles($dbh);
+    my $all_permissions = $self->_db_get_permissions($dbh);
 
-    return $roles if !$roles;
+    # error retrieving permissions
+    return $all_permissions if !$all_permissions;
 
-    my $role_name_idx = { map { $_->{name} => $_->{id} } values $roles->{data}->%* };
+    my $idx;
 
-    my $roles_ids;
+    for ( values $all_permissions->{data}->%* ) {
+        $idx->{id}->{ $_->{id} } = $_->{name};
 
-    for my $perm ( $permissions->@* ) {
-
-        # resolve role id
-        my $perm_role_id = looks_like_uuid $perm ? $roles->{data}->{$perm}->{id} : $role_name_idx->{$perm};
-
-        # permission role wasn't found
-        return res [ 400, qq[role "$perm" is invlalid] ] if !$perm_role_id;
-
-        push $roles_ids->@*, $perm_role_id;
+        $idx->{name}->{ $_->{id} } = $_->{id};
     }
 
-    return $self->_db_set_user_permissions( $dbh, $user_id, $roles_ids );
+    my $permissions_ids;
+
+    for my $permission ( $permissions->@* ) {
+        if ( looks_like_uuid $permission) {
+
+            # permission id is invalid
+            return res [ 400, qq[permission id "$permission" is invlalid] ] if !exists $idx->{id}->{$permission};
+
+            push $permissions_ids->@*, $permission;
+        }
+        else {
+
+            # permission name is invalid
+            return res [ 400, qq[permission name "$permission" is invlalid] ] if !exists $idx->{name}->{$permission};
+
+            push $permissions_ids->@*, $idx->{name}->{$permission};
+        }
+    }
+
+    return $self->_db_set_user_permissions( $dbh, $user_id, $permissions_ids );
 }
 
 sub set_user_password ( $self, $user_id, $password ) {
@@ -439,10 +453,10 @@ sub create_user_token ( $self, $user_id, $desc, $permissions ) {
     # find user permissions id's
     if ( defined $permissions ) {
 
-        # create index by role name
+        # create index by permission name
         my $idx = { map { $_ => 1 } $permissions->@* };
 
-        $user_permissions = [ grep { exists $idx->{ $_->{role_name} } } $user_permissions->{data}->@* ];
+        $user_permissions = [ grep { exists $idx->{ $_->{permission_name} } } $user_permissions->{data}->@* ];
 
         # some permissions are invalid or not allowed
         return res 500 if $permissions->@* != $user_permissions->{data}->@*;
@@ -588,8 +602,8 @@ sub _db_get_user ( $self, $dbh, $user_id ) {
     return $user;
 }
 
-sub _db_get_roles ( $self, $dbh ) {
-    state $q1 = $dbh->prepare(q[SELECT * FROM "auth_role"]);
+sub _db_get_permissions ( $self, $dbh ) {
+    state $q1 = $dbh->prepare(q[SELECT * FROM "auth_permission"]);
 
     return $dbh->selectall( $q1, key_field => 'id' );
 }
@@ -599,13 +613,13 @@ sub _db_get_user_permissions ( $self, $dbh, $user_id ) {
         <<'SQL',
             SELECT
                 "auth_user_permission"."id" AS "id",
-                "auth_role"."id" AS "role_id",
-                "auth_role"."name" AS "role_name"
+                "auth_permission"."id" AS "permission_id",
+                "auth_permission"."name" AS "permission_name"
             FROM
                 "auth_user_permission",
-                "auth_role"
+                "auth_permission"
             WHERE
-                "auth_user_permission"."role_id" = "auth_role"."id"
+                "auth_user_permission"."permission_id" = "auth_permission"."id"
                 AND "auth_user_permission"."user_id" = ?
 SQL
     );
@@ -618,15 +632,15 @@ sub _db_get_user_token_permissions ( $self, $dbh, $user_token_id ) {
         <<'SQL',
             SELECT
                 "auth_user_token_permission"."id" AS "id",
-                "auth_role"."id" AS "role_id",
-                "auth_role"."name" AS "role_name"
+                "auth_permission"."id" AS "permission_id",
+                "auth_permission"."name" AS "permission_name"
             FROM
                 "auth_user_token_permission",
                 "auth_user_permission",
-                "auth_role"
+                "auth_permission"
             WHERE
                 "auth_user_token_permission"."user_permission_id" = "auth_user_permission"."id"
-                AND "auth_user_permission"."role_id" = "auth_role"."id"
+                AND "auth_user_permission"."permission_id" = "auth_permission"."id"
                 AND "auth_user_token_permission"."user_token_id" = ?
 SQL
     );
