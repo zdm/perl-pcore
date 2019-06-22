@@ -6,7 +6,7 @@ use <: $module_name ~ "::Const qw[:CONST]" :>;
 
 extends qw[Pcore::App::API::Base];
 
-const our $API_NAMESPACE_PERMS => undef;
+const our $API_NAMESPACE_PERMISSIONS => undef;
 
 sub API_app_init : Permissions('*') ( $self, $req, $data = undef ) {
     return $req->( 200, { user_name => $req->{auth} ? ( $req->{auth}->{user_name} ) : undef, } );
