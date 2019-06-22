@@ -299,7 +299,6 @@ sub set_user_permissions ( $self, $user_id, $permissions ) {
     }
 }
 
-# TODO
 sub _set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
     return res 204 if !$permissions || !$permissions->@*;    # not modified
 
