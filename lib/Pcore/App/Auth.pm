@@ -9,7 +9,7 @@ use Pcore::Util::UUID qw[uuid_from_bin];
 use Pcore::App::Auth::Descriptor;
 
 our $EXPORT = {
-    TOKEN_TYPE      => [qw[$TOKEN_TYPE $TOKEN_TYPE_USER_PASSWORD $TOKEN_TYPE_USER_TOKEN $TOKEN_TYPE_USER_SESSION]],
+    TOKEN_TYPE      => [qw[$TOKEN_TYPE $TOKEN_TYPE_PASSWORD $TOKEN_TYPE_TOKEN $TOKEN_TYPE_SESSION]],
     INVALIDATE_TYPE => [qw[$INVALIDATE_USER $INVALIDATE_TOKEN]],
 };
 
@@ -19,14 +19,14 @@ has _auth_cb_queue    => ( init_arg => undef );    # HashRef
 has _auth_cache_user  => ( init_arg => undef );    # HashRef, user_id => { user_token_id }
 has _auth_cache_token => ( init_arg => undef );    # HashRef, user_token_id => auth_descriptor
 
-const our $TOKEN_TYPE_USER_PASSWORD => 1;
-const our $TOKEN_TYPE_USER_TOKEN    => 3;
-const our $TOKEN_TYPE_USER_SESSION  => 4;
+const our $TOKEN_TYPE_PASSWORD => 1;
+const our $TOKEN_TYPE_TOKEN    => 2;
+const our $TOKEN_TYPE_SESSION  => 3;
 
 const our $TOKEN_TYPE => {
-    $TOKEN_TYPE_USER_PASSWORD => undef,
-    $TOKEN_TYPE_USER_TOKEN    => undef,
-    $TOKEN_TYPE_USER_SESSION  => undef,
+    $TOKEN_TYPE_PASSWORD => undef,
+    $TOKEN_TYPE_TOKEN    => undef,
+    $TOKEN_TYPE_SESSION  => undef,
 };
 
 const our $INVALIDATE_USER  => 1;
@@ -99,7 +99,7 @@ sub authenticate ( $self, $token ) {
         # error decoding token
         return bless { app => $self->{app} }, 'Pcore::App::Auth::Descriptor' if $@;
 
-        $token_type = $TOKEN_TYPE_USER_PASSWORD;
+        $token_type = $TOKEN_TYPE_PASSWORD;
 
         \$token_id = \$token->[0];
     }

@@ -30,8 +30,8 @@ sub API_signin : Permissions('*') ( $self, $req, $data ) {
 
 sub API_signout : Permissions('*') ( $self, $req, @ ) {
 
-    # request is authenticated from session token
-    if ( $req->{auth}->{private_token}->[0] && $req->{auth}->{private_token}->[0] == $TOKEN_TYPE_USER_SESSION ) {
+    # request is authenticated from the session token
+    if ( $req->{auth}->{private_token}->[0] && $req->{auth}->{private_token}->[0] == $TOKEN_TYPE_SESSION ) {
 
         # remove user session
         return $req->( $self->{app}->{auth}->remove_user_session( $req->{auth}->{private_token}->[1] ) );
