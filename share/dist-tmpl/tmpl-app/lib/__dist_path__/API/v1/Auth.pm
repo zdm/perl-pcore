@@ -8,11 +8,11 @@ extends qw[Pcore::App::API::Base];
 
 const our $API_NAMESPACE_PERMS => undef;
 
-sub API_app_init : Perms('*') ( $self, $req, $data = undef ) {
+sub API_app_init : Permissions('*') ( $self, $req, $data = undef ) {
     return $req->( 200, { user_name => $req->{auth} ? ( $req->{auth}->{user_name} ) : undef, } );
 }
 
-sub API_signin : Perms('*') ( $self, $req, $data ) {
+sub API_signin : Permissions('*') ( $self, $req, $data ) {
     my $auth = $self->{app}->{auth}->authenticate( [ $data->{user_name}, $data->{password} ] );
 
     # authentication error
@@ -28,7 +28,7 @@ sub API_signin : Perms('*') ( $self, $req, $data ) {
     return $req->( 200, { user_name => $data->{user_name}, token => $session->{data}->{token} } );
 }
 
-sub API_signout : Perms('*') ( $self, $req, @ ) {
+sub API_signout : Permissions('*') ( $self, $req, @ ) {
 
     # request is authenticated from session token
     if ( $req->{auth}->{private_token}->[0] && $req->{auth}->{private_token}->[0] == $TOKEN_TYPE_USER_SESSION ) {

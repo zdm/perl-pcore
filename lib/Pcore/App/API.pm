@@ -56,10 +56,10 @@ sub init ($self) {
         my @bad;
 
         for my $attr (@attrs) {
-            if ( $attr =~ /(Perms) [(] ([^)]*) [)]/smxx ) {
+            if ( $attr =~ /(Permissions) [(] ([^)]*) [)]/smxx ) {
                 my ( $attr, $val ) = ( $1, $2 );
 
-                if ( $attr eq 'Perms' ) {
+                if ( $attr eq 'Permissions' ) {
 
                     # parse args
                     my @val = split /\s*,\s*/sm, $val;
