@@ -560,12 +560,10 @@ sub _db_get_users ( $self, $dbh ) {
 }
 
 sub _db_get_user ( $self, $dbh, $user_id ) {
-    my $is_uuid = looks_like_uuid $user_id;
-
     my $user;
 
     # find user by id
-    if ($is_uuid) {
+    if ( looks_like_uuid $user_id) {
         state $q1 = $dbh->prepare(q[SELECT "id", "name", "enabled", "created" FROM "auth_user" WHERE "id" = ?]);
 
         $user = $dbh->selectrow( $q1, [ SQL_UUID $user_id ] );
