@@ -10,12 +10,6 @@ sub _db_add_schema_patch ( $self, $dbh ) {
         1, 'auth', <<"SQL"
             CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
-            -- ROLE
-            CREATE TABLE IF NOT EXISTS "auth_role" (
-                "id" UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
-                "name" TEXT NOT NULL UNIQUE
-            );
-
             -- USER
             CREATE TABLE IF NOT EXISTS "auth_user" (
                 "id" UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
@@ -23,6 +17,12 @@ sub _db_add_schema_patch ( $self, $dbh ) {
                 "hash" BYTEA NOT NULL,
                 "enabled" BOOLEAN NOT NULL DEFAULT FALSE,
                 "created" INT8 NOT NULL DEFAULT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)
+            );
+
+            -- ROLE
+            CREATE TABLE IF NOT EXISTS "auth_role" (
+                "id" UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
+                "name" TEXT NOT NULL UNIQUE
             );
 
             -- USER PERMISSION

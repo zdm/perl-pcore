@@ -5,7 +5,8 @@ use Pcore::App::Auth qw[:CONST];
 use Pcore::Util::Data qw[to_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
 use Pcore::Util::Text qw[encode_utf8];
-use Pcore::Util::UUID qw[uuid_v4 looks_like_uuid];
+use Pcore::Util::Scalar qw[looks_like_number looks_like_uuid];
+use Pcore::Util::UUID qw[uuid_v4];
 
 with qw[Pcore::App::Auth];
 
@@ -77,6 +78,9 @@ sub validate_name ( $self, $name ) {
 
     # name looks like UUID string
     return if looks_like_uuid $name;
+
+    # name looks like number
+    return if looks_like_number $name;
 
     return if $name =~ /[^[:alnum:]_@.-]/smi;
 
@@ -636,7 +640,7 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 99, 127, 185         | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 103, 131, 189        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

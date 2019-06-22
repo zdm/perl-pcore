@@ -6,15 +6,10 @@ use Data::UUID qw[];        ## no critic qw[Modules::ProhibitEvilModules]
 use Data::UUID::MT qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 our $EXPORT = {
-    ALL    => [qw[looks_like_uuid]],
     CREATE => [qw[uuid_v1mc uuid_v4 uuid_from_bin uuid_from_str uuid_from_hex]],
     V1MC   => [qw[uuid_v1mc uuid_v1mc_bin uuid_v1mc_str uuid_v1mc_hex]],
     V4     => [qw[uuid_v4 uuid_v4_bin uuid_v4_str uuid_v4_hex]],
 };
-
-sub looks_like_uuid : prototype($) ($str) {
-    return $str =~ /\A[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}\z/sm;
-}
 
 # UUID v1mc
 my $UUID_V1 = Data::UUID->new;
@@ -82,16 +77,6 @@ sub from_hex : prototype($) ($hex) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 16                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

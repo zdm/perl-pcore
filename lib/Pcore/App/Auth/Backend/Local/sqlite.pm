@@ -9,19 +9,19 @@ sub _db_add_schema_patch ( $self, $dbh ) {
     $dbh->add_schema_patch(
         1, 'auth', <<"SQL"
 
-            -- ROLE
-            CREATE TABLE IF NOT EXISTS "auth_role" (
-                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
-                "name" BLOB NOT NULL UNIQUE
-            );
-
             -- USER
             CREATE TABLE IF NOT EXISTS "auth_user" (
                 "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
                 "name" TEXT NOT NULL UNIQUE,
                 "hash" BLOB NOT NULL,
                 "enabled" INTEGER NOT NULL DEFAULT 0,
-                "created" INTEGER NOT NULL DEFAULT(CAST(STRFTIME('%s', 'NOW') AS INT))
+                "created" INTEGER NOT NULL DEFAULT(STRFTIME('%s', 'NOW'))
+            );
+
+            -- ROLE
+            CREATE TABLE IF NOT EXISTS "auth_role" (
+                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
+                "name" BLOB NOT NULL UNIQUE
             );
 
             -- USER PERMISSION
@@ -40,7 +40,7 @@ sub _db_add_schema_patch ( $self, $dbh ) {
                 "user_id" BLOB NOT NULL REFERENCES "auth_user" ("id") ON DELETE CASCADE,
                 "hash" BLOB NOT NULL,
                 "desc" TEXT,
-                "created" INTEGER NOT NULL DEFAULT(CAST(STRFTIME('%s', 'NOW') AS INT))
+                "created" INTEGER NOT NULL DEFAULT(STRFTIME('%s', 'NOW'))
             );
 
             -- USER TOKEN PERMISSION
