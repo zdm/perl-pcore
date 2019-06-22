@@ -191,6 +191,9 @@ sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
     # validate user name
     return res [ 400, 'User name is not valid' ] if !$self->validate_name($user_name);
 
+    # lowercase user name
+    $user_name = lc $user_name;
+
     state $on_finish = sub ( $dbh, $res ) {
         if ( !$res ) {
             my $res1 = $dbh->rollback;

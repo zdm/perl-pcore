@@ -76,6 +76,9 @@ sub authenticate ( $self, $token ) {
     # authenticate user password
     if ( is_plain_arrayref $token) {
 
+        # lowercase user name
+        $token->[0] = lc $token->[0];
+
         # generate private token hash
         $private_token_hash = eval { sha3_512 encode_utf8( $token->[1] ) . encode_utf8 $token->[0] };
 
@@ -178,7 +181,7 @@ sub authenticate_private ( $self, $private_token ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 94                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 97                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
