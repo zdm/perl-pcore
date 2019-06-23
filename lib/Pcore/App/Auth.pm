@@ -65,12 +65,10 @@ around init => sub ( $orig, $self ) {
         'app.api.auth',
         sub ($ev) {
             if ( $ev->{data}->{type} == $INVALIDATE_USER ) {
-                if ( my $user_tokens = delete $self->{_auth_cache_user}->{ $ev->{data}->{id} } ) {
-                    delete $self->{_auth_cache_token}->@{ keys $user_tokens->%* };
-                }
+                $self->_invalidate_user( $ev->{data}->{id} );
             }
             elsif ( $ev->{data}->{type} == $INVALIDATE_TOKEN ) {
-                $self->_invalidate_user_token( $ev->{data}->{id} );
+                $self->_invalidate_token( $ev->{data}->{id} );
             }
 
             return;
@@ -160,7 +158,7 @@ sub authenticate_private ( $self, $private_token ) {
     if ( !$res ) {
 
         # invalidate token
-        $self->_invalidate_user_token( $private_token->[1] );
+        $self->_invalidate_token( $private_token->[1] );
 
         # return new unauthenticated auth object
         $auth = $self->_get_unauthenticated_descriptor($private_token);
@@ -200,7 +198,15 @@ sub _get_unauthenticated_descriptor ( $self, $private_token ) {
       'Pcore::App::Auth::Descriptor';
 }
 
-sub _invalidate_user_token ( $self, $token_id ) {
+sub _invalidate_user ( $self, $user_id ) {
+    if ( my $user_tokens = delete $self->{_auth_cache_user}->{$user_id} ) {
+        delete $self->{_auth_cache_token}->@{ keys $user_tokens->%* };
+    }
+
+    return;
+}
+
+sub _invalidate_token ( $self, $token_id ) {
     my $auth = delete $self->{_auth_cache_token}->{$token_id};
 
     if ( defined $auth ) {
@@ -217,7 +223,7 @@ sub _invalidate_user_token ( $self, $token_id ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 113                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 111                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
