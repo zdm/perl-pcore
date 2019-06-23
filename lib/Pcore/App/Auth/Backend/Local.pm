@@ -368,6 +368,9 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
     # resolve user
     my $user = $self->_db_get_user( $self->{dbh}, $user_id );
 
+    # root can't be disaled
+    return res [ 400, q[Root user can't be disabled] ] if $user->{data}->{name} eq 'root';
+
     # user wasn't found
     return $user if !$user;
 
