@@ -32,6 +32,8 @@ const our $TOKEN_TYPE => {
 const our $INVALIDATE_USER  => 1;
 const our $INVALIDATE_TOKEN => 2;
 
+# TODO periodically remove inactive session tokens
+
 sub new ( $self, $app ) {
     state $scheme_class = {
         sqlite => 'Pcore::App::Auth::Backend::Local::sqlite',
@@ -215,7 +217,7 @@ sub _invalidate_user_token ( $self, $token_id ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 111                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 113                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
