@@ -9,7 +9,7 @@ use Pcore::Util::UUID qw[uuid_from_bin];
 use Pcore::App::Auth::Descriptor;
 
 our $EXPORT = {
-    TOKEN_TYPE      => [qw[$TOKEN_TYPE $TOKEN_TYPE_PASSWORD $TOKEN_TYPE_TOKEN $TOKEN_TYPE_SESSION]],
+    TOKEN_TYPE      => [qw[$TOKEN_TYPE_UNKNOWN $TOKEN_TYPE_PASSWORD $TOKEN_TYPE_TOKEN $TOKEN_TYPE_SESSION]],
     INVALIDATE_TYPE => [qw[$INVALIDATE_USER $INVALIDATE_TOKEN $INVALIDATE_ALL]],
     PRIVATE_TOKEN   => [qw[$PRIVATE_TOKEN_ID $PRIVATE_TOKEN_HASH $PRIVATE_TOKEN_TYPE]],
 };
@@ -21,15 +21,10 @@ has _auth_cache_user  => ( init_arg             => undef );    # HashRef, user_i
 has _auth_cache_token => ( init_arg             => undef );    # HashRef, user_token_id => auth_descriptor
 has _session_timer    => ( init_arg             => undef );    # InstanceOf['AE::timer']
 
+const our $TOKEN_TYPE_UNKNOWN  => 0;
 const our $TOKEN_TYPE_PASSWORD => 1;
 const our $TOKEN_TYPE_TOKEN    => 2;
 const our $TOKEN_TYPE_SESSION  => 3;
-
-const our $TOKEN_TYPE => {
-    $TOKEN_TYPE_PASSWORD => undef,
-    $TOKEN_TYPE_TOKEN    => undef,
-    $TOKEN_TYPE_SESSION  => undef,
-};
 
 const our $PRIVATE_TOKEN_ID   => 0;
 const our $PRIVATE_TOKEN_HASH => 1;
@@ -114,7 +109,7 @@ sub authenticate ( $self, $token ) {
         $private_token_hash = eval { sha3_512 encode_utf8( $token->[1] ) . encode_utf8 $token->[0] };
 
         # error decoding token
-        return bless { app => $self->{app} }, 'Pcore::App::Auth::Descriptor' if $@;
+        return $self->_get_unauthenticated_descriptor if $@;
 
         $token_type = $TOKEN_TYPE_PASSWORD;
 
@@ -128,20 +123,16 @@ sub authenticate ( $self, $token ) {
         eval {
             my $token_bin = from_b64_url $token;
 
-            # unpack token type
-            $token_type = unpack 'C', $token_bin;
-
             # unpack token id
-            $token_id = uuid_from_bin( substr $token_bin, 1, 16 )->str;
+            $token_id = uuid_from_bin( substr $token_bin, 0, 16 )->str;
 
             $private_token_hash = sha3_512 $token;
         };
 
         # error decoding token
-        return bless { app => $self->{app} }, 'Pcore::App::Auth::Descriptor' if $@;
+        return $self->_get_unauthenticated_descriptor if $@;
 
-        # invalid token type
-        return bless { app => $self->{app} }, 'Pcore::App::Auth::Descriptor' if !exists $TOKEN_TYPE->{$token_type};
+        $token_type = $TOKEN_TYPE_UNKNOWN;
     }
 
     return $self->authenticate_private( [ $token_id, $private_token_hash, $token_type ] );
@@ -215,7 +206,7 @@ sub authenticate_private ( $self, $private_token ) {
     return $cv->recv;
 }
 
-sub _get_unauthenticated_descriptor ( $self, $private_token ) {
+sub _get_unauthenticated_descriptor ( $self, $private_token = undef ) {
     return bless {
         app              => $self->{app},
         is_authenticated => 0,
@@ -274,7 +265,7 @@ sub _invalidate_expired_sessions ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 128                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 123                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

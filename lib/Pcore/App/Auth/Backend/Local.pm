@@ -62,14 +62,8 @@ sub do_authenticate_private ( $self, $private_token ) {
     if ( $private_token->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_PASSWORD ) {
         return $self->_auth_user_password($private_token);
     }
-    elsif ( $private_token->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_TOKEN ) {
-        return $self->_auth_user_token($private_token);
-    }
-    elsif ( $private_token->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_SESSION ) {
-        return $self->_auth_user_token($private_token);
-    }
     else {
-        return res [ 400, 'Invalid token type' ];
+        return $self->_auth_user_token($private_token);
     }
 }
 
@@ -114,10 +108,10 @@ sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8 )
     return res 200, { hash => $res->{data} };
 }
 
-sub _generate_token ( $self, $token_type ) {
+sub _generate_token ( $self ) {
     my $token_id = uuid_v4;
 
-    my $public_token = to_b64_url pack( 'C', $token_type ) . $token_id->bin . P->random->bytes(32);
+    my $public_token = to_b64_url $token_id->bin . P->random->bytes(32);
 
     my $private_token_hash = sha3_512 $public_token;
 
@@ -125,7 +119,11 @@ sub _generate_token ( $self, $token_type ) {
 
     return $res if !$res;
 
-    return res 200, { id => $token_id->str, token => $public_token, hash => $res->{data} };
+    return res 200,
+      { id    => $token_id->str,
+        token => $public_token,
+        hash  => $res->{data}
+      };
 }
 
 sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
@@ -142,6 +140,7 @@ sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
     # is a root user
     return res 200, $auth if $auth->{is_root};
 
+    # get token permissions
     if ( $private_token->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_TOKEN ) {
         my $res = $self->_db_get_user_token_permissions( $self->{dbh}, $private_token->[$PRIVATE_TOKEN_ID] );
 
@@ -151,6 +150,8 @@ sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
 
         return res 200, $auth;
     }
+
+    # get user permissions, session tokens inherit user permissions
     else {
         my $res = $self->_db_get_user_permissions( $self->{dbh}, $user_id );
 
@@ -407,6 +408,7 @@ sub _auth_user_token ( $self, $private_token ) {
                 "auth_user"."id" AS "user_id",
                 "auth_user"."name" AS "user_name",
                 "auth_user"."enabled" AS "user_enabled",
+                "auth_user_token"."type" AS "user_token_type",
                 "auth_user_token"."hash" AS "user_token_hash"
             FROM
                 "auth_user",
@@ -428,6 +430,9 @@ SQL
     # token is not valid
     return $status if !$status;
 
+    # store token type in private token
+    $private_token->[$PRIVATE_TOKEN_TYPE] = $user_token->{data}->{user_token_type};
+
     # token is valid
     return $self->_return_auth( $private_token, $user_token->{data}->{user_id}, $user_token->{data}->{user_name} );
 }
@@ -441,7 +446,7 @@ sub create_user_token ( $self, $user_id, $desc, $permissions ) {
     return $user if !$user;
 
     # generate user token
-    my $token = $self->_generate_token($TOKEN_TYPE_TOKEN);
+    my $token = $self->_generate_token;
 
     # token generation error
     return $token if !$token;
@@ -537,7 +542,7 @@ sub create_user_session ( $self, $user_id ) {
     return $user if !$user;
 
     # generate session token
-    my $token = $self->_generate_token($TOKEN_TYPE_SESSION);
+    my $token = $self->_generate_token;
 
     # token generation error
     return $token if !$token;
@@ -657,7 +662,7 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 103, 131, 189        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 97, 129, 190         | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
