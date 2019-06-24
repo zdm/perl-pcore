@@ -10,14 +10,15 @@ use Pcore::App::Auth::Descriptor;
 
 our $EXPORT = {
     TOKEN_TYPE      => [qw[$TOKEN_TYPE $TOKEN_TYPE_PASSWORD $TOKEN_TYPE_TOKEN $TOKEN_TYPE_SESSION]],
-    INVALIDATE_TYPE => [qw[$INVALIDATE_USER $INVALIDATE_TOKEN]],
+    INVALIDATE_TYPE => [qw[$INVALIDATE_USER $INVALIDATE_TOKEN $INVALIDATE_ALL]],
+    PRIVATE_TOKEN   => [qw[$PRIVATE_TOKEN_ID $PRIVATE_TOKEN_HASH $PRIVATE_TOKEN_TYPE]],
 };
 
 has app => ( required => 1 );    # ConsumerOf ['Pcore::App']
 
-has _auth_cb_queue    => ( init_arg => undef );    # HashRef
-has _auth_cache_user  => ( init_arg => undef );    # HashRef, user_id => { user_token_id }
-has _auth_cache_token => ( init_arg => undef );    # HashRef, user_token_id => auth_descriptor
+has _auth_cb_queue    => ( sub { {} }, init_arg => undef );    # HashRef
+has _auth_cache_user  => ( init_arg             => undef );    # HashRef, user_id => { user_token_id }
+has _auth_cache_token => ( init_arg             => undef );    # HashRef, user_token_id => auth_descriptor
 
 const our $TOKEN_TYPE_PASSWORD => 1;
 const our $TOKEN_TYPE_TOKEN    => 2;
@@ -29,10 +30,13 @@ const our $TOKEN_TYPE => {
     $TOKEN_TYPE_SESSION  => undef,
 };
 
+const our $PRIVATE_TOKEN_ID   => 0;
+const our $PRIVATE_TOKEN_HASH => 1;
+const our $PRIVATE_TOKEN_TYPE => 2;
+
 const our $INVALIDATE_USER  => 1;
 const our $INVALIDATE_TOKEN => 2;
-
-# TODO periodically remove inactive session tokens
+const our $INVALIDATE_ALL   => 3;
 
 sub new ( $self, $app ) {
     state $scheme_class = {
@@ -69,6 +73,9 @@ around init => sub ( $orig, $self ) {
             }
             elsif ( $ev->{data}->{type} == $INVALIDATE_TOKEN ) {
                 $self->_invalidate_token( $ev->{data}->{id} );
+            }
+            elsif ( $ev->{data}->{type} == $INVALIDATE_ALL ) {
+                $self->_invalidate_all;
             }
 
             return;
@@ -127,17 +134,21 @@ sub authenticate ( $self, $token ) {
         return bless { app => $self->{app} }, 'Pcore::App::Auth::Descriptor' if !exists $TOKEN_TYPE->{$token_type};
     }
 
-    return $self->authenticate_private( [ $token_type, $token_id, $private_token_hash ] );
+    return $self->authenticate_private( [ $token_id, $private_token_hash, $token_type ] );
 }
 
 sub authenticate_private ( $self, $private_token ) {
     my $auth;
 
-    # try to find token in cache
-    if ( $auth = $self->{_auth_cache_token}->{ $private_token->[1] } ) {
-        if ( $private_token->[2] eq $auth->{private_token}->[2] ) {
+    # private token is cached
+    if ( $auth = $self->{_auth_cache_token}->{ $private_token->[$PRIVATE_TOKEN_ID] } ) {
+
+        # private token is valid
+        if ( $private_token->[$PRIVATE_TOKEN_HASH] eq $auth->{private_token}->[$PRIVATE_TOKEN_HASH] ) {
             return $auth;
         }
+
+        # private token is not valid
         else {
             return $self->_get_unauthenticated_descriptor($private_token);
         }
@@ -147,9 +158,9 @@ sub authenticate_private ( $self, $private_token ) {
 
     my $cache = $self->{_auth_cb_queue};
 
-    push $cache->{ $private_token->[2] }->@*, $cv;
+    push $cache->{ $private_token->[$PRIVATE_TOKEN_HASH] }->@*, $cv;
 
-    return $cv->recv if $cache->{ $private_token->[2] }->@* > 1;
+    return $cv->recv if $cache->{ $private_token->[$PRIVATE_TOKEN_HASH] }->@* > 1;
 
     # authenticate on backend
     my $res = $self->do_authenticate_private($private_token);
@@ -158,7 +169,7 @@ sub authenticate_private ( $self, $private_token ) {
     if ( !$res ) {
 
         # invalidate token
-        $self->_invalidate_token( $private_token->[1] );
+        $self->_invalidate_token( $private_token->[$PRIVATE_TOKEN_ID] );
 
         # return new unauthenticated auth object
         $auth = $self->_get_unauthenticated_descriptor($private_token);
@@ -175,12 +186,12 @@ sub authenticate_private ( $self, $private_token ) {
         $auth->{private_token}    = $private_token;
 
         # store in cache
-        $self->{_auth_cache_token}->{ $private_token->[1] } = $auth;
-        $self->{_auth_cache_user}->{ $auth->{user_id} }->{ $private_token->[1] } = 1;
+        $self->{_auth_cache_token}->{ $private_token->[$PRIVATE_TOKEN_ID] } = $auth;
+        $self->{_auth_cache_user}->{ $auth->{user_id} }->{ $private_token->[$PRIVATE_TOKEN_ID] } = 1;
     }
 
     # call callbacks
-    $cache = delete $cache->{ $private_token->[2] };
+    $cache = delete $cache->{ $private_token->[$PRIVATE_TOKEN_HASH] };
 
     while ( my $cb = shift $cache->@* ) {
         $cb->($auth);
@@ -198,6 +209,7 @@ sub _get_unauthenticated_descriptor ( $self, $private_token ) {
       'Pcore::App::Auth::Descriptor';
 }
 
+# CACHE INVALIDATE
 sub _invalidate_user ( $self, $user_id ) {
     if ( my $user_tokens = delete $self->{_auth_cache_user}->{$user_id} ) {
         delete $self->{_auth_cache_token}->@{ keys $user_tokens->%* };
@@ -216,6 +228,14 @@ sub _invalidate_token ( $self, $token_id ) {
     return;
 }
 
+sub _invalidate_all ( $self ) {
+    undef $self->{_auth_cache_user};
+
+    undef $self->{_auth_cache_token};
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -223,7 +243,7 @@ sub _invalidate_token ( $self, $token_id ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 111                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 118                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

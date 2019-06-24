@@ -59,13 +59,13 @@ sub init ( $self ) {
 
 # AUTHENTICATE
 sub do_authenticate_private ( $self, $private_token ) {
-    if ( $private_token->[0] == $TOKEN_TYPE_PASSWORD ) {
+    if ( $private_token->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_PASSWORD ) {
         return $self->_auth_user_password($private_token);
     }
-    elsif ( $private_token->[0] == $TOKEN_TYPE_TOKEN ) {
+    elsif ( $private_token->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_TOKEN ) {
         return $self->_auth_user_token($private_token);
     }
-    elsif ( $private_token->[0] == $TOKEN_TYPE_SESSION ) {
+    elsif ( $private_token->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_SESSION ) {
         return $self->_auth_user_token($private_token);
     }
     else {
@@ -142,8 +142,8 @@ sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
     # is a root user
     return res 200, $auth if $auth->{is_root};
 
-    if ( $private_token->[0] == $TOKEN_TYPE_TOKEN ) {
-        my $res = $self->_db_get_user_token_permissions( $self->{dbh}, $private_token->[1] );
+    if ( $private_token->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_TOKEN ) {
+        my $res = $self->_db_get_user_token_permissions( $self->{dbh}, $private_token->[$PRIVATE_TOKEN_ID] );
 
         return $res if !$res;
 
@@ -168,7 +168,7 @@ sub _auth_user_password ( $self, $private_token ) {
     # get user
     state $q1 = $self->{dbh}->prepare(q[SELECT "id", "hash", "enabled" FROM "auth_user" WHERE "name" = ?]);
 
-    my $user = $self->{dbh}->selectrow( $q1, [ $private_token->[1] ] );
+    my $user = $self->{dbh}->selectrow( $q1, [ $private_token->[$PRIVATE_TOKEN_ID] ] );
 
     # user not found
     return res [ 404, 'User not found' ] if !$user->{data};
@@ -177,13 +177,13 @@ sub _auth_user_password ( $self, $private_token ) {
     return res [ 404, 'User is disabled' ] if !$user->{data}->{enabled};
 
     # verify token
-    my $status = $self->_verify_token_hash( $private_token->[2], $user->{data}->{hash} );
+    my $status = $self->_verify_token_hash( $private_token->[$PRIVATE_TOKEN_HASH], $user->{data}->{hash} );
 
     # token is invalid
     return $status if !$status;
 
     # token is valid
-    return $self->_return_auth( $private_token, $user->{data}->{id}, $private_token->[1] );
+    return $self->_return_auth( $private_token, $user->{data}->{id}, $private_token->[$PRIVATE_TOKEN_ID] );
 }
 
 sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
@@ -417,13 +417,13 @@ sub _auth_user_token ( $self, $private_token ) {
 SQL
     );
 
-    my $user_token = $self->{dbh}->selectrow( $q1, [ SQL_UUID $private_token->[1] ] );
+    my $user_token = $self->{dbh}->selectrow( $q1, [ SQL_UUID $private_token->[$PRIVATE_TOKEN_ID] ] );
 
     # user is disabled
     return res 404 if !$user_token->{data}->{user_enabled};
 
     # verify token
-    my $status = $self->_verify_token_hash( $private_token->[2], $user_token->{data}->{user_token_hash} );
+    my $status = $self->_verify_token_hash( $private_token->[$PRIVATE_TOKEN_HASH], $user_token->{data}->{user_token_hash} );
 
     # token is not valid
     return $status if !$status;
