@@ -58,7 +58,8 @@ SQL
     return;
 }
 
-sub _db_add_permissions ( $self, $dbh, $permissions ) {
+# TODO
+sub _db_sync_app_permissions ( $self, $dbh, $permissions ) {
     return $dbh->do( [ q[INSERT INTO "auth_permission"], VALUES [ map { { name => $_ } } $permissions->@* ], 'ON CONFLICT DO NOTHING' ] );
 }
 
@@ -111,11 +112,11 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions_ids ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 8                    | * Private subroutine/method '_db_add_schema_patch' declared but not used                                       |
-## |      | 61                   | * Private subroutine/method '_db_add_permissions' declared but not used                                        |
-## |      | 65                   | * Private subroutine/method '_db_create_user' declared but not used                                            |
-## |      | 80                   | * Private subroutine/method '_db_set_user_permissions' declared but not used                                   |
+## |      | 62                   | * Private subroutine/method '_db_sync_app_permissions' declared but not used                                   |
+## |      | 66                   | * Private subroutine/method '_db_create_user' declared but not used                                            |
+## |      | 81                   | * Private subroutine/method '_db_set_user_permissions' declared but not used                                   |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 65, 80               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 66, 81               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

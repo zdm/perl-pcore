@@ -31,8 +31,11 @@ sub init ( $self ) {
 
     my $permissions = $self->{app}->get_permissions;
 
-    # add permissions
-    ( $res = $self->_db_add_permissions( $self->{dbh}, $permissions ) ) || return $res;
+    # sync app permissions
+    ( $res = $self->_db_sync_app_permissions( $self->{dbh}, $permissions ) ) || return $res;
+
+    # app permissions was changed, invalidate cache
+    P->fire_event( 'app.auth.cache', { type => $INVALIDATE_ALL } ) if $res == 200;
 
     # run hash RPC
     print 'Starting API RPC node ... ';
@@ -294,7 +297,7 @@ sub set_user_permissions ( $self, $user_id, $permissions ) {
         return $res1 if !$res1;
 
         # fire event if user permissions was changed
-        P->fire_event( 'app.api.auth', { type => $INVALIDATE_USER, id => $user->{data}->{id} } ) if $res == 200;
+        P->fire_event( 'app.auth.cache', { type => $INVALIDATE_USER, id => $user->{data}->{id} } ) if $res == 200;
 
         return $res;
     }
@@ -359,7 +362,7 @@ sub set_user_password ( $self, $user_id, $password ) {
     return res 500 if !$res->{rows};
 
     # fire AUTH event if user password was changed
-    P->fire_event( 'app.api.auth', { type => $INVALIDATE_TOKEN, id => $user->{data}->{name} } );
+    P->fire_event( 'app.auth.cache', { type => $INVALIDATE_TOKEN, id => $user->{data}->{name} } );
 
     return res 200;
 }
@@ -387,7 +390,7 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
         return res 500 if !$res->{rows};
 
         # fire AUTH event if user was disabled
-        P->fire_event( 'app.api.auth', { type => $INVALIDATE_USER, id => $user->{data}->{id} } ) if !$enabled;
+        P->fire_event( 'app.auth.cache', { type => $INVALIDATE_USER, id => $user->{data}->{id} } ) if !$enabled;
 
         return res 200, { enabled => $enabled };
     }
@@ -527,7 +530,7 @@ sub remove_user_token ( $self, $user_token_id ) {
     # not found
     return res 204 if !$res->{rows};
 
-    P->fire_event( 'app.api.auth', { type => $INVALIDATE_TOKEN, id => $user_token_id } );
+    P->fire_event( 'app.auth.cache', { type => $INVALIDATE_TOKEN, id => $user_token_id } );
 
     return res 200;
 }
@@ -571,7 +574,7 @@ sub remove_user_session ( $self, $user_sid ) {
     # not found
     return res 204 if !$res->{rows};
 
-    P->fire_event( 'app.api.auth', { type => $INVALIDATE_TOKEN, id => $user_sid } );
+    P->fire_event( 'app.auth.cache', { type => $INVALIDATE_TOKEN, id => $user_sid } );
 
     return res 200;
 }
@@ -662,7 +665,7 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 97, 129, 190         | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 100, 132, 193        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
