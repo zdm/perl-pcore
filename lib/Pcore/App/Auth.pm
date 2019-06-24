@@ -19,6 +19,7 @@ has app => ( required => 1 );    # ConsumerOf ['Pcore::App']
 has _auth_cb_queue    => ( sub { {} }, init_arg => undef );    # HashRef
 has _auth_cache_user  => ( init_arg             => undef );    # HashRef, user_id => { user_token_id }
 has _auth_cache_token => ( init_arg             => undef );    # HashRef, user_token_id => auth_descriptor
+has _session_timer    => ( init_arg             => undef );    # InstanceOf['AE::timer']
 
 const our $TOKEN_TYPE_PASSWORD => 1;
 const our $TOKEN_TYPE_TOKEN    => 2;
@@ -37,6 +38,8 @@ const our $PRIVATE_TOKEN_TYPE => 2;
 const our $INVALIDATE_USER  => 1;
 const our $INVALIDATE_TOKEN => 2;
 const our $INVALIDATE_ALL   => 3;
+
+const our $SESSION_TIMEOUT => 60 * 60;    # remove sessions tokens, that are older than 1 hour
 
 sub new ( $self, $app ) {
     state $scheme_class = {
@@ -81,6 +84,13 @@ around init => sub ( $orig, $self ) {
             return;
         }
     );
+
+    # expired sessions invalidation timer
+    $self->{_session_timer} = AE::timer $SESSION_TIMEOUT, $SESSION_TIMEOUT, sub {
+        $self->_invalidate_expired_sessions;
+
+        return;
+    };
 
     return $self->$orig;
 };
@@ -145,10 +155,14 @@ sub authenticate_private ( $self, $private_token ) {
 
         # private token is valid
         if ( $private_token->[$PRIVATE_TOKEN_HASH] eq $auth->{private_token}->[$PRIVATE_TOKEN_HASH] ) {
+
+            # update last accessed time
+            $auth->{last_accessed} = time;
+
             return $auth;
         }
 
-        # private token is not valid
+        # private token is in cache, but hash is not valid
         else {
             return $self->_get_unauthenticated_descriptor($private_token);
         }
@@ -184,10 +198,11 @@ sub authenticate_private ( $self, $private_token ) {
         $auth->{app}              = $self->{app};
         $auth->{is_authenticated} = 1;
         $auth->{private_token}    = $private_token;
+        $auth->{last_accessed}    = time;
 
         # store in cache
-        $self->{_auth_cache_token}->{ $private_token->[$PRIVATE_TOKEN_ID] } = $auth;
         $self->{_auth_cache_user}->{ $auth->{user_id} }->{ $private_token->[$PRIVATE_TOKEN_ID] } = 1;
+        $self->{_auth_cache_token}->{ $private_token->[$PRIVATE_TOKEN_ID] } = $auth;
     }
 
     # call callbacks
@@ -222,7 +237,11 @@ sub _invalidate_token ( $self, $token_id ) {
     my $auth = delete $self->{_auth_cache_token}->{$token_id};
 
     if ( defined $auth ) {
-        delete $self->{_auth_cache_user}->{ $auth->{user_id} }->{$token_id};
+        my $user_id = $auth->{user_id};
+
+        delete $self->{_auth_cache_user}->{$user_id}->{$token_id};
+
+        delete $self->{_auth_cache_user}->{$user_id} if !$self->{_auth_cache_user}->{$user_id}->%*;
     }
 
     return;
@@ -236,6 +255,18 @@ sub _invalidate_all ( $self ) {
     return;
 }
 
+sub _invalidate_expired_sessions ($self) {
+    my $time = time - $SESSION_TIMEOUT;
+
+    for my $auth ( values $self->{_auth_cache_token}->%* ) {
+        if ( $auth->{private_token}->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_SESSION && $auth->{last_accessed} < $time ) {
+            $self->_invalidate_token( $auth->{private_token}->[$PRIVATE_TOKEN_ID] );
+        }
+    }
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -243,7 +274,7 @@ sub _invalidate_all ( $self ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 118                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 128                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
