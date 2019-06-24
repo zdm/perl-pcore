@@ -21,7 +21,8 @@ sub _db_add_schema_patch ( $self, $dbh ) {
             -- PERMISSION
             CREATE TABLE IF NOT EXISTS "auth_permission" (
                 "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
-                "name" BLOB NOT NULL UNIQUE
+                "name" BLOB NOT NULL UNIQUE,
+                "enabled" INTEGER NOT NULL DEFAULT 1
             );
 
             -- USER PERMISSION
@@ -57,9 +58,31 @@ SQL
     return;
 }
 
-# TODO
 sub _db_sync_app_permissions ( $self, $dbh, $permissions ) {
-    return $dbh->do( [ q[INSERT OR IGNORE INTO "auth_permission"], VALUES [ map { { name => $_ } } $permissions->@* ] ] );
+    my $modified = 0;
+
+    # insert permissions
+    my $res = $dbh->do( [ q[INSERT OR IGNORE INTO "auth_permission"], VALUES [ map { { name => $_ } } $permissions->@* ] ] );
+
+    return $res if !$res;
+
+    $modified += $res->{rows};
+
+    # enable permissions
+    $res = $dbh->do( [ q[UPDATE "auth_permission" SET "enabled" = 1 WHERE "enabled" = 0 AND "name"], IN $permissions ] );
+
+    return $res if !$res;
+
+    $modified += $res->{rows};
+
+    # disable removed permissions
+    $res = $dbh->do( [ q[UPDATE "auth_permission" SET "enabled" = 0 WHERE "enabled" = 1 AND "name" NOT], IN $permissions ] );
+
+    return $res if !$res;
+
+    $modified += $res->{rows};
+
+    return res( $modified ? 200 : 204 );
 }
 
 sub _db_create_user ( $self, $dbh, $user_name, $hash, $enabled ) {
@@ -112,10 +135,10 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions_ids ) {
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 8                    | * Private subroutine/method '_db_add_schema_patch' declared but not used                                       |
 ## |      | 61                   | * Private subroutine/method '_db_sync_app_permissions' declared but not used                                   |
-## |      | 65                   | * Private subroutine/method '_db_create_user' declared but not used                                            |
-## |      | 80                   | * Private subroutine/method '_db_set_user_permissions' declared but not used                                   |
+## |      | 88                   | * Private subroutine/method '_db_create_user' declared but not used                                            |
+## |      | 103                  | * Private subroutine/method '_db_set_user_permissions' declared but not used                                   |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 65, 80               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 88, 103              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
