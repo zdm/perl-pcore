@@ -39,7 +39,7 @@ const our $INVALIDATE_USER  => 1;
 const our $INVALIDATE_TOKEN => 2;
 const our $INVALIDATE_ALL   => 3;
 
-const our $SESSION_TIMEOUT => 60 * 60;    # remove sessions tokens, that are older than 1 hour
+const our $SESSION_TIMEOUT => 60 * 60 * 12;    # remove sessions tokens, that are older than 12 hours
 
 sub new ( $self, $app ) {
     state $scheme_class = {
