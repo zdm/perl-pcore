@@ -599,7 +599,7 @@ sub from_b64_url : prototype($) {
 }
 
 # XOR
-sub to_xor ( $buf, $mask ) {
+sub to_xor : prototype($$) ( $buf, $mask ) {
     no feature qw[bitwise];
 
     my $mlen = length $mask;
