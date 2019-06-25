@@ -126,7 +126,7 @@ sub authenticate ( $self, $token ) {
             # unpack token id
             $token_id = uuid_from_bin( substr $token_bin, 0, 16 )->str;
 
-            $private_token_hash = sha3_512 $token;
+            $private_token_hash = sha3_512 substr $token_bin, 16;
         };
 
         # error decoding token

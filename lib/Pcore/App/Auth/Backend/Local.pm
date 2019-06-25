@@ -114,18 +114,16 @@ sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8 )
 sub _generate_token ( $self ) {
     my $token_id = uuid_v4;
 
-    my $public_token = to_b64_url $token_id->bin . P->random->bytes(32);
+    my $rand = P->random->bytes(32);
 
-    my $private_token_hash = sha3_512 $public_token;
+    my $token_bin = $token_id->bin . $rand;
 
-    my $res = $self->{app}->{node}->rpc_call( 'Pcore::App::Auth::Node', 'create_hash', $private_token_hash );
-
-    return $res if !$res;
+    my $private_token_hash = sha3_512 $rand;
 
     return res 200,
       { id    => $token_id->str,
-        token => $public_token,
-        hash  => $res->{data}
+        token => to_b64_url $token_bin,
+        hash  => sha3_512 $private_token_hash . $token_id->str,
       };
 }
 
@@ -427,11 +425,8 @@ SQL
     # user is disabled
     return res 404 if !$user_token->{data}->{user_enabled};
 
-    # verify token
-    my $status = $self->_verify_token_hash( $private_token->[$PRIVATE_TOKEN_HASH], $user_token->{data}->{user_token_hash} );
-
-    # token is not valid
-    return $status if !$status;
+    # verify token, token is not valid
+    return res [ 400, 'Invalid token' ] if sha3_512( $private_token->[$PRIVATE_TOKEN_HASH] . $private_token->[$PRIVATE_TOKEN_ID] ) ne $user_token->{data}->{user_token_hash};
 
     # store token type in private token
     $private_token->[$PRIVATE_TOKEN_TYPE] = $user_token->{data}->{user_token_type};
@@ -665,7 +660,7 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 100, 132, 193        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 100, 130, 191        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

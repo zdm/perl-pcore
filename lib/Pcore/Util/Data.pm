@@ -574,25 +574,25 @@ sub from_ini ( $data, @ ) {
 }
 
 # BASE64
-sub to_b64 {
+sub to_b64 : prototype($;$) {
     require MIME::Base64;    ## no critic qw[Modules::ProhibitEvilModules]
 
     return &MIME::Base64::encode_base64;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
-sub to_b64_url {
+sub to_b64_url : prototype($) {
     require MIME::Base64;                   ## no critic qw[Modules::ProhibitEvilModules]
 
     return &MIME::Base64::encode_base64url; ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
-sub from_b64 {
+sub from_b64 : prototype($) {
     require MIME::Base64;                   ## no critic qw[Modules::ProhibitEvilModules]
 
     return &MIME::Base64::decode_base64;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
-sub from_b64_url {
+sub from_b64_url : prototype($) {
     require MIME::Base64;                   ## no critic qw[Modules::ProhibitEvilModules]
 
     return &MIME::Base64::decode_base64url; ## no critic qw[Subroutines::ProhibitAmpersandSigils]
