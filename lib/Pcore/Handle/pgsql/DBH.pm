@@ -750,7 +750,7 @@ sub do ( $self, $query, @args ) {    ## no critic qw[Subroutines::ProhibitBuilti
     }
 }
 
-# key_field => [0, 1, 'id'], key_field => 'id'
+# key_col => [0, 1, 'id'], key_col => 'id'
 sub selectall ( $self, $query, @args ) {
     my ( $bind, $args, $cb ) = _parse_args( \@args );
 
@@ -760,7 +760,7 @@ sub selectall ( $self, $query, @args ) {
         if ( $res && defined $sth->{rows} ) {
             my @cols_names = map { $_->[0] } $sth->{cols}->@*;
 
-            if ( defined $args->{key_field} ) {
+            if ( defined $args->{key_col} ) {
                 my $name2idx;
 
                 # create columns index
@@ -769,32 +769,32 @@ sub selectall ( $self, $query, @args ) {
                 }
 
                 my $num_of_fields = $sth->{cols}->@*;
-                my @key_field_idx;
+                my @key_col_idx;
 
-                for my $key_field ( is_plain_arrayref $args->{key_field} ? $args->{key_field}->@* : $args->{key_field} ) {
-                    if ( looks_like_number $key_field) {
-                        if ( $key_field + 1 > $num_of_fields ) {
-                            my $res = res [ 400, qq[Invalid field index "$key_field"] ];
+                for my $key_col ( is_plain_arrayref $args->{key_col} ? $args->{key_col}->@* : $args->{key_col} ) {
+                    if ( looks_like_number $key_col) {
+                        if ( $key_col + 1 > $num_of_fields ) {
+                            my $res = res [ 400, qq[Invalid field index "$key_col"] ];
 
                             warn $res;
 
                             return $cb ? $cb->($res) : $res;
                         }
 
-                        push @key_field_idx, $key_field;
+                        push @key_col_idx, $key_col;
                     }
                     else {
-                        my $idx = $name2idx->{$key_field};
+                        my $idx = $name2idx->{$key_col};
 
                         if ( !defined $idx ) {
-                            my $res = res [ 400, qq[DBI: Invalid field name "$key_field"] ];
+                            my $res = res [ 400, qq[DBI: Invalid field name "$key_col"] ];
 
                             warn $res;
 
                             return $cb ? $cb->($res) : $res;
                         }
 
-                        push @key_field_idx, $idx;
+                        push @key_col_idx, $idx;
                     }
                 }
 
@@ -803,7 +803,7 @@ sub selectall ( $self, $query, @args ) {
                 for my $row ( $sth->{rows}->@* ) {
                     my $ref = $data;
 
-                    $ref = $ref->{ $row->[$_] // $EMPTY } //= {} for @key_field_idx;
+                    $ref = $ref->{ $row->[$_] // $EMPTY } //= {} for @key_col_idx;
 
                     $ref->@{@cols_names} = $row->@*;
                 }

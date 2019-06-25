@@ -512,7 +512,7 @@ sub do ( $self, $query, @args ) {    ## no critic qw[Subroutines::ProhibitBuilti
     }
 }
 
-# key_field => [0, 1, 'id'], key_field => 'id'
+# key_col => [0, 1, 'id'], key_col => 'id'
 sub selectall ( $self, @ ) {
     my ( $rows, $sth, $args, $cb ) = &_exec_sth;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 
@@ -527,12 +527,12 @@ sub selectall ( $self, @ ) {
     else {
         my $data;
 
-        if ( defined $args->{key_field} ) {
+        if ( defined $args->{key_col} ) {
 
             # make fields indexes 0-based
-            my @key_fields = map { looks_like_number $_ ? $_ + 1 : $_ } is_plain_arrayref $args->{key_field} ? $args->{key_field}->@* : $args->{key_field};
+            my @key_cols = map { looks_like_number $_ ? $_ + 1 : $_ } is_plain_arrayref $args->{key_col} ? $args->{key_col}->@* : $args->{key_col};
 
-            $data = $sth->fetchall_hashref( \@key_fields );
+            $data = $sth->fetchall_hashref( \@key_cols );
 
             # check error
             if ( defined $DBI::err ) {

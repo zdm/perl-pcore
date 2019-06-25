@@ -615,7 +615,7 @@ sub _db_get_user ( $self, $dbh, $user_id ) {
 sub _db_get_permissions ( $self, $dbh ) {
     state $q1 = $dbh->prepare(q[SELECT * FROM "auth_permission"]);
 
-    return $dbh->selectall( $q1, key_field => 'id' );
+    return $dbh->selectall( $q1, key_col => 'id' );
 }
 
 sub _db_get_user_permissions ( $self, $dbh, $user_id ) {
