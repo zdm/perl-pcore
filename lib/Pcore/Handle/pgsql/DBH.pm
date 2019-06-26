@@ -618,7 +618,16 @@ sub _execute ( $self, $query, $bind, $cb, %args ) {
 
             for my $param (@bind) {
                 if ( is_blessed_arrayref $param) {
-                    if ( $param->[0] == $SQL_BYTEA ) {
+
+                    # value is not defined
+                    if ( !defined $param->[1] ) {
+                        $param_format_codes .= "\x00\x00";    # text
+
+                        $param = undef;
+                    }
+
+                    # BLOB
+                    elsif ( $param->[0] == $SQL_BYTEA ) {
                         $param_format_codes .= "\x00\x01";    # binary
 
                         $param = $param->[1];
@@ -637,11 +646,15 @@ sub _execute ( $self, $query, $bind, $cb, %args ) {
                         }
                     }
                 }
+
+                # array
                 elsif ( is_plain_arrayref $param) {
                     $param_format_codes .= "\x00\x00";    # text
 
                     $param = $self->encode_array($param)->$*;
                 }
+
+                # text by default
                 else {
                     $param_format_codes .= "\x00\x00";    # text
                 }
@@ -1077,13 +1090,13 @@ sub encode_json ( $self, $var ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 539                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (29)                  |
+## |    3 | 539                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (30)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 629, 958             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 638, 971             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 767, 958             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 780, 971             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 806                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 819                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
