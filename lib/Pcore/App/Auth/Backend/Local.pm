@@ -429,6 +429,8 @@ sub set_user_permissions ( $self, $user_id, $permissions ) {
     # user wasn't found
     return $user if !$user;
 
+    return res [ 400, q[Can't modify root permissions] ] if $user->{data}->{name} eq 'root';
+
     # start transaction
     $res = $dbh->begin_work;
 
@@ -681,7 +683,6 @@ sub _db_get_user ( $self, $dbh, $user_id ) {
     return $user;
 }
 
-# TODO use $editor_user_id, check can_edit flag
 sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
     return res 204 if !$permissions || !$permissions->%*;    # not modified
 
@@ -775,8 +776,8 @@ sub _remove_user_token ( $self, $user_token_id, $user_token_type ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 100, 131, 243, 729,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 755                  |                                                                                                                |
+## |    3 | 100, 131, 243, 730,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 756                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
