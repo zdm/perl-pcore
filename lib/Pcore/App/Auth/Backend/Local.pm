@@ -53,7 +53,7 @@ sub init ( $self ) {
 
     my $root_password = P->random->bytes_hex(32);
 
-    $res = $self->create_user( 'root', $root_password, 1, undef );
+    $res = $self->create_user( $ROOT_USER_NAME, $root_password, 1, undef );
 
     say $res . ( $res ? ", password: $root_password" : $EMPTY );
 
@@ -132,7 +132,7 @@ sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
     my $auth = {
         private_token => $private_token,
 
-        is_root   => $user_name eq 'root' ? 1 : 0,
+        is_root   => $self->user_is_root($user_name),
         user_id   => $user_id,
         user_name => $user_name,
 
@@ -279,7 +279,7 @@ sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
     return $res if !$res;
 
     # generate user id
-    my $user_id = uuid_v4_str;
+    my $user_id = $self->user_is_root($user_name) ? $ROOT_USER_ID : uuid_v4_str;
 
     state $q1 = $dbh->prepare(q[INSERT INTO "auth_user" ("id", "name", "hash", "enabled") VALUES (?, ?, '', FALSE) ON CONFLICT DO NOTHING]);
 
@@ -355,7 +355,7 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
     my $dbh = $self->{dbh};
 
     # root can't be disabled
-    state $q1 = $dbh->prepare(q[UPDATE "auth_user" SET "enabled" = ? WHERE ("id" = ? OR "name" = ?) AND "name" != 'root' AND "enabled" = ?]);
+    state $q1 = $dbh->prepare(q[UPDATE "auth_user" SET "enabled" = ? WHERE ("id" = ? OR "name" = ?) AND "name" != ? AND "enabled" = ?]);
 
     my $res = $dbh->do(
         $q1,
@@ -363,6 +363,7 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
             SQL_BOOL $enabled,
             SQL_UUID( looks_like_uuid $user_id ? $user_id : '00000000-0000-0000-0000-000000000000' ),
             $user_id,
+            $ROOT_USER_NAME,
             SQL_BOOL !$enabled,
         ]
     );
@@ -389,7 +390,7 @@ sub get_user_permissions ( $self, $user_id ) {
         SELECT
             "auth_app_permission"."name",
             CASE
-                WHEN "auth_user"."name" = 'root' THEN TRUE
+                WHEN "auth_user"."name" = ? THEN TRUE
                 ELSE COALESCE("auth_user_permission"."enabled", FALSE)
             END  AS "enabled"
         FROM
@@ -407,7 +408,7 @@ sub get_user_permissions ( $self, $user_id ) {
 SQL
     );
 
-    my $res = $self->{dbh}->selectall( $q1, [ SQL_UUID( looks_like_uuid $user_id ? $user_id : '00000000-0000-0000-0000-000000000000' ), $user_id ] );
+    my $res = $self->{dbh}->selectall( $q1, [ $ROOT_USER_NAME, SQL_UUID( looks_like_uuid $user_id ? $user_id : '00000000-0000-0000-0000-000000000000' ), $user_id ] );
 
     # DBH error
     return $res if !$res;
@@ -429,7 +430,7 @@ sub set_user_permissions ( $self, $user_id, $permissions ) {
     # user wasn't found
     return $user if !$user;
 
-    return res [ 400, q[Can't modify root permissions] ] if $user->{data}->{name} eq 'root';
+    return res [ 400, q[Can't modify root permissions] ] if $self->user_is_root( $user->{data}->{name} );
 
     # start transaction
     $res = $dbh->begin_work;
@@ -776,8 +777,8 @@ sub _remove_user_token ( $self, $user_token_id, $user_token_type ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 100, 131, 243, 730,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 756                  |                                                                                                                |
+## |    3 | 100, 131, 243, 731,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 757                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

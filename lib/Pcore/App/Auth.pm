@@ -12,6 +12,7 @@ our $EXPORT = {
     TOKEN_TYPE      => [qw[$TOKEN_TYPE_UNKNOWN $TOKEN_TYPE_PASSWORD $TOKEN_TYPE_TOKEN $TOKEN_TYPE_SESSION]],
     INVALIDATE_TYPE => [qw[$INVALIDATE_USER $INVALIDATE_TOKEN $INVALIDATE_ALL]],
     PRIVATE_TOKEN   => [qw[$PRIVATE_TOKEN_ID $PRIVATE_TOKEN_HASH $PRIVATE_TOKEN_TYPE]],
+    ROOT_USER       => [qw[$ROOT_USER_NAME $ROOT_USER_ID]],
 };
 
 has app => ( required => 1 );    # ConsumerOf ['Pcore::App']
@@ -35,6 +36,9 @@ const our $INVALIDATE_TOKEN => 2;
 const our $INVALIDATE_ALL   => 3;
 
 const our $SESSION_TIMEOUT => 60 * 60 * 12;    # remove sessions tokens, that are older than 12 hours
+
+const our $ROOT_USER_NAME => 'root';
+const our $ROOT_USER_ID   => 'ffffffff-ffff-ffff-ffff-ffffffffffff';
 
 sub new ( $self, $app ) {
     state $scheme_class = {
@@ -89,6 +93,10 @@ around init => sub ( $orig, $self ) {
 
     return $self->$orig;
 };
+
+sub user_is_root ( $self, $user_id ) {
+    return $user_id eq $ROOT_USER_NAME || $user_id eq $ROOT_USER_ID;
+}
 
 # AUTHENTICATE
 # parse token, create private token, forward to authenticate_private
@@ -265,7 +273,7 @@ sub _invalidate_expired_sessions ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 123                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 131                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
