@@ -384,10 +384,10 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
 }
 
 sub get_user_permissions ( $self, $user_id ) {
-    state $q1 = $dbh->prepare(
+    state $q1 = $self->{dbh}->prepare(
         <<'SQL',
         SELECT
-            "auth_app_permission"."id",
+            "auth_app_permission"."name",
             CASE
                 WHEN "auth_user"."name" = 'root' THEN TRUE
                 ELSE COALESCE("auth_user_permission"."enabled", FALSE)
