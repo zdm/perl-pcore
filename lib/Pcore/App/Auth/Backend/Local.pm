@@ -32,7 +32,7 @@ sub init ( $self ) {
     my $permissions = $self->{app}->get_permissions;
 
     # sync app permissions
-    ( $res = $self->_db_sync_app_permissions( $self->{dbh}, $permissions ) ) || return $res;
+    ( $res = $self->_sync_app_permissions($permissions) ) || return $res;
 
     # app permissions was changed, invalidate cache
     P->fire_event( 'app.auth.cache', { type => $INVALIDATE_ALL } ) if $res == 200;
@@ -162,6 +162,57 @@ sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
 
         return res 200, $auth;
     }
+}
+
+# APP
+sub _sync_app_permissions ( $self, $permissions ) {
+    my $dbh = $self->{dbh};
+
+    my $modified = 0;
+
+    # insert permissions
+    my $res = $dbh->do( [ q[INSERT INTO "auth_app_permission"], VALUES [ map { { name => $_ } } $permissions->@* ], 'ON CONFLICT DO NOTHING' ] );
+
+    return $res if !$res;
+
+    $modified += $res->{rows};
+
+    # enable permissions
+    $res = $dbh->do( [ q[UPDATE "auth_app_permission" SET "enabled" = TRUE WHERE "enabled" = FALSE AND "name"], IN $permissions ] );
+
+    return $res if !$res;
+
+    $modified += $res->{rows};
+
+    # disable removed permissions
+    $res = $dbh->do( [ q[UPDATE "auth_app_permission" SET "enabled" = FALSE WHERE "enabled" = TRUE AND "name" NOT], IN $permissions ] );
+
+    return $res if !$res;
+
+    $modified += $res->{rows};
+
+    return res( $modified ? 200 : 204 );
+}
+
+sub get_app_permissions ( $self ) {
+    state $q1 = $self->{dbh}->prepare(
+        <<'SQL',
+        SELECT
+            "name",
+            "enabled"
+        FROM
+            "auth_app_permission"
+        WHERE
+            "auth_app_permission"."enabled" = TRUE
+SQL
+    );
+
+    my $res = $self->{dbh}->selectall($q1);
+
+    # DBH error
+    return $res if !$res;
+
+    return res 200, { map { $_->{name} => $_->{enabled} } $res->{data}->@* };
 }
 
 # USER
@@ -586,33 +637,6 @@ sub remove_user_session ( $self, $user_sid ) {
 }
 
 # DB METHODS
-sub _db_sync_app_permissions ( $self, $dbh, $permissions ) {
-    my $modified = 0;
-
-    # insert permissions
-    my $res = $dbh->do( [ q[INSERT INTO "auth_app_permission"], VALUES [ map { { name => $_ } } $permissions->@* ], 'ON CONFLICT DO NOTHING' ] );
-
-    return $res if !$res;
-
-    $modified += $res->{rows};
-
-    # enable permissions
-    $res = $dbh->do( [ q[UPDATE "auth_app_permission" SET "enabled" = TRUE WHERE "enabled" = FALSE AND "name"], IN $permissions ] );
-
-    return $res if !$res;
-
-    $modified += $res->{rows};
-
-    # disable removed permissions
-    $res = $dbh->do( [ q[UPDATE "auth_app_permission" SET "enabled" = FALSE WHERE "enabled" = TRUE AND "name" NOT], IN $permissions ] );
-
-    return $res if !$res;
-
-    $modified += $res->{rows};
-
-    return res( $modified ? 200 : 204 );
-}
-
 # TODO use $editor_user_id, check can_edit flag
 sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
     return res 204 if !$permissions || !$permissions->%*;    # not modified
@@ -689,26 +713,6 @@ sub _db_get_user ( $self, $dbh, $user_id ) {
     return $user;
 }
 
-sub _db_get_app_permissions ( $self, $dbh ) {
-    state $q1 = $dbh->prepare(
-        <<'SQL',
-        SELECT
-            "name",
-            "enabled"
-        FROM
-            "auth_app_permission"
-        WHERE
-            "auth_app_permission"."enabled" = TRUE
-SQL
-    );
-
-    my $res = $dbh->selectall($q1);
-
-    return $res if !$res;
-
-    return res 200, { map { $_->{name} => $_->{enabled} } $res->{data}->@* };
-}
-
 # TODO
 sub _db_get_user_permissions ( $self, $dbh, $user_id ) {
     state $q1 = $dbh->prepare(
@@ -758,10 +762,7 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 100, 130, 191, 661   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 692                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_db_get_app_permissions' declared   |
-## |      |                      | but not used                                                                                                   |
+## |    3 | 100, 130, 242, 685   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
