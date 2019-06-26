@@ -172,6 +172,11 @@ sub query_to_string ( $self, $query, $bind = undef ) {
         $bind //= $bind1;
     }
 
+    # query is prepared sth
+    elsif ( ref $query eq 'Pcore::Handle::DBI::STH' ) {
+        $query = $query->{query};
+    }
+
     # query is plain text
     else {
 
@@ -186,7 +191,7 @@ sub query_to_string ( $self, $query, $bind = undef ) {
     }
 
     # substitute bind params
-    $query =~ s/\$(\d+)/$self->quote($bind->[$1 - 1])/smge;
+    $query =~ s/\$(\d+)/$self->quote($bind->[$1 - 1])/smge if defined $bind;
 
     return $query;
 }
