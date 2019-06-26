@@ -139,27 +139,27 @@ sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
         permissions => {},
     };
 
-    # is a root user
-    return res 200, $auth if $auth->{is_root};
-
     # get token permissions
     if ( $private_token->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_TOKEN ) {
-        my $res = $self->_db_get_user_token_permissions( $self->{dbh}, $private_token->[$PRIVATE_TOKEN_ID] );
 
-        return $res if !$res;
+        # TODO dbh?
+        my $permissions = $self->_db_get_user_token_permissions( $self->{dbh}, $private_token->[$PRIVATE_TOKEN_ID] );
 
-        $auth->{permissions} = { map { $_->{permission_name} => 1 } $res->{data}->@* };
+        return $permissions if !$permissions;
+
+        $auth->{permissions} = $permissions->{data};
 
         return res 200, $auth;
     }
 
     # get user permissions, session tokens inherit user permissions
     else {
-        my $res = $self->_db_get_user_permissions( $self->{dbh}, $user_id );
+        my $permissions = $self->get_user_permissions($user_id);
 
-        return $res if !$res;
+        # get permissions error
+        return $permissions if !$permissions;
 
-        $auth->{permissions} = { map { $_->{permission_name} => 1 } $res->{data}->@* };
+        $auth->{permissions} = $permissions->{data};
 
         return res 200, $auth;
     }
@@ -325,47 +325,6 @@ sub get_user ( $self, $user_id ) {
     return $self->_db_get_user( $self->{dbh}, $user_id );
 }
 
-sub set_user_permissions ( $self, $user_id, $permissions ) {
-
-    # get dbh
-    my ( $res, $dbh ) = $self->{dbh}->get_dbh;
-
-    # unable to get dbh
-    return $res if !$res;
-
-    # resolve user
-    my $user = $self->_db_get_user( $dbh, $user_id );
-
-    # user wasn't found
-    return $user if !$user;
-
-    # start transaction
-    $res = $dbh->begin_work;
-
-    # failed to start transaction
-    return $res if !$res;
-
-    $res = $self->_db_set_user_permissions( $dbh, $user->{data}->{id}, $permissions );
-
-    # set permissions error
-    if ( !$res ) {
-        my $rollback = $dbh->rollback;
-
-        return $res;
-    }
-
-    # commit
-    my $commit = $dbh->commit;
-
-    # commit error
-    return $commit if !$commit;
-
-    # permissions was modified
-    P->fire_event( 'app.auth.cache', { type => $INVALIDATE_USER, id => $user->{data}->{id} } ) if $res == 200;
-
-    return $res;
-}
-
 sub set_user_password ( $self, $user_id, $password ) {
 
     # resolve user
@@ -422,6 +381,79 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
     else {
         return res 204, { enabled => 0+ !!$enabled };
     }
+}
+
+sub get_user_permissions ( $self, $user_id ) {
+    state $q1 = $dbh->prepare(
+        <<'SQL',
+        SELECT
+            "auth_app_permission"."id",
+            CASE
+                WHEN "auth_user"."name" = 'root' THEN TRUE
+                ELSE COALESCE("auth_user_permission"."enabled", FALSE)
+            END  AS "enabled"
+        FROM
+            "auth_app_permission"
+            LEFT JOIN "auth_user" ON (
+                "auth_user"."id" = ?
+                OR "auth_user"."name" = ?
+            )
+            LEFT JOIN "auth_user_permission" ON (
+                "auth_user_permission"."permission_id" = "auth_app_permission"."id"
+                AND "auth_user_permission"."user_id" = "auth_user"."id"
+            )
+        WHERE
+            "auth_app_permission"."enabled" = TRUE
+SQL
+    );
+
+    my $res = $self->{dbh}->selectall( $q1, [ SQL_UUID( looks_like_uuid $user_id ? $user_id : '00000000-0000-0000-0000-000000000000' ), $user_id ] );
+
+    # DBH error
+    return $res if !$res;
+
+    return res 200, { map { $_->{name} => $_->{enabled} } $res->{data}->@* };
+}
+
+sub set_user_permissions ( $self, $user_id, $permissions ) {
+
+    # get dbh
+    my ( $res, $dbh ) = $self->{dbh}->get_dbh;
+
+    # unable to get dbh
+    return $res if !$res;
+
+    # resolve user
+    my $user = $self->_db_get_user( $dbh, $user_id );
+
+    # user wasn't found
+    return $user if !$user;
+
+    # start transaction
+    $res = $dbh->begin_work;
+
+    # failed to start transaction
+    return $res if !$res;
+
+    $res = $self->_db_set_user_permissions( $dbh, $user->{data}->{id}, $permissions );
+
+    # set permissions error
+    if ( !$res ) {
+        my $rollback = $dbh->rollback;
+
+        return $res;
+    }
+
+    # commit
+    my $commit = $dbh->commit;
+
+    # commit error
+    return $commit if !$commit;
+
+    # permissions was modified
+    P->fire_event( 'app.auth.cache', { type => $INVALIDATE_USER, id => $user->{data}->{id} } ) if $res == 200;
+
+    return $res;
 }
 
 # USER TOKEN
@@ -622,7 +654,33 @@ sub remove_user_session ( $self, $user_token_id ) {
     return $self->_remove_user_token( $user_token_id, $TOKEN_TYPE_SESSION );
 }
 
-# DB METHODS
+# UTIL
+sub _db_get_user ( $self, $dbh, $user_id ) {
+    my $user;
+
+    # find user by id
+    if ( looks_like_uuid $user_id) {
+        state $q1 = $dbh->prepare(q[SELECT "id", "name", "enabled", "created" FROM "auth_user" WHERE "id" = ?]);
+
+        $user = $dbh->selectrow( $q1, [ SQL_UUID $user_id ] );
+    }
+
+    # find user by name
+    else {
+        state $q1 = $dbh->prepare(q[SELECT "id", "name", "enabled", "created" FROM "auth_user" WHERE "name" = ?]);
+
+        $user = $dbh->selectrow( $q1, [$user_id] );
+    }
+
+    # DBH error
+    return $user if !$user;
+
+    # user not found
+    return res [ 404, 'User not found' ] if !$user->{data};
+
+    return $user;
+}
+
 # TODO use $editor_user_id, check can_edit flag
 sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
     return res 204 if !$permissions || !$permissions->%*;    # not modified
@@ -673,53 +731,6 @@ sub _db_set_user_token_permissions ( $self, $dbh, $user_token_id, $permissions )
 }
 
 # TODO
-sub _db_get_user ( $self, $dbh, $user_id ) {
-    my $user;
-
-    # find user by id
-    if ( looks_like_uuid $user_id) {
-        state $q1 = $dbh->prepare(q[SELECT "id", "name", "enabled", "created" FROM "auth_user" WHERE "id" = ?]);
-
-        $user = $dbh->selectrow( $q1, [ SQL_UUID $user_id ] );
-    }
-
-    # find user by name
-    else {
-        state $q1 = $dbh->prepare(q[SELECT "id", "name", "enabled", "created" FROM "auth_user" WHERE "name" = ?]);
-
-        $user = $dbh->selectrow( $q1, [$user_id] );
-    }
-
-    # query error
-    return $user if !$user;
-
-    # user not found
-    return res [ 404, 'User not found' ] if !$user->{data};
-
-    return $user;
-}
-
-# TODO
-sub _db_get_user_permissions ( $self, $dbh, $user_id ) {
-    state $q1 = $dbh->prepare(
-        <<'SQL',
-            SELECT
-                "auth_user_permission"."id" AS "id",
-                "auth_permission"."id" AS "permission_id",
-                "auth_permission"."name" AS "permission_name"
-            FROM
-                "auth_user_permission",
-                "auth_permission"
-            WHERE
-                "auth_user_permission"."permission_id" = "auth_permission"."id"
-                AND "auth_user_permission"."user_id" = ?
-SQL
-    );
-
-    return $dbh->selectall( $q1, [ SQL_UUID $user_id ] );
-}
-
-# TODO
 sub _db_get_user_token_permissions ( $self, $dbh, $user_token_id ) {
     state $q1 = $dbh->prepare(
         <<'SQL',
@@ -741,7 +752,6 @@ SQL
     return $dbh->selectall( $q1, [ SQL_UUID $user_token_id ] );
 }
 
-# UTIL
 sub _remove_user_token ( $self, $user_token_id, $user_token_type ) {
     state $q1 = $self->{dbh}->prepare('DELETE FROM "auth_user_token" WHERE "id" = ? AND "type" = ?');
 
@@ -765,8 +775,8 @@ sub _remove_user_token ( $self, $user_token_id, $user_token_type ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 100, 131, 243, 671,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 745                  |                                                                                                                |
+## |    3 | 100, 131, 243, 729,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 755                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
