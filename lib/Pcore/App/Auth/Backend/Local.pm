@@ -375,7 +375,7 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
     if ( $res->{rows} ) {
         P->fire_event( 'app.auth.cache', { type => $INVALIDATE_USER, id => $user_id } );
 
-        return res 200, { enabled => 0+ !$enabled };
+        return res 200, { enabled => 0+ !!$enabled };
     }
 
     # not modified
@@ -594,7 +594,7 @@ sub set_user_token_enabled ( $self, $user_token_id, $enabled ) {
     if ( $res->{rows} ) {
         P->fire_event( 'app.auth.cache', { type => $INVALIDATE_TOKEN, id => $user_token_id } );
 
-        return res 200, { enabled => 0+ !$enabled };
+        return res 200, { enabled => 0+ !!$enabled };
     }
 
     # not modified
@@ -689,6 +689,7 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
 
     my $res;
     my $modified = 0;
+    my $final_permissions;
 
     while ( my ( $name, $enabled ) = each $permissions->%* ) {
         state $q1 = $dbh->prepare(q[INSERT INTO "auth_user_permission" ("user_id", "permission_id", "enabled") VALUES (?, (SELECT "id" FROM "auth_app_permission" WHERE "name" = ?), ?) ON CONFLICT DO NOTHING]);
@@ -713,17 +714,17 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
             return $res if !$res;
 
             # permission updated
-            if ( $res->{rows} ) {
-                $modified = 1;
-            }
+            $modified = 1 if $res->{rows};
+
+            $final_permissions->{$name} = 0+ !!$enabled;
         }
     }
 
     if ($modified) {
-        return res 200;
+        return res 200, $final_permissions;
     }
     else {
-        return res 204;
+        return res 204, $final_permissions;
     }
 }
 
@@ -777,8 +778,8 @@ sub _remove_user_token ( $self, $user_token_id, $user_token_type ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 100, 131, 243, 731,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 757                  |                                                                                                                |
+## |    3 | 100, 131, 243, 732,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 758                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
