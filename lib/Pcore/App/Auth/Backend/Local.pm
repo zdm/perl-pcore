@@ -6,7 +6,7 @@ use Pcore::Util::Data qw[to_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
 use Pcore::Util::Text qw[encode_utf8];
 use Pcore::Util::Scalar qw[looks_like_number looks_like_uuid];
-use Pcore::Util::UUID qw[uuid_v4 uuid_v4_str];
+use Pcore::Util::UUID qw[$UUID_ZERO uuid_v4 uuid_v4_str];
 
 with qw[Pcore::App::Auth];
 
@@ -361,7 +361,7 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
         $q1,
         [    #
             SQL_BOOL $enabled,
-            SQL_UUID( looks_like_uuid $user_id ? $user_id : '00000000-0000-0000-0000-000000000000' ),
+            SQL_UUID( looks_like_uuid $user_id ? $user_id : $UUID_ZERO ),
             $user_id,
             $ROOT_USER_NAME,
             SQL_BOOL !$enabled,
@@ -408,7 +408,7 @@ sub get_user_permissions ( $self, $user_id ) {
 SQL
     );
 
-    my $res = $self->{dbh}->selectall( $q1, [ $ROOT_USER_NAME, SQL_UUID( looks_like_uuid $user_id ? $user_id : '00000000-0000-0000-0000-000000000000' ), $user_id ] );
+    my $res = $self->{dbh}->selectall( $q1, [ $ROOT_USER_NAME, SQL_UUID( looks_like_uuid $user_id ? $user_id : $UUID_ZERO ), $user_id ] );
 
     # DBH error
     return $res if !$res;
