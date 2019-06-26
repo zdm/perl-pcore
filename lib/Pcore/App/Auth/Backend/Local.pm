@@ -393,35 +393,33 @@ sub set_user_password ( $self, $user_id, $password ) {
 }
 
 sub set_user_enabled ( $self, $user_id, $enabled ) {
+    my $dbh = $self->{dbh};
 
-    # resolve user
-    my $user = $self->_db_get_user( $self->{dbh}, $user_id );
+    # root can't be disabled
+    state $q1 = $dbh->prepare(q[UPDATE "auth_user" SET "enabled" = ? WHERE ("id" = ? OR "name" = ?) AND "name" != 'root' AND "enabled" = ?]);
 
-    # root can't be disaled
-    return res [ 400, q[Root user can't be disabled] ] if $user->{data}->{name} eq 'root';
+    my $res = $dbh->do(
+        $q1,
+        [    #
+            SQL_BOOL $enabled,
+            SQL_UUID( looks_like_uuid $user_id ? $user_id : '00000000-0000-0000-0000-000000000000' ),
+            $user_id,
+            SQL_BOOL !$enabled,
+        ]
+    );
 
-    # user wasn't found
-    return $user if !$user;
+    # DBH error
+    return $res if !$res;
 
-    $enabled = 0+ !!$enabled;
+    # modified
+    if ( $res->{rows} ) {
+        P->fire_event( 'app.auth.cache', { type => $INVALIDATE_USER, id => $user_id } );
 
-    if ( $enabled ^ $user->{data}->{enabled} ) {
-        state $q1 = $self->{dbh}->prepare(q[UPDATE "auth_user" SET "enabled" = ? WHERE "id" = ?]);
-
-        my $res = $self->{dbh}->do( $q1, [ SQL_BOOL $enabled, SQL_UUID $user->{data}->{id} ] );
-
-        return $res if !$res;
-
-        return res 500 if !$res->{rows};
-
-        # fire AUTH event if user was disabled
-        P->fire_event( 'app.auth.cache', { type => $INVALIDATE_USER, id => $user->{data}->{id} } ) if !$enabled;
-
-        return res 200, { enabled => $enabled };
+        return res 200, { enabled => !$enabled };
     }
-    else {
 
-        # not modified
+    # not modified
+    else {
         return res 204, { enabled => $enabled };
     }
 }
@@ -557,9 +555,17 @@ sub set_user_token_enabled ( $self, $user_token_id, $enabled ) {
     # DBH error
     return $res if !$res;
 
-    P->fire_event( 'app.auth.cache', { type => $INVALIDATE_TOKEN, id => $user_token_id } ) if $res == 200;
+    # modified
+    if ( $res->{rows} ) {
+        P->fire_event( 'app.auth.cache', { type => $INVALIDATE_TOKEN, id => $user_token_id } );
 
-    return $res;
+        return res 200;
+    }
+
+    # not modified
+    else {
+        return res 204;
+    }
 }
 
 # TODO, fire event, if permissions was changed
@@ -759,8 +765,8 @@ sub _remove_user_token ( $self, $user_token_id, $user_token_type ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 100, 131, 243, 665,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 739                  |                                                                                                                |
+## |    3 | 100, 131, 243, 671,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 745                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
