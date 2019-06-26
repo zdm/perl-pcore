@@ -580,10 +580,12 @@ sub _execute ( $self, $query, $bind, $cb, %args ) {
     # query is plain text
     else {
 
-        # convert "?" placeholders to postgres "$1" style
-        my $i;
+        # convert "?" placeholders to the "$1" style
+        if ( defined $bind ) {
+            my $i;
 
-        $query =~ s/[?]/'$' . ++$i/smge;
+            $query =~ s/[?]/'$' . ++$i/smge;
+        }
 
         utf8::encode $query if utf8::is_utf8 $query;
     }
@@ -1090,13 +1092,13 @@ sub encode_json ( $self, $var ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 539                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (30)                  |
+## |    3 | 539                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (31)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 638, 971             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 640, 973             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 780, 971             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 782, 973             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 819                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 821                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
