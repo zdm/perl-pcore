@@ -9,120 +9,55 @@ sub _db_add_schema_patch ( $self, $dbh ) {
     $dbh->add_schema_patch(
         1, 'auth', <<"SQL"
 
-            -- USER
-            CREATE TABLE IF NOT EXISTS "auth_user" (
-                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
+            -- PERMISSIONS
+            CREATE TABLE IF NOT EXISTS "auth_app_permission" (
+                "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 "name" TEXT NOT NULL UNIQUE,
-                "hash" BLOB NOT NULL,
-                "enabled" INTEGER NOT NULL DEFAULT 0,
-                "created" INTEGER NOT NULL DEFAULT(STRFTIME('%s', 'NOW'))
+                "enabled" BOOL NOT NULL DEFAULT TRUE
             );
 
-            -- PERMISSION
-            CREATE TABLE IF NOT EXISTS "auth_permission" (
-                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
-                "name" BLOB NOT NULL UNIQUE,
-                "enabled" INTEGER NOT NULL DEFAULT 1
+            -- USER
+            CREATE TABLE IF NOT EXISTS "auth_user" (
+                "id" UUID PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
+                "created" INT8 NOT NULL DEFAULT(STRFTIME('%s', 'NOW')),
+                "name" TEXT NOT NULL UNIQUE,
+                "hash" BYTEA NOT NULL,
+                "enabled" BOOL NOT NULL DEFAULT TRUE
             );
 
             -- USER PERMISSION
             CREATE TABLE IF NOT EXISTS "auth_user_permission" (
-                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
-                "user_id" BLOB NOT NULL REFERENCES "auth_user" ("id") ON DELETE CASCADE, -- remove permission assoc., on user delete
-                "permission_id" BLOB NOT NULL REFERENCES "auth_permission" ("id") ON DELETE RESTRICT -- prevent deleting permission, if has assigned users
+                "user_id" UUID NOT NULL REFERENCES "auth_user" ("id") ON DELETE CASCADE,
+                "permission_id" INT2 NOT NULL REFERENCES "auth_app_permission" ("id") ON DELETE CASCADE,
+                "enabled" BOOL NOT NULL DEFAULT TRUE,
+                PRIMARY KEY ("user_id", "permission_id")
             );
-
-            CREATE UNIQUE INDEX IF NOT EXISTS "idx_uniq_auth_user_permission" ON "auth_user_permission" ("user_id", "permission_id");
 
             -- USER TOKEN
             CREATE TABLE IF NOT EXISTS "auth_user_token" (
-                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
-                "type" INTEGER NOT NULL,
-                "user_id" BLOB NOT NULL REFERENCES "auth_user" ("id") ON DELETE CASCADE,
-                "hash" BLOB NOT NULL,
-                "desc" TEXT,
-                "created" INTEGER NOT NULL DEFAULT(STRFTIME('%s', 'NOW'))
+                "id" UUID PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
+                "created" INT8 NOT NULL DEFAULT(STRFTIME('%s', 'NOW')),
+                "name" TEXT,
+                "type" INT2 NOT NULL,
+                "user_id" UUID NOT NULL REFERENCES "auth_user" ("id") ON DELETE CASCADE,
+                "hash" BYTEA NOT NULL,
+                "enabled" BOOL NOT NULL DEFAULT TRUE
             );
 
             -- USER TOKEN PERMISSION
             CREATE TABLE IF NOT EXISTS "auth_user_token_permission" (
-                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
-                "user_token_id" BLOB NOT NULL REFERENCES "auth_user_token" ("id") ON DELETE CASCADE,
-                "user_permission_id" BLOB NOT NULL REFERENCES "auth_user_permission" ("id") ON DELETE CASCADE
+                "user_token_id" UUID NOT NULL,
+                "user_id" UUID NOT NULL,
+                "permission_id" INT2 NOT NULL,
+                "enabled" BOOL NOT NULL DEFAULT TRUE,
+                PRIMARY KEY ("user_token_id", "permission_id"),
+                FOREIGN KEY ("user_id", "permission_id") REFERENCES "auth_user_permission" ("user_id", "permission_id") ON DELETE CASCADE,
+                FOREIGN KEY ("permission_id") REFERENCES "auth_app_permission" ("id") ON DELETE CASCADE
             );
-
-            CREATE UNIQUE INDEX IF NOT EXISTS "idx_uniq_auth_user_token_permission" ON "auth_user_token_permission" ("user_token_id", "user_permission_id");
 SQL
     );
 
     return;
-}
-
-sub _db_sync_app_permissions ( $self, $dbh, $permissions ) {
-    my $modified = 0;
-
-    # insert permissions
-    my $res = $dbh->do( [ q[INSERT OR IGNORE INTO "auth_permission"], VALUES [ map { { name => $_ } } $permissions->@* ] ] );
-
-    return $res if !$res;
-
-    $modified += $res->{rows};
-
-    # enable permissions
-    $res = $dbh->do( [ q[UPDATE "auth_permission" SET "enabled" = 1 WHERE "enabled" = 0 AND "name"], IN $permissions ] );
-
-    return $res if !$res;
-
-    $modified += $res->{rows};
-
-    # disable removed permissions
-    $res = $dbh->do( [ q[UPDATE "auth_permission" SET "enabled" = 0 WHERE "enabled" = 1 AND "name" NOT], IN $permissions ] );
-
-    return $res if !$res;
-
-    $modified += $res->{rows};
-
-    return res( $modified ? 200 : 204 );
-}
-
-sub _db_create_user ( $self, $dbh, $user_name, $hash, $enabled ) {
-    my $user_id = uuid_v4_str;
-
-    state $q1 = $dbh->prepare('INSERT OR IGNORE INTO "auth_user" ("id", "name", "hash", "enabled") VALUES (?, ?, ?, ?)');
-
-    my $res = $dbh->do( $q1, [ SQL_UUID $user_id, $user_name, SQL_BYTEA $hash, SQL_BOOL $enabled ] );
-
-    if ( !$res->{rows} ) {
-        return res 500;
-    }
-    else {
-        return res 200, { id => $user_id };
-    }
-}
-
-sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions_ids ) {
-    my $res = $dbh->do( [ 'INSERT OR IGNORE INTO "auth_user_permission"', VALUES [ map { { permission_id => SQL_UUID $_, user_id => SQL_UUID $user_id } } $permissions_ids->@* ] ] );
-
-    return res 500 if !$res;
-
-    my $modified = $res->{rows};
-
-    # remove permissions
-    $res = $dbh->do( [ 'DELETE FROM "auth_user_permission" WHERE "user_id" =', SQL_UUID $user_id, 'AND "permission_id" NOT', IN [ map { SQL_UUID $_} $permissions_ids->@* ] ] );
-
-    if ( !$res ) {
-        return res 500;
-    }
-    else {
-        $modified += $res->{rows};
-
-        if ($modified) {
-            return res 200, { user_id => $user_id };
-        }
-        else {
-            return res 204;
-        }
-    }
 }
 
 1;
@@ -132,13 +67,8 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions_ids ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 8                    | * Private subroutine/method '_db_add_schema_patch' declared but not used                                       |
-## |      | 61                   | * Private subroutine/method '_db_sync_app_permissions' declared but not used                                   |
-## |      | 88                   | * Private subroutine/method '_db_create_user' declared but not used                                            |
-## |      | 103                  | * Private subroutine/method '_db_set_user_permissions' declared but not used                                   |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 88, 103              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 8                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_db_add_schema_patch' declared but  |
+## |      |                      | not used                                                                                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
