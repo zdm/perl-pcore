@@ -508,6 +508,8 @@ sub remove_user_token ( $self, $user_token_id ) {
 
 # TODO, fire event if token was disabled
 sub set_user_token_enabled ( $self, $user_token_id, $enabled ) {
+    P->fire_event( 'app.auth.cache', { type => $INVALIDATE_TOKEN, id => $user_token_id } );
+
     return;
 }
 
@@ -748,9 +750,9 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 100, 130, 191, 651   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 100, 130, 191, 653   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 682                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_db_get_app_permissions' declared   |
+## |    3 | 684                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_db_get_app_permissions' declared   |
 ## |      |                      | but not used                                                                                                   |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
