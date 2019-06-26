@@ -430,7 +430,7 @@ sub set_user_permissions ( $self, $user_id, $permissions ) {
     # user wasn't found
     return $user if !$user;
 
-    return res [ 400, q[Can't modify root permissions] ] if $self->user_is_root( $user->{data}->{name} );
+    return res [ 400, q[Can't modify "root" user permissions] ] if $self->user_is_root( $user->{data}->{name} );
 
     # start transaction
     $res = $dbh->begin_work;
