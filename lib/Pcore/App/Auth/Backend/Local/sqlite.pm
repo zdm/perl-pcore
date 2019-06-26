@@ -1,7 +1,6 @@
 package Pcore::App::Auth::Backend::Local::sqlite;
 
 use Pcore -class, -res, -sql;
-use Pcore::Util::UUID qw[uuid_v4_str];
 
 with qw[Pcore::App::Auth::Backend::Local];
 
@@ -67,7 +66,7 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 8                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_db_add_schema_patch' declared but  |
+## |    3 | 7                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_db_add_schema_patch' declared but  |
 ## |      |                      | not used                                                                                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##

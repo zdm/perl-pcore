@@ -6,7 +6,7 @@ use Pcore::Util::Data qw[to_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
 use Pcore::Util::Text qw[encode_utf8];
 use Pcore::Util::Scalar qw[looks_like_number looks_like_uuid];
-use Pcore::Util::UUID qw[uuid_v4];
+use Pcore::Util::UUID qw[uuid_v4 uuid_v4_str];
 
 with qw[Pcore::App::Auth];
 
