@@ -127,6 +127,7 @@ sub _generate_token ( $self ) {
       };
 }
 
+# TODO
 sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
     my $auth = {
         private_token => $private_token,
@@ -543,18 +544,7 @@ sub create_user_token ( $self, $user_id, $desc, $permissions ) {
 }
 
 sub remove_user_token ( $self, $user_token_id ) {
-    state $q1 = $self->{dbh}->prepare('DELETE FROM "auth_user_token" WHERE "id" = ? AND "type" = ?');
-
-    my $res = $self->{dbh}->do( $q1, [ SQL_UUID $user_token_id, $TOKEN_TYPE_TOKEN ] );
-
-    return $res if !$res;
-
-    # not found
-    return res 204 if !$res->{rows};
-
-    P->fire_event( 'app.auth.cache', { type => $INVALIDATE_TOKEN, id => $user_token_id } );
-
-    return res 200;
+    return $self->_remove_user_token( $user_token_id, $TOKEN_TYPE_TOKEN );
 }
 
 sub set_user_token_enabled ( $self, $user_token_id, $enabled ) {
@@ -621,19 +611,8 @@ sub create_user_session ( $self, $user_id ) {
       };
 }
 
-sub remove_user_session ( $self, $user_sid ) {
-    state $q1 = $self->{dbh}->prepare('DELETE FROM "auth_user_token" WHERE "id" = ? AND "type" = ?');
-
-    my $res = $self->{dbh}->do( $q1, [ SQL_UUID $user_sid, $TOKEN_TYPE_SESSION ] );
-
-    return $res if !$res;
-
-    # not found
-    return res 204 if !$res->{rows};
-
-    P->fire_event( 'app.auth.cache', { type => $INVALIDATE_TOKEN, id => $user_sid } );
-
-    return res 200;
+sub remove_user_session ( $self, $user_token_id ) {
+    return $self->_remove_user_token( $user_token_id, $TOKEN_TYPE_SESSION );
 }
 
 # DB METHODS
@@ -755,6 +734,23 @@ SQL
     return $dbh->selectall( $q1, [ SQL_UUID $user_token_id ] );
 }
 
+# UTIL
+sub _remove_user_token ( $self, $user_token_id, $user_token_type ) {
+    state $q1 = $self->{dbh}->prepare('DELETE FROM "auth_user_token" WHERE "id" = ? AND "type" = ?');
+
+    my $res = $self->{dbh}->do( $q1, [ SQL_UUID $user_token_id, $user_token_type ] );
+
+    # DBH error
+    return $res if !$res;
+
+    # not found
+    return res 204 if !$res->{rows};
+
+    P->fire_event( 'app.auth.cache', { type => $INVALIDATE_TOKEN, id => $user_token_id } );
+
+    return res 200;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -762,7 +758,8 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 100, 130, 242, 685   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 100, 131, 243, 664,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 738                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
