@@ -67,30 +67,22 @@ sub _check_permissions ( $self, $method_id ) {
     else {
 
         # user is root, method authentication is not required
-        if ( $self->{is_root} ) {
-            return res 200;
-        }
+        return res 200 if $self->{is_root};
 
         # method has no permissions, authorization is not required
-        elsif ( !$method_cfg->{permissions} ) {
-            return res 200;
-        }
+        return res 200 if !$method_cfg->{permissions};
+
+        my $auth_permissions = $self->{permissions};
 
         # auth has no permisisons, api call is forbidden
-        elsif ( !$self->{permissions} ) {
-            return res [ 403, qq[Insufficient permissions for method "$method_id"] ];
-        }
+        return res [ 403, qq[Insufficient permissions for method "$method_id"] ] if !$auth_permissions;
 
         # compare permissions
-        else {
-            for my $permission ( $method_cfg->{permissions}->@* ) {
-                if ( exists $self->{permissions}->{$permission} ) {
-                    return res 200;
-                }
-            }
-
-            return res [ 403, qq[Insufficient permissions for method "$method_id"] ];
+        for my $permission ( $method_cfg->{permissions}->@* ) {
+            return res 200 if $auth_permissions->{$permission};
         }
+
+        return res [ 403, qq[Insufficient permissions for method "$method_id"] ];
     }
 }
 
