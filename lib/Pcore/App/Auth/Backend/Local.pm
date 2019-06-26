@@ -415,12 +415,12 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
     if ( $res->{rows} ) {
         P->fire_event( 'app.auth.cache', { type => $INVALIDATE_USER, id => $user_id } );
 
-        return res 200, { enabled => !$enabled };
+        return res 200, { enabled => 0+ !$enabled };
     }
 
     # not modified
     else {
-        return res 204, { enabled => $enabled };
+        return res 204, { enabled => 0+ !!$enabled };
     }
 }
 
@@ -559,12 +559,12 @@ sub set_user_token_enabled ( $self, $user_token_id, $enabled ) {
     if ( $res->{rows} ) {
         P->fire_event( 'app.auth.cache', { type => $INVALIDATE_TOKEN, id => $user_token_id } );
 
-        return res 200;
+        return res 200, { enabled => 0+ !$enabled };
     }
 
     # not modified
     else {
-        return res 204;
+        return res 204, { enabled => 0+ !!$enabled };
     }
 }
 
