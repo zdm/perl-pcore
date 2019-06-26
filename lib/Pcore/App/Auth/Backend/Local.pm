@@ -506,11 +506,19 @@ sub remove_user_token ( $self, $user_token_id ) {
     return res 200;
 }
 
-# TODO, fire event if token was disabled
 sub set_user_token_enabled ( $self, $user_token_id, $enabled ) {
-    P->fire_event( 'app.auth.cache', { type => $INVALIDATE_TOKEN, id => $user_token_id } );
+    my $dbh = $self->{dbh};
 
-    return;
+    state $q1 = $dbh->prepare(q[UPDATE "auth_user_token" SET "enabled" = ? WHERE "id" = ? AND "type" = ? AND "enabled" = ?]);
+
+    my $res = $dbh->do( $q1, [ SQL_BOOL $enabled, SQL_UUID $user_token_id, $TOKEN_TYPE_TOKEN, SQL_BOOL !$enabled ] );
+
+    # DBH error
+    return $res if !$res;
+
+    P->fire_event( 'app.auth.cache', { type => $INVALIDATE_TOKEN, id => $user_token_id } ) if $res == 200;
+
+    return $res;
 }
 
 # TODO, fire event, if permissions was changed
@@ -750,9 +758,9 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 100, 130, 191, 653   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 100, 130, 191, 661   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 684                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_db_get_app_permissions' declared   |
+## |    3 | 692                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_db_get_app_permissions' declared   |
 ## |      |                      | but not used                                                                                                   |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
