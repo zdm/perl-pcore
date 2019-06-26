@@ -602,7 +602,8 @@ sub create_user_session ( $self, $user_id ) {
 
     my $res = $self->{dbh}->do( $q1, [ SQL_UUID $token->{data}->{id}, $TOKEN_TYPE_SESSION, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash} ] );
 
-    return res 500 if !$res->{rows};
+    # DBH error
+    return $res if !$res;
 
     return res 200,
       { id    => $token->{data}->{id},
@@ -758,8 +759,8 @@ sub _remove_user_token ( $self, $user_token_id, $user_token_type ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 100, 131, 243, 664,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 738                  |                                                                                                                |
+## |    3 | 100, 131, 243, 665,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 739                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
