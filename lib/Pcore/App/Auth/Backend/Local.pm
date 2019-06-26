@@ -495,6 +495,12 @@ SQL
     return $self->_return_auth( $private_token, $user_token->{data}->{user_id}, $user_token->{data}->{user_name} );
 }
 
+sub get_user_tokens ( $self, $user_id ) {
+    state $q1 = $self->{dbh}->prepare(q[SELECT "id", "name", "enabled", "created" FROM "auth_user_token" WHERE "type" = ? AND "user_id" = ?]);
+
+    return $self->{dbh}->selectall( $q1, [ $TOKEN_TYPE_TOKEN, SQL_UUID $user_id] );
+}
+
 # TODO
 sub create_user_token ( $self, $user_id, $desc, $permissions ) {
 
@@ -778,8 +784,8 @@ sub _remove_user_token ( $self, $user_token_id, $user_token_type ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 100, 131, 243, 732,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 758                  |                                                                                                                |
+## |    3 | 100, 131, 243, 738,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 764                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
