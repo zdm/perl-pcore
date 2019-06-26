@@ -226,30 +226,47 @@ sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
     # failed to start transaction
     return $res if !$res;
 
-    # check, that user is not exists
-    my $user = $self->_db_get_user( $dbh, $user_name );
+    # generate user id
+    my $user_id = uuid_v4_str;
 
-    # user already exists
-    return $on_finish->( $dbh, res [ 400, 'User name already exists' ] ) if $user;
+    state $q1 = $dbh->prepare(q[INSERT INTO "auth_user" ("id", "name", "hash", "enabled") VALUES (?, ?, '', FALSE) ON CONFLICT DO NOTHING]);
+
+    # insert user
+    $res = $dbh->do( $q1, [ SQL_UUID $user_id, $user_name ] );
+
+    # DBH error
+    return $on_finish->( $dbh, $res ) if !$res;
+
+    # username already exists
+    return $on_finish->( $dbh, res [ 400, 'Username is already exists' ] ) if !$res->{rows};
 
     # generate user password hash
     $res = $self->_generate_user_password_hash( $user_name, $password );
 
     # error generating hash
-    return $on_finish->( $dbh, res 500 ) if !$res;
+    return $on_finish->( $dbh, $res ) if !$res;
 
-    # insert user
-    $user = $self->_db_create_user( $dbh, $user_name, $res->{data}->{hash}, $enabled );
+    # update user
+    state $q2 = $dbh->prepare(q[UPDATE "auth_user" SET "enabled" = ?, "hash" = ? WHERE "id" = ?]);
 
-    # failed to insert user
-    return $on_finish->( $dbh, res 500 ) if !$user;
+    $res = $dbh->do( $q2, [ SQL_BOOL $enabled, SQL_BYTEA $res->{data}->{hash}, SQL_UUID $user_id] );
+
+    # DBH error
+    return $on_finish->( $dbh, $res ) if !$res;
 
     # set user permissions
-    $res = $self->_db_set_user_permissions( $dbh, $user->{data}->{id}, $permissions );
+    $res = $self->_db_set_user_permissions( $dbh, $user_id, $permissions );
 
     return $on_finish->( $dbh, $res ) if !$res;
 
-    return $on_finish->( $dbh, $user );
+    return $on_finish->(
+        $dbh,
+        res 200,
+        {   id      => $user_id,
+            name    => $user_name,
+            enabled => $enabled,
+        }
+    );
 }
 
 sub get_user ( $self, $user_id ) {
@@ -270,10 +287,26 @@ sub set_user_permissions ( $self, $user_id, $permissions ) {
     # user wasn't found
     return $user if !$user;
 
+    # start transaction
+    $res = $dbh->begin_work;
+
+    # failed to start transaction
+    return $res if !$res;
+
     $res = $self->_db_set_user_permissions( $dbh, $user->{data}->{id}, $permissions );
 
-    # DBH error
-    return $res if !$res;
+    # set permissions error
+    if ( !$res ) {
+        my $rollback = $dbh->rollback;
+
+        return $res;
+    }
+
+    # commit
+    my $commit = $dbh->commit;
+
+    # commit error
+    return $commit if !$commit;
 
     # permissions was modified
     P->fire_event( 'app.auth.cache', { type => $INVALIDATE_USER, id => $user->{data}->{id} } ) if $res == 200;
@@ -574,14 +607,7 @@ sub _db_sync_app_permissions ( $self, $dbh, $permissions ) {
 sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
     return res 204 if !$permissions || !$permissions->%*;    # not modified
 
-    $dbh->begin_work;
-
-    # start transaction
-    my $res = $dbh->begin_work;
-
-    # failed to start transaction
-    return $res if !$res;
-
+    my $res;
     my $modified = 0;
 
     while ( my ( $name, $enabled ) = each $permissions->%* ) {
@@ -590,11 +616,7 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
         $res = $dbh->do( $q1, [ SQL_UUID $user_id, $name, SQL_BOOL $enabled] );
 
         # DBH error
-        if ( !$res ) {
-            my $rollback_res = $dbh->rollback;
-
-            return $res;
-        }
+        return $res if !$res;
 
         # permission inserted
         if ( $res->{rows} ) {
@@ -608,11 +630,7 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
             $res = $dbh->do( $q2, [ SQL_BOOL $enabled, SQL_UUID $user_id, SQL_BOOL !$enabled, $name ] );
 
             # DBH error
-            if ( !$res ) {
-                my $rollback_res = $dbh->rollback;
-
-                return $res;
-            }
+            return $res if !$res;
 
             # permission updated
             if ( $res->{rows} ) {
@@ -620,11 +638,6 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
             }
         }
     }
-
-    my $commit_res = $dbh->commit;
-
-    # commit error
-    return $commit_res if !$commit_res;
 
     if ($modified) {
         return res 200;
@@ -637,27 +650,6 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
 # TODO
 sub _db_set_user_token_permissions ( $self, $dbh, $user_token_id, $permissions ) {
     return;
-}
-
-sub _db_create_user ( $self, $dbh, $user_name, $hash, $enabled ) {
-    my $user_id = uuid_v4_str;
-
-    state $q1 = $dbh->prepare('INSERT INTO "auth_user" ("id", "name", "hash", "enabled") VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING');
-
-    my $res = $dbh->do( $q1, [ SQL_UUID $user_id, SQL_UUID $user_name, SQL_BYTEA $hash, SQL_BOOL $enabled ] );
-
-    # DBH error
-    if ( !$res ) {
-        return $res;
-    }
-
-    # user already exists
-    elsif ( !$res->{rows} ) {
-        return res [ 400, 'USer already exists' ];
-    }
-    else {
-        return res 200, { id => $user_id };
-    }
 }
 
 # TODO
@@ -756,10 +748,9 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 100, 130, 191, 638,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 642                  |                                                                                                                |
+## |    3 | 100, 130, 191, 651   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 690                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_db_get_app_permissions' declared   |
+## |    3 | 682                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_db_get_app_permissions' declared   |
 ## |      |                      | but not used                                                                                                   |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
