@@ -502,7 +502,7 @@ sub get_user_tokens ( $self, $user_id ) {
 }
 
 # TODO
-sub create_user_token ( $self, $user_id, $desc, $permissions ) {
+sub create_user_token ( $self, $user_id, $name, $permissions ) {
 
     # resolve user
     my $user = $self->_db_get_user( $self->{dbh}, $user_id );
@@ -515,24 +515,6 @@ sub create_user_token ( $self, $user_id, $desc, $permissions ) {
 
     # token generation error
     return $token if !$token;
-
-    # get user permissions
-    my $user_permissions = $self->_db_get_user_permissions( $self->{dbh}, $user->{data}->{id} );
-
-    # error
-    return $user_permissions if !$user_permissions;
-
-    # find user permissions id's
-    if ( defined $permissions ) {
-
-        # create index by permission name
-        my $idx = { map { $_ => 1 } $permissions->@* };
-
-        $user_permissions = [ grep { exists $idx->{ $_->{permission_name} } } $user_permissions->{data}->@* ];
-
-        # some permissions are invalid or not allowed
-        return res 500 if $permissions->@* != $user_permissions->{data}->@*;
-    }
 
     # get dbh
     my ( $res, $dbh ) = $self->{dbh}->get_dbh;
@@ -567,19 +549,39 @@ sub create_user_token ( $self, $user_id, $desc, $permissions ) {
     };
 
     # insert token
-    state $q1 = $dbh->prepare('INSERT INTO "auth_user_token" ("id", "type", "user_id", "hash", "desc" ) VALUES (?, ?, ?, ?, ?)');
+    state $q1 = $dbh->prepare('INSERT INTO "auth_user_token" ("id", "type", "user_id", "hash", "name" ) VALUES (?, ?, ?, ?, ?)');
 
-    $res = $dbh->do( $q1, [ SQL_UUID $token->{data}->{id}, $TOKEN_TYPE_TOKEN, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash}, $desc ] );
+    $res = $dbh->do( $q1, [ SQL_UUID $token->{data}->{id}, $TOKEN_TYPE_TOKEN, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash}, $name ] );
 
     return $on_finish->($res) if !$res;
 
-    # no permissions to insert, eg: root user
-    return $on_finish->($res) if !$user_permissions->@*;
-
-    # insert user token permissions
-    $res = $dbh->do( [ q[INSERT INTO "auth_user_token_permission"], VALUES [ map { { user_token_id => SQL_UUID $token->{data}->{id}, user_permission_id => SQL_UUID $_->{id} } } $user_permissions->{data}->@* ] ] );
-
     return $on_finish->($res);
+
+    # # get user permissions
+    # my $user_permissions = $self->_db_get_user_permissions( $self->{dbh}, $user->{data}->{id} );
+
+    # # error
+    # return $user_permissions if !$user_permissions;
+
+    # # find user permissions id's
+    # if ( defined $permissions ) {
+
+    #     # create index by permission name
+    #     my $idx = { map { $_ => 1 } $permissions->@* };
+
+    #     $user_permissions = [ grep { exists $idx->{ $_->{permission_name} } } $user_permissions->{data}->@* ];
+
+    #     # some permissions are invalid or not allowed
+    #     return res 500 if $permissions->@* != $user_permissions->{data}->@*;
+    # }
+
+    # # no permissions to insert, eg: root user
+    # return $on_finish->($res) if !$user_permissions->@*;
+
+    # # insert user token permissions
+    # $res = $dbh->do( [ q[INSERT INTO "auth_user_token_permission"], VALUES [ map { { user_token_id => SQL_UUID $token->{data}->{id}, user_permission_id => SQL_UUID $_->{id} } } $user_permissions->{data}->@* ] ] );
+
+    # return $on_finish->($res);
 }
 
 sub remove_user_token ( $self, $user_token_id ) {
@@ -784,8 +786,8 @@ sub _remove_user_token ( $self, $user_token_id, $user_token_type ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 100, 131, 243, 738,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 764                  |                                                                                                                |
+## |    3 | 100, 131, 243, 740,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 766                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
