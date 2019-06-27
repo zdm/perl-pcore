@@ -96,7 +96,7 @@ sub _verify_password_hash ( $self, $private_token_hash, $hash ) {
     }
 }
 
-sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8 ) {
+sub _generate_password_hash ( $self, $user_name_utf8, $user_password_utf8 ) {
     my $user_name_bin = encode_utf8 $user_name_utf8;
 
     my $user_password_bin = encode_utf8 $user_password_utf8;
@@ -293,7 +293,7 @@ sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
     return $on_finish->( $dbh, res [ 400, 'Username is already exists' ] ) if !$res->{rows};
 
     # generate user password hash
-    $res = $self->_generate_user_password_hash( $user_name, $password );
+    $res = $self->_generate_password_hash( $user_name, $password );
 
     # error generating hash
     return $on_finish->( $dbh, $res ) if !$res;
@@ -333,7 +333,7 @@ sub set_user_password ( $self, $user_id, $password ) {
     # user wasn't found
     return $user if !$user;
 
-    my $password_hash = $self->_generate_user_password_hash( $user->{data}->{name}, $password );
+    my $password_hash = $self->_generate_password_hash( $user->{data}->{name}, $password );
 
     # password hash genereation error
     return $password_hash if !$password_hash;
