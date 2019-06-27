@@ -500,9 +500,9 @@ sub get_user_tokens ( $self, $user_id ) {
 }
 
 sub get_token ( $self, $token_id ) {
-    state $q1 = $self->{dbh}->prepare(q[SELECT "id", "name", "enabled", "created" FROM "auth_user_token" WHERE "type" = ? AND "token_id" = ?]);
+    state $q1 = $self->{dbh}->prepare(q[SELECT "id", "name", "enabled", "created", "user_id" FROM "auth_user_token" WHERE "type" = ? AND "id" = ?]);
 
-    return $self->{dbh}->selectall( $q1, [ $TOKEN_TYPE_TOKEN, SQL_UUID $token_id] );
+    return $self->{dbh}->selectrow( $q1, [ $TOKEN_TYPE_TOKEN, SQL_UUID $token_id] );
 }
 
 # TODO
@@ -615,32 +615,29 @@ sub set_token_enabled ( $self, $token_id, $enabled ) {
     }
 }
 
-# TODO return effective token enabled + user enabled permissions
+# TODO user_permission is always enabled for root
 sub get_token_permissions ( $self, $token_id ) {
     state $q1 = $self->{dbh}->prepare(
         <<'SQL',
         SELECT
             "auth_app_permission"."name",
-            CASE
-                WHEN "auth_user"."name" = ? THEN TRUE
-                ELSE COALESCE("auth_user_permission"."enabled", FALSE)
-            END  AS "enabled"
+            COALESCE("auth_user_token_permission"."enabled" AND "auth_user_permission"."enabled", FALSE) AS "enabled"
         FROM
             "auth_app_permission"
-            LEFT JOIN "auth_user" ON (
-                "auth_user"."id" = ?
-                OR "auth_user"."name" = ?
+            LEFT JOIN "auth_user_token_permission" ON (
+                "auth_user_token_permission"."permission_id" = "auth_app_permission"."id"
+                AND "auth_user_token_permission"."token_id" = ?
             )
             LEFT JOIN "auth_user_permission" ON (
-                "auth_user_permission"."permission_id" = "auth_app_permission"."id"
-                AND "auth_user_permission"."user_id" = "auth_user"."id"
+                "auth_user_permission"."user_id" = "auth_user_token_permission"."user_id"
+                AND "auth_user_permission"."permission_id" = "auth_user_token_permission"."permission_id"
             )
         WHERE
             "auth_app_permission"."enabled" = TRUE
 SQL
     );
 
-    my $res = $self->{dbh}->selectall( $q1, [ $ROOT_USER_NAME, SQL_UUID( looks_like_uuid $user_id ? $user_id : $UUID_ZERO ), $user_id ] );
+    my $res = $self->{dbh}->selectall( $q1, [ SQL_UUID $token_id ] );
 
     # DBH error
     return $res if !$res;
@@ -648,10 +645,47 @@ SQL
     return res 200, { map { $_->{name} => $_->{enabled} } $res->{data}->@* };
 }
 
-# TODO return user_enabled and token_enabled separately
-# can_edit = 1 where user_permission is set
+# TODO user_permission is always enabled for root
 sub get_token_permissions_for_edit ( $self, $token_id ) {
-    return;
+    state $q1 = $self->{dbh}->prepare(
+        <<'SQL',
+        SELECT
+            "auth_app_permission"."name",
+            COALESCE("auth_user_token_permission"."enabled", FALSE) AS "token_enabled",
+            CASE
+                WHEN "auth_user_token_permission"."user_id" = ? THEN TRUE
+                ELSE COALESCE("auth_user_permission"."enabled", FALSE)
+            END AS "user_enabled",
+            CASE
+                WHEN "auth_user_token_permission"."user_id" = ? THEN COALESCE("auth_user_token_permission"."enabled", FALSE)
+                ELSE COALESCE("auth_user_permission"."enabled" AND "auth_user_token_permission"."enabled", FALSE)
+            END AS "enabled",
+            CASE
+                WHEN "auth_user_token_permission"."user_id" = ? THEN TRUE
+                WHEN "auth_user_permission"."enabled" IS NULL THEN FALSE
+                ELSE TRUE
+            END  AS "can_edit"
+        FROM
+            "auth_app_permission"
+            LEFT JOIN "auth_user_token_permission" ON (
+                "auth_user_token_permission"."permission_id" = "auth_app_permission"."id"
+                AND "auth_user_token_permission"."user_token_id" = ?
+            )
+            LEFT JOIN "auth_user_permission" ON (
+                "auth_user_permission"."user_id" = "auth_user_token_permission"."user_id"
+                AND "auth_user_permission"."permission_id" = "auth_user_token_permission"."permission_id"
+            )
+        WHERE
+            "auth_app_permission"."enabled" = TRUE
+SQL
+    );
+
+    my $res = $self->{dbh}->selectall( $q1, [ SQL_UUID $ROOT_USER_ID, SQL_UUID $ROOT_USER_ID, SQL_UUID $ROOT_USER_ID, SQL_UUID $token_id ], key_col => 'name' );
+
+    # DBH error
+    return $res if !$res;
+
+    return res 200, $res->{data};
 }
 
 # TODO transaction
@@ -809,7 +843,7 @@ sub _remove_token ( $self, $token_id, $token_type ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 99, 129, 235         | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 783                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_db_set_user_token_permissions'     |
+## |    3 | 817                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_db_set_user_token_permissions'     |
 ## |      |                      | declared but not used                                                                                          |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
