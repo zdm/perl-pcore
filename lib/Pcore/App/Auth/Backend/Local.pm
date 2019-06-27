@@ -126,8 +126,6 @@ sub _generate_token ( $self ) {
       };
 }
 
-# TODO
-# TODO add token_id to auth if suthenticated by token
 sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
     my $auth = {
         private_token => $private_token,
@@ -139,30 +137,24 @@ sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
         permissions => {},
     };
 
+    my $permissions;
+
     # get token permissions
     if ( $private_token->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_TOKEN ) {
-
-        # TODO dbh?
-        my $permissions = $self->_db_get_user_token_permissions( $self->{dbh}, $private_token->[$PRIVATE_TOKEN_ID] );
-
-        return $permissions if !$permissions;
-
-        $auth->{permissions} = $permissions->{data};
-
-        return res 200, $auth;
+        $permissions = $self->get_token_permissions( $private_token->[$PRIVATE_TOKEN_ID] );
     }
 
     # get user permissions, session tokens inherit user permissions
     else {
-        my $permissions = $self->get_user_permissions($user_id);
-
-        # get permissions error
-        return $permissions if !$permissions;
-
-        $auth->{permissions} = $permissions->{data};
-
-        return res 200, $auth;
+        $permissions = $self->get_user_permissions($user_id);
     }
+
+    # get permissions error
+    return $permissions if !$permissions;
+
+    $auth->{permissions} = $permissions->{data};
+
+    return res 200, $auth;
 }
 
 # APP
@@ -623,8 +615,47 @@ sub set_token_enabled ( $self, $token_id, $enabled ) {
     }
 }
 
-# TODO, fire event, if permissions was changed
-sub set_user_token_permissions ( $self, $user_token_id, $permissions ) {
+# TODO return effective token enabled + user enabled permissions
+sub get_token_permissions ( $self, $token_id ) {
+    state $q1 = $self->{dbh}->prepare(
+        <<'SQL',
+        SELECT
+            "auth_app_permission"."name",
+            CASE
+                WHEN "auth_user"."name" = ? THEN TRUE
+                ELSE COALESCE("auth_user_permission"."enabled", FALSE)
+            END  AS "enabled"
+        FROM
+            "auth_app_permission"
+            LEFT JOIN "auth_user" ON (
+                "auth_user"."id" = ?
+                OR "auth_user"."name" = ?
+            )
+            LEFT JOIN "auth_user_permission" ON (
+                "auth_user_permission"."permission_id" = "auth_app_permission"."id"
+                AND "auth_user_permission"."user_id" = "auth_user"."id"
+            )
+        WHERE
+            "auth_app_permission"."enabled" = TRUE
+SQL
+    );
+
+    my $res = $self->{dbh}->selectall( $q1, [ $ROOT_USER_NAME, SQL_UUID( looks_like_uuid $user_id ? $user_id : $UUID_ZERO ), $user_id ] );
+
+    # DBH error
+    return $res if !$res;
+
+    return res 200, { map { $_->{name} => $_->{enabled} } $res->{data}->@* };
+}
+
+# TODO return user_enabled and token_enabled separately
+# can_edit = 1 where user_permission is set
+sub get_token_permissions_for_edit ( $self, $token_id ) {
+    return;
+}
+
+# TODO transaction
+sub set_token_permissions ( $self, $token_id, $permissions ) {
 
     # get dbh
     my ( $res, $dbh ) = $self->{dbh}->get_dbh;
@@ -632,13 +663,13 @@ sub set_user_token_permissions ( $self, $user_token_id, $permissions ) {
     # unable to get dbh
     return $res if !$res;
 
-    $res = $self->_db_set_user_token_permissions( $dbh, $user_token_id, $permissions );
+    $res = $self->_db_set_token_permissions( $dbh, $token_id, $permissions );
 
     # DBH error
     return $res if !$res;
 
     # permissions was modified
-    P->fire_event( 'app.auth.cache', { type => $INVALIDATE_TOKEN, id => $user_token_id } ) if $res == 200;
+    P->fire_event( 'app.auth.cache', { type => $INVALIDATE_TOKEN, id => $token_id } ) if $res == 200;
 
     return $res;
 }
@@ -749,30 +780,8 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
 }
 
 # TODO
-sub _db_set_user_token_permissions ( $self, $dbh, $user_token_id, $permissions ) {
+sub _db_set_user_token_permissions ( $self, $dbh, $token_id, $permissions ) {
     return;
-}
-
-# TODO
-sub _db_get_user_token_permissions ( $self, $dbh, $user_token_id ) {
-    state $q1 = $dbh->prepare(
-        <<'SQL',
-            SELECT
-                "auth_user_token_permission"."id" AS "id",
-                "auth_permission"."id" AS "permission_id",
-                "auth_permission"."name" AS "permission_name"
-            FROM
-                "auth_user_token_permission",
-                "auth_user_permission",
-                "auth_permission"
-            WHERE
-                "auth_user_token_permission"."user_permission_id" = "auth_user_permission"."id"
-                AND "auth_user_permission"."permission_id" = "auth_permission"."id"
-                AND "auth_user_token_permission"."user_token_id" = ?
-SQL
-    );
-
-    return $dbh->selectall( $q1, [ SQL_UUID $user_token_id ] );
 }
 
 sub _remove_token ( $self, $token_id, $token_type ) {
@@ -798,7 +807,10 @@ sub _remove_token ( $self, $token_id, $token_type ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 99, 131, 243, 752    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 99, 129, 235         | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 783                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_db_set_user_token_permissions'     |
+## |      |                      | declared but not used                                                                                          |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
