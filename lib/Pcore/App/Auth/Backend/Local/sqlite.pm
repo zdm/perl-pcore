@@ -33,7 +33,7 @@ sub _db_add_schema_patch ( $self, $dbh ) {
             );
 
             -- USER TOKEN
-            CREATE TABLE IF NOT EXISTS "auth_user_token" (
+            CREATE TABLE IF NOT EXISTS "auth_token" (
                 "id" UUID PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
                 "created" INT8 NOT NULL DEFAULT(STRFTIME('%s', 'NOW')),
                 "name" TEXT,
@@ -44,12 +44,12 @@ sub _db_add_schema_patch ( $self, $dbh ) {
             );
 
             -- USER TOKEN PERMISSION
-            CREATE TABLE IF NOT EXISTS "auth_user_token_permission" (
-                "user_token_id" UUID NOT NULL,
+            CREATE TABLE IF NOT EXISTS "auth_token_permission" (
+                "token_id" UUID NOT NULL,
                 "user_id" UUID NOT NULL,
                 "permission_id" INT2 NOT NULL,
                 "enabled" BOOL NOT NULL DEFAULT TRUE,
-                PRIMARY KEY ("user_token_id", "permission_id"),
+                PRIMARY KEY ("token_id", "permission_id"),
                 FOREIGN KEY ("user_id", "permission_id") REFERENCES "auth_user_permission" ("user_id", "permission_id") ON DELETE CASCADE,
                 FOREIGN KEY ("permission_id") REFERENCES "auth_app_permission" ("id") ON DELETE CASCADE
             );

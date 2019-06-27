@@ -62,10 +62,10 @@ sub init ( $self ) {
 # AUTHENTICATE
 sub do_authenticate_private ( $self, $private_token ) {
     if ( $private_token->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_PASSWORD ) {
-        return $self->_auth_user_password($private_token);
+        return $self->_auth_password($private_token);
     }
     else {
-        return $self->_auth_user_token($private_token);
+        return $self->_auth_token($private_token);
     }
 }
 
@@ -209,7 +209,7 @@ SQL
 }
 
 # USER
-sub _auth_user_password ( $self, $private_token ) {
+sub _auth_password ( $self, $private_token ) {
 
     # get user
     state $q1 = $self->{dbh}->prepare(q[SELECT "id", "hash", "enabled" FROM "auth_user" WHERE "name" = ?]);
@@ -452,7 +452,7 @@ sub set_user_permissions ( $self, $user_id, $permissions ) {
 }
 
 # TOKEN
-sub _auth_user_token ( $self, $private_token ) {
+sub _auth_token ( $self, $private_token ) {
 
     # get user token
     state $q1 = $self->{dbh}->prepare(
@@ -461,15 +461,15 @@ sub _auth_user_token ( $self, $private_token ) {
                 "auth_user"."id" AS "user_id",
                 "auth_user"."name" AS "user_name",
                 "auth_user"."enabled" AS "user_enabled",
-                "auth_user_token"."enabled" AS "token_enabled",
-                "auth_user_token"."type" AS "token_type",
-                "auth_user_token"."hash" AS "token_hash"
+                "auth_token"."enabled" AS "token_enabled",
+                "auth_token"."type" AS "token_type",
+                "auth_token"."hash" AS "token_hash"
             FROM
                 "auth_user",
-                "auth_user_token"
+                "auth_token"
             WHERE
-                "auth_user"."id" = "auth_user_token"."user_id"
-                AND "auth_user_token"."id" = ?
+                "auth_user"."id" = "auth_token"."user_id"
+                AND "auth_token"."id" = ?
 SQL
     );
 
@@ -494,13 +494,13 @@ SQL
 }
 
 sub get_user_tokens ( $self, $user_id ) {
-    state $q1 = $self->{dbh}->prepare(q[SELECT "id", "name", "enabled", "created" FROM "auth_user_token" WHERE "type" = ? AND "user_id" = ?]);
+    state $q1 = $self->{dbh}->prepare(q[SELECT "id", "name", "enabled", "created" FROM "auth_token" WHERE "type" = ? AND "user_id" = ?]);
 
     return $self->{dbh}->selectall( $q1, [ $TOKEN_TYPE_TOKEN, SQL_UUID $user_id] );
 }
 
 sub get_token ( $self, $token_id ) {
-    state $q1 = $self->{dbh}->prepare(q[SELECT "id", "name", "enabled", "created", "user_id" FROM "auth_user_token" WHERE "type" = ? AND "id" = ?]);
+    state $q1 = $self->{dbh}->prepare(q[SELECT "id", "name", "enabled", "created", "user_id" FROM "auth_token" WHERE "type" = ? AND "id" = ?]);
 
     return $self->{dbh}->selectrow( $q1, [ $TOKEN_TYPE_TOKEN, SQL_UUID $token_id] );
 }
@@ -553,7 +553,7 @@ sub create_token ( $self, $user_id, $name, $permissions ) {
     };
 
     # insert token
-    state $q1 = $dbh->prepare('INSERT INTO "auth_user_token" ("id", "type", "user_id", "hash", "name" ) VALUES (?, ?, ?, ?, ?)');
+    state $q1 = $dbh->prepare('INSERT INTO "auth_token" ("id", "type", "user_id", "hash", "name" ) VALUES (?, ?, ?, ?, ?)');
 
     $res = $dbh->do( $q1, [ SQL_UUID $token->{data}->{id}, $TOKEN_TYPE_TOKEN, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash}, $name ] );
 
@@ -583,7 +583,7 @@ sub create_token ( $self, $user_id, $name, $permissions ) {
     # return $on_finish->($res) if !$user_permissions->@*;
 
     # # insert user token permissions
-    # $res = $dbh->do( [ q[INSERT INTO "auth_user_token_permission"], VALUES [ map { { user_token_id => SQL_UUID $token->{data}->{id}, user_permission_id => SQL_UUID $_->{id} } } $user_permissions->{data}->@* ] ] );
+    # $res = $dbh->do( [ q[INSERT INTO "auth_token_permission"], VALUES [ map { { token_id => SQL_UUID $token->{data}->{id}, user_permission_id => SQL_UUID $_->{id} } } $user_permissions->{data}->@* ] ] );
 
     # return $on_finish->($res);
 }
@@ -595,7 +595,7 @@ sub remove_token ( $self, $token_id ) {
 sub set_token_enabled ( $self, $token_id, $enabled ) {
     my $dbh = $self->{dbh};
 
-    state $q1 = $dbh->prepare(q[UPDATE "auth_user_token" SET "enabled" = ? WHERE "id" = ? AND "type" = ? AND "enabled" = ?]);
+    state $q1 = $dbh->prepare(q[UPDATE "auth_token" SET "enabled" = ? WHERE "id" = ? AND "type" = ? AND "enabled" = ?]);
 
     my $res = $dbh->do( $q1, [ SQL_BOOL $enabled, SQL_UUID $token_id, $TOKEN_TYPE_TOKEN, SQL_BOOL !$enabled ] );
 
@@ -621,16 +621,16 @@ sub get_token_permissions ( $self, $token_id ) {
         <<'SQL',
         SELECT
             "auth_app_permission"."name",
-            COALESCE("auth_user_token_permission"."enabled" AND "auth_user_permission"."enabled", FALSE) AS "enabled"
+            COALESCE("auth_token_permission"."enabled" AND "auth_user_permission"."enabled", FALSE) AS "enabled"
         FROM
             "auth_app_permission"
-            LEFT JOIN "auth_user_token_permission" ON (
-                "auth_user_token_permission"."permission_id" = "auth_app_permission"."id"
-                AND "auth_user_token_permission"."token_id" = ?
+            LEFT JOIN "auth_token_permission" ON (
+                "auth_token_permission"."permission_id" = "auth_app_permission"."id"
+                AND "auth_token_permission"."token_id" = ?
             )
             LEFT JOIN "auth_user_permission" ON (
-                "auth_user_permission"."user_id" = "auth_user_token_permission"."user_id"
-                AND "auth_user_permission"."permission_id" = "auth_user_token_permission"."permission_id"
+                "auth_user_permission"."user_id" = "auth_token_permission"."user_id"
+                AND "auth_user_permission"."permission_id" = "auth_token_permission"."permission_id"
             )
         WHERE
             "auth_app_permission"."enabled" = TRUE
@@ -651,29 +651,29 @@ sub get_token_permissions_for_edit ( $self, $token_id ) {
         <<'SQL',
         SELECT
             "auth_app_permission"."name",
-            COALESCE("auth_user_token_permission"."enabled", FALSE) AS "token_enabled",
+            COALESCE("auth_token_permission"."enabled", FALSE) AS "token_enabled",
             CASE
-                WHEN "auth_user_token_permission"."user_id" = ? THEN TRUE
+                WHEN "auth_token_permission"."user_id" = ? THEN TRUE
                 ELSE COALESCE("auth_user_permission"."enabled", FALSE)
             END AS "user_enabled",
             CASE
-                WHEN "auth_user_token_permission"."user_id" = ? THEN COALESCE("auth_user_token_permission"."enabled", FALSE)
-                ELSE COALESCE("auth_user_permission"."enabled" AND "auth_user_token_permission"."enabled", FALSE)
+                WHEN "auth_token_permission"."user_id" = ? THEN COALESCE("auth_token_permission"."enabled", FALSE)
+                ELSE COALESCE("auth_user_permission"."enabled" AND "auth_token_permission"."enabled", FALSE)
             END AS "enabled",
             CASE
-                WHEN "auth_user_token_permission"."user_id" = ? THEN TRUE
+                WHEN "auth_token_permission"."user_id" = ? THEN TRUE
                 WHEN "auth_user_permission"."enabled" IS NULL THEN FALSE
                 ELSE TRUE
             END  AS "can_edit"
         FROM
             "auth_app_permission"
-            LEFT JOIN "auth_user_token_permission" ON (
-                "auth_user_token_permission"."permission_id" = "auth_app_permission"."id"
-                AND "auth_user_token_permission"."user_token_id" = ?
+            LEFT JOIN "auth_token_permission" ON (
+                "auth_token_permission"."permission_id" = "auth_app_permission"."id"
+                AND "auth_token_permission"."token_id" = ?
             )
             LEFT JOIN "auth_user_permission" ON (
-                "auth_user_permission"."user_id" = "auth_user_token_permission"."user_id"
-                AND "auth_user_permission"."permission_id" = "auth_user_token_permission"."permission_id"
+                "auth_user_permission"."user_id" = "auth_token_permission"."user_id"
+                AND "auth_user_permission"."permission_id" = "auth_token_permission"."permission_id"
             )
         WHERE
             "auth_app_permission"."enabled" = TRUE
@@ -724,7 +724,7 @@ sub create_session ( $self, $user_id ) {
     return $token if !$token;
 
     # token geneerated
-    state $q1 = $self->{dbh}->prepare('INSERT INTO "auth_user_token" ("id", "type", "user_id", "hash") VALUES (?, ?, ?, ?)');
+    state $q1 = $self->{dbh}->prepare('INSERT INTO "auth_token" ("id", "type", "user_id", "hash") VALUES (?, ?, ?, ?)');
 
     my $res = $self->{dbh}->do( $q1, [ SQL_UUID $token->{data}->{id}, $TOKEN_TYPE_SESSION, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash} ] );
 
@@ -814,12 +814,12 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
 }
 
 # TODO
-sub _db_set_user_token_permissions ( $self, $dbh, $token_id, $permissions ) {
+sub _db_set_token_permissions ( $self, $dbh, $token_id, $permissions ) {
     return;
 }
 
 sub _remove_token ( $self, $token_id, $token_type ) {
-    state $q1 = $self->{dbh}->prepare('DELETE FROM "auth_user_token" WHERE "id" = ? AND "type" = ?');
+    state $q1 = $self->{dbh}->prepare('DELETE FROM "auth_token" WHERE "id" = ? AND "type" = ?');
 
     my $res = $self->{dbh}->do( $q1, [ SQL_UUID $token_id, $token_type ] );
 
@@ -842,9 +842,6 @@ sub _remove_token ( $self, $token_id, $token_type ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 99, 129, 235         | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 817                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_db_set_user_token_permissions'     |
-## |      |                      | declared but not used                                                                                          |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
