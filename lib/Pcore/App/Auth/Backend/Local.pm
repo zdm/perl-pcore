@@ -513,7 +513,7 @@ sub get_token ( $self, $token_id ) {
     return $token;
 }
 
-sub create_token ( $self, $user_id, $name, $permissions ) {
+sub create_token ( $self, $user_id, $name, $enabled, $permissions ) {
 
     # resolve user
     my $user = $self->_db_get_user( $self->{dbh}, $user_id );
@@ -554,9 +554,11 @@ sub create_token ( $self, $user_id, $name, $permissions ) {
     };
 
     # insert token
-    state $q1 = $dbh->prepare('INSERT INTO "auth_token" ("id", "type", "user_id", "hash", "name" ) VALUES (?, ?, ?, ?, ?)');
+    state $q1 = $dbh->prepare('INSERT INTO "auth_token" ("id", "type", "user_id", "hash", "name", "enabled" ) VALUES (?, ?, ?, ?, ?, ?)');
 
-    $res = $dbh->do( $q1, [ SQL_UUID $token->{data}->{id}, $TOKEN_TYPE_TOKEN, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash}, $name ] );
+    $enabled = 0+ !!$enabled;
+
+    $res = $dbh->do( $q1, [ SQL_UUID $token->{data}->{id}, $TOKEN_TYPE_TOKEN, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash}, $name, SQL_BOOL $enabled ] );
 
     return $on_finish->( $dbh, $res ) if !$res;
 
@@ -568,9 +570,12 @@ sub create_token ( $self, $user_id, $name, $permissions ) {
     return $on_finish->(
         $dbh,
         res 200,
-        {   id    => $token->{data}->{id},
-            type  => $TOKEN_TYPE_TOKEN,
-            token => $token->{data}->{token},
+        {   id      => $token->{data}->{id},
+            type    => $TOKEN_TYPE_TOKEN,
+            user_id => $user->{data}->{id},
+            token   => $token->{data}->{token},
+            name    => $name,
+            enabled => $enabled,
         }
     );
 }
@@ -965,7 +970,7 @@ sub _remove_token ( $self, $token_id, $token_type ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 98, 128, 234         | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 98, 128, 234, 516    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
