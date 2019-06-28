@@ -33,8 +33,7 @@ sub init ( $self ) {
     # sync app permissions
     ( $res = $self->_sync_app_permissions($permissions) ) || return $res;
 
-    # app permissions was changed, invalidate cache
-    P->fire_event( 'app.auth.cache', { type => $INVALIDATE_ALL } ) if $res == 200;
+    my $app_permissions_changed = $res == 200;
 
     # run hash RPC
     print 'Starting API RPC node ... ';
@@ -344,10 +343,12 @@ sub set_user_password ( $self, $user_id, $password ) {
 }
 
 sub set_user_enabled ( $self, $user_id, $enabled ) {
+    return res [ 400, qw[rCan't modify root user] ] if $self->user_is_root($user_id);
+
     my $dbh = $self->{dbh};
 
     # root can't be disabled
-    state $q1 = $dbh->prepare(q[UPDATE "auth_user" SET "enabled" = ? WHERE ("id" = ? OR "name" = ?) AND "name" != ? AND "enabled" = ?]);
+    state $q1 = $dbh->prepare(q[UPDATE "auth_user" SET "enabled" = ? WHERE ("id" = ? OR "name" = ?) AND "enabled" = ?]);
 
     $enabled = 0+ !!$enabled;
 
@@ -357,7 +358,6 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
             SQL_BOOL $enabled,
             SQL_UUID( looks_like_uuid $user_id ? $user_id : $UUID_ZERO ),
             $user_id,
-            $ROOT_USER_NAME,
             SQL_BOOL !$enabled,
         ]
     );
@@ -411,6 +411,7 @@ SQL
 }
 
 sub set_user_permissions ( $self, $user_id, $permissions ) {
+    return res [ 400, qw[rCan't modify root user] ] if $self->user_is_root($user_id);
 
     # get dbh
     my ( $res, $dbh ) = $self->{dbh}->get_dbh;
@@ -423,8 +424,6 @@ sub set_user_permissions ( $self, $user_id, $permissions ) {
 
     # user wasn't found
     return $user if !$user;
-
-    return res [ 400, q[Can't modify "root" user permissions] ] if $self->user_is_root( $user->{data}->{name} );
 
     # start transaction
     $res = $dbh->begin_work;
@@ -636,7 +635,7 @@ sub get_token_permissions ( $self, $token_id ) {
             END AS "enabled",
         FROM
             "auth_app_permission"
-            CROSS JOIN (SELECT "user_id", "id" FROM "auth_token" WHERE "auth_token"."id" = ?) AS "auth_token"
+            CROSS JOIN (SELECT "user_id", "id" FROM "auth_token" WHERE "id" = ? AND "type" = ?) AS "auth_token"
             LEFT JOIN "auth_token_permission" ON (
                 "auth_token_permission"."permission_id" = "auth_app_permission"."id"
                 AND "auth_token_permission"."token_id" = "auth_token"."id"
@@ -647,14 +646,14 @@ sub get_token_permissions ( $self, $token_id ) {
             )
         WHERE
             "auth_app_permission"."enabled" = TRUE
-        ORDER BY "name" ASC
 SQL
     );
 
     my $res = $self->{dbh}->selectall(
         $q1,
         [   SQL_UUID $ROOT_USER_ID,    #
-            SQL_UUID $token_id
+            SQL_UUID $token_id,
+            $TOKEN_TYPE_TOKEN
         ],
     );
 
@@ -664,6 +663,7 @@ SQL
     return res 200, { map { $_->{name} => $_->{enabled} } $res->{data}->@* };
 }
 
+# TODO
 sub get_token_permissions_for_edit ( $self, $token_id ) {
     state $q1 = $self->{dbh}->prepare(
         <<'SQL',
@@ -682,10 +682,18 @@ sub get_token_permissions_for_edit ( $self, $token_id ) {
                 WHEN "auth_token"."user_id" = ? THEN TRUE
                 WHEN NOT "auth_user_permission"."enabled" THEN FALSE
                 ELSE TRUE
-            END  AS "can_edit"
+            END  AS "can_edit",
+            CASE
+                WHEN "auth_user_permission"."enabled" IS NULL THEN FALSE
+                ELSE TRUE
+            END  AS "has_user_permission",
+            CASE
+                WHEN "auth_token_permission"."enabled" IS NULL THEN FALSE
+                ELSE TRUE
+            END  AS "has_token_permission"
         FROM
             "auth_app_permission"
-            CROSS JOIN (SELECT "user_id", "id" FROM "auth_token" WHERE "auth_token"."id" = ?) AS "auth_token"
+            CROSS JOIN (SELECT "user_id", "id" FROM "auth_token" WHERE "id" = ? AND "type" = ?) AS "auth_token"
             LEFT JOIN "auth_token_permission" ON (
                 "auth_token_permission"."permission_id" = "auth_app_permission"."id"
                 AND "auth_token_permission"."token_id" = "auth_token"."id"
@@ -705,7 +713,8 @@ SQL
         [   SQL_UUID $ROOT_USER_ID,    #
             SQL_UUID $ROOT_USER_ID,
             SQL_UUID $ROOT_USER_ID,
-            SQL_UUID $token_id
+            SQL_UUID $token_id,
+            $TOKEN_TYPE_TOKEN,
         ],
     );
 
@@ -879,72 +888,70 @@ SQL
     }
 }
 
-# TODO
 sub _db_set_token_permissions ( $self, $dbh, $token_id, $permissions ) {
     return res 204 if !$permissions || !$permissions->%*;    # not modified
 
-    my $token = $self->get_token($token_id);
+    my $token_permissions = $self->get_token_permissions_for_edit($token_id);
 
-    return $token if !$token;
+    return $token_permissions if !$token_permissions;
 
-    my $user_id = $token->{data}->{user_id};
+    $token_permissions = { map { $_->{name} => $_ } $token_permissions->{data}->@* };
 
-    my $res;
-    my $modified = 0;
+    my ( $modified, $insert_user_permission, $insert_token_permission, $update_token_permission );
 
     while ( my ( $name, $enabled ) = each $permissions->%* ) {
         $enabled = 0+ !!$enabled;
 
-        state $q1 = $dbh->prepare(
-            <<'SQL'
-            INSERT INTO "auth_token_permission" (
-                "token_id",
-                "user_id",
-                "permission_id",
-                "enabled"
-            )
-            VALUES (
-                ?,
-                ?,
-                (SELECT "id" FROM "auth_app_permission" WHERE "name" = ?),
-                ?
-            )
-            ON CONFLICT DO NOTHING
-SQL
-        );
-
-        $res = $dbh->do( $q1, [ SQL_UUID $token_id, SQL_UUID $user_id, $name, SQL_BOOL $enabled] );
-
-        # DBH error
-        return $res if !$res;
-
-        # permission inserted
-        if ( $res->{rows} ) {
-            $modified = 1;
+        # can not edit permission
+        if ( !$token_permissions->{$name}->{can_edit} ) {
+            return res [ 400, q[Unable to set token permissions] ];
         }
 
-        # permission is already exists
-        else {
-            state $q2 = $dbh->prepare(
-                <<'SQL'
-                UPDATE
-                    "auth_token_permission"
-                SET
-                    "enabled" = ?
-                WHERE
-                    "user_id" = ?
-                    AND "enabled" = ?
-                    AND "permission_id" = (SELECT "id" FROM "auth_app_permission" WHERE "name" = ?)
-SQL
-            );
+        # need to modify permission
+        elsif ( $enabled != $token_permissions->{$name}->{enabled} ) {
+            $modified = 1;
 
-            $res = $dbh->do( $q2, [ SQL_BOOL $enabled, SQL_UUID $user_id, SQL_BOOL !$enabled, $name ] );
+            if ( !$token_permissions->{$name}->{has_user_permission} ) {
+                push $insert_user_permission->@*,
+                  { user_id       => SQL [ '(SELECT "user_id" FROM "auth_token" WHERE "id" =', SQL_UUID $token_id, ')' ],
+                    permission_id => SQL [ '(SELECT "id" FROM "auth_app_permission" WHERE "name" =', \$name, ')' ],
+                    enabled       => SQL_BOOL 1,
+                  };
+            }
 
-            # DBH error
+            if ( !$token_permissions->{$name}->{has_token_permission} ) {
+                push $insert_token_permission->@*,
+                  { user_id       => SQL [ '(SELECT "user_id" FROM "auth_token" WHERE "id" =', SQL_UUID $token_id, ')' ],
+                    token_id      => $token_id,
+                    permission_id => SQL [ '(SELECT "id" FROM "auth_app_permission" WHERE "name" =', \$name, ')' ],
+                    enabled       => SQL_BOOL $enabled,
+                  };
+            }
+            else {
+                push $update_token_permission->@*, [ SQL_BOOL $enabled, SQL_UUID $token_id];
+            }
+        }
+    }
+
+    if ($insert_user_permission) {
+        my $res = $dbh->do( [ 'INSERT INTO "auth_user_permission"', VALUES $insert_user_permission] );
+
+        return $res if !$res;
+    }
+
+    if ($insert_token_permission) {
+        my $res = $dbh->do( [ 'INSERT INTO "auth_token_permission"', VALUES $insert_token_permission] );
+
+        return $res if !$res;
+    }
+
+    if ($update_token_permission) {
+        state $q1 = $dbh->prepare(q[UPDATE "auth_token_permission" SET "enabled" = ? WHERE "token_id" = ?]);
+
+        for my $bind ( $update_token_permission->@* ) {
+            my $res = $dbh->do( $q1, $bind );
+
             return $res if !$res;
-
-            # permission updated
-            $modified = 1 if $res->{rows};
         }
     }
 
@@ -979,7 +986,7 @@ sub _remove_token ( $self, $token_id, $token_type ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 99, 129, 235         | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 98, 128, 234         | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
