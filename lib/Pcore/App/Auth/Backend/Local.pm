@@ -281,6 +281,9 @@ sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
     # username already exists
     return $on_finish->( $dbh, res [ 400, 'Username is already exists' ] ) if !$res->{rows};
 
+    # generate random password if password is empty
+    $password = P->random->bytes(32) if !defined $password || $password eq $EMPTY;
+
     # generate user password hash
     $res = $self->_generate_password_hash( $user_name, $password );
 
