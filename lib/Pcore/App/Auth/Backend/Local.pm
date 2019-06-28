@@ -239,24 +239,6 @@ sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
     # lowercase user name
     $user_name = lc $user_name;
 
-    state $on_finish = sub ( $dbh, $res ) {
-        if ( !$res ) {
-            my $res1 = $dbh->rollback;
-
-            return $res;
-        }
-        else {
-            my $res1 = $dbh->commit;
-
-            # error committing transaction
-            return $res1 if !$res1;
-
-            return $res;
-        }
-
-        return;
-    };
-
     # get dbh
     my ( $res, $dbh ) = $self->{dbh}->get_dbh;
 
@@ -271,6 +253,22 @@ sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
 
     # generate user id
     my $user_id = $self->user_is_root($user_name) ? $ROOT_USER_ID : uuid_v4_str;
+
+    $enabled = !!$enabled;
+
+    state $on_finish = sub ( $dbh, $res ) {
+        if ( !$res ) {
+            my $res1 = $dbh->rollback;
+        }
+        else {
+            my $res1 = $dbh->commit;
+
+            # error committing transaction
+            return $res1 if !$res1;
+        }
+
+        return $res;
+    };
 
     state $q1 = $dbh->prepare(q[INSERT INTO "auth_user" ("id", "name", "hash", "enabled") VALUES (?, ?, '', FALSE) ON CONFLICT DO NOTHING]);
 
@@ -292,7 +290,7 @@ sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
     # update user
     state $q2 = $dbh->prepare(q[UPDATE "auth_user" SET "enabled" = ?, "hash" = ? WHERE "id" = ?]);
 
-    $res = $dbh->do( $q2, [ SQL_BOOL !!$enabled, SQL_BYTEA $res->{data}->{hash}, SQL_UUID $user_id] );
+    $res = $dbh->do( $q2, [ SQL_BOOL $enabled, SQL_BYTEA $res->{data}->{hash}, SQL_UUID $user_id] );
 
     # DBH error
     return $on_finish->( $dbh, $res ) if !$res;
@@ -512,7 +510,6 @@ sub get_token ( $self, $token_id ) {
     return $token;
 }
 
-# TODO
 sub create_token ( $self, $user_id, $name, $permissions ) {
 
     # resolve user
@@ -539,24 +536,18 @@ sub create_token ( $self, $user_id, $name, $permissions ) {
     # failed to start transaction
     return $res if !$res;
 
-    my $on_finish = sub ($res) {
+    state $on_finish = sub ( $dbh, $res ) {
         if ( !$res ) {
             my $res1 = $dbh->rollback;
-
-            return res 500;
         }
         else {
             my $res1 = $dbh->commit;
 
             # commit error
             return $res1 if !$res1;
-
-            return res 200,
-              { id    => $token->{data}->{id},
-                type  => $TOKEN_TYPE_TOKEN,
-                token => $token->{data}->{token},
-              };
         }
+
+        return $res;
     };
 
     # insert token
@@ -564,35 +555,21 @@ sub create_token ( $self, $user_id, $name, $permissions ) {
 
     $res = $dbh->do( $q1, [ SQL_UUID $token->{data}->{id}, $TOKEN_TYPE_TOKEN, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash}, $name ] );
 
-    return $on_finish->($res) if !$res;
+    return $on_finish->( $dbh, $res ) if !$res;
 
-    return $on_finish->($res);
+    # set token permissions
+    $res = $self->_db_set_token_permissions( $dbh, $token->{data}->{id}, $permissions );
 
-    # # get user permissions
-    # my $user_permissions = $self->_db_get_user_permissions( $self->{dbh}, $user->{data}->{id} );
+    return $on_finish->( $dbh, $res ) if !$res;
 
-    # # error
-    # return $user_permissions if !$user_permissions;
-
-    # # find user permissions id's
-    # if ( defined $permissions ) {
-
-    #     # create index by permission name
-    #     my $idx = { map { $_ => 1 } $permissions->@* };
-
-    #     $user_permissions = [ grep { exists $idx->{ $_->{permission_name} } } $user_permissions->{data}->@* ];
-
-    #     # some permissions are invalid or not allowed
-    #     return res 500 if $permissions->@* != $user_permissions->{data}->@*;
-    # }
-
-    # # no permissions to insert, eg: root user
-    # return $on_finish->($res) if !$user_permissions->@*;
-
-    # # insert user token permissions
-    # $res = $dbh->do( [ q[INSERT INTO "auth_token_permission"], VALUES [ map { { token_id => SQL_UUID $token->{data}->{id}, user_permission_id => SQL_UUID $_->{id} } } $user_permissions->{data}->@* ] ] );
-
-    # return $on_finish->($res);
+    return $on_finish->(
+        $dbh,
+        res 200,
+        {   id    => $token->{data}->{id},
+            type  => $TOKEN_TYPE_TOKEN,
+            token => $token->{data}->{token},
+        }
+    );
 }
 
 sub remove_token ( $self, $token_id ) {
@@ -663,7 +640,6 @@ SQL
     return res 200, { map { $_->{name} => $_->{enabled} } $res->{data}->@* };
 }
 
-# TODO
 sub get_token_permissions_for_edit ( $self, $token_id ) {
     state $q1 = $self->{dbh}->prepare(
         <<'SQL',
