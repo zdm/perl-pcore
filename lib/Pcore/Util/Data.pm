@@ -575,27 +575,27 @@ sub from_ini ( $data, @ ) {
 
 # BASE64
 sub to_b64 : prototype($;$) {
-    require MIME::Base64;    ## no critic qw[Modules::ProhibitEvilModules]
+    state $init = !!require MIME::Base64;
 
     return &MIME::Base64::encode_base64;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
 sub to_b64_url : prototype($) {
-    require MIME::Base64;                   ## no critic qw[Modules::ProhibitEvilModules]
+    state $init = !!require MIME::Base64::URLSafe;
 
-    return &MIME::Base64::encode_base64url; ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+    return &MIME::Base64::URLSafe::urlsafe_b64encode;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
 sub from_b64 : prototype($) {
-    require MIME::Base64;                   ## no critic qw[Modules::ProhibitEvilModules]
+    state $init = !!require MIME::Base64;
 
-    return &MIME::Base64::decode_base64;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+    return &MIME::Base64::decode_base64;                 ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
 sub from_b64_url : prototype($) {
-    require MIME::Base64;                   ## no critic qw[Modules::ProhibitEvilModules]
+    state $init = !!require MIME::Base64::URLSafe;
 
-    return &MIME::Base64::decode_base64url; ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+    return &MIME::Base64::URLSafe::urlsafe_b64decode;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
 # XOR
