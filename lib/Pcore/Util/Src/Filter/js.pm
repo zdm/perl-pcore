@@ -26,7 +26,10 @@ sub decompress ($self) {
     my $jshint_output;
 
     if ( $self->{js_hint} && length $self->{data}->$* ) {
+
         $jshint_output = $self->_run_js_hint;
+
+        # $jshint_output = $self->_run_eslint;
 
         if ( $jshint_output->{data}->@* ) {
             for my $rec ( $jshint_output->{data}->@* ) {
@@ -104,7 +107,7 @@ sub _run_js_hint ($self) {
 
     my $out_temp = "$ENV->{TEMP_DIR}/tmp-jshint-" . int rand 99_999;
 
-    my $proc = P->sys->run_proc( qq[jshint  $js_hint_args "$in_temp" > "$out_temp"], win32_create_no_window => 1 )->wait;
+    my $proc = P->sys->run_proc( qq[jshint $js_hint_args "$in_temp" > "$out_temp"], win32_create_no_window => 1 )->wait;
 
     $jshint_output = P->file->read_lines($out_temp);
 
@@ -140,6 +143,58 @@ sub _run_js_hint ($self) {
     return $res;
 }
 
+sub _run_eslint ($self) {
+
+    # my $js_hint_args = $self->dist_cfg->{jshint} || $self->src_cfg->{jshint};
+
+    my $in_temp = P->file1->tempfile;
+
+    P->file->write_bin( $in_temp, $self->{data} );
+
+    my $out_temp = "$ENV->{TEMP_DIR}/tmp-jshint-@{[ int rand 99_999 ]}.json";
+
+    my $config = '/var/local/pcore-lib/arbitrator/data/cdn/app/09bc0f7872d3f6ddeae90acd113c0cab/.eslintrc.yaml';
+
+    my $proc = P->sys->run_proc( qq[eslint --format json --config "$config" -o "$out_temp" "$in_temp"], win32_create_no_window => 1 )->wait;
+
+    my $jshint_output = P->cfg->read($out_temp);
+
+    say dump $jshint_output;
+
+    unlink $out_temp;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
+
+    my $res = {
+        has_errors => 0,
+        has_warns  => 0,
+        data       => [],
+    };
+
+    return $res;
+
+    # for my $line ( $jshint_output->@* ) {
+    #     next unless $line =~ s/^.+?: line/line/smg;
+
+    #     my $descriptor = { raw => $line };
+
+    #     ( $descriptor->{line}, $descriptor->{col}, $descriptor->{msg}, $descriptor->{code} ) = $line =~ /line (\d+), col (\d+|undefined), (.+)? [(]([WE]\d+)[)]/sm;
+
+    #     if ( index( $descriptor->{code}, 'E', 0 ) == 0 ) {
+    #         $descriptor->{is_error} = 1;
+
+    #         $res->{has_errors}++;
+    #     }
+    #     else {
+    #         $descriptor->{is_warn} = 1;
+
+    #         $res->{has_warns}++;
+    #     }
+
+    #     push $res->{data}->@*, $descriptor;
+    # }
+
+    # return $res;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -147,7 +202,9 @@ sub _run_js_hint ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 89                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 92                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 146                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_run_eslint' declared but not used  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
