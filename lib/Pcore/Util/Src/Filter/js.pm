@@ -5,7 +5,7 @@ use Pcore::Util::Text qw[rcut_all encode_utf8];
 
 with qw[Pcore::Util::Src::Filter];
 
-has js_hint => 1;    # use jshint on decompress
+has jshint => 1;    # use jshint on decompress
 
 my $JS_PACKER;
 
@@ -25,9 +25,9 @@ sub decompress ($self) {
 
     my $jshint_output;
 
-    if ( $self->{js_hint} && length $self->{data}->$* ) {
+    if ( $self->{jshint} && length $self->{data}->$* ) {
 
-        $jshint_output = $self->_run_js_hint;
+        $jshint_output = $self->_run_jshint;
 
         # $jshint_output = $self->_run_eslint;
 
@@ -40,7 +40,7 @@ sub decompress ($self) {
 
     $self->_append_log($log);
 
-    if ( $self->{js_hint} ) {
+    if ( $self->{jshint} ) {
         if ( $jshint_output->{has_errors} ) {
             return res [ 500, 'Error, jshint' ];
         }
@@ -96,10 +96,10 @@ sub _cut_log ($self) {
     return;
 }
 
-sub _run_js_hint ($self) {
+sub _run_jshint ($self) {
     my $jshint_output = [];
 
-    my $js_hint_args = $self->dist_cfg->{jshint} || $self->src_cfg->{jshint};
+    my $jshint_args = $self->dist_cfg->{jshint} || $self->src_cfg->{jshint};
 
     my $in_temp = P->file1->tempfile;
 
@@ -107,7 +107,7 @@ sub _run_js_hint ($self) {
 
     my $out_temp = "$ENV->{TEMP_DIR}/tmp-jshint-" . int rand 99_999;
 
-    my $proc = P->sys->run_proc( qq[jshint $js_hint_args "$in_temp" > "$out_temp"], win32_create_no_window => 1 )->wait;
+    my $proc = P->sys->run_proc( qq[jshint $jshint_args "$in_temp" > "$out_temp"], win32_create_no_window => 1 )->wait;
 
     $jshint_output = P->file->read_lines($out_temp);
 
@@ -145,7 +145,7 @@ sub _run_js_hint ($self) {
 
 sub _run_eslint ($self) {
 
-    # my $js_hint_args = $self->dist_cfg->{jshint} || $self->src_cfg->{jshint};
+    # my $jshint_args = $self->dist_cfg->{jshint} || $self->src_cfg->{jshint};
 
     my $in_temp = P->file1->tempfile;
 
