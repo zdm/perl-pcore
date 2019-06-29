@@ -2,7 +2,7 @@ package Pcore::App::Auth;
 
 use Pcore -role, -const, -export;
 use Pcore::Util::Scalar qw[is_plain_arrayref];
-use Pcore::Util::Data qw[from_b64 from_b64_url];
+use Pcore::Util::Data qw[from_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
 use Pcore::Util::Text qw[encode_utf8];
 use Pcore::Util::UUID qw[uuid_from_bin];
