@@ -54,7 +54,7 @@ sub run ( $self, $req ) {
 
         # decode API request
         if ( !$env->{CONTENT_TYPE} || $env->{CONTENT_TYPE} =~ m[\bapplication/json\b]smi ) {
-            $msg = eval { from_json $req->{body} };
+            $msg = eval { from_json $req->{data} };
 
             # content decode error
             if ($@) {
@@ -65,7 +65,7 @@ sub run ( $self, $req ) {
         }
 
         elsif ( $env->{CONTENT_TYPE} =~ m[\bapplication/cbor\b]smi ) {
-            $msg = eval { from_cbor $req->{body} };
+            $msg = eval { from_cbor $req->{data} };
 
             # content decode error
             if ($@) {

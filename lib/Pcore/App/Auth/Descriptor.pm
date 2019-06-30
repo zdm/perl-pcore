@@ -1,6 +1,7 @@
 package Pcore::App::Auth::Descriptor;
 
 use Pcore -class, -res;
+use Pcore::App::Auth qw[:TOKEN_TYPE :PRIVATE_TOKEN];
 use Pcore::App::API::Request;
 use Pcore::Util::Scalar qw[is_callback is_plain_coderef];
 
@@ -67,7 +68,7 @@ sub _check_permissions ( $self, $method_id ) {
     else {
 
         # user is root, method authentication is not required
-        return res 200 if $self->{is_root};
+        return res 200 if $self->{is_root} && $self->{private_token}->[$PRIVATE_TOKEN_TYPE] != $TOKEN_TYPE_TOKEN;
 
         # method has no permissions, authorization is not required
         return res 200 if !$method_cfg->{permissions};

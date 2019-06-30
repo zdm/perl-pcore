@@ -115,7 +115,7 @@ sub init ($self) {
             my $perms = do {
                 my $ref = *{"$class_name\::$method_name"}{CODE};
 
-                $attrs->{$ref}->{perms} // ${"$class_name\::API_NAMESPACE_PERMISSIONS"};
+                $attrs->{$ref}->{permissions} // ${"$class_name\::API_NAMESPACE_PERMISSIONS"};
             };
 
             my $local_method_name = $method_name;
