@@ -14,14 +14,12 @@ use overload    #
 has app              => ( required => 1 );    # ConsumerOf ['Pcore::App']
 has is_authenticated => ( required => 1 );    # Bool
 has private_token => ();                      # Maybe [ArrayRef], [ $token_type, $token_id, $token_hash ]
-has is_root       => ();                      # Bool
 has user_id       => ();                      # Maybe [Str]
 has user_name     => ();                      # Maybe [Str]
 has permissions   => ();                      # Maybe [HashRef]
-has depends_on    => ();                      # Maybe [ArrayRef]
 
 *TO_JSON = *TO_CBOR = sub ($self) {
-    return { $self->%{qw[is_authenticated is_root user_id user_name permissions]} };
+    return { $self->%{qw[is_authenticated user_id user_name permissions]} };
 };
 
 sub TO_DUMP ( $self, $dumper, @ ) {
@@ -66,9 +64,6 @@ sub _check_permissions ( $self, $method_id ) {
 
     # method was found
     else {
-
-        # user is root, method authentication is not required
-        return res 200 if $self->{is_root} && $self->{private_token}->[$PRIVATE_TOKEN_TYPE] != $TOKEN_TYPE_TOKEN;
 
         # method has no permissions, authorization is not required
         return res 200 if !$method_cfg->{permissions};

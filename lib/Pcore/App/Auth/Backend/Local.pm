@@ -128,12 +128,9 @@ sub _generate_token ( $self ) {
 sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
     my $auth = {
         private_token => $private_token,
-
-        is_root   => $self->user_is_root($user_name),
-        user_id   => $user_id,
-        user_name => $user_name,
-
-        permissions => {},
+        user_id       => $user_id,
+        user_name     => $user_name,
+        permissions   => {},
     };
 
     my $permissions;
@@ -967,9 +964,9 @@ sub _remove_token ( $self, $token_id, $token_type ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 98, 128, 234, 516    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 98, 128, 231, 513    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 866                  | Subroutines::ProhibitExcessComplexity - Subroutine "_db_set_token_permissions" with high complexity score (22) |
+## |    3 | 863                  | Subroutines::ProhibitExcessComplexity - Subroutine "_db_set_token_permissions" with high complexity score (22) |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
