@@ -4,7 +4,7 @@ package main v0.1.0;
 
 use Pcore;
 use Test::More;
-use Pcore::App::API;
+use Pcore::App::Auth;
 use Pcore::Node;
 
 our $TESTS = 5;
@@ -30,19 +30,19 @@ package App {
 
 my $app = bless {
     cfg => {
-        api => {
+        auth => {
             backend => 'sqlite:',
-            rpc     => { workers => 1 }
+            node    => { workers => 1 }
         }
     },
     node => Pcore::Node->new(
         type     => 'main',
-        requires => { 'Pcore::App::API::Node' => undef },
+        requires => { 'Pcore::App::Auth::Node' => undef },
     ),
   },
   'App';
 
-my $api = Pcore::App::API->new($app);
+my $api = Pcore::App::Auth->new($app);
 
 my $res = $api->init;
 ok( $res, 'api_init' );
