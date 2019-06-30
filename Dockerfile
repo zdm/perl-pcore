@@ -22,7 +22,7 @@ WORKDIR $DIST_PATH
 RUN /bin/bash -c ' \
     \
     # setup host
-    && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/tip/setup-host.sh || echo false ) \
+    source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/tip/setup-host.sh || echo false ) \
     \
     # setup perl build env
     && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh || echo false ) setup \
