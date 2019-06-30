@@ -18,7 +18,6 @@ ADD . $DIST_PATH
 
 WORKDIR $DIST_PATH
 
-# --develop
 RUN /bin/bash -c ' \
     \
     # setup host
@@ -32,7 +31,7 @@ RUN /bin/bash -c ' \
     && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/tip/perl-modules.sh || echo false ) \
     # && cpan-outdated | cpanm \
     \
-    # deploy pcore
+    # deploy pcore, --devel ???
     && perl bin/pcore deploy --recommends --suggests \
     && pcore test -j $(nproc) \
     \
