@@ -1,10 +1,8 @@
 package Pcore::Util::Net;
 
 use Pcore -export;
-use Pcore::Util::Scalar qw[is_ref];
-use Pcore::Util::UUID qw[uuid_v4_str];
 
-our $EXPORT = [qw[hostname get_free_port]];
+our $EXPORT = [qw[hostname get_free_port check_port]];
 
 sub hostname {
     state $hostname = do {
@@ -39,6 +37,24 @@ sub get_free_port : prototype(;$) ( $ip = undef ) {
     }
 
     return;
+}
+
+sub check_port : prototype($$;$) ( $host, $port, $timeout = 1 ) {
+    my $cv = P->cv;
+
+    AnyEvent::Socket::tcp_connect(
+        $host, $port,
+        sub ( $fh = undef, @ ) {
+            $cv->( defined $fh );
+
+            return;
+        },
+        sub {
+            return $timeout;
+        }
+    );
+
+    return $cv->recv;
 }
 
 1;
