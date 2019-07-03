@@ -180,7 +180,14 @@ sub _sync_app_permissions ( $self, $permissions ) {
 
     $modified += $res->{rows};
 
-    return res( $modified ? 200 : 204 );
+    if ($modified) {
+        P->fire_event( 'app.auth.cache', { type => $INVALIDATE_ALL } );
+
+        return res 200;
+    }
+    else {
+        return res 204;
+    }
 }
 
 sub get_app_permissions ( $self ) {
@@ -311,13 +318,35 @@ sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
 }
 
 sub get_user ( $self, $user_id ) {
-    return $self->_db_get_user( $self->{dbh}, $user_id );
+    my $user;
+
+    # find user by id
+    if ( looks_like_uuid $user_id) {
+        state $q1 = $self->{dbh}->prepare(q[SELECT "id", "name", "enabled", "created" FROM "auth_user" WHERE "id" = ?]);
+
+        $user = $self->{dbh}->selectrow( $q1, [ SQL_UUID $user_id ] );
+    }
+
+    # find user by name
+    else {
+        state $q1 = $self->{dbh}->prepare(q[SELECT "id", "name", "enabled", "created" FROM "auth_user" WHERE "name" = ?]);
+
+        $user = $self->{dbh}->selectrow( $q1, [$user_id] );
+    }
+
+    # DBH error
+    return $user if !$user;
+
+    # user not found
+    return res [ 404, 'User not found' ] if !$user->{data};
+
+    return $user;
 }
 
 sub set_user_password ( $self, $user_id, $password ) {
 
     # resolve user
-    my $user = $self->_db_get_user( $self->{dbh}, $user_id );
+    my $user = $self->get_user($user_id);
 
     # user wasn't found
     return $user if !$user;
@@ -418,7 +447,7 @@ sub set_user_permissions ( $self, $user_id, $permissions ) {
     return $res if !$res;
 
     # resolve user
-    my $user = $self->_db_get_user( $dbh, $user_id );
+    my $user = $self->get_user($user_id);
 
     # user wasn't found
     return $user if !$user;
@@ -513,7 +542,7 @@ sub get_token ( $self, $token_id ) {
 sub create_token ( $self, $user_id, $name, $enabled, $permissions ) {
 
     # resolve user
-    my $user = $self->_db_get_user( $self->{dbh}, $user_id );
+    my $user = $self->get_user($user_id);
 
     # user wasn't found
     return $user if !$user;
@@ -735,7 +764,7 @@ sub set_token_permissions ( $self, $token_id, $permissions ) {
 sub create_session ( $self, $user_id ) {
 
     # resolve user
-    my $user = $self->_db_get_user( $self->{dbh}, $user_id );
+    my $user = $self->get_user($user_id);
 
     # user wasn't found
     return $user if !$user;
@@ -766,32 +795,6 @@ sub remove_session ( $self, $token_id ) {
 }
 
 # UTIL
-sub _db_get_user ( $self, $dbh, $user_id ) {
-    my $user;
-
-    # find user by id
-    if ( looks_like_uuid $user_id) {
-        state $q1 = $dbh->prepare(q[SELECT "id", "name", "enabled", "created" FROM "auth_user" WHERE "id" = ?]);
-
-        $user = $dbh->selectrow( $q1, [ SQL_UUID $user_id ] );
-    }
-
-    # find user by name
-    else {
-        state $q1 = $dbh->prepare(q[SELECT "id", "name", "enabled", "created" FROM "auth_user" WHERE "name" = ?]);
-
-        $user = $dbh->selectrow( $q1, [$user_id] );
-    }
-
-    # DBH error
-    return $user if !$user;
-
-    # user not found
-    return res [ 404, 'User not found' ] if !$user->{data};
-
-    return $user;
-}
-
 sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
     return res 204 if !$permissions || !$permissions->%*;    # not modified
 
@@ -802,7 +805,7 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
         $enabled = 0+ !!$enabled;
 
         state $q1 = $dbh->prepare(
-            <<'SQL'
+            <<~'SQL'
             INSERT INTO "auth_user_permission" (
                 "user_id",
                 "permission_id",
@@ -830,7 +833,7 @@ SQL
         # permission is already exists
         else {
             state $q2 = $dbh->prepare(
-                <<'SQL'
+                <<~'SQL'
                 UPDATE
                     "auth_user_permission"
                 SET
@@ -964,9 +967,9 @@ sub _remove_token ( $self, $token_id, $token_type ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 98, 128, 231, 513    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 98, 128, 238, 542    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 863                  | Subroutines::ProhibitExcessComplexity - Subroutine "_db_set_token_permissions" with high complexity score (22) |
+## |    3 | 866                  | Subroutines::ProhibitExcessComplexity - Subroutine "_db_set_token_permissions" with high complexity score (22) |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
