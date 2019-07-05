@@ -28,10 +28,8 @@ sub init ( $self ) {
 
     return $res unless $res;
 
-    my $permissions = $self->{app}->get_permissions;
-
     # sync app permissions
-    ( $res = $self->_sync_app_permissions($permissions) ) || return $res;
+    ( $res = $self->_sync_app_permissions ) || return $res;
 
     my $app_permissions_changed = $res == 200;
 
@@ -154,7 +152,9 @@ sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
 }
 
 # APP
-sub _sync_app_permissions ( $self, $permissions ) {
+sub _sync_app_permissions ( $self ) {
+    my $permissions = $self->{app}->get_permissions;
+
     my $dbh = $self->{dbh};
 
     my $modified = 0;
@@ -967,7 +967,7 @@ sub _remove_token ( $self, $token_id, $token_type ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 98, 128, 238, 542    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 96, 126, 238, 542    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 866                  | Subroutines::ProhibitExcessComplexity - Subroutine "_db_set_token_permissions" with high complexity score (22) |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
