@@ -26,6 +26,8 @@ sub _upload ( $self, $req, $args, $on_start, $on_finish ) {
             # register upload
             $self->{_upload}->{$id} = $args;
 
+            $args->{last_activity} = time;
+
             $self->_set_upload_timer($id);
 
             $req->( 200, $id );
@@ -42,7 +44,7 @@ sub _upload ( $self, $req, $args, $on_start, $on_finish ) {
         my $upload = $self->{_upload}->{ $args->{id} };
 
         # upload was not found
-        return $req->(500) if !$upload;
+        return $req->( [ 400, q[Upload id is invalid or expired] ] ) if !$upload;
 
         my $chunk = P->data->from_b64( delete $args->{chunk} );
 
@@ -61,7 +63,7 @@ sub _upload ( $self, $req, $args, $on_start, $on_finish ) {
 
         # upload is not finished
         if ( $upload->{uploaded_size} < $upload->{size} ) {
-            $self->_set_upload_timer( $args->{id} );
+            $args->{last_activity} = time;
 
             $req->(200);
         }
@@ -104,7 +106,10 @@ sub _remove_upload ( $self, $upload_id ) {
 
 sub _set_upload_timer ( $self, $upload_id ) {
     $self->{_upload_timer}->{$upload_id} = AE::timer $self->{upload_idle_timeout}, 0, sub {
-        $self->_remove_upload($upload_id);
+        my $upload = $self->{_uploads}->{$upload_id};
+
+        # upload is expired
+        $self->_remove_upload($upload_id) if !$upload || $upload->{last_activity} + $self->{upload_idle_timeout} < time;
 
         return;
     };
