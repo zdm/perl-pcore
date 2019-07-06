@@ -80,6 +80,9 @@ around new => sub ( $orig, $self, $cmd, %args ) {
         $self->{win32_alive_timeout} = $args{win32_alive_timeout} if defined $args{win32_alive_timeout};
         $args{win32_cflags} //= $args{win32_create_no_window} ? Win32::Process::CREATE_NO_WINDOW() : 0;    # NOTE handles redirect not works if not 0, Win32::Process::CREATE_NO_WINDOW(),
     }
+    else {
+        $args{setpgid} //= 1;
+    }
 
     my ( $child_stdin,  $child_stdout,  $child_stderr );
     my ( $backup_stdin, $backup_stdout, $backup_stderr );
@@ -140,7 +143,7 @@ around new => sub ( $orig, $self, $cmd, %args ) {
     # create process
     $self->_create_process(
         $cmd,
-        $args{win32_cflags},
+        \%args,
         sub {
             # restore old STD* handles
             open *STDIN,  '<&', $backup_stdin  or die $! if defined $backup_stdin;
@@ -155,7 +158,7 @@ around new => sub ( $orig, $self, $cmd, %args ) {
 };
 
 # TODO under windows run directly and handle process creation error
-sub _create_process ( $self, $cmd, $win32_cflags, $restore ) {
+sub _create_process ( $self, $cmd, $args, $restore ) {
 
     # prepare environment
     local $ENV{PERL5LIB} = join $Config{path_sep}, grep { !ref } @INC;
@@ -171,7 +174,7 @@ sub _create_process ( $self, $cmd, $win32_cflags, $restore ) {
             $ENV{COMSPEC},
             '/D /C "' . join( $SPACE, $cmd->@* ) . '"',
             1,                     # inherit STD* handles
-            $win32_cflags,
+            $args->{win32_cflags},
             '.'
         );
 
@@ -203,8 +206,11 @@ sub _create_process ( $self, $cmd, $win32_cflags, $restore ) {
 
         unless ( $self->{pid} = fork ) {
 
+            # run process in own session
+            POSIX::setsid() if $args->{setsid};
+
             # run process in own PGRP
-            setpgrp;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
+            POSIX::setpgid( 0, 0 ) if $args->{setpgid};
 
             local $SIG{__WARN__} = sub { };
 
@@ -351,7 +357,7 @@ sub _set_exit_code ( $self, $exit_code, $reason = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (27)                               |
+## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (28)                               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -365,6 +371,18 @@ __END__
 Pcore::Util::Sys::Proc
 
 =head1 SYNOPSIS
+
+    my $proc = P->sys->run_proc(
+        $cmd,
+        win32_create_no_window => 0,
+        stdin                  => 0,
+        stdout                 => 0,
+        stderr                 => 0,
+        setsid                 => 0,
+        setpgid                => 1,
+        win32_alive_timeout    => 0.5,
+        kill_on_destroy        => 1,
+    )->wait;
 
 =head1 DESCRIPTION
 
