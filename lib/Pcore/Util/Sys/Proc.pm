@@ -38,6 +38,8 @@ const our $STATUS_REASON => {
     $PROC_STATUS_TERMINATED_ERROR   => 'Error',
 };
 
+sub IS_PCORE_RESULT { }
+
 sub DESTROY ( $self ) {
     return if !$self->{kill_on_destroy};
 
