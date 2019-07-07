@@ -83,7 +83,7 @@ sub validate_user_name ( $self, $name ) {
 
     return if $name =~ /[^[:alnum:]_]/smi;
 
-    return if length $name < 4 || length $name > 32;
+    return if length $name < 3 || length $name > 32;
 
     return 1;
 }
