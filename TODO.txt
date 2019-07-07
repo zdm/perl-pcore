@@ -1,6 +1,3 @@
-- user token management;
-- user permissions management;
-
 - API::Backend::Remote:
     - drop auth cache on API disconnect;
     - listen for AUTH events;
