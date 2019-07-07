@@ -9,7 +9,7 @@ use Pcore::Util::UUID qw[uuid_from_bin];
 use Pcore::App::Auth::Descriptor;
 
 our $EXPORT = {
-    TOKEN_TYPE      => [qw[$TOKEN_TYPE_UNKNOWN $TOKEN_TYPE_PASSWORD $TOKEN_TYPE_TOKEN $TOKEN_TYPE_SESSION]],
+    TOKEN_TYPE      => [qw[$TOKEN_TYPE_PASSWORD $TOKEN_TYPE_TOKEN $TOKEN_TYPE_SESSION]],
     INVALIDATE_TYPE => [qw[$INVALIDATE_USER $INVALIDATE_TOKEN $INVALIDATE_ALL]],
     PRIVATE_TOKEN   => [qw[$PRIVATE_TOKEN_ID $PRIVATE_TOKEN_HASH $PRIVATE_TOKEN_TYPE]],
     ROOT_USER       => [qw[$ROOT_USER_NAME $ROOT_USER_ID]],
@@ -22,7 +22,6 @@ has _auth_cache_user  => ( init_arg             => undef );    # HashRef, user_i
 has _auth_cache_token => ( init_arg             => undef );    # HashRef, user_token_id => auth_descriptor
 has _session_timer    => ( init_arg             => undef );    # InstanceOf['AE::timer']
 
-const our $TOKEN_TYPE_UNKNOWN  => 0;
 const our $TOKEN_TYPE_PASSWORD => 1;
 const our $TOKEN_TYPE_TOKEN    => 2;
 const our $TOKEN_TYPE_SESSION  => 3;
@@ -134,13 +133,13 @@ sub authenticate ( $self, $token ) {
             # unpack token id
             $token_id = uuid_from_bin( substr $token_bin, 0, 16 )->str;
 
-            $private_token_hash = sha3_512 substr $token_bin, 16;
+            $token_type = unpack 'C', substr $token_bin, 16, 1;
+
+            $private_token_hash = sha3_512 substr $token_bin, 17;
         };
 
         # error decoding token
         return $self->_get_unauthenticated_descriptor if $@;
-
-        $token_type = $TOKEN_TYPE_UNKNOWN;
     }
 
     return $self->authenticate_private( [ $token_id, $private_token_hash, $token_type ] );
@@ -273,7 +272,7 @@ sub _invalidate_expired_sessions ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 131                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 130                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

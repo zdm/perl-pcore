@@ -61,8 +61,14 @@ sub do_authenticate_private ( $self, $private_token ) {
     if ( $private_token->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_PASSWORD ) {
         return $self->_auth_password($private_token);
     }
-    else {
+    elsif ( $private_token->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_TOKEN ) {
         return $self->_auth_token($private_token);
+    }
+    elsif ( $private_token->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_SESSION ) {
+        return $self->_auth_session($private_token);
+    }
+    else {
+        return res [ 400, 'Invalid token type' ];
     }
 }
 
@@ -77,7 +83,7 @@ sub validate_user_name ( $self, $name ) {
 
     return if $name =~ /[^[:alnum:]_]/smi;
 
-    return if length $name < 5 || length $name > 32;
+    return if length $name < 4 || length $name > 32;
 
     return 1;
 }
@@ -109,19 +115,20 @@ sub _generate_password_hash ( $self, $user_name_utf8, $user_password_utf8 ) {
     return res 200, { hash => $res->{data} };
 }
 
-sub _generate_token ( $self ) {
+sub _generate_token ( $self, $token_type ) {
     my $token_id = uuid_v4;
 
     my $rand = P->random->bytes(32);
 
-    my $token_bin = $token_id->bin . $rand;
+    my $token_bin = $token_id->bin . pack( 'C', $token_type ) . $rand;
 
     my $private_token_hash = sha3_512 $rand;
 
     return res 200,
-      { id    => $token_id->str,
-        token => to_b64_url $token_bin,
-        hash  => sha3_512 $private_token_hash . $token_id->str,
+      { id         => $token_id->str,
+        token      => to_b64_url $token_bin,
+        token_type => $token_type,
+        hash       => sha3_512 $token_type . $private_token_hash . $token_id->str,
       };
 }
 
@@ -464,7 +471,6 @@ sub _auth_token ( $self, $private_token ) {
                 "auth_user"."name" AS "user_name",
                 "auth_user"."enabled" AS "user_enabled",
                 "auth_token"."enabled" AS "token_enabled",
-                "auth_token"."type" AS "token_type",
                 "auth_token"."hash" AS "token_hash"
             FROM
                 "auth_user",
@@ -486,25 +492,22 @@ SQL
     return res 404 if !$token || !$token->{user_enabled} || !$token->{token_enabled};
 
     # verify token, token is not valid
-    return res [ 400, 'Invalid token' ] if sha3_512( $private_token->[$PRIVATE_TOKEN_HASH] . $private_token->[$PRIVATE_TOKEN_ID] ) ne $token->{token_hash};
-
-    # store token type in private token
-    $private_token->[$PRIVATE_TOKEN_TYPE] = $token->{token_type};
+    return res [ 400, 'Invalid token' ] if sha3_512( $private_token->[$PRIVATE_TOKEN_TYPE] . $private_token->[$PRIVATE_TOKEN_HASH] . $private_token->[$PRIVATE_TOKEN_ID] ) ne $token->{token_hash};
 
     # token is valid
     return $self->_return_auth( $private_token, $token->{user_id}, $token->{user_name} );
 }
 
 sub get_user_tokens ( $self, $user_id ) {
-    state $q1 = $self->{dbh}->prepare(q[SELECT "id", "name", "enabled", "created" FROM "auth_token" WHERE "type" = ? AND "user_id" = ?]);
+    state $q1 = $self->{dbh}->prepare(q[SELECT "id", "name", "enabled", "created" FROM "auth_token" WHERE "user_id" = ?]);
 
-    return $self->{dbh}->selectall( $q1, [ $TOKEN_TYPE_TOKEN, SQL_UUID $user_id] );
+    return $self->{dbh}->selectall( $q1, [ SQL_UUID $user_id] );
 }
 
 sub get_token ( $self, $token_id ) {
-    state $q1 = $self->{dbh}->prepare(q[SELECT "id", "name", "enabled", "created", "user_id" FROM "auth_token" WHERE "type" = ? AND "id" = ?]);
+    state $q1 = $self->{dbh}->prepare(q[SELECT "id", "name", "enabled", "created", "user_id" FROM "auth_token" WHERE "id" = ?]);
 
-    my $token = $self->{dbh}->selectrow( $q1, [ $TOKEN_TYPE_TOKEN, SQL_UUID $token_id] );
+    my $token = $self->{dbh}->selectrow( $q1, [ SQL_UUID $token_id] );
 
     return $token if !$token;
 
@@ -522,7 +525,7 @@ sub create_token ( $self, $user_id, $name, $enabled, $permissions ) {
     return $user if !$user;
 
     # generate user token
-    my $token = $self->_generate_token;
+    my $token = $self->_generate_token($TOKEN_TYPE_TOKEN);
 
     # token generation error
     return $token if !$token;
@@ -554,11 +557,11 @@ sub create_token ( $self, $user_id, $name, $enabled, $permissions ) {
     };
 
     # insert token
-    state $q1 = $dbh->prepare('INSERT INTO "auth_token" ("id", "type", "user_id", "hash", "name", "enabled" ) VALUES (?, ?, ?, ?, ?, ?)');
+    state $q1 = $dbh->prepare('INSERT INTO "auth_token" ("id", "user_id", "hash", "name", "enabled" ) VALUES (?, ?, ?, ?, ?)');
 
     $enabled = 0+ !!$enabled;
 
-    $res = $dbh->do( $q1, [ SQL_UUID $token->{data}->{id}, $TOKEN_TYPE_TOKEN, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash}, $name, SQL_BOOL $enabled ] );
+    $res = $dbh->do( $q1, [ SQL_UUID $token->{data}->{id}, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash}, $name, SQL_BOOL $enabled ] );
 
     return $on_finish->( $dbh, $res ) if !$res;
 
@@ -588,17 +591,29 @@ sub create_token ( $self, $user_id, $name, $enabled, $permissions ) {
 }
 
 sub remove_token ( $self, $token_id ) {
-    return $self->_remove_token( $token_id, $TOKEN_TYPE_TOKEN );
+    state $q1 = $self->{dbh}->prepare('DELETE FROM "auth_token" WHERE "id" = ?');
+
+    my $res = $self->{dbh}->do( $q1, [ SQL_UUID $token_id ] );
+
+    # DBH error
+    return $res if !$res;
+
+    # not found
+    return res 204 if !$res->{rows};
+
+    P->fire_event( 'app.auth.cache', { type => $INVALIDATE_TOKEN, id => $token_id } );
+
+    return res 200;
 }
 
 sub set_token_enabled ( $self, $token_id, $enabled ) {
     my $dbh = $self->{dbh};
 
-    state $q1 = $dbh->prepare(q[UPDATE "auth_token" SET "enabled" = ? WHERE "id" = ? AND "type" = ? AND "enabled" = ?]);
+    state $q1 = $dbh->prepare(q[UPDATE "auth_token" SET "enabled" = ? WHERE "id" = ? AND "enabled" = ?]);
 
     $enabled = 0+ !!$enabled;
 
-    my $res = $dbh->do( $q1, [ SQL_BOOL $enabled, SQL_UUID $token_id, $TOKEN_TYPE_TOKEN, SQL_BOOL !$enabled ] );
+    my $res = $dbh->do( $q1, [ SQL_BOOL $enabled, SQL_UUID $token_id, SQL_BOOL !$enabled ] );
 
     # DBH error
     return $res if !$res;
@@ -649,7 +664,7 @@ sub get_token_permissions_for_edit ( $self, $token_id ) {
             END  AS "has_token_permission"
         FROM
             "auth_app_permission"
-            CROSS JOIN (SELECT "user_id", "id" FROM "auth_token" WHERE "id" = ? AND "type" = ?) AS "auth_token"
+            CROSS JOIN (SELECT "user_id", "id" FROM "auth_token" WHERE "id" = ?) AS "auth_token"
             LEFT JOIN "auth_token_permission" ON (
                 "auth_token_permission"."permission_id" = "auth_app_permission"."id"
                 AND "auth_token_permission"."token_id" = "auth_token"."id"
@@ -670,7 +685,6 @@ SQL
             SQL_UUID $ROOT_USER_ID,
             SQL_UUID $ROOT_USER_ID,
             SQL_UUID $token_id,
-            $TOKEN_TYPE_TOKEN,
         ],
     );
 
@@ -716,6 +730,42 @@ sub set_token_permissions ( $self, $token_id, $permissions ) {
 }
 
 # SESSION
+sub _auth_session ( $self, $private_token ) {
+
+    # get user token
+    state $q1 = $self->{dbh}->prepare(
+        <<'SQL'
+            SELECT
+                "auth_user"."id" AS "user_id",
+                "auth_user"."name" AS "user_name",
+                "auth_user"."enabled" AS "user_enabled",
+                "auth_session"."hash" AS "session_hash"
+            FROM
+                "auth_user",
+                "auth_session"
+            WHERE
+                "auth_user"."id" = "auth_session"."user_id"
+                AND "auth_session"."id" = ?
+SQL
+    );
+
+    my $token = $self->{dbh}->selectrow( $q1, [ SQL_UUID $private_token->[$PRIVATE_TOKEN_ID] ] );
+
+    # DBH error
+    return res 500 if !$token;
+
+    $token = $token->{data};
+
+    # user is disabled
+    return res 404 if !$token || !$token->{user_enabled};
+
+    # verify token, token is not valid
+    return res [ 400, 'Invalid token' ] if sha3_512( $private_token->[$PRIVATE_TOKEN_TYPE] . $private_token->[$PRIVATE_TOKEN_HASH] . $private_token->[$PRIVATE_TOKEN_ID] ) ne $token->{session_hash};
+
+    # token is valid
+    return $self->_return_auth( $private_token, $token->{user_id}, $token->{user_name} );
+}
+
 sub create_session ( $self, $user_id ) {
 
     # resolve user
@@ -725,7 +775,7 @@ sub create_session ( $self, $user_id ) {
     return $user if !$user;
 
     # generate session token
-    my $token = $self->_generate_token;
+    my $token = $self->_generate_token($TOKEN_TYPE_SESSION);
 
     # token generation error
     return $token if !$token;
@@ -756,9 +806,9 @@ sub create_session ( $self, $user_id ) {
     return $res if !$res;
 
     # token generated
-    state $q1 = $dbh->prepare('INSERT INTO "auth_token" ("id", "type", "user_id", "hash") VALUES (?, ?, ?, ?)');
+    state $q1 = $dbh->prepare('INSERT INTO "auth_session" ("id", "user_id", "hash") VALUES (?, ?, ?)');
 
-    $res = $dbh->do( $q1, [ SQL_UUID $token->{data}->{id}, $TOKEN_TYPE_SESSION, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash} ] );
+    $res = $dbh->do( $q1, [ SQL_UUID $token->{data}->{id}, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash} ] );
 
     # DBH error
     return $on_finish->( $dbh, $res ) if !$res;
@@ -782,7 +832,19 @@ sub create_session ( $self, $user_id ) {
 }
 
 sub remove_session ( $self, $token_id ) {
-    return $self->_remove_token( $token_id, $TOKEN_TYPE_SESSION );
+    state $q1 = $self->{dbh}->prepare('DELETE FROM "auth_session" WHERE "id" = ?');
+
+    my $res = $self->{dbh}->do( $q1, [ SQL_UUID $token_id ] );
+
+    # DBH error
+    return $res if !$res;
+
+    # not found
+    return res 204 if !$res->{rows};
+
+    P->fire_event( 'app.auth.cache', { type => $INVALIDATE_TOKEN, id => $token_id } );
+
+    return res 200;
 }
 
 # UTIL
@@ -894,7 +956,7 @@ sub _db_get_token_permissions ( $self, $dbh, $token_id ) {
             COALESCE("auth_user_permission"."enabled" AND "auth_token_permission"."enabled", FALSE) AS "enabled"
         FROM
             "auth_app_permission"
-            CROSS JOIN (SELECT "user_id", "id" FROM "auth_token" WHERE "id" = ? AND "type" = ?) AS "auth_token"
+            CROSS JOIN (SELECT "user_id", "id" FROM "auth_token" WHERE "id" = ?) AS "auth_token"
             LEFT JOIN "auth_token_permission" ON (
                 "auth_token_permission"."permission_id" = "auth_app_permission"."id"
                 AND "auth_token_permission"."token_id" = "auth_token"."id"
@@ -908,7 +970,7 @@ sub _db_get_token_permissions ( $self, $dbh, $token_id ) {
 SQL
     );
 
-    my $res = $dbh->selectall( $q1, [ SQL_UUID $token_id, $TOKEN_TYPE_TOKEN ], );
+    my $res = $dbh->selectall( $q1, [ SQL_UUID $token_id ], );
 
     # DBH error
     return $res if !$res;
@@ -997,22 +1059,6 @@ sub _db_set_token_permissions ( $self, $dbh, $token_id, $permissions ) {
     }
 }
 
-sub _remove_token ( $self, $token_id, $token_type ) {
-    state $q1 = $self->{dbh}->prepare('DELETE FROM "auth_token" WHERE "id" = ? AND "type" = ?');
-
-    my $res = $self->{dbh}->do( $q1, [ SQL_UUID $token_id, $token_type ] );
-
-    # DBH error
-    return $res if !$res;
-
-    # not found
-    return res 204 if !$res->{rows};
-
-    P->fire_event( 'app.auth.cache', { type => $INVALIDATE_TOKEN, id => $token_id } );
-
-    return res 200;
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -1020,9 +1066,9 @@ sub _remove_token ( $self, $token_id, $token_type ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 98, 128, 240, 516    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 104, 135, 247, 519   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 919                  | Subroutines::ProhibitExcessComplexity - Subroutine "_db_set_token_permissions" with high complexity score (22) |
+## |    3 | 981                  | Subroutines::ProhibitExcessComplexity - Subroutine "_db_set_token_permissions" with high complexity score (22) |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

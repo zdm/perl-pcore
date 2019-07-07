@@ -24,7 +24,7 @@ sub _db_add_schema_patch ( $self, $dbh ) {
                 "enabled" BOOL NOT NULL DEFAULT TRUE
             );
 
-            -- USER PERMISSION
+            -- USER PERMISSIONS
             CREATE TABLE IF NOT EXISTS "auth_user_permission" (
                 "user_id" UUID NOT NULL REFERENCES "auth_user" ("id") ON DELETE CASCADE,
                 "permission_id" INT2 NOT NULL REFERENCES "auth_app_permission" ("id") ON DELETE CASCADE,
@@ -32,18 +32,17 @@ sub _db_add_schema_patch ( $self, $dbh ) {
                 PRIMARY KEY ("user_id", "permission_id")
             );
 
-            -- USER TOKEN
+            -- TOKEN
             CREATE TABLE IF NOT EXISTS "auth_token" (
                 "id" UUID PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
                 "created" INT8 NOT NULL DEFAULT(STRFTIME('%s', 'NOW')),
                 "name" TEXT,
-                "type" INT2 NOT NULL,
                 "user_id" UUID NOT NULL REFERENCES "auth_user" ("id") ON DELETE CASCADE,
                 "hash" BYTEA NOT NULL,
                 "enabled" BOOL NOT NULL DEFAULT TRUE
             );
 
-            -- USER TOKEN PERMISSION
+            -- TOKEN PERMISSIONS
             CREATE TABLE IF NOT EXISTS "auth_token_permission" (
                 "token_id" UUID NOT NULL,
                 "user_id" UUID NOT NULL,
@@ -52,6 +51,14 @@ sub _db_add_schema_patch ( $self, $dbh ) {
                 PRIMARY KEY ("token_id", "permission_id"),
                 FOREIGN KEY ("user_id", "permission_id") REFERENCES "auth_user_permission" ("user_id", "permission_id") ON DELETE CASCADE,
                 FOREIGN KEY ("permission_id") REFERENCES "auth_app_permission" ("id") ON DELETE CASCADE
+            );
+
+            -- SESSION
+            CREATE TABLE IF NOT EXISTS "auth_session" (
+                "id" UUID PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
+                "created" INT8 NOT NULL DEFAULT(STRFTIME('%s', 'NOW')),
+                "user_id" UUID NOT NULL REFERENCES "auth_user" ("id") ON DELETE CASCADE,
+                "hash" BYTEA NOT NULL
             );
 SQL
     );
