@@ -75,7 +75,9 @@ sub validate_name ( $self, $name ) {
     # name looks like number
     return if looks_like_number $name;
 
-    return if $name =~ /[^[:alnum:]_@.-]/smi;
+    return if $name =~ /[^[:alnum:]_]/smi;
+
+    return if length $name < 5 || length $name > 32;
 
     return 1;
 }
@@ -1018,9 +1020,9 @@ sub _remove_token ( $self, $token_id, $token_type ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 96, 126, 238, 514    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 98, 128, 240, 516    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 917                  | Subroutines::ProhibitExcessComplexity - Subroutine "_db_set_token_permissions" with high complexity score (22) |
+## |    3 | 919                  | Subroutines::ProhibitExcessComplexity - Subroutine "_db_set_token_permissions" with high complexity score (22) |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
