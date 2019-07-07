@@ -406,35 +406,7 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
 }
 
 sub get_user_permissions ( $self, $user_id ) {
-    state $q1 = $self->{dbh}->prepare(
-        <<'SQL',
-        SELECT
-            "auth_app_permission"."name",
-            CASE
-                WHEN "auth_user"."name" = ? THEN TRUE
-                ELSE COALESCE("auth_user_permission"."enabled", FALSE)
-            END  AS "enabled"
-        FROM
-            "auth_app_permission"
-            LEFT JOIN "auth_user" ON (
-                "auth_user"."id" = ?
-                OR "auth_user"."name" = ?
-            )
-            LEFT JOIN "auth_user_permission" ON (
-                "auth_user_permission"."permission_id" = "auth_app_permission"."id"
-                AND "auth_user_permission"."user_id" = "auth_user"."id"
-            )
-        WHERE
-            "auth_app_permission"."enabled" = TRUE
-SQL
-    );
-
-    my $res = $self->{dbh}->selectall( $q1, [ $ROOT_USER_NAME, SQL_UUID( looks_like_uuid $user_id ? $user_id : $UUID_ZERO ), $user_id ] );
-
-    # DBH error
-    return $res if !$res;
-
-    return res 200, { map { $_->{name} => $_->{enabled} } $res->{data}->@* };
+    return $self->_db_get_user_permissions( $self->{dbh}, $user_id );
 }
 
 sub set_user_permissions ( $self, $user_id, $permissions ) {
@@ -593,15 +565,22 @@ sub create_token ( $self, $user_id, $name, $enabled, $permissions ) {
 
     return $on_finish->( $dbh, $res ) if !$res;
 
+    # get token permissions
+    my $token_permissions = $self->_db_get_token_permissions( $dbh, $token->{data}->{id} );
+
+    return $on_finish->( $dbh, $token_permissions ) if !$token_permissions;
+
     return $on_finish->(
         $dbh,
         res 200,
-        {   id      => $token->{data}->{id},
-            type    => $TOKEN_TYPE_TOKEN,
-            user_id => $user->{data}->{id},
-            token   => $token->{data}->{token},
-            name    => $name,
-            enabled => $enabled,
+        {   id          => $token->{data}->{id},
+            type        => $TOKEN_TYPE_TOKEN,
+            user_id     => $user->{data}->{id},
+            user_name   => $user->{data}->{name},
+            token       => $token->{data}->{token},
+            name        => $name,
+            enabled     => $enabled,
+            permissions => $token_permissions->{data},
         }
     );
 }
@@ -636,33 +615,7 @@ sub set_token_enabled ( $self, $token_id, $enabled ) {
 }
 
 sub get_token_permissions ( $self, $token_id ) {
-    state $q1 = $self->{dbh}->prepare(
-        <<'SQL',
-        SELECT
-            "auth_app_permission"."name",
-            COALESCE("auth_user_permission"."enabled" AND "auth_token_permission"."enabled", FALSE) AS "enabled"
-        FROM
-            "auth_app_permission"
-            CROSS JOIN (SELECT "user_id", "id" FROM "auth_token" WHERE "id" = ? AND "type" = ?) AS "auth_token"
-            LEFT JOIN "auth_token_permission" ON (
-                "auth_token_permission"."permission_id" = "auth_app_permission"."id"
-                AND "auth_token_permission"."token_id" = "auth_token"."id"
-            )
-            LEFT JOIN "auth_user_permission" ON (
-                "auth_user_permission"."user_id" = "auth_token"."user_id"
-                AND "auth_user_permission"."permission_id" = "auth_app_permission"."id"
-            )
-        WHERE
-            "auth_app_permission"."enabled" = TRUE
-SQL
-    );
-
-    my $res = $self->{dbh}->selectall( $q1, [ SQL_UUID $token_id, $TOKEN_TYPE_TOKEN ], );
-
-    # DBH error
-    return $res if !$res;
-
-    return res 200, { map { $_->{name} => $_->{enabled} } $res->{data}->@* };
+    return $self->_db_get_token_permissions( $self->{dbh}, $token_id );
 }
 
 sub get_token_permissions_for_edit ( $self, $token_id ) {
@@ -808,7 +761,7 @@ sub create_session ( $self, $user_id ) {
     # DBH error
     return $on_finish->( $dbh, $res ) if !$res;
 
-    my $permissions = $self->get_user_permissions( $user->{data}->{id} );
+    my $permissions = $self->_db_get_user_permissions( $dbh, $user->{data}->{id} );
 
     # get permissions error
     return $on_finish->( $dbh, $permissions ) if !$permissions;
@@ -831,6 +784,38 @@ sub remove_session ( $self, $token_id ) {
 }
 
 # UTIL
+sub _db_get_user_permissions ( $self, $dbh, $user_id ) {
+    state $q1 = $dbh->prepare(
+        <<'SQL',
+        SELECT
+            "auth_app_permission"."name",
+            CASE
+                WHEN "auth_user"."name" = ? THEN TRUE
+                ELSE COALESCE("auth_user_permission"."enabled", FALSE)
+            END  AS "enabled"
+        FROM
+            "auth_app_permission"
+            LEFT JOIN "auth_user" ON (
+                "auth_user"."id" = ?
+                OR "auth_user"."name" = ?
+            )
+            LEFT JOIN "auth_user_permission" ON (
+                "auth_user_permission"."permission_id" = "auth_app_permission"."id"
+                AND "auth_user_permission"."user_id" = "auth_user"."id"
+            )
+        WHERE
+            "auth_app_permission"."enabled" = TRUE
+SQL
+    );
+
+    my $res = $dbh->selectall( $q1, [ $ROOT_USER_NAME, SQL_UUID( looks_like_uuid $user_id ? $user_id : $UUID_ZERO ), $user_id ] );
+
+    # DBH error
+    return $res if !$res;
+
+    return res 200, { map { $_->{name} => $_->{enabled} } $res->{data}->@* };
+}
+
 sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
     return res 204 if !$permissions || !$permissions->%*;    # not modified
 
@@ -897,6 +882,36 @@ SQL
     else {
         return res 204;
     }
+}
+
+sub _db_get_token_permissions ( $self, $dbh, $token_id ) {
+    state $q1 = $dbh->prepare(
+        <<'SQL',
+        SELECT
+            "auth_app_permission"."name",
+            COALESCE("auth_user_permission"."enabled" AND "auth_token_permission"."enabled", FALSE) AS "enabled"
+        FROM
+            "auth_app_permission"
+            CROSS JOIN (SELECT "user_id", "id" FROM "auth_token" WHERE "id" = ? AND "type" = ?) AS "auth_token"
+            LEFT JOIN "auth_token_permission" ON (
+                "auth_token_permission"."permission_id" = "auth_app_permission"."id"
+                AND "auth_token_permission"."token_id" = "auth_token"."id"
+            )
+            LEFT JOIN "auth_user_permission" ON (
+                "auth_user_permission"."user_id" = "auth_token"."user_id"
+                AND "auth_user_permission"."permission_id" = "auth_app_permission"."id"
+            )
+        WHERE
+            "auth_app_permission"."enabled" = TRUE
+SQL
+    );
+
+    my $res = $dbh->selectall( $q1, [ SQL_UUID $token_id, $TOKEN_TYPE_TOKEN ], );
+
+    # DBH error
+    return $res if !$res;
+
+    return res 200, { map { $_->{name} => $_->{enabled} } $res->{data}->@* };
 }
 
 sub _db_set_token_permissions ( $self, $dbh, $token_id, $permissions ) {
@@ -1003,9 +1018,9 @@ sub _remove_token ( $self, $token_id, $token_type ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 96, 126, 238, 542    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 96, 126, 238, 514    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 902                  | Subroutines::ProhibitExcessComplexity - Subroutine "_db_set_token_permissions" with high complexity score (22) |
+## |    3 | 917                  | Subroutines::ProhibitExcessComplexity - Subroutine "_db_set_token_permissions" with high complexity score (22) |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
