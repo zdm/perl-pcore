@@ -67,7 +67,7 @@ sub do_authenticate_private ( $self, $private_token ) {
 }
 
 # TOKENS / HASH GENERATORS
-sub validate_name ( $self, $name ) {
+sub validate_user_name ( $self, $name ) {
 
     # name looks like UUID string
     return if looks_like_uuid $name;
@@ -240,7 +240,7 @@ sub _auth_password ( $self, $private_token ) {
 sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
 
     # validate user name
-    return res [ 400, 'User name is not valid' ] if !$self->validate_name($user_name);
+    return res [ 400, 'User name is not valid' ] if !$self->validate_user_name($user_name);
 
     # lowercase user name
     $user_name = lc $user_name;
