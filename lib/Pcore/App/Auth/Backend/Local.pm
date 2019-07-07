@@ -761,7 +761,6 @@ sub set_token_permissions ( $self, $token_id, $permissions ) {
 }
 
 # SESSION
-# TODO put in transation
 sub create_session ( $self, $user_id ) {
 
     # resolve user
@@ -776,27 +775,55 @@ sub create_session ( $self, $user_id ) {
     # token generation error
     return $token if !$token;
 
-    # token generated
-    state $q1 = $self->{dbh}->prepare('INSERT INTO "auth_token" ("id", "type", "user_id", "hash") VALUES (?, ?, ?, ?)');
+    my ( $res, $dbh ) = $self->{dbh}->get_dbh;
 
-    my $res = $self->{dbh}->do( $q1, [ SQL_UUID $token->{data}->{id}, $TOKEN_TYPE_SESSION, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash} ] );
+    # unable to get dbh
+    return $res if !$res;
+
+    state $on_finish = sub ( $dbh, $res ) {
+        if ( !$res ) {
+            my $res1 = $dbh->rollback;
+        }
+        else {
+            my $res1 = $dbh->commit;
+
+            # error committing transaction
+            return $res1 if !$res1;
+        }
+
+        return $res;
+    };
+
+    # start transaction
+    $res = $dbh->begin_work;
+
+    # failed to start transaction
+    return $res if !$res;
+
+    # token generated
+    state $q1 = $dbh->prepare('INSERT INTO "auth_token" ("id", "type", "user_id", "hash") VALUES (?, ?, ?, ?)');
+
+    $res = $dbh->do( $q1, [ SQL_UUID $token->{data}->{id}, $TOKEN_TYPE_SESSION, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash} ] );
 
     # DBH error
-    return $res if !$res;
+    return $on_finish->( $dbh, $res ) if !$res;
 
     my $permissions = $self->get_user_permissions( $user->{data}->{id} );
 
     # get permissions error
-    return $permissions if !$permissions;
+    return $on_finish->( $dbh, $permissions ) if !$permissions;
 
-    return res 200,
-      { id          => $token->{data}->{id},
-        type        => $TOKEN_TYPE_SESSION,
-        token       => $token->{data}->{token},
-        user_id     => $user->{data}->{id},
-        user_name   => $user->{data}->{name},
-        permissions => $permissions->{data},
-      };
+    return $on_finish->(
+        $dbh,
+        res 200,
+        {   id          => $token->{data}->{id},
+            type        => $TOKEN_TYPE_SESSION,
+            token       => $token->{data}->{token},
+            user_id     => $user->{data}->{id},
+            user_name   => $user->{data}->{name},
+            permissions => $permissions->{data},
+        }
+    );
 }
 
 sub remove_session ( $self, $token_id ) {
@@ -978,7 +1005,7 @@ sub _remove_token ( $self, $token_id, $token_type ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 96, 126, 238, 542    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 875                  | Subroutines::ProhibitExcessComplexity - Subroutine "_db_set_token_permissions" with high complexity score (22) |
+## |    3 | 902                  | Subroutines::ProhibitExcessComplexity - Subroutine "_db_set_token_permissions" with high complexity score (22) |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
