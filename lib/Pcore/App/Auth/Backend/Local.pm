@@ -5,7 +5,7 @@ use Pcore::Util::Data qw[to_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
 use Pcore::Util::Text qw[encode_utf8];
 use Pcore::Util::Scalar qw[looks_like_number looks_like_uuid];
-use Pcore::Util::UUID qw[$UUID_ZERO uuid_v4 uuid_v4_str];
+use Pcore::Util::UUID qw[uuid_v4 uuid_v4_str];
 
 with qw[Pcore::App::Auth];
 
@@ -244,6 +244,7 @@ sub _auth_password ( $self, $private_token ) {
     return $self->_return_auth( $private_token, $user->{data}->{id}, $private_token->[$PRIVATE_TOKEN_ID] );
 }
 
+# TODO
 sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
 
     # validate user name
@@ -264,9 +265,6 @@ sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
     # failed to start transaction
     return $res if !$res;
 
-    # generate user id
-    my $user_id = $self->user_is_root($user_name) ? $ROOT_USER_ID : uuid_v4_str;
-
     $enabled = !!$enabled;
 
     state $on_finish = sub ( $dbh, $res ) {
@@ -283,16 +281,12 @@ sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
         return $res;
     };
 
-    state $q1 = $dbh->prepare(q[INSERT INTO "auth_user" ("id", "name", "hash", "enabled") VALUES (?, ?, '', FALSE) ON CONFLICT DO NOTHING]);
-
-    # insert user
-    $res = $dbh->do( $q1, [ SQL_UUID $user_id, $user_name ] );
+    $res = $self->_db_insert_user( $dbh, $user_name );
 
     # DBH error
     return $on_finish->( $dbh, $res ) if !$res;
 
-    # username already exists
-    return $on_finish->( $dbh, res [ 400, 'Username is already exists' ] ) if !$res->{rows};
+    my $user_id = $res->{data}->{id};
 
     # generate random password if password is empty
     $password = P->random->bytes(32) if !defined $password || $password eq $EMPTY;
@@ -306,7 +300,7 @@ sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
     # update user
     state $q2 = $dbh->prepare(q[UPDATE "auth_user" SET "enabled" = ?, "hash" = ? WHERE "id" = ?]);
 
-    $res = $dbh->do( $q2, [ SQL_BOOL $enabled, SQL_BYTEA $res->{data}->{hash}, SQL_UUID $user_id] );
+    $res = $dbh->do( $q2, [ SQL_BOOL $enabled, SQL_BYTEA $res->{data}->{hash}, $user_id ] );
 
     # DBH error
     return $on_finish->( $dbh, $res ) if !$res;
@@ -330,10 +324,10 @@ sub get_user ( $self, $user_id ) {
     my $user;
 
     # find user by id
-    if ( looks_like_uuid $user_id) {
+    if ( looks_like_number $user_id) {
         state $q1 = $self->{dbh}->prepare(q[SELECT "id", "name", "enabled", "created" FROM "auth_user" WHERE "id" = ?]);
 
-        $user = $self->{dbh}->selectrow( $q1, [ SQL_UUID $user_id ] );
+        $user = $self->{dbh}->selectrow( $q1, [$user_id] );
     }
 
     # find user by name
@@ -368,7 +362,7 @@ sub set_user_password ( $self, $user_id, $password ) {
     # password hash generated
     state $q1 = $self->{dbh}->prepare(q[UPDATE "auth_user" SET "hash" = ? WHERE "id" = ?]);
 
-    my $res = $self->{dbh}->do( $q1, [ SQL_BYTEA $password_hash->{data}->{hash}, SQL_UUID $user->{data}->{id} ] );
+    my $res = $self->{dbh}->do( $q1, [ SQL_BYTEA $password_hash->{data}->{hash}, $user->{data}->{id} ] );
 
     return res 500 if !$res->{rows};
 
@@ -392,7 +386,7 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
         $q1,
         [    #
             SQL_BOOL $enabled,
-            SQL_UUID( looks_like_uuid $user_id ? $user_id : $UUID_ZERO ),
+            $user_id,
             $user_id,
             SQL_BOOL !$enabled,
         ]
@@ -501,7 +495,7 @@ SQL
 sub get_user_tokens ( $self, $user_id ) {
     state $q1 = $self->{dbh}->prepare(q[SELECT "id", "name", "enabled", "created" FROM "auth_token" WHERE "user_id" = ?]);
 
-    return $self->{dbh}->selectall( $q1, [ SQL_UUID $user_id] );
+    return $self->{dbh}->selectall( $q1, [$user_id] );
 }
 
 sub get_token ( $self, $token_id ) {
@@ -561,7 +555,7 @@ sub create_token ( $self, $user_id, $name, $enabled, $permissions ) {
 
     $enabled = 0+ !!$enabled;
 
-    $res = $dbh->do( $q1, [ SQL_UUID $token->{data}->{id}, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash}, $name, SQL_BOOL $enabled ] );
+    $res = $dbh->do( $q1, [ SQL_UUID $token->{data}->{id}, $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash}, $name, SQL_BOOL $enabled ] );
 
     return $on_finish->( $dbh, $res ) if !$res;
 
@@ -681,9 +675,9 @@ SQL
 
     my $res = $self->{dbh}->selectall(
         $q1,
-        [   SQL_UUID $ROOT_USER_ID,    #
-            SQL_UUID $ROOT_USER_ID,
-            SQL_UUID $ROOT_USER_ID,
+        [   $ROOT_USER_ID,    #
+            $ROOT_USER_ID,
+            $ROOT_USER_ID,
             SQL_UUID $token_id,
         ],
     );
@@ -808,7 +802,7 @@ sub create_session ( $self, $user_id ) {
     # token generated
     state $q1 = $dbh->prepare('INSERT INTO "auth_session" ("id", "user_id", "hash") VALUES (?, ?, ?)');
 
-    $res = $dbh->do( $q1, [ SQL_UUID $token->{data}->{id}, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash} ] );
+    $res = $dbh->do( $q1, [ SQL_UUID $token->{data}->{id}, $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash} ] );
 
     # DBH error
     return $on_finish->( $dbh, $res ) if !$res;
@@ -872,7 +866,7 @@ sub _db_get_user_permissions ( $self, $dbh, $user_id ) {
 SQL
     );
 
-    my $res = $dbh->selectall( $q1, [ $ROOT_USER_NAME, SQL_UUID( looks_like_uuid $user_id ? $user_id : $UUID_ZERO ), $user_id ] );
+    my $res = $dbh->selectall( $q1, [ $ROOT_USER_NAME, $user_id, $user_id ] );
 
     # DBH error
     return $res if !$res;
@@ -905,7 +899,7 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
 SQL
         );
 
-        $res = $dbh->do( $q1, [ SQL_UUID $user_id, $name, SQL_BOOL $enabled] );
+        $res = $dbh->do( $q1, [ $user_id, $name, SQL_BOOL $enabled] );
 
         # DBH error
         return $res if !$res;
@@ -930,7 +924,7 @@ SQL
 SQL
             );
 
-            $res = $dbh->do( $q2, [ SQL_BOOL $enabled, SQL_UUID $user_id, SQL_BOOL !$enabled, $name ] );
+            $res = $dbh->do( $q2, [ SQL_BOOL $enabled, $user_id, SQL_BOOL !$enabled, $name ] );
 
             # DBH error
             return $res if !$res;
@@ -1066,9 +1060,9 @@ sub _db_set_token_permissions ( $self, $dbh, $token_id, $permissions ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 104, 135, 247, 519   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 104, 135, 248, 513   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 981                  | Subroutines::ProhibitExcessComplexity - Subroutine "_db_set_token_permissions" with high complexity score (22) |
+## |    3 | 975                  | Subroutines::ProhibitExcessComplexity - Subroutine "_db_set_token_permissions" with high complexity score (22) |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

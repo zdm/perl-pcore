@@ -37,7 +37,7 @@ const our $INVALIDATE_ALL   => 3;
 const our $SESSION_TIMEOUT => 60 * 60 * 12;    # remove sessions tokens, that are older than 12 hours
 
 const our $ROOT_USER_NAME => 'root';
-const our $ROOT_USER_ID   => 'ffffffff-ffff-ffff-ffff-ffffffffffff';
+const our $ROOT_USER_ID   => 1;
 
 sub new ( $self, $app ) {
     state $scheme_class = {
