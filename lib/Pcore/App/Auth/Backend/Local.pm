@@ -244,7 +244,6 @@ sub _auth_password ( $self, $private_token ) {
     return $self->_return_auth( $private_token, $user->{data}->{id}, $private_token->[$PRIVATE_TOKEN_ID] );
 }
 
-# TODO
 sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
 
     # validate user name
@@ -1060,9 +1059,9 @@ sub _db_set_token_permissions ( $self, $dbh, $token_id, $permissions ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 104, 135, 248, 513   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 104, 135, 247, 512   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 975                  | Subroutines::ProhibitExcessComplexity - Subroutine "_db_set_token_permissions" with high complexity score (22) |
+## |    3 | 974                  | Subroutines::ProhibitExcessComplexity - Subroutine "_db_set_token_permissions" with high complexity score (22) |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
