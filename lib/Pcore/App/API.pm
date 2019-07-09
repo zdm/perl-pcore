@@ -103,6 +103,7 @@ sub user_is_root ( $self, $user_id ) {
     return $user_id eq $ROOT_USER_NAME || $user_id eq $ROOT_USER_ID;
 }
 
+# accepted characters: A-z (case-insensitive), 0-9 and underscores, length: 3-32 characters, not number, not UUID
 sub validate_user_name ( $self, $name ) {
 
     # name looks like UUID string
@@ -114,6 +115,15 @@ sub validate_user_name ( $self, $name ) {
     return if $name =~ /[^[:alnum:]_]/smi;
 
     return if length $name < 3 || length $name > 32;
+
+    return 1;
+}
+
+# accepted characters: A-z (case-insensitive), 0-9 and underscores, length: 5-32 characters
+sub validate_telegram_user_name ( $self, $name ) {
+    return if $name =~ /[^[:alnum:]_]/smi;
+
+    return if length $name < 5 || length $name > 32;
 
     return 1;
 }
@@ -298,7 +308,7 @@ sub _auth_cache_cleanup ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 157                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 167                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
