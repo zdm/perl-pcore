@@ -124,10 +124,11 @@ sub authenticate ( $self, $token ) {
     # no auth token provided
     return $self->_get_unauthenticated_descriptor if !defined $token;
 
-    my ( $token_type, $token_id, $private_token_hash );
+    my $private_token;
 
     # authenticate user password
     if ( is_plain_arrayref $token) {
+        my ( $token_type, $token_id, $private_token_hash );
 
         # lowercase user name
         $token->[0] = lc $token->[0];
@@ -135,34 +136,39 @@ sub authenticate ( $self, $token ) {
         # generate private token hash
         $private_token_hash = eval { sha3_512 encode_utf8( $token->[1] ) . encode_utf8 $token->[0] };
 
-        # error decoding token
-        return $self->_get_unauthenticated_descriptor if $@;
-
-        $token_type = $TOKEN_TYPE_PASSWORD;
-
-        \$token_id = \$token->[0];
+        $private_token = [ $token->[0], $private_token_hash, $TOKEN_TYPE_PASSWORD ] if !$@;
     }
 
     # authenticate token
     else {
-
-        # decode token
-        eval {
-            my $token_bin = from_b64_url $token;
-
-            # unpack token id
-            $token_id = uuid_from_bin( substr $token_bin, 0, 16 )->str;
-
-            $token_type = unpack 'C', substr $token_bin, 16, 1;
-
-            $private_token_hash = sha3_512 substr $token_bin, 17;
-        };
-
-        # error decoding token
-        return $self->_get_unauthenticated_descriptor if $@;
+        $private_token = $self->_unpack_token($token);
     }
 
-    return $self->authenticate_private( [ $token_id, $private_token_hash, $token_type ] );
+    # error decoding token
+    return $self->_get_unauthenticated_descriptor if !$private_token;
+
+    return $self->authenticate_private($private_token);
+}
+
+sub _unpack_token ( $self, $token ) {
+    my ( $token_id, $token_type, $private_token_hash );
+
+    # decode token
+    eval {
+        my $token_bin = from_b64_url $token;
+
+        # unpack token id
+        $token_id = uuid_from_bin( substr $token_bin, 0, 16 )->str;
+
+        $token_type = unpack 'C', substr $token_bin, 16, 1;
+
+        $private_token_hash = sha3_512 substr $token_bin, 17;
+    };
+
+    # error decoding token
+    return if $@;
+
+    return [ $token_id, $private_token_hash, $token_type ];
 }
 
 sub authenticate_private ( $self, $private_token ) {
@@ -292,7 +298,7 @@ sub _auth_cache_cleanup ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 150                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 157                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

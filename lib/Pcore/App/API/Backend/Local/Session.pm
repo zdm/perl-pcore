@@ -36,7 +36,7 @@ SQL
     $token = $token->{data};
 
     # verify token, token is not valid
-    return res [ 400, 'Invalid token' ] if sha3_512( $private_token->[$PRIVATE_TOKEN_TYPE] . $private_token->[$PRIVATE_TOKEN_HASH] . $private_token->[$PRIVATE_TOKEN_ID] ) ne $token->{hash};
+    return res [ 400, 'Invalid token' ] if !$self->_verify_token( $private_token, $token->{hash} );
 
     # token is valid
     return $self->_return_auth( $private_token, $token->{user_id}, $token->{user_name} );

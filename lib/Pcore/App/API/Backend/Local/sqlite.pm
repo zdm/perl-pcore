@@ -116,8 +116,6 @@ sub _db_add_schema_patch ( $self, $dbh ) {
                 "created" INT8 NOT NULL DEFAULT(STRFTIME('%s', 'NOW'))
             );
 
-            CREATE UNIQUE INDEX "user_action_token_uniq_idx" ON "user_action_token" ("user_id", "type", "email");
-
             CREATE TRIGGER "user_action_token_after_delete_trigger" AFTER DELETE ON "user_action_token"
             BEGIN
                 DELETE FROM "auth_hash" WHERE "id" = OLD."id";
@@ -164,7 +162,7 @@ sub _db_insert_user ( $self, $dbh, $user_name ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 9                    | * Private subroutine/method '_db_add_schema_patch' declared but not used                                       |
-## |      | 131                  | * Private subroutine/method '_db_insert_user' declared but not used                                            |
+## |      | 129                  | * Private subroutine/method '_db_insert_user' declared but not used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

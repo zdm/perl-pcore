@@ -130,6 +130,10 @@ sub _verify_password_hash ( $self, $private_token_hash, $hash ) {
     }
 }
 
+sub _verify_token ( $self, $private_token, $hash ) {
+    return sha3_512( $private_token->[$PRIVATE_TOKEN_TYPE] . $private_token->[$PRIVATE_TOKEN_HASH] . $private_token->[$PRIVATE_TOKEN_ID] ) eq $hash;
+}
+
 sub _generate_password_hash ( $self, $user_name_utf8, $user_password_utf8 ) {
     my $user_name_bin = encode_utf8 $user_name_utf8;
 
@@ -198,11 +202,12 @@ sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 120                  | * Private subroutine/method '_verify_password_hash' declared but not used                                      |
-## |      | 133                  | * Private subroutine/method '_generate_password_hash' declared but not used                                    |
-## |      | 147                  | * Private subroutine/method '_generate_token' declared but not used                                            |
-## |      | 164                  | * Private subroutine/method '_return_auth' declared but not used                                               |
+## |      | 133                  | * Private subroutine/method '_verify_token' declared but not used                                              |
+## |      | 137                  | * Private subroutine/method '_generate_password_hash' declared but not used                                    |
+## |      | 151                  | * Private subroutine/method '_generate_token' declared but not used                                            |
+## |      | 168                  | * Private subroutine/method '_return_auth' declared but not used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 133, 164             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 137, 168             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
