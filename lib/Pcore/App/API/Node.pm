@@ -1,4 +1,4 @@
-package Pcore::App::Auth::Node;
+package Pcore::App::API::Node;
 
 use Pcore -class;
 use Crypt::Argon2;
@@ -34,7 +34,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::Auth::Node - API RPC node
+Pcore::App::API::Node - API RPC node
 
 =head1 SYNOPSIS
 

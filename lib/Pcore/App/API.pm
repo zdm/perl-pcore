@@ -1,179 +1,288 @@
 package Pcore::App::API;
 
-use Pcore -class, -res;
+use Pcore -role, -const, -export;
+use Pcore::Util::Scalar qw[looks_like_number looks_like_uuid];
 use Pcore::Util::Scalar qw[is_plain_arrayref];
-use Package::Stash::XS qw[];
+use Pcore::Util::Data qw[from_b64_url];
+use Pcore::Util::Digest qw[sha3_512];
+use Pcore::Util::Text qw[encode_utf8];
+use Pcore::Util::UUID qw[uuid_from_bin];
+use Pcore::App::API::Auth;
 
-has app => ( required => 1 );    # ConsumerOf ['Pcore::App']
+our $EXPORT = {
+    ROOT_USER       => [qw[$ROOT_USER_NAME $ROOT_USER_ID]],
+    TOKEN_TYPE      => [qw[$TOKEN_TYPE_PASSWORD $TOKEN_TYPE_TOKEN $TOKEN_TYPE_SESSION]],
+    INVALIDATE_TYPE => [qw[$INVALIDATE_USER $INVALIDATE_TOKEN $INVALIDATE_ALL]],
+    PRIVATE_TOKEN   => [qw[$PRIVATE_TOKEN_ID $PRIVATE_TOKEN_HASH $PRIVATE_TOKEN_TYPE]],
+    ACTION_TOKEN    => [qw[$ACTION_TOKEN_EMAIL $ACTION_TOKEN_PASSWORD]],
+};
 
-has method => ( init_arg => undef );    # HashRef
-has obj    => ( init_arg => undef );    # HashRef
+has app => ( required => 1 );
 
-# TODO https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md
+has _auth_cb_queue            => ( sub { {} }, init_arg => undef );    # HashRef
+has _auth_cache_user          => ( init_arg             => undef );    # HashRef, user_id => { user_token_id }
+has _auth_cache_token         => ( init_arg             => undef );    # HashRef, user_token_id => auth_descriptor
+has _auth_cache_cleanup_timer => ( init_arg             => undef );    # InstanceOf['AE::timer']
 
-sub init ($self) {
-    print 'Scanning API classes ... ';
+const our $ROOT_USER_NAME => 'root';
+const our $ROOT_USER_ID   => 1;
 
-    my $method = {};
+const our $TOKEN_TYPE_PASSWORD => 1;
+const our $TOKEN_TYPE_TOKEN    => 2;
+const our $TOKEN_TYPE_SESSION  => 3;
 
-    # index permissions
-    my $permissions = { map { $_ => 1 } $self->{app}->get_permissions->@* };
+const our $INVALIDATE_USER  => 1;
+const our $INVALIDATE_TOKEN => 2;
+const our $INVALIDATE_ALL   => 3;
 
-    my $ns_path = ( ref( $self->{app} ) =~ s[::][/]smgr ) . '/API';
+const our $PRIVATE_TOKEN_ID   => 0;
+const our $PRIVATE_TOKEN_HASH => 1;
+const our $PRIVATE_TOKEN_TYPE => 2;
 
-    my $class;
+const our $ACTION_TOKEN_EMAIL    => 1;
+const our $ACTION_TOKEN_PASSWORD => 2;
 
-    # scan %INC
-    for my $class_path ( keys %INC ) {
+const our $AUTH_CACHE_CLEANUP_TIMEOUT => 60 * 60 * 12;    # remove sessions tokens, that are older than 12 hours
 
-        # API class must be located in V\d+ directory
-        next if $class_path !~ m[\A$ns_path/V\d+/]sm;
-
-        # remove .pm suffix
-        my $class_name = $class_path =~ s/[.]pm\z//smr;
-
-        $class_name =~ s[/][::]smg;
-
-        $class->{$class_path} = $class_name;
-    }
-
-    # scan filesystem namespace, find and preload controllers
-    for my $inc ( grep { !ref } @INC ) {
-        for my $file ( ( P->path("$inc/$ns_path")->read_dir( max_depth => 0, is_dir => 0 ) // [] )->@* ) {
-
-            # .pm file
-            if ( $file =~ s/[.]pm\z//sm ) {
-
-                # API class must be located in V\d+ directory
-                return if $file !~ m[\Av\d+/]sm;
-
-                $class->{$file} = "$ns_path/$file" =~ s[/][::]smgr;
-            }
-        }
-    }
-
-    my $MODIFY_CODE_ATTRIBUTES = sub ( $pkg, $ref, @attrs ) {
-        my @bad;
-
-        for my $attr (@attrs) {
-            if ( $attr =~ /(Permissions) [(] ([^)]*) [)]/smxx ) {
-                my ( $attr, $val ) = ( $1, $2 );
-
-                if ( $attr eq 'Permissions' ) {
-
-                    # parse args
-                    my @val = split /\s*,\s*/sm, $val;
-
-                    # dequote
-                    for (@val) {s/['"]//smg}
-
-                    $val = \@val;
-                }
-
-                ${"$pkg\::_API_MAP"}->{$ref}->{ lc $attr } = $val;
-            }
-            else {
-                push @bad, $attr;
-            }
-        }
-
-        return @bad;
+sub new ( $self, $app ) {
+    state $scheme_class = {
+        sqlite => 'Pcore::App::API::Backend::Local::sqlite',
+        pgsql  => 'Pcore::App::API::Backend::Local::pgsql',
+        ws     => 'Pcore::App::API::Backend::Remote',
+        wss    => 'Pcore::App::API::Backend::Remote',
     };
 
-    for my $class_path ( sort keys $class->%* ) {
-        my $class_name = $class->{$class_path};
+    if ( defined $app->{cfg}->{api}->{backend} ) {
+        my $uri = P->uri( $app->{cfg}->{api}->{backend} );
 
-        my $attrs = do {
-            local *{"$class_name\::MODIFY_CODE_ATTRIBUTES"} = $MODIFY_CODE_ATTRIBUTES;
+        if ( my $class = $scheme_class->{ $uri->{scheme} } ) {
+            return P->class->load($class)->new( { app => $app } );
+        }
+        else {
+            die 'Unknown API backend scheme';
+        }
+    }
+    else {
+        return P->class->load('Pcore::App::API::Backend::NoAuth')->new( { app => $app } );
+    }
+}
 
-            eval { P->class->load($class_name) };
+# setup events listeners
+around init => sub ( $orig, $self ) {
 
-            if ($@) {
-                say qq[Can't load API class "$class_name": $@];
-
-                exit 3;
+    # setup events listeners
+    P->bind_events(
+        'app.api.invalidate_cache',
+        sub ($ev) {
+            if ( $ev->{data}->{type} == $INVALIDATE_USER ) {
+                $self->_invalidate_user( $ev->{data}->{id} );
+            }
+            elsif ( $ev->{data}->{type} == $INVALIDATE_TOKEN ) {
+                $self->_invalidate_token( $ev->{data}->{id} );
+            }
+            elsif ( $ev->{data}->{type} == $INVALIDATE_ALL ) {
+                $self->_invalidate_all;
             }
 
-            ${"$class_name\::_API_MAP"};
+            return;
+        }
+    );
+
+    # expired sessions invalidation timer
+    $self->{_auth_cache_cleanup_timer} = AE::timer $AUTH_CACHE_CLEANUP_TIMEOUT, $AUTH_CACHE_CLEANUP_TIMEOUT, sub {
+        $self->_auth_cache_cleanup;
+
+        return;
+    };
+
+    return $self->$orig;
+};
+
+# UTIL
+sub user_is_root ( $self, $user_id ) {
+    return $user_id eq $ROOT_USER_NAME || $user_id eq $ROOT_USER_ID;
+}
+
+sub validate_user_name ( $self, $name ) {
+
+    # name looks like UUID string
+    return if looks_like_uuid $name;
+
+    # name looks like number
+    return if looks_like_number $name;
+
+    return if $name =~ /[^[:alnum:]_]/smi;
+
+    return if length $name < 3 || length $name > 32;
+
+    return 1;
+}
+
+# AUTHENTICATE
+sub authenticate ( $self, $token ) {
+
+    # no auth token provided
+    return $self->_get_unauthenticated_descriptor if !defined $token;
+
+    my ( $token_type, $token_id, $private_token_hash );
+
+    # authenticate user password
+    if ( is_plain_arrayref $token) {
+
+        # lowercase user name
+        $token->[0] = lc $token->[0];
+
+        # generate private token hash
+        $private_token_hash = eval { sha3_512 encode_utf8( $token->[1] ) . encode_utf8 $token->[0] };
+
+        # error decoding token
+        return $self->_get_unauthenticated_descriptor if $@;
+
+        $token_type = $TOKEN_TYPE_PASSWORD;
+
+        \$token_id = \$token->[0];
+    }
+
+    # authenticate token
+    else {
+
+        # decode token
+        eval {
+            my $token_bin = from_b64_url $token;
+
+            # unpack token id
+            $token_id = uuid_from_bin( substr $token_bin, 0, 16 )->str;
+
+            $token_type = unpack 'C', substr $token_bin, 16, 1;
+
+            $private_token_hash = sha3_512 substr $token_bin, 17;
         };
 
-        die qq["$class_name" must be an instance of "Pcore::App::API::Base"] if !$class_name->isa('Pcore::App::API::Base');
+        # error decoding token
+        return $self->_get_unauthenticated_descriptor if $@;
+    }
 
-        # prepare API object route
-        $class_path =~ s/\AV/v/sm;
+    return $self->authenticate_private( [ $token_id, $private_token_hash, $token_type ] );
+}
 
-        # create API object and store in cache
-        my $obj = $self->{obj}->{$class_name} = $class_name->new( { app => $self->{app} } );
+sub authenticate_private ( $self, $private_token ) {
+    my $auth;
 
-        # parse API version
-        my ($version) = $class_path =~ /\Av(\d+)/sm;
+    # private token is cached
+    if ( $auth = $self->{_auth_cache_token}->{ $private_token->[$PRIVATE_TOKEN_ID] } ) {
 
-        # scan api methods
-        for my $method_name ( grep {/\AAPI_/sm} Package::Stash::XS->new($class_name)->list_all_symbols('CODE') ) {
+        # private token is valid
+        if ( $private_token->[$PRIVATE_TOKEN_HASH] eq $auth->{private_token}->[$PRIVATE_TOKEN_HASH] ) {
 
-            # get method permissions
-            my $perms = do {
-                my $ref = *{"$class_name\::$method_name"}{CODE};
+            # update last accessed time
+            $auth->{last_accessed} = time;
 
-                $attrs->{$ref}->{permissions} // ${"$class_name\::API_NAMESPACE_PERMISSIONS"};
-            };
+            return $auth;
+        }
 
-            my $local_method_name = $method_name;
-
-            $method_name =~ s/\AAPI_//sm;
-
-            my $method_id = qq[/$class_path/$method_name];
-
-            $method->{$method_id} = {
-                id                => $method_id,
-                version           => "v$version",
-                class_name        => $class_name,
-                class_path        => "/$class_path",
-                method_name       => $method_name,
-                local_method_name => $local_method_name,
-                permissions       => $perms,
-            };
-
-            # check method permissions
-            if ( $method->{$method_id}->{permissions} ) {
-
-                # convert to ArrayRef
-                $method->{$method_id}->{permissions} = [ $method->{$method_id}->{permissions} ] if !is_plain_arrayref $method->{$method_id}->{permissions};
-
-                # methods permissions are empty
-                if ( !$method->{$method_id}->{permissions}->@* ) {
-                    $method->{$method_id}->{permissions} = undef;
-                }
-
-                # check permissions
-                else {
-                    for my $permission ( $method->{$method_id}->{permissions}->@* ) {
-
-                        # expand "*"
-                        if ( $permission eq q[*] ) {
-                            $method->{$method_id}->{permissions} = [ keys $permissions->%* ];
-
-                            last;
-                        }
-
-                        if ( !exists $permissions->{$permission} ) {
-                            die qq[Invalid API method permission "$permission" for method "$method_id"];
-                        }
-                    }
-                }
-            }
+        # private token is in cache, but hash is not valid
+        else {
+            return $self->_get_unauthenticated_descriptor($private_token);
         }
     }
 
-    $self->{method} = $method;
+    my $cv = P->cv;
 
-    say 'done';
+    my $cache = $self->{_auth_cb_queue};
 
-    return res 200;
+    push $cache->{ $private_token->[$PRIVATE_TOKEN_HASH] }->@*, $cv;
+
+    return $cv->recv if $cache->{ $private_token->[$PRIVATE_TOKEN_HASH] }->@* > 1;
+
+    # authenticate on backend
+    my $res = $self->do_authenticate_private($private_token);
+
+    # authentication error
+    if ( !$res ) {
+
+        # invalidate token
+        $self->_invalidate_token( $private_token->[$PRIVATE_TOKEN_ID] );
+
+        # return new unauthenticated auth object
+        $auth = $self->_get_unauthenticated_descriptor($private_token);
+    }
+
+    # authenticated
+    else {
+
+        # create auth
+        $auth = bless $res->{data}, 'Pcore::App::API::Auth';
+
+        $auth->{api}              = $self;
+        $auth->{is_authenticated} = 1;
+        $auth->{private_token}    = $private_token;
+        $auth->{last_accessed}    = time;
+
+        # store in cache
+        $self->{_auth_cache_user}->{ $auth->{user_id} }->{ $private_token->[$PRIVATE_TOKEN_ID] } = 1;
+        $self->{_auth_cache_token}->{ $private_token->[$PRIVATE_TOKEN_ID] } = $auth;
+    }
+
+    # call callbacks
+    $cache = delete $cache->{ $private_token->[$PRIVATE_TOKEN_HASH] };
+
+    while ( my $cb = shift $cache->@* ) {
+        $cb->($auth);
+    }
+
+    return $cv->recv;
 }
 
-sub get_method ( $self, $method_id ) {
-    return $self->{method}->{$method_id};
+sub _get_unauthenticated_descriptor ( $self, $private_token = undef ) {
+    return bless {
+        api              => $self,
+        is_authenticated => 0,
+        private_token    => $private_token,
+      },
+      'Pcore::App::API::Auth';
+}
+
+# AUTH CACHE INVALIDATE
+sub _invalidate_user ( $self, $user_id ) {
+    if ( my $user_tokens = delete $self->{_auth_cache_user}->{$user_id} ) {
+        delete $self->{_auth_cache_token}->@{ keys $user_tokens->%* };
+    }
+
+    return;
+}
+
+sub _invalidate_token ( $self, $token_id ) {
+    my $auth = delete $self->{_auth_cache_token}->{$token_id};
+
+    if ( defined $auth ) {
+        my $user_id = $auth->{user_id};
+
+        delete $self->{_auth_cache_user}->{$user_id}->{$token_id};
+
+        delete $self->{_auth_cache_user}->{$user_id} if !$self->{_auth_cache_user}->{$user_id}->%*;
+    }
+
+    return;
+}
+
+sub _invalidate_all ( $self ) {
+    undef $self->{_auth_cache_user};
+
+    undef $self->{_auth_cache_token};
+
+    return;
+}
+
+sub _auth_cache_cleanup ($self) {
+    my $time = time - $AUTH_CACHE_CLEANUP_TIMEOUT;
+
+    for my $auth ( values $self->{_auth_cache_token}->%* ) {
+        if ( $auth->{private_token}->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_SESSION && $auth->{last_accessed} < $time ) {
+            $self->_invalidate_token( $auth->{private_token}->[$PRIVATE_TOKEN_ID] );
+        }
+    }
+
+    return;
 }
 
 1;
@@ -183,11 +292,7 @@ sub get_method ( $self, $method_id ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "init" with high complexity score (23)                      |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 89                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 153, 159             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 150                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

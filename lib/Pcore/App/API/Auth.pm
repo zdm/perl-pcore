@@ -1,7 +1,7 @@
-package Pcore::App::Auth::Descriptor;
+package Pcore::App::API::Auth;
 
 use Pcore -class, -res;
-use Pcore::App::Auth qw[:TOKEN_TYPE :PRIVATE_TOKEN];
+use Pcore::App::API qw[:TOKEN_TYPE :PRIVATE_TOKEN];
 use Pcore::App::API::Request;
 use Pcore::Util::Scalar qw[is_callback is_plain_coderef];
 
@@ -11,9 +11,9 @@ use overload    #
   },
   fallback => undef;
 
-has app              => ( required => 1 );    # ConsumerOf ['Pcore::App']
+has api              => ( required => 1 );    # ConsumerOf ['Pcore::App::API']
 has is_authenticated => ( required => 1 );    # Bool
-has private_token => ();                      # Maybe [ArrayRef], [ $token_type, $token_id, $token_hash ]
+has private_token => ();                      # Maybe [ArrayRef]
 has user_id       => ();                      # Maybe [Str]
 has user_name     => ();                      # Maybe [Str]
 has permissions   => ();                      # Maybe [HashRef]
@@ -43,7 +43,7 @@ sub TO_DUMP ( $self, $dumper, @ ) {
 
 sub api_can_call ( $self, $method_id ) {
     if ( $self->{is_authenticated} ) {
-        my $auth = $self->{app}->{auth}->authenticate_private( $self->{private_token} );
+        my $auth = $self->{api}->authenticate_private( $self->{private_token} );
 
         return $auth->_check_permissions($method_id);
     }
@@ -55,7 +55,7 @@ sub api_can_call ( $self, $method_id ) {
 sub _check_permissions ( $self, $method_id ) {
 
     # find method
-    my $method_cfg = $self->{app}->{api}->{method}->{$method_id};
+    my $method_cfg = $self->{api}->{_method}->{$method_id};
 
     # method wasn't found
     if ( !$method_cfg ) {
@@ -107,12 +107,12 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
         return $can_call;
     }
     else {
-        my $api = $self->{app}->{api};
+        my $api = $self->{api};
 
         # get method
-        my $method_cfg = $api->{method}->{$method_id};
+        my $method_cfg = $api->{_method}->{$method_id};
 
-        my $obj = $api->{obj}->{ $method_cfg->{class_name} };
+        my $obj = $api->{_obj}->{ $method_cfg->{class_name} };
 
         my $method_name = $method_cfg->{local_method_name};
 
@@ -165,7 +165,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::Auth::Descriptor
+Pcore::App::API::Auth
 
 =head1 SYNOPSIS
 
