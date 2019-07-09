@@ -185,19 +185,13 @@ sub set_user_permissions ( $self, $user_id, $permissions ) {
     # unable to get dbh
     return $res if !$res;
 
-    # resolve user
-    my $user = $self->_db_get_user( $dbh, $user_id );
-
-    # dbh error
-    return $user if !$user;
-
     # start transaction
     $res = $dbh->begin_work;
 
     # failed to start transaction
     return $res if !$res;
 
-    $res = $self->_db_set_user_permissions( $dbh, $user->{data}->{id}, $permissions );
+    $res = $self->_db_set_user_permissions( $dbh, $user_id, $permissions );
 
     # set permissions error
     if ( !$res ) {
@@ -213,7 +207,7 @@ sub set_user_permissions ( $self, $user_id, $permissions ) {
     return $commit if !$commit;
 
     # permissions was modified
-    P->fire_event( 'app.api.invalidate_cache', { type => $INVALIDATE_USER, id => $user->{data}->{id} } ) if $res == 200;
+    P->fire_event( 'app.api.invalidate_cache', { type => $INVALIDATE_USER, id => $user_id } ) if $res == 200;
 
     return $res;
 }
