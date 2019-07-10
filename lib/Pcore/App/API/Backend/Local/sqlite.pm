@@ -39,6 +39,13 @@ sub _db_add_schema_patch ( $self, $dbh ) {
 
             INSERT INTO "sqlite_sequence" ("name", "seq") VALUES ("user", 99);
 
+            CREATE TRIGGER "on_uer_email_update_trigger" AFTER UPDATE ON "user"
+            WHEN OLD."email" != NEW."email" OR NEW."email" IS NULL
+            BEGIN
+                DELETE FROM "user_action_token" WHERE "email" = OLD."email";
+                UPDATE "user" SET "email_confirmed" = FALSE WHERE "id" = NEW."id";
+            END;
+
             -- USER PERMISSIONS
             CREATE TABLE "user_permission" (
                 "user_id" INT4 NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
@@ -84,6 +91,20 @@ sub _db_add_schema_patch ( $self, $dbh ) {
                 DELETE FROM "auth_hash" WHERE "id" = OLD."id";
             END;
 
+            -- USER ACTION TOKEN
+            CREATE TABLE "user_action_token" (
+                "id" UUID PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
+                "user_id" INT4 NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
+                "type" INT2 NOT NULL,
+                "email" TEXT NOT NULL,
+                "created" INT8 NOT NULL DEFAULT(STRFTIME('%s', 'NOW'))
+            );
+
+            CREATE TRIGGER "user_action_token_after_delete_trigger" AFTER DELETE ON "user_action_token"
+            BEGIN
+                DELETE FROM "auth_hash" WHERE "id" = OLD."id";
+            END;
+
             -- SETTINGS
             CREATE TABLE "settings" (
                 "id" INT2 PRIMARY KEY NOT NULL DEFAULT 1,
@@ -106,20 +127,6 @@ sub _db_add_schema_patch ( $self, $dbh ) {
             );
 
             INSERT INTO "settings" ("smtp_host", "smtp_port", "smtp_ssl") VALUES ('smtp.gmail.com', 465, TRUE);
-
-            -- USER ACTION TOKEN
-            CREATE TABLE "user_action_token" (
-                "id" UUID PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
-                "user_id" INT4 NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
-                "type" INT2 NOT NULL,
-                "email" TEXT NOT NULL,
-                "created" INT8 NOT NULL DEFAULT(STRFTIME('%s', 'NOW'))
-            );
-
-            CREATE TRIGGER "user_action_token_after_delete_trigger" AFTER DELETE ON "user_action_token"
-            BEGIN
-                DELETE FROM "auth_hash" WHERE "id" = OLD."id";
-            END;
 SQL
     );
 
@@ -162,7 +169,7 @@ sub _db_insert_user ( $self, $dbh, $user_name ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 9                    | * Private subroutine/method '_db_add_schema_patch' declared but not used                                       |
-## |      | 129                  | * Private subroutine/method '_db_insert_user' declared but not used                                            |
+## |      | 136                  | * Private subroutine/method '_db_insert_user' declared but not used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

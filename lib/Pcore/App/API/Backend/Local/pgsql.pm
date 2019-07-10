@@ -39,6 +39,19 @@ sub _db_add_schema_patch ( $self, $dbh ) {
                 "telegram_name" TEXT UNIQUE
             );
 
+            CREATE OR REPLACE FUNCTION on_user_email_update() RETURNS TRIGGER AS $$
+            BEGIN
+                IF OLD."email" != NEW."email" OR NEW."email" IS NULL THEN
+                    DELETE FROM "user_action_token" WHERE "email" = OLD."email";
+                    UPDATE "user" SET "email_confirmed" = FALSE WHERE "id" = NEW."id";
+                END IF;
+
+                RETURN NULL;
+            END;
+            $$ LANGUAGE plpgsql;
+
+            CREATE TRIGGER "on_uer_email_update_trigger" AFTER UPDATE OF "email" ON "user" FOR EACH ROW EXECUTE PROCEDURE on_user_email_update();
+
             -- USER PERMISSIONS
             CREATE TABLE "user_permission" (
                 "user_id" INT4 NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
@@ -86,6 +99,17 @@ sub _db_add_schema_patch ( $self, $dbh ) {
 
             CREATE TRIGGER "user_session_after_delete_trigger" AFTER DELETE ON "user_session" FOR EACH ROW EXECUTE PROCEDURE api_delete_hash();
 
+            -- USER ACTION TOKEN
+            CREATE TABLE "user_action_token" (
+                "id" UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
+                "user_id" INT4 NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
+                "type" INT2 NOT NULL,
+                "email" TEXT NOT NULL,
+                "created" INT8 NOT NULL DEFAULT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)
+            );
+
+            CREATE TRIGGER "user_action_token_after_delete_trigger" AFTER DELETE ON "user_action_token" FOR EACH ROW EXECUTE PROCEDURE api_delete_hash();
+
             -- SETTINGS
             CREATE TABLE "settings" (
                 "id" INT2 PRIMARY KEY NOT NULL DEFAULT 1,
@@ -108,17 +132,6 @@ sub _db_add_schema_patch ( $self, $dbh ) {
             );
 
             INSERT INTO "settings" ("smtp_host", "smtp_port", "smtp_ssl") VALUES ('smtp.gmail.com', 465, TRUE);
-
-            -- USER ACTION TOKEN
-            CREATE TABLE "user_action_token" (
-                "id" UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
-                "user_id" INT4 NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
-                "type" INT2 NOT NULL,
-                "email" TEXT NOT NULL,
-                "created" INT8 NOT NULL DEFAULT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)
-            );
-
-            CREATE TRIGGER "user_action_token_after_delete_trigger" AFTER DELETE ON "user_action_token" FOR EACH ROW EXECUTE PROCEDURE api_delete_hash();
 SQL
     );
 
@@ -159,7 +172,7 @@ sub _db_insert_user ( $self, $dbh, $user_name ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 8                    | * Private subroutine/method '_db_add_schema_patch' declared but not used                                       |
-## |      | 128                  | * Private subroutine/method '_db_insert_user' declared but not used                                            |
+## |      | 141                  | * Private subroutine/method '_db_insert_user' declared but not used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
