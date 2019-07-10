@@ -1,9 +1,9 @@
 package Pcore::App::API::Auth;
 
 use Pcore -class, -res;
-use Pcore::App::API qw[:TOKEN_TYPE :PRIVATE_TOKEN];
+use Pcore::App::API qw[:TOKEN_TYPE :PRIVATE_TOKEN :PERMISSIONS];
 use Pcore::App::API::Request;
-use Pcore::Util::Scalar qw[is_callback is_plain_coderef];
+use Pcore::Util::Scalar qw[is_callback is_plain_coderef is_plain_arrayref];
 
 use overload    #
   q[bool] => sub {
@@ -58,28 +58,31 @@ sub _check_permissions ( $self, $method_id ) {
     my $method_cfg = $self->{api}->{_method}->{$method_id};
 
     # method wasn't found
-    if ( !$method_cfg ) {
-        return res [ 404, qq[Method "$method_id" was not found] ];
-    }
+    return res [ 404, qq[Method "$method_id" was not found] ] if !$method_cfg;
 
     # method was found
-    else {
+    my $method_permissions = $method_cfg->{permissions};
 
-        # method has no permissions, authorization is not required
-        return res 200 if !$method_cfg->{permissions};
+    # method has no permissions, authorization is not required
+    return res 200 if !$method_permissions;
 
-        my $auth_permissions = $self->{permissions};
+    if ( is_plain_arrayref $method_permissions) {
 
-        # auth has no permisisons, api call is forbidden
-        return res [ 403, qq[Insufficient permissions for method "$method_id"] ] if !$auth_permissions;
+        # compare permissions for authenticated session only
+        if ( $self->{is_authenticated} ) {
+            my $auth_permissions = $self->{permissions};
 
-        # compare permissions
-        for my $permission ( $method_cfg->{permissions}->@* ) {
-            return res 200 if $auth_permissions->{$permission};
+            # compare permissions
+            for my $permission ( $method_permissions->@* ) {
+                return res 200 if $auth_permissions->{$permission};
+            }
         }
-
-        return res [ 403, qq[Insufficient permissions for method "$method_id"] ];
     }
+    else {
+        return res 200 if $method_permissions eq $PERMISSION_ANY_AUTHENTICATED_USER && $self->{is_authenticated};
+    }
+
+    return res [ 403, qq[Insufficient permissions for method "$method_id"] ];
 }
 
 sub api_call ( $self, $method_id, @ ) {

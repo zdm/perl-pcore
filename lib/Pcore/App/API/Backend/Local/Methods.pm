@@ -3,6 +3,7 @@ package Pcore::App::API::Backend::Local::Methods;
 use Pcore -role, -res;
 use Pcore::Util::Scalar qw[is_plain_arrayref];
 use Package::Stash::XS qw[];
+use Pcore::App::API qw[:PERMISSIONS];
 
 has _method => ( init_arg => undef );    # HashRef
 has _obj    => ( init_arg => undef );    # HashRef
@@ -155,9 +156,9 @@ around init => sub ( $orig, $self ) {
                 else {
                     for my $permission ( $method->{$method_id}->{permissions}->@* ) {
 
-                        # expand "*"
-                        if ( $permission eq q[*] ) {
-                            $method->{$method_id}->{permissions} = [ keys $permissions->%* ];
+                        # any authenticated user
+                        if ( $permission eq $PERMISSION_ANY_AUTHENTICATED_USER ) {
+                            $method->{$method_id}->{permissions} = $PERMISSION_ANY_AUTHENTICATED_USER;
 
                             last;
                         }
@@ -191,9 +192,9 @@ sub get_method ( $self, $method_id ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (24)                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 91                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 92                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 159, 165             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 160, 166             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
