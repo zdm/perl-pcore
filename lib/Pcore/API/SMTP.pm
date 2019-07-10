@@ -98,6 +98,29 @@ sub sendmail ( $self, @ ) {
     return;
 }
 
+sub test ($self) {
+    my $h = P->handle(
+        [ $self->{host}, $self->{port} ],
+        timeout => $self->{timeout},
+        tls_ctx => $self->{tls_ctx},
+    );
+
+    $h->starttls if $self->{tls};
+
+    my $res;
+
+    # handshake
+    ( $res = $self->_read_response($h) ) or return $res;
+
+    # EHLO
+    ( $res = $self->_EHLO($h) ) or return $res;
+
+    # AUTH
+    $res = $self->_AUTH( $h, $res->{ext}->{AUTH} );
+
+    return $res;
+}
+
 sub _sendmail ( $self, $args ) {
     my $h = P->handle(
         [ $self->{host}, $self->{port} ],
@@ -408,16 +431,16 @@ sub _NOOP ( $self, $h, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 145, 147             | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    3 | 168, 170             | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 272                  | Subroutines::ProhibitExcessComplexity - Subroutine "_DATA" with high complexity score (29)                     |
+## |    3 | 295                  | Subroutines::ProhibitExcessComplexity - Subroutine "_DATA" with high complexity score (29)                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 386                  | * Private subroutine/method '_RSET' declared but not used                                                      |
-## |      | 392                  | * Private subroutine/method '_VRFY' declared but not used                                                      |
-## |      | 398                  | * Private subroutine/method '_NOOP' declared but not used                                                      |
+## |      | 409                  | * Private subroutine/method '_RSET' declared but not used                                                      |
+## |      | 415                  | * Private subroutine/method '_VRFY' declared but not used                                                      |
+## |      | 421                  | * Private subroutine/method '_NOOP' declared but not used                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 393                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 416                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

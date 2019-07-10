@@ -122,7 +122,7 @@ sub _db_add_schema_patch ( $self, $dbh ) {
                 "smtp_port" INT2,
                 "smtp_username" TEXT,
                 "smtp_password" TEXT,
-                "smtp_ssl" BOOL NOT NULL DEFAULT TRUE,
+                "smtp_tls" BOOL NOT NULL DEFAULT TRUE,
 
                 -- TELEGRAM
                 "telegram_bot_name" TEXT,
@@ -131,7 +131,7 @@ sub _db_add_schema_patch ( $self, $dbh ) {
                 "telegram_signin_enabled" BOOL NOT NULL DEFAULT FALSE
             );
 
-            INSERT INTO "settings" ("smtp_host", "smtp_port", "smtp_ssl") VALUES ('smtp.gmail.com', 465, TRUE);
+            INSERT INTO "settings" ("smtp_host", "smtp_port", "smtp_tls") VALUES ('smtp.gmail.com', 465, TRUE);
 SQL
     );
 
