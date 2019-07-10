@@ -55,6 +55,8 @@ around init => sub ( $orig, $self ) {
         }
     }
 
+    my $package_method_permissions = {};
+
     my $MODIFY_CODE_ATTRIBUTES = sub ( $pkg, $ref, @attrs ) {
         my @bad;
 
@@ -65,19 +67,15 @@ around init => sub ( $orig, $self ) {
                 if ( $attr eq 'Permissions' ) {
 
                     # parse args
-                    my @val = split /\s*,\s*/sm, $val;
+                    my @val = map {s/\s//smgr} split /,/sm, $val;
 
-                    # dequote
-                    for (@val) {s/['"]//smg}
+                    $package_method_permissions->{$ref} = \@val;
 
-                    $val = \@val;
+                    next;
                 }
+            }
 
-                ${"$pkg\::_API_MAP"}->{$ref}->{ lc $attr } = $val;
-            }
-            else {
-                push @bad, $attr;
-            }
+            push @bad, $attr;
         }
 
         return @bad;
@@ -86,19 +84,15 @@ around init => sub ( $orig, $self ) {
     for my $class_path ( sort keys $class->%* ) {
         my $class_name = $class->{$class_path};
 
-        my $attrs = do {
-            local *{"$class_name\::MODIFY_CODE_ATTRIBUTES"} = $MODIFY_CODE_ATTRIBUTES;
+        local *{"$class_name\::MODIFY_CODE_ATTRIBUTES"} = $MODIFY_CODE_ATTRIBUTES;
 
-            eval { P->class->load($class_name) };
+        eval { P->class->load($class_name) };
 
-            if ($@) {
-                say qq[Can't load API class "$class_name": $@];
+        if ($@) {
+            say qq[Can't load API class "$class_name": $@];
 
-                exit 3;
-            }
-
-            ${"$class_name\::_API_MAP"};
-        };
+            exit 3;
+        }
 
         die qq["$class_name" must be an instance of "Pcore::App::API::Base"] if !$class_name->isa('Pcore::App::API::Base');
 
@@ -117,28 +111,22 @@ around init => sub ( $orig, $self ) {
 
         # scan api methods
         for my $method_name ( grep {/\AAPI_/sm} Package::Stash::XS->new($class_name)->list_all_symbols('CODE') ) {
+            my $public_method_name = substr $method_name, 4;    # remove API_ prefix
 
-            # get method permissions
-            my $perms = do {
-                my $ref = *{"$class_name\::$method_name"}{CODE};
-
-                $attrs->{$ref}->{permissions} // ${"$class_name\::API_NAMESPACE_PERMISSIONS"};
-            };
-
-            my $local_method_name = $method_name;
-
-            $method_name =~ s/\AAPI_//sm;
-
-            my $method_id = qq[/$class_path/$method_name];
+            my $method_id = "/$class_path/$public_method_name";
 
             $method->{$method_id} = {
                 id                => $method_id,
                 version           => "v$version",
                 class_name        => $class_name,
                 class_path        => "/$class_path",
-                method_name       => $method_name,
-                local_method_name => $local_method_name,
-                permissions       => $perms,
+                method_name       => $public_method_name,
+                local_method_name => $method_name,
+                permissions       => do {
+                    my $ref = *{"$class_name\::$method_name"}{CODE};
+
+                    $package_method_permissions->{$ref} // ${"$class_name\::API_NAMESPACE_PERMISSIONS"};
+                },
             };
 
             # check method permissions
@@ -155,6 +143,13 @@ around init => sub ( $orig, $self ) {
                 # check permissions
                 else {
                     for my $permission ( $method->{$method_id}->{permissions}->@* ) {
+                        if ( substr( $permission, 0, 1 ) eq '$' ) {
+                            my $permission_eval = eval "package $class_name; $permission";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
+
+                            die qq[Invalid API method permission "$permission" for method "$method_id"] if $@;
+
+                            $permission = $permission_eval;
+                        }
 
                         # any authenticated user
                         if ( $permission eq $PERMISSION_ANY_AUTHENTICATED_USER ) {
@@ -192,9 +187,9 @@ sub get_method ( $self, $method_id ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (24)                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 92                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 89                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 160, 166             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 146, 155, 161        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
