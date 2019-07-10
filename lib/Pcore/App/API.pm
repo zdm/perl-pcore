@@ -129,6 +129,10 @@ sub validate_telegram_user_name ( $self, $name ) {
     return 1;
 }
 
+sub validate_email ( $self, $email ) {
+    return $email =~ /^[[:alnum:]][[:alnum:]._-]+[[:alnum:]]\@[[:alnum:].-]+$/smi;
+}
+
 # AUTHENTICATE
 sub authenticate ( $self, $token ) {
 
@@ -309,7 +313,7 @@ sub _auth_cache_cleanup ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 168                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 172                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
