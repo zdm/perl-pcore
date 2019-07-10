@@ -17,7 +17,7 @@ sub _auth_password ( $self, $private_token ) {
     return res [ 404, 'User is disabled' ] if !$user->{data}->{enabled};
 
     # verify token
-    my $status = $self->_verify_password_hash( $private_token->[$PRIVATE_TOKEN_HASH], $user->{data}->{hash} );
+    my $status = $self->_verify_private_token( $private_token, $user->{data}->{hash} );
 
     # token is invalid
     return $status if !$status;

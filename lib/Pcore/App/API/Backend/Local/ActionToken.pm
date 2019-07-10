@@ -85,7 +85,7 @@ sub verify_action_token ( $self, $token, $token_type ) {
     return res 404 if !$res->{data};
 
     # verify token, token is not valid
-    return res [ 400, 'Invalid token' ] if !$self->_verify_token( $private_token, $res->{data}->{hash} );
+    return res [ 400, 'Invalid token' ] if !$self->_verify_private_token( $private_token, $res->{data}->{hash} );
 
     return res 200,
       { user_id => $res->{data}->{user_id},

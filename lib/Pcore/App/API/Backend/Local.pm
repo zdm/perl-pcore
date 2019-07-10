@@ -117,21 +117,22 @@ sub do_authenticate_private ( $self, $private_token ) {
 }
 
 # HASH FUNCTIONS
-sub _verify_password_hash ( $self, $private_token_hash, $hash ) {
-    my $cache_id = "$hash/$private_token_hash";
+sub _verify_private_token ( $self, $private_token, $hash ) {
+    if ( $private_token->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_PASSWORD ) {
+        my $cache_id = "$hash/$private_token->[$PRIVATE_TOKEN_HASH]";
 
-    if ( exists $self->{_hash_cache}->{$cache_id} ) {
-        return $self->{_hash_cache}->{$cache_id};
+        if ( exists $self->{_hash_cache}->{$cache_id} ) {
+            return $self->{_hash_cache}->{$cache_id};
+        }
+        else {
+            my $res = $self->{app}->{node}->rpc_call( 'Pcore::App::API::Node', 'verify_hash', $private_token->[$PRIVATE_TOKEN_HASH], $hash );
+
+            return $self->{_hash_cache}->{$cache_id} = $res->{data} ? res 200 : res [ 400, 'Invalid token' ];
+        }
     }
     else {
-        my $res = $self->{app}->{node}->rpc_call( 'Pcore::App::API::Node', 'verify_hash', $private_token_hash, $hash );
-
-        return $self->{_hash_cache}->{$cache_id} = $res->{data} ? res 200 : res [ 400, 'Invalid token' ];
+        return sha3_512( $private_token->[$PRIVATE_TOKEN_TYPE] . $private_token->[$PRIVATE_TOKEN_HASH] . $private_token->[$PRIVATE_TOKEN_ID] ) eq $hash;
     }
-}
-
-sub _verify_token ( $self, $private_token, $hash ) {
-    return sha3_512( $private_token->[$PRIVATE_TOKEN_TYPE] . $private_token->[$PRIVATE_TOKEN_HASH] . $private_token->[$PRIVATE_TOKEN_ID] ) eq $hash;
 }
 
 sub _generate_password_hash ( $self, $user_name_utf8, $user_password_utf8 ) {
@@ -201,13 +202,12 @@ sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 120                  | * Private subroutine/method '_verify_password_hash' declared but not used                                      |
-## |      | 133                  | * Private subroutine/method '_verify_token' declared but not used                                              |
-## |      | 137                  | * Private subroutine/method '_generate_password_hash' declared but not used                                    |
-## |      | 151                  | * Private subroutine/method '_generate_token' declared but not used                                            |
-## |      | 168                  | * Private subroutine/method '_return_auth' declared but not used                                               |
+## |      | 120                  | * Private subroutine/method '_verify_private_token' declared but not used                                      |
+## |      | 138                  | * Private subroutine/method '_generate_password_hash' declared but not used                                    |
+## |      | 152                  | * Private subroutine/method '_generate_token' declared but not used                                            |
+## |      | 169                  | * Private subroutine/method '_return_auth' declared but not used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 137, 168             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 138, 169             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
