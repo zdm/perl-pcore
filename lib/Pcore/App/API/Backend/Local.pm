@@ -14,6 +14,7 @@ with qw[
   Pcore::App::API::Backend::Local::Token
   Pcore::App::API::Backend::Local::Session
   Pcore::App::API::Backend::Local::ActionToken
+  Pcore::App::API::Backend::Local::Settings
 ];
 
 has dbh => ( init_arg => undef );
@@ -202,12 +203,12 @@ sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 120                  | * Private subroutine/method '_verify_private_token' declared but not used                                      |
-## |      | 138                  | * Private subroutine/method '_generate_password_hash' declared but not used                                    |
-## |      | 152                  | * Private subroutine/method '_generate_token' declared but not used                                            |
-## |      | 169                  | * Private subroutine/method '_return_auth' declared but not used                                               |
+## |      | 121                  | * Private subroutine/method '_verify_private_token' declared but not used                                      |
+## |      | 139                  | * Private subroutine/method '_generate_password_hash' declared but not used                                    |
+## |      | 153                  | * Private subroutine/method '_generate_token' declared but not used                                            |
+## |      | 170                  | * Private subroutine/method '_return_auth' declared but not used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 138, 169             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 139, 170             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
