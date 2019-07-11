@@ -100,12 +100,12 @@ sub create_token ( $self, $user_id, $name, $enabled, $permissions ) {
     return $on_finish->( $dbh, $res ) if !$res;
 
     # set token permissions
-    $res = $self->_db_set_token_permissions( $dbh, $token->{data}->{id}, $permissions );
+    $res = $self->set_token_permissions( $token->{data}->{id}, $permissions, $dbh );
 
     return $on_finish->( $dbh, $res ) if !$res;
 
     # get token permissions
-    my $token_permissions = $self->_db_get_token_permissions( $dbh, $token->{data}->{id} );
+    my $token_permissions = $self->get_token_permissions( $token->{data}->{id}, $dbh );
 
     return $on_finish->( $dbh, $token_permissions ) if !$token_permissions;
 
@@ -165,51 +165,9 @@ sub set_token_enabled ( $self, $token_id, $enabled ) {
     }
 }
 
-sub get_token_permissions ( $self, $token_id ) {
-    return $self->_db_get_token_permissions( $self->{dbh}, $token_id );
-}
+sub get_token_permissions ( $self, $token_id, $dbh = undef ) {
+    $dbh //= $self->{dbh};
 
-sub get_token_permissions_for_edit ( $self, $token_id ) {
-    return $self->_db_get_token_permissions_for_edit( $self->{dbh}, $token_id );
-}
-
-sub set_token_permissions ( $self, $token_id, $permissions ) {
-
-    # get dbh
-    my ( $res, $dbh ) = $self->{dbh}->get_dbh;
-
-    # unable to get dbh
-    return $res if !$res;
-
-    # start transaction
-    $res = $dbh->begin_work;
-
-    # failed to start transaction
-    return $res if !$res;
-
-    $res = $self->_db_set_token_permissions( $dbh, $token_id, $permissions );
-
-    # set permissions error
-    if ( !$res ) {
-        my $rollback = $dbh->rollback;
-
-        return $res;
-    }
-
-    # commit
-    my $commit = $dbh->commit;
-
-    # commit error
-    return $commit if !$commit;
-
-    # permissions was modified
-    P->fire_event( 'app.api.auth.invalidate', { type => $INVALIDATE_TOKEN, id => $token_id } ) if $res == 200;
-
-    return $res;
-}
-
-# UTIL
-sub _db_get_token_permissions ( $self, $dbh, $token_id ) {
     state $q1 = $dbh->prepare(
         <<'SQL',
         SELECT
@@ -239,7 +197,9 @@ SQL
     return res 200, { map { $_->{name} => $_->{enabled} } $res->{data}->@* };
 }
 
-sub _db_get_token_permissions_for_edit ( $self, $dbh, $token_id ) {
+sub get_token_permissions_for_edit ( $self, $token_id, $dbh = undef ) {
+    $dbh //= $self->{dbh};
+
     state $q1 = $dbh->prepare(
         <<'SQL',
         SELECT
@@ -298,12 +258,46 @@ SQL
     return res 200, $res->{data};
 }
 
-sub _db_set_token_permissions ( $self, $dbh, $token_id, $permissions ) {
+sub set_token_permissions ( $self, $token_id, $permissions, $dbh = undef ) {
     return res 204 if !$permissions || !$permissions->%*;    # not modified
 
-    my $token_permissions = $self->_db_get_token_permissions_for_edit( $dbh, $token_id );
+    my $token_permissions = $self->get_token_permissions_for_edit( $token_id, $dbh );
 
     return $token_permissions if !$token_permissions;
+
+    my $on_finish;
+
+    if ( !defined $dbh ) {
+
+        # get dbh
+        ( my $res, $dbh ) = $self->{dbh}->get_dbh;
+
+        # unable to get dbh
+        return $res if !$res;
+
+        # start transaction
+        $res = $dbh->begin_work;
+
+        # failed to start transaction
+        return $res if !$res;
+
+        $on_finish = sub ( $dbh, $res ) {
+            if ( !$res ) {
+                my $res1 = $dbh->rollback;
+            }
+            else {
+                my $res1 = $dbh->commit;
+
+                # error committing transaction
+                return $res1 if !$res1;
+            }
+
+            return $res;
+        };
+    }
+    else {
+        $on_finish = sub ( $dbh, $res ) { return $res };
+    }
 
     $token_permissions = { map { $_->{name} => $_ } $token_permissions->{data}->@* };
 
@@ -314,7 +308,7 @@ sub _db_set_token_permissions ( $self, $dbh, $token_id, $permissions ) {
 
         # can not edit permission
         if ( !$token_permissions->{$name}->{can_edit} ) {
-            return res [ 400, q[Unable to set token permissions] ];
+            return $on_finish->( $dbh, res [ 400, q[Unable to set token permissions] ] );
         }
 
         # need to modify permission
@@ -346,17 +340,17 @@ sub _db_set_token_permissions ( $self, $dbh, $token_id, $permissions ) {
     if ($insert_user_permission) {
         my $res = $dbh->do( [ 'INSERT INTO "user_permission"', VALUES $insert_user_permission] );
 
-        return $res if !$res;
+        return $on_finish->( $dbh, $res ) if !$res;
 
-        return res 500 if !$res->{rows};
+        return $on_finish->( $dbh, res 500 ) if !$res->{rows};
     }
 
     if ($insert_token_permission) {
         my $res = $dbh->do( [ 'INSERT INTO "user_token_permission"', VALUES $insert_token_permission] );
 
-        return $res if !$res;
+        return $on_finish->( $dbh, $res ) if !$res;
 
-        return res 500 if !$res->{rows};
+        return $on_finish->( $dbh, res 500 ) if !$res->{rows};
     }
 
     if ($update_token_permission) {
@@ -365,17 +359,22 @@ sub _db_set_token_permissions ( $self, $dbh, $token_id, $permissions ) {
         for my $bind ( $update_token_permission->@* ) {
             my $res = $dbh->do( $q1, $bind );
 
-            return $res if !$res;
+            return $on_finish->( $dbh, $res ) if !$res;
 
-            return res 500 if !$res->{rows};
+            return $on_finish->( $dbh, res 500 ) if !$res->{rows};
         }
     }
 
     if ($modified) {
-        return res 200;
+        my $res = $on_finish->( $dbh, res 200 );
+
+        # permissions was modified, fire event if commit was ok
+        P->fire_event( 'app.api.auth.invalidate', { type => $INVALIDATE_TOKEN, id => $token_id } );
+
+        return $res;
     }
     else {
-        return res 204;
+        return $on_finish->( $dbh, res 204 );
     }
 }
 
@@ -390,7 +389,7 @@ sub _db_set_token_permissions ( $self, $dbh, $token_id, $permissions ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 46                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 301                  | Subroutines::ProhibitExcessComplexity - Subroutine "_db_set_token_permissions" with high complexity score (22) |
+## |    3 | 261                  | Subroutines::ProhibitExcessComplexity - Subroutine "set_token_permissions" with high complexity score (29)     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
