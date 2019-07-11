@@ -2,23 +2,6 @@ package Pcore::App::API::Backend::Local::Settings;
 
 use Pcore -role, -res, -sql;
 
-has settings => ( init_arg => undef );
-
-around init => sub ( $orig, $self ) {
-
-    # setup events listeners
-    P->bind_events(
-        'app.api.settings.updated',
-        sub ($ev) {
-            $self->{settings} = $ev->{data};
-
-            return;
-        }
-    );
-
-    return $self->$orig;
-};
-
 sub load_settings ( $self ) {
     state $q1 = $self->{dbh}->prepare(q[SELECT * FROM "settings" WHERE "id" = 1]);
 

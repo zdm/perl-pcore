@@ -19,6 +19,8 @@ our $EXPORT = {
 
 has app => ( required => 1 );
 
+has settings => ( init_arg => undef );
+
 has _auth_cb_queue            => ( sub { {} }, init_arg => undef );    # HashRef
 has _auth_cache_user          => ( init_arg             => undef );    # HashRef, user_id => { user_token_id }
 has _auth_cache_token         => ( init_arg             => undef );    # HashRef, user_token_id => auth_descriptor
@@ -95,6 +97,16 @@ around init => sub ( $orig, $self ) {
 
         return;
     };
+
+    # on settings update
+    P->bind_events(
+        'app.api.settings.updated',
+        sub ($ev) {
+            $self->{settings} = $ev->{data};
+
+            return;
+        }
+    );
 
     return $self->$orig;
 };
@@ -313,7 +325,7 @@ sub _auth_cache_cleanup ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 172                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 184                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
