@@ -110,8 +110,8 @@ sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
     );
 }
 
-sub set_user_password ( $self, $user_id, $password ) {
-    my $dbh = $self->{dbh};
+sub set_user_password ( $self, $user_id, $password, $dbh = undef ) {
+    $dbh //= $self->{dbh};
 
     # resolve user
     my $user = $self->_db_get_user( $dbh, $user_id );
@@ -125,9 +125,9 @@ sub set_user_password ( $self, $user_id, $password ) {
     return $password_hash if !$password_hash;
 
     # password hash generated
-    state $q1 = $self->{dbh}->prepare(q[UPDATE "auth_hash" SET "hash" = ? WHERE "id" = ?]);
+    state $q1 = $dbh->prepare(q[UPDATE "auth_hash" SET "hash" = ? WHERE "id" = ?]);
 
-    my $res = $self->{dbh}->do( $q1, [ SQL_BYTEA $password_hash->{data}->{hash}, $user->{data}->{guid} ] );
+    my $res = $dbh->do( $q1, [ SQL_BYTEA $password_hash->{data}->{hash}, $user->{data}->{guid} ] );
 
     return res 500 if !$res->{rows};
 
