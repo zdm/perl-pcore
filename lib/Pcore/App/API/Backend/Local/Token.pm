@@ -135,7 +135,7 @@ sub remove_token ( $self, $token_id ) {
     # not found
     return res 204 if !$res->{rows};
 
-    P->fire_event( 'app.api.invalidate_cache', { type => $INVALIDATE_TOKEN, id => $token_id } );
+    P->fire_event( 'app.api.auth.invalidate', { type => $INVALIDATE_TOKEN, id => $token_id } );
 
     return res 200;
 }
@@ -154,7 +154,7 @@ sub set_token_enabled ( $self, $token_id, $enabled ) {
 
     # modified
     if ( $res->{rows} ) {
-        P->fire_event( 'app.api.invalidate_cache', { type => $INVALIDATE_TOKEN, id => $token_id } );
+        P->fire_event( 'app.api.auth.invalidate', { type => $INVALIDATE_TOKEN, id => $token_id } );
 
         return res 200;
     }
@@ -203,7 +203,7 @@ sub set_token_permissions ( $self, $token_id, $permissions ) {
     return $commit if !$commit;
 
     # permissions was modified
-    P->fire_event( 'app.api.invalidate_cache', { type => $INVALIDATE_TOKEN, id => $token_id } ) if $res == 200;
+    P->fire_event( 'app.api.auth.invalidate', { type => $INVALIDATE_TOKEN, id => $token_id } ) if $res == 200;
 
     return $res;
 }

@@ -75,7 +75,7 @@ around init => sub ( $orig, $self ) {
 
     # setup events listeners
     P->bind_events(
-        'app.api.invalidate_cache',
+        'app.api.auth.invalidate',
         sub ($ev) {
             if ( $ev->{data}->{type} == $INVALIDATE_USER ) {
                 $self->_invalidate_user( $ev->{data}->{id} );

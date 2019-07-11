@@ -132,7 +132,7 @@ sub set_user_password ( $self, $user_id, $password ) {
     return res 500 if !$res->{rows};
 
     # fire AUTH event if user password was changed
-    P->fire_event( 'app.api.invalidate_cache', { type => $INVALIDATE_TOKEN, id => $user->{data}->{name} } );
+    P->fire_event( 'app.api.auth.invalidate', { type => $INVALIDATE_TOKEN, id => $user->{data}->{name} } );
 
     return res 200;
 }
@@ -161,7 +161,7 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
 
     # modified
     if ( $res->{rows} ) {
-        P->fire_event( 'app.api.invalidate_cache', { type => $INVALIDATE_USER, id => $user_id } );
+        P->fire_event( 'app.api.auth.invalidate', { type => $INVALIDATE_USER, id => $user_id } );
 
         return res 200;
     }
@@ -207,7 +207,7 @@ sub set_user_permissions ( $self, $user_id, $permissions ) {
     return $commit if !$commit;
 
     # permissions was modified
-    P->fire_event( 'app.api.invalidate_cache', { type => $INVALIDATE_USER, id => $user_id } ) if $res == 200;
+    P->fire_event( 'app.api.auth.invalidate', { type => $INVALIDATE_USER, id => $user_id } ) if $res == 200;
 
     return $res;
 }

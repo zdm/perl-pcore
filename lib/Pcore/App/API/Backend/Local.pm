@@ -92,7 +92,7 @@ sub _sync_app_permissions ( $self ) {
     $modified += $res->{rows};
 
     if ($modified) {
-        P->fire_event( 'app.api.invalidate_cache', { type => $INVALIDATE_ALL } );
+        P->fire_event( 'app.api.auth.invalidate', { type => $INVALIDATE_ALL } );
 
         return res 200;
     }
