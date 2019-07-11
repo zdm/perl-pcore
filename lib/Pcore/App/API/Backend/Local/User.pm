@@ -96,7 +96,7 @@ sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
     return $on_finish->( $dbh, $res ) if !$res;
 
     # set user permissions
-    $res = $self->_db_set_user_permissions( $dbh, $user_id, $permissions );
+    $res = $self->set_user_permissions( $user_id, $permissions, $dbh );
 
     return $on_finish->( $dbh, $res ) if !$res;
 
@@ -172,62 +172,9 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
     }
 }
 
-sub get_user_permissions ( $self, $user_id ) {
-    return $self->_db_get_user_permissions( $self->{dbh}, $user_id );
-}
+sub get_user_permissions ( $self, $user_id, $dbh = undef ) {
+    $dbh //= $self->{dbh};
 
-sub set_user_permissions ( $self, $user_id, $permissions ) {
-    return res [ 400, qw[Can't modify root user] ] if $self->user_is_root($user_id);
-
-    # get dbh
-    my ( $res, $dbh ) = $self->{dbh}->get_dbh;
-
-    # unable to get dbh
-    return $res if !$res;
-
-    # start transaction
-    $res = $dbh->begin_work;
-
-    # failed to start transaction
-    return $res if !$res;
-
-    $res = $self->_db_set_user_permissions( $dbh, $user_id, $permissions );
-
-    # set permissions error
-    if ( !$res ) {
-        my $rollback = $dbh->rollback;
-
-        return $res;
-    }
-
-    # commit
-    my $commit = $dbh->commit;
-
-    # commit error
-    return $commit if !$commit;
-
-    # permissions was modified
-    P->fire_event( 'app.api.auth.invalidate', { type => $INVALIDATE_USER, id => $user_id } ) if $res == 200;
-
-    return $res;
-}
-
-# UTIL
-sub _db_get_user ( $self, $dbh, $user_id ) {
-    state $q1 = $dbh->prepare('SELECT "id", "guid", "name" FROM "user" WHERE "id" = ? AND "enabled" = TRUE');
-
-    my $user = $dbh->selectrow( $q1, [$user_id] );
-
-    # dbh error
-    return $user if !$user;
-
-    # user was not found or disabled
-    return res 404 if !$user->{data};
-
-    return $user;
-}
-
-sub _db_get_user_permissions ( $self, $dbh, $user_id ) {
     state $q1 = $dbh->prepare(
         <<'SQL',
         SELECT
@@ -258,8 +205,44 @@ SQL
     return res 200, { map { $_->{name} => $_->{enabled} } $res->{data}->@* };
 }
 
-sub _db_set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
+sub set_user_permissions ( $self, $user_id, $permissions, $dbh = undef ) {
+    return res [ 400, qw[Can't modify root user] ] if $self->user_is_root($user_id);
+
     return res 204 if !$permissions || !$permissions->%*;    # not modified
+
+    my $on_finish;
+
+    if ( !defined $dbh ) {
+
+        # get dbh
+        ( my $res, $dbh ) = $self->{dbh}->get_dbh;
+
+        # unable to get dbh
+        return $res if !$res;
+
+        # start transaction
+        $res = $dbh->begin_work;
+
+        # failed to start transaction
+        return $res if !$res;
+
+        $on_finish = sub ( $dbh, $res ) {
+            if ( !$res ) {
+                my $res1 = $dbh->rollback;
+            }
+            else {
+                my $res1 = $dbh->commit;
+
+                # error committing transaction
+                return $res1 if !$res1;
+            }
+
+            return $res;
+        };
+    }
+    else {
+        $on_finish = sub ( $dbh, $res ) { return $res };
+    }
 
     my $res;
     my $modified = 0;
@@ -286,7 +269,7 @@ SQL
         $res = $dbh->do( $q1, [ $user_id, $name, SQL_BOOL $enabled] );
 
         # dbh error
-        return $res if !$res;
+        return $on_finish->( $dbh, $res ) if !$res;
 
         # permission inserted
         if ( $res->{rows} ) {
@@ -311,7 +294,7 @@ SQL
             $res = $dbh->do( $q2, [ SQL_BOOL $enabled, $user_id, SQL_BOOL !$enabled, $name ] );
 
             # dbh error
-            return $res if !$res;
+            return $on_finish->( $dbh, $res ) if !$res;
 
             # permission updated
             $modified = 1 if $res->{rows};
@@ -319,11 +302,33 @@ SQL
     }
 
     if ($modified) {
-        return res 200;
+
+        # commit
+        $res = $on_finish->( $dbh, res 200 );
+
+        # permissions was modified, fire event if commit was ok
+        P->fire_event( 'app.api.auth.invalidate', { type => $INVALIDATE_USER, id => $user_id } ) if $res;
+
+        return $res;
     }
     else {
-        return res 204;
+        return $on_finish->( $dbh, res 204 );
     }
+}
+
+# UTIL
+sub _db_get_user ( $self, $dbh, $user_id ) {
+    state $q1 = $dbh->prepare('SELECT "id", "guid", "name" FROM "user" WHERE "id" = ? AND "enabled" = TRUE');
+
+    my $user = $dbh->selectrow( $q1, [$user_id] );
+
+    # dbh error
+    return $user if !$user;
+
+    # user was not found or disabled
+    return res 404 if !$user->{data};
+
+    return $user;
 }
 
 1;
