@@ -1,4 +1,4 @@
-package Pcore::App::API::Backend::Local::Token;
+package Pcore::App::API::Backend::Local::UserToken;
 
 use Pcore -role, -sql, -res;
 use Pcore::App::API qw[:ROOT_USER :PRIVATE_TOKEN :INVALIDATE_TYPE :TOKEN_TYPE];
@@ -400,7 +400,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Backend::Local::Token
+Pcore::App::API::Backend::Local::UserToken
 
 =head1 SYNOPSIS
 

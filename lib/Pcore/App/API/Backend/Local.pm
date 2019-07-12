@@ -11,9 +11,9 @@ with qw[
   Pcore::App::API
   Pcore::App::API::Backend::Local::Methods
   Pcore::App::API::Backend::Local::User
-  Pcore::App::API::Backend::Local::Token
-  Pcore::App::API::Backend::Local::Session
-  Pcore::App::API::Backend::Local::ActionToken
+  Pcore::App::API::Backend::Local::UserToken
+  Pcore::App::API::Backend::Local::UserSession
+  Pcore::App::API::Backend::Local::UserActionToken
   Pcore::App::API::Backend::Local::Settings
 ];
 

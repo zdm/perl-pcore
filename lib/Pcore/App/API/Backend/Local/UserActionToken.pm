@@ -1,4 +1,4 @@
-package Pcore::App::API::Backend::Local::ActionToken;
+package Pcore::App::API::Backend::Local::UserActionToken;
 
 use Pcore -role, -sql, -res;
 use Pcore::App::API qw[:PRIVATE_TOKEN];
@@ -107,7 +107,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Backend::Local::ActionToken
+Pcore::App::API::Backend::Local::UserActionToken
 
 =head1 SYNOPSIS
 
