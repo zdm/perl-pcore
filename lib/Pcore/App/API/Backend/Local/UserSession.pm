@@ -4,7 +4,7 @@ use Pcore -role, -sql, -res;
 use Pcore::App::API qw[:ROOT_USER :PRIVATE_TOKEN :INVALIDATE_TYPE :TOKEN_TYPE];
 use Pcore::Util::Digest qw[sha3_512];
 
-sub _auth_session ( $self, $private_token ) {
+sub _user_session_authenticate ( $self, $private_token ) {
 
     # get user token
     state $q1 = $self->{dbh}->prepare(
@@ -42,7 +42,7 @@ SQL
     return $self->_return_auth( $private_token, $token->{user_id}, $token->{user_name} );
 }
 
-sub create_session ( $self, $user_id ) {
+sub user_session_create ( $self, $user_id ) {
     my ( $res, $dbh ) = $self->{dbh}->get_dbh;
 
     # unable to get dbh
@@ -114,7 +114,7 @@ sub create_session ( $self, $user_id ) {
     );
 }
 
-sub remove_session ( $self, $token_id ) {
+sub user_session_remove ( $self, $token_id ) {
     state $q1 = $self->{dbh}->prepare('DELETE FROM "user_session" WHERE "id" = ?');
 
     my $res = $self->{dbh}->do( $q1, [ SQL_UUID $token_id ] );
@@ -137,8 +137,8 @@ sub remove_session ( $self, $token_id ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 7                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_session' declared but not     |
-## |      |                      | used                                                                                                           |
+## |    3 | 7                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_user_session_authenticate'         |
+## |      |                      | declared but not used                                                                                          |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

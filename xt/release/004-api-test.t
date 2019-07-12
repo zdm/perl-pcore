@@ -50,8 +50,8 @@ ok( $res, 'api_init' );
 $res = $api->get_user('root');
 ok( $res, 'get_user' );
 
-my $sess = $api->create_session('root');
-ok( $sess, 'create_session' );
+my $sess = $api->user_session_create('root');
+ok( $sess, 'user_session_create' );
 
 my $auth;
 $auth = $api->authenticate( $sess->{data}->{token} );

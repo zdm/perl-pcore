@@ -110,7 +110,7 @@ sub do_authenticate_private ( $self, $private_token ) {
         return $self->_auth_token($private_token);
     }
     elsif ( $private_token->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_SESSION ) {
-        return $self->_auth_session($private_token);
+        return $self->_user_session_authenticate($private_token);
     }
     else {
         return res [ 400, 'Invalid token type' ];
