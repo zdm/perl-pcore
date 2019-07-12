@@ -138,7 +138,7 @@ sub user_set_password ( $self, $user_id, $password, $dbh = undef ) {
 }
 
 sub user_set_enabled ( $self, $user_id, $enabled ) {
-    return res [ 400, qw[rCan't modify root user] ] if $self->user_is_root($user_id);
+    return res [ 400, qw[Can't modify root user] ] if $self->user_is_root($user_id);
 
     my $dbh = $self->{dbh};
 
@@ -206,9 +206,9 @@ SQL
 }
 
 sub user_set_permissions ( $self, $user_id, $permissions, $dbh = undef ) {
-    return res [ 400, qw[Can't modify root user] ] if $self->user_is_root($user_id);
-
     return res 204 if !$permissions || !$permissions->%*;    # not modified
+
+    return res [ 400, qw[Can't modify root user] ] if $self->user_is_root($user_id);
 
     my $on_finish;
 
