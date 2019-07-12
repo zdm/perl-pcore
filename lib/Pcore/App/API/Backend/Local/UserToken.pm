@@ -4,7 +4,7 @@ use Pcore -role, -sql, -res;
 use Pcore::App::API qw[:ROOT_USER :PRIVATE_TOKEN :INVALIDATE_TYPE :TOKEN_TYPE];
 use Pcore::Util::Digest qw[sha3_512];
 
-sub _auth_token ( $self, $private_token ) {
+sub _user_token_authenticate ( $self, $private_token ) {
 
     # get user token
     state $q1 = $self->{dbh}->prepare(
@@ -43,7 +43,7 @@ SQL
     return $self->_return_auth( $private_token, $token->{user_id}, $token->{user_name} );
 }
 
-sub create_token ( $self, $user_id, $name, $enabled, $permissions ) {
+sub user_token_create ( $self, $user_id, $name, $enabled, $permissions ) {
 
     # get dbh
     my ( $res, $dbh ) = $self->{dbh}->get_dbh;
@@ -100,12 +100,12 @@ sub create_token ( $self, $user_id, $name, $enabled, $permissions ) {
     return $on_finish->( $dbh, $res ) if !$res;
 
     # set token permissions
-    $res = $self->set_token_permissions( $token->{data}->{id}, $permissions, $dbh );
+    $res = $self->user_token_set_permissions( $token->{data}->{id}, $permissions, $dbh );
 
     return $on_finish->( $dbh, $res ) if !$res;
 
     # get token permissions
-    my $token_permissions = $self->get_token_permissions( $token->{data}->{id}, $dbh );
+    my $token_permissions = $self->user_token_get_permissions( $token->{data}->{id}, $dbh );
 
     return $on_finish->( $dbh, $token_permissions ) if !$token_permissions;
 
@@ -124,7 +124,7 @@ sub create_token ( $self, $user_id, $name, $enabled, $permissions ) {
     );
 }
 
-sub remove_token ( $self, $token_id ) {
+sub user_token_remove ( $self, $token_id ) {
     state $q1 = $self->{dbh}->prepare('DELETE FROM "user_token" WHERE "id" = ?');
 
     my $res = $self->{dbh}->do( $q1, [ SQL_UUID $token_id ] );
@@ -140,7 +140,7 @@ sub remove_token ( $self, $token_id ) {
     return res 200;
 }
 
-sub set_token_enabled ( $self, $token_id, $enabled ) {
+sub user_token_set_enabled ( $self, $token_id, $enabled ) {
     my $dbh = $self->{dbh};
 
     state $q1 = $dbh->prepare(q[UPDATE "user_token" SET "enabled" = ? WHERE "id" = ? AND "enabled" = ?]);
@@ -165,7 +165,7 @@ sub set_token_enabled ( $self, $token_id, $enabled ) {
     }
 }
 
-sub get_token_permissions ( $self, $token_id, $dbh = undef ) {
+sub user_token_get_permissions ( $self, $token_id, $dbh = undef ) {
     $dbh //= $self->{dbh};
 
     state $q1 = $dbh->prepare(
@@ -197,7 +197,7 @@ SQL
     return res 200, { map { $_->{name} => $_->{enabled} } $res->{data}->@* };
 }
 
-sub get_token_permissions_for_edit ( $self, $token_id, $dbh = undef ) {
+sub user_token_get_permissions_for_edit ( $self, $token_id, $dbh = undef ) {
     $dbh //= $self->{dbh};
 
     state $q1 = $dbh->prepare(
@@ -258,10 +258,10 @@ SQL
     return res 200, $res->{data};
 }
 
-sub set_token_permissions ( $self, $token_id, $permissions, $dbh = undef ) {
+sub user_token_set_permissions ( $self, $token_id, $permissions, $dbh = undef ) {
     return res 204 if !$permissions || !$permissions->%*;    # not modified
 
-    my $token_permissions = $self->get_token_permissions_for_edit( $token_id, $dbh );
+    my $token_permissions = $self->user_token_get_permissions_for_edit( $token_id, $dbh );
 
     return $token_permissions if !$token_permissions;
 
@@ -385,11 +385,13 @@ sub set_token_permissions ( $self, $token_id, $permissions, $dbh = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 7                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_token' declared but not used  |
+## |    3 | 7                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_user_token_authenticate' declared  |
+## |      |                      | but not used                                                                                                   |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 46                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 261                  | Subroutines::ProhibitExcessComplexity - Subroutine "set_token_permissions" with high complexity score (29)     |
+## |    3 | 261                  | Subroutines::ProhibitExcessComplexity - Subroutine "user_token_set_permissions" with high complexity score     |
+## |      |                      | (29)                                                                                                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

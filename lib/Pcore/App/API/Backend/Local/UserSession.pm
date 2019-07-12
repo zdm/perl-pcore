@@ -96,7 +96,7 @@ sub user_session_create ( $self, $user_id ) {
     # dbh error
     return $on_finish->( $dbh, $res ) if !$res;
 
-    my $permissions = $self->get_user_permissions( $user->{data}->{id}, $dbh );
+    my $permissions = $self->user_get_permissions( $user->{data}->{id}, $dbh );
 
     # get permissions error
     return $on_finish->( $dbh, $permissions ) if !$permissions;

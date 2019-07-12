@@ -3,7 +3,7 @@ package Pcore::App::API::Backend::Local::User;
 use Pcore -role, -sql, -res;
 use Pcore::App::API qw[:ROOT_USER :PRIVATE_TOKEN :INVALIDATE_TYPE];
 
-sub _auth_password ( $self, $private_token ) {
+sub _user_password_authenticate ( $self, $private_token ) {
 
     # get user
     state $q1 = $self->{dbh}->prepare(q[SELECT "user"."id", "user"."enabled", "auth_hash"."hash" FROM "user" LEFT JOIN "auth_hash" ON ("user"."guid" = "auth_hash"."id") WHERE "user"."name" = ?]);
@@ -26,7 +26,7 @@ sub _auth_password ( $self, $private_token ) {
     return $self->_return_auth( $private_token, $user->{data}->{id}, $private_token->[$PRIVATE_TOKEN_ID] );
 }
 
-sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
+sub user_create ( $self, $user_name, $password, $enabled, $permissions ) {
 
     # validate user name
     return res [ 400, 'User name is not valid' ] if !$self->validate_user_name($user_name);
@@ -96,7 +96,7 @@ sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
     return $on_finish->( $dbh, $res ) if !$res;
 
     # set user permissions
-    $res = $self->set_user_permissions( $user_id, $permissions, $dbh );
+    $res = $self->user_set_permissions( $user_id, $permissions, $dbh );
 
     return $on_finish->( $dbh, $res ) if !$res;
 
@@ -110,7 +110,7 @@ sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
     );
 }
 
-sub set_user_password ( $self, $user_id, $password, $dbh = undef ) {
+sub user_set_password ( $self, $user_id, $password, $dbh = undef ) {
     $dbh //= $self->{dbh};
 
     # resolve user
@@ -137,7 +137,7 @@ sub set_user_password ( $self, $user_id, $password, $dbh = undef ) {
     return res 200;
 }
 
-sub set_user_enabled ( $self, $user_id, $enabled ) {
+sub user_set_enabled ( $self, $user_id, $enabled ) {
     return res [ 400, qw[rCan't modify root user] ] if $self->user_is_root($user_id);
 
     my $dbh = $self->{dbh};
@@ -172,7 +172,7 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
     }
 }
 
-sub get_user_permissions ( $self, $user_id, $dbh = undef ) {
+sub user_get_permissions ( $self, $user_id, $dbh = undef ) {
     $dbh //= $self->{dbh};
 
     state $q1 = $dbh->prepare(
@@ -205,7 +205,7 @@ SQL
     return res 200, { map { $_->{name} => $_->{enabled} } $res->{data}->@* };
 }
 
-sub set_user_permissions ( $self, $user_id, $permissions, $dbh = undef ) {
+sub user_set_permissions ( $self, $user_id, $permissions, $dbh = undef ) {
     return res [ 400, qw[Can't modify root user] ] if $self->user_is_root($user_id);
 
     return res 204 if !$permissions || !$permissions->%*;    # not modified
@@ -338,8 +338,8 @@ sub _db_get_user ( $self, $dbh, $user_id ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 6                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_password' declared but not    |
-## |      |                      | used                                                                                                           |
+## |    3 | 6                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_user_password_authenticate'        |
+## |      |                      | declared but not used                                                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 29                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

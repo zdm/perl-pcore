@@ -56,7 +56,7 @@ sub init ( $self ) {
 
     my $root_password = P->random->bytes_hex(32);
 
-    $res = $self->create_user( $ROOT_USER_NAME, $root_password, 1, undef );
+    $res = $self->user_create( $ROOT_USER_NAME, $root_password, 1, undef );
 
     say $res . ( $res ? ", password: $root_password" : $EMPTY );
 
@@ -104,10 +104,10 @@ sub _sync_app_permissions ( $self ) {
 # AUTHENTICATE
 sub do_authenticate_private ( $self, $private_token ) {
     if ( $private_token->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_PASSWORD ) {
-        return $self->_auth_password($private_token);
+        return $self->_user_password_authenticate($private_token);
     }
     elsif ( $private_token->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_TOKEN ) {
-        return $self->_auth_token($private_token);
+        return $self->_user_token_authenticate($private_token);
     }
     elsif ( $private_token->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_SESSION ) {
         return $self->_user_session_authenticate($private_token);
@@ -179,12 +179,12 @@ sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
 
     # get token permissions
     if ( $private_token->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_TOKEN ) {
-        $permissions = $self->get_token_permissions( $private_token->[$PRIVATE_TOKEN_ID] );
+        $permissions = $self->user_token_get_permissions( $private_token->[$PRIVATE_TOKEN_ID] );
     }
 
     # get user permissions, session tokens inherit user permissions
     else {
-        $permissions = $self->get_user_permissions($user_id);
+        $permissions = $self->user_get_permissions($user_id);
     }
 
     # get permissions error
