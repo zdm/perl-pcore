@@ -3,7 +3,7 @@ package Pcore::App::API::Backend::Local::UserActionToken;
 use Pcore -role, -sql, -res;
 use Pcore::App::API qw[:PRIVATE_TOKEN];
 
-sub create_action_token ( $self, $user_id, $token_type ) {
+sub user_action_token_create ( $self, $user_id, $token_type ) {
     my ( $res, $dbh ) = $self->{dbh}->get_dbh;
 
     # unable to get dbh
@@ -71,7 +71,7 @@ sub create_action_token ( $self, $user_id, $token_type ) {
     );
 }
 
-sub verify_action_token ( $self, $token, $token_type ) {
+sub user_action_token_verify ( $self, $token, $token_type ) {
     my $private_token = $self->_unpack_token($token);
 
     return res 400 if !$private_token;
@@ -93,7 +93,7 @@ sub verify_action_token ( $self, $token, $token_type ) {
       };
 }
 
-sub remove_action_token ( $self, $token_type, $email ) {
+sub user_action_token_remove ( $self, $token_type, $email ) {
     state $q1 = $self->{dbh}->prepare('DELETE FROM "user_action_token" WHERE "type" = ? AND "email" = ?');
 
     return $self->{dbh}->do( $q1, [ $token_type, $email ] );
