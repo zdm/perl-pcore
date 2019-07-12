@@ -102,7 +102,7 @@ SQL
 }
 
 # SETTINGS
-sub load_settings ( $self ) {
+sub settings_load ( $self ) {
     my $settings = $self->{dbh}->selectrow(q[SELECT * FROM "settings" WHERE "id" = 1]);
 
     P->fire_event( 'app.settings.updated', $settings->{data} ) if $settings;
@@ -110,7 +110,7 @@ sub load_settings ( $self ) {
     return $settings;
 }
 
-sub update_settings ( $self, $settings, $cb ) {
+sub settings_update ( $self, $settings, $cb ) {
 
     # check SMTP port
     if ( exists $settings->{smtp_port} && $settings->{smtp_port} !~ /\A\d+\z/sm ) {
@@ -121,7 +121,7 @@ sub update_settings ( $self, $settings, $cb ) {
 
     return $res if !$res;
 
-    return $self->load_settings;
+    return $self->settings_load;
 }
 
 # SMTP

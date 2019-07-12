@@ -2,7 +2,7 @@ package Pcore::App::API::Backend::Local::Settings;
 
 use Pcore -role, -res, -sql;
 
-sub load_settings ( $self ) {
+sub settings_load ( $self ) {
     state $q1 = $self->{dbh}->prepare(q[SELECT * FROM "settings" WHERE "id" = 1]);
 
     my $settings = $self->{dbh}->selectrow($q1);
@@ -17,14 +17,14 @@ sub load_settings ( $self ) {
 }
 
 # TODO check, if settings was updated
-sub update_settings ( $self, $settings ) {
+sub settings_update ( $self, $settings ) {
     $settings->{smtp_tls}                = SQL_BOOL $settings->{smtp_tls}                if exists $settings->{smtp_tls};
     $settings->{telegram_bot_enabled}    = SQL_BOOL $settings->{telegram_bot_enabled}    if exists $settings->{telegram_bot_enabled};
     $settings->{telegram_signin_enabled} = SQL_BOOL $settings->{telegram_signin_enabled} if exists $settings->{telegram_signin_enabled};
 
     my $res = $self->{dbh}->do( [ q[UPDATE "settings"], SET [$settings], 'WHERE "id" = 1' ] );
 
-    $self->load_settings if $res;
+    $self->settings_load if $res;
 
     return $res;
 }
