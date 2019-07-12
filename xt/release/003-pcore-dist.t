@@ -4,7 +4,7 @@ package main v0.1.0;
 
 use Pcore;
 use Test::More;
-use Pcore::Util::File::Tree;
+use Pcore::Lib::File::Tree;
 
 our $TESTS = 52;
 
@@ -291,7 +291,7 @@ sub generate_test_dir ( $dist_name, $args ) {
         cpan_share_dir   => undef,
     };
 
-    my $tree = Pcore::Util::File::Tree->new;
+    my $tree = Pcore::Lib::File::Tree->new;
 
     my $dist_cfg = P->data->to_yaml( { name => $dist_name } );
 

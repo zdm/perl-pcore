@@ -1,9 +1,9 @@
 package Pcore::HTTP::Server::Request;
 
 use Pcore -class, -const, -res;
-use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_plain_arrayref];
-use Pcore::Util::List qw[pairs];
-use Pcore::Util::Text qw[encode_utf8];
+use Pcore::Lib::Scalar qw[is_ref is_plain_scalarref is_plain_arrayref];
+use Pcore::Lib::List qw[pairs];
+use Pcore::Lib::Text qw[encode_utf8];
 use Pcore::App::API::Auth;
 
 use overload    #

@@ -1,7 +1,7 @@
 package Pcore::App::API::Upload;
 
 use Pcore -role, -res;
-use Pcore::Util::UUID qw[uuid_v4_str];
+use Pcore::Lib::UUID qw[uuid_v4_str];
 
 has upload_idle_timeout => 60;
 

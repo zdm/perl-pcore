@@ -1,7 +1,7 @@
 package Pcore::App::API::Request;
 
 use Pcore -class, -res;
-use Pcore::Util::Scalar qw[is_res];
+use Pcore::Lib::Scalar qw[is_res];
 
 use overload    #
   q[&{}] => sub ( $self, @ ) {

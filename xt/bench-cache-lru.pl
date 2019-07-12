@@ -3,7 +3,7 @@
 package main v0.1.0;
 
 use Pcore;
-use Pcore::Util::Hash::LRU;
+use Pcore::Lib::Hash::LRU;
 use Tie::Hash::LRU;
 use Cache::LRU;
 use Benchmark;
@@ -18,7 +18,7 @@ my $lru = tie my %lru, 'Tie::Hash::LRU', $NUM;
 #
 # say dump \%lru;
 
-my $limited = Pcore::Util::Hash::LRU->new($NUM);
+my $limited = Pcore::Lib::Hash::LRU->new($NUM);
 
 # for ( 1 .. 120 ) {
 #     $limited->{$_} = undef;

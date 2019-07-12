@@ -5,10 +5,10 @@ use DBI qw[];
 use Pcore::Handle::DBI::Const qw[:CONST];
 use DBD::SQLite qw[];
 use DBD::SQLite::Constants qw[:file_open];
-use Pcore::Util::Scalar qw[weaken is_blessed_ref looks_like_number is_plain_arrayref is_plain_coderef is_blessed_arrayref];
-use Pcore::Util::UUID qw[uuid_v1mc_str uuid_v4_str];
-use Pcore::Util::Data qw[to_json];
-use Pcore::Util::Text qw[encode_utf8];
+use Pcore::Lib::Scalar qw[weaken is_blessed_ref looks_like_number is_plain_arrayref is_plain_coderef is_blessed_arrayref];
+use Pcore::Lib::UUID qw[uuid_v1mc_str uuid_v4_str];
+use Pcore::Lib::Data qw[to_json];
+use Pcore::Lib::Text qw[encode_utf8];
 use Time::HiRes qw[];
 
 # NOTE http://habrahabr.ru/post/149635/

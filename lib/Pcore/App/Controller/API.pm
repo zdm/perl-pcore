@@ -1,8 +1,8 @@
 package Pcore::App::Controller::API;
 
 use Pcore -role, -const;
-use Pcore::Util::Data qw[from_json to_json from_cbor to_cbor];
-use Pcore::Util::Scalar qw[is_plain_arrayref];
+use Pcore::Lib::Data qw[from_json to_json from_cbor to_cbor];
+use Pcore::Lib::Scalar qw[is_plain_arrayref];
 use Pcore::WebSocket::pcore;
 
 with qw[Pcore::App::Controller];

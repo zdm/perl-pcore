@@ -1,12 +1,12 @@
 package Pcore::App::API;
 
 use Pcore -role, -const, -export;
-use Pcore::Util::Scalar qw[looks_like_number looks_like_uuid];
-use Pcore::Util::Scalar qw[is_plain_arrayref];
-use Pcore::Util::Data qw[from_b64_url];
-use Pcore::Util::Digest qw[sha3_512];
-use Pcore::Util::Text qw[encode_utf8];
-use Pcore::Util::UUID qw[uuid_from_bin];
+use Pcore::Lib::Scalar qw[looks_like_number looks_like_uuid];
+use Pcore::Lib::Scalar qw[is_plain_arrayref];
+use Pcore::Lib::Data qw[from_b64_url];
+use Pcore::Lib::Digest qw[sha3_512];
+use Pcore::Lib::Text qw[encode_utf8];
+use Pcore::Lib::UUID qw[uuid_from_bin];
 use Pcore::App::API::Auth;
 
 our $EXPORT = {

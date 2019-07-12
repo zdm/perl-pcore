@@ -37,7 +37,7 @@ my $tests = {
 
         return;
     },
-    'Pcore::Util::URI' => sub {
+    'Pcore::Lib::URI' => sub {
         my $u = P->uri($uri) . $EMPTY;
 
         # my $u = P->uri( $uri, base => $base_obj ) . $EMPTY;

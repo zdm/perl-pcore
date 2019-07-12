@@ -2,7 +2,7 @@ package Pcore::App::API::Backend::Local::UserToken;
 
 use Pcore -role, -sql, -res;
 use Pcore::App::API qw[:ROOT_USER :PRIVATE_TOKEN :INVALIDATE_TYPE :TOKEN_TYPE];
-use Pcore::Util::Digest qw[sha3_512];
+use Pcore::Lib::Digest qw[sha3_512];
 
 sub _user_token_authenticate ( $self, $private_token ) {
 
