@@ -39,7 +39,7 @@ sub _db_add_schema_patch ( $self, $dbh ) {
 
             INSERT INTO "sqlite_sequence" ("name", "seq") VALUES ("user", 99);
 
-            CREATE TRIGGER "on_uer_email_update_trigger" AFTER UPDATE ON "user"
+            CREATE TRIGGER "on_user_email_update_trigger" AFTER UPDATE ON "user"
             WHEN OLD."email" != NEW."email" OR NEW."email" IS NULL
             BEGIN
                 DELETE FROM "user_action_token" WHERE "email" = OLD."email";

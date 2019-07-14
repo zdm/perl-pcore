@@ -50,7 +50,7 @@ sub _db_add_schema_patch ( $self, $dbh ) {
             END;
             $$ LANGUAGE plpgsql;
 
-            CREATE TRIGGER "on_uer_email_update_trigger" AFTER UPDATE OF "email" ON "user" FOR EACH ROW EXECUTE PROCEDURE on_user_email_update();
+            CREATE TRIGGER "on_user_email_update_trigger" AFTER UPDATE OF "email" ON "user" FOR EACH ROW EXECUTE PROCEDURE on_user_email_update();
 
             -- USER PERMISSIONS
             CREATE TABLE "user_permission" (
