@@ -123,18 +123,6 @@ sub _create_dbh ($self) {
     return;
 }
 
-# SCHEMA PATCH
-sub _get_schema_patch_table_query ( $self, $table_name ) {
-    return <<"SQL";
-        CREATE TABLE IF NOT EXISTS "$table_name" (
-            "module" TEXT NOT NULL,
-            "id" INT4 NOT NULL,
-            "timestamp" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY ("module", "id")
-        )
-SQL
-}
-
 # QUOTE
 sub quote ( $self, $var ) {
     return 'NULL' if !defined $var;
@@ -274,17 +262,6 @@ PERL
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 127                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_schema_patch_table_query'      |
-## |      |                      | declared but not used                                                                                          |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

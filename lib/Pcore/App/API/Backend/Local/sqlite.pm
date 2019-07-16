@@ -27,7 +27,7 @@ sub _db_add_schema_patch ( $self, $dbh ) {
             CREATE TABLE "user" (
                 "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 "guid" UUID UNIQUE NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
-                "created" INT8 NOT NULL DEFAULT(STRFTIME('%s', 'NOW')),
+                "created" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 "name" TEXT NOT NULL UNIQUE,
                 "enabled" BOOL NOT NULL DEFAULT TRUE,
                 "email" TEXT UNIQUE,
@@ -57,7 +57,7 @@ sub _db_add_schema_patch ( $self, $dbh ) {
             -- USER TOKEN
             CREATE TABLE "user_token" (
                 "id" UUID PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
-                "created" INT8 NOT NULL DEFAULT(STRFTIME('%s', 'NOW')),
+                "created" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 "name" TEXT,
                 "user_id" INT4 NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
                 "enabled" BOOL NOT NULL DEFAULT TRUE
@@ -82,7 +82,7 @@ sub _db_add_schema_patch ( $self, $dbh ) {
             -- USER SESSION
             CREATE TABLE "user_session" (
                 "id" UUID PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
-                "created" INT8 NOT NULL DEFAULT(STRFTIME('%s', 'NOW')),
+                "created" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 "user_id" INT4 NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE
             );
 
@@ -97,7 +97,7 @@ sub _db_add_schema_patch ( $self, $dbh ) {
                 "user_id" INT4 NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
                 "type" INT2 NOT NULL,
                 "email" TEXT NOT NULL,
-                "created" INT8 NOT NULL DEFAULT(STRFTIME('%s', 'NOW'))
+                "created" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
 
             CREATE TRIGGER "user_action_token_after_delete_trigger" AFTER DELETE ON "user_action_token"
