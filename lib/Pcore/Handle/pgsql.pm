@@ -129,7 +129,7 @@ sub _get_schema_patch_table_query ( $self, $table_name ) {
         CREATE TABLE IF NOT EXISTS "$table_name" (
             "module" TEXT NOT NULL,
             "id" INT4 NOT NULL,
-            "timestamp" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "timestamp" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY ("module", "id")
         )
 SQL
