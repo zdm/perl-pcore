@@ -1,4 +1,4 @@
-package Pcore::App::API::Upload;
+package Pcore::App::API::Role::Upload;
 
 use Pcore -role, -res;
 use Pcore::Lib::UUID qw[uuid_v4_str];
@@ -159,7 +159,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Upload
+Pcore::App::API::Role::Upload
 
 =head1 SYNOPSIS
 
