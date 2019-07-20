@@ -5,7 +5,7 @@ use Pcore::App::API qw[:ALL];
 use Pcore::Lib::Text qw[encode_utf8];
 use Pcore::Lib::Digest qw[sha3_512];
 use Pcore::Lib::UUID qw[uuid_v4];
-use Pcore::Lib::Data qw[to_b64_url];
+use Pcore::Lib::Data qw[to_b64u];
 
 with qw[
   Pcore::App::API
@@ -161,7 +161,7 @@ sub _generate_token ( $self, $token_type ) {
 
     return res 200,
       { id         => $token_id->str,
-        token      => to_b64_url $token_bin,
+        token      => to_b64u $token_bin,
         token_type => $token_type,
         hash       => sha3_512 $token_type . $private_token_hash . $token_id->str,
       };

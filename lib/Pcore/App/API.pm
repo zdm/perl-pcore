@@ -3,7 +3,7 @@ package Pcore::App::API;
 use Pcore -role, -const, -export;
 use Pcore::Lib::Scalar qw[looks_like_number looks_like_uuid];
 use Pcore::Lib::Scalar qw[is_plain_arrayref];
-use Pcore::Lib::Data qw[from_b64_url];
+use Pcore::Lib::Data qw[from_b64u];
 use Pcore::Lib::Digest qw[sha3_512];
 use Pcore::Lib::Text qw[encode_utf8];
 use Pcore::Lib::UUID qw[uuid_from_bin];
@@ -182,7 +182,7 @@ sub _unpack_token ( $self, $token ) {
 
     # decode token
     eval {
-        my $token_bin = from_b64_url $token;
+        my $token_bin = from_b64u $token;
 
         # unpack token id
         $token_id = uuid_from_bin( substr $token_bin, 0, 16 )->str;
