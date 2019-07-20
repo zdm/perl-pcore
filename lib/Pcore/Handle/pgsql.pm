@@ -261,6 +261,10 @@ for my $method (qw[do selectall selectall_arrayref selectrow selectrow_arrayref 
 PERL
 }
 
+sub in_transaction ($self) {
+    return 0;
+}
+
 1;
 __END__
 =pod

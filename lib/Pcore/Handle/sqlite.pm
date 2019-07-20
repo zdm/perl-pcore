@@ -667,6 +667,10 @@ sub selectcol ( $self, @ ) {
 }
 
 # TRANSACTIONS
+sub in_transaction ($self) {
+    return !$self->{h}->sqlite_get_autocommit;
+}
+
 sub begin_work ( $self, $cb = undef ) {
     $self->{h}->begin_work;
 
