@@ -34,7 +34,8 @@ sub _db_add_schema_patch ( $self, $dbh ) {
                 "enabled" BOOLEAN NOT NULL DEFAULT TRUE,
                 "email" TEXT UNIQUE,
                 "email_confirmed" BOOL NOT NULL DEFAULT FALSE,
-                "avatar" TEXT,
+                "has_avatar" BOOL NOT NULL DEFAULT FALSE,
+                "gravatar" TEXT,
                 "locale" TEXT,
                 "telegram_name" TEXT UNIQUE
             );
@@ -172,7 +173,7 @@ sub _db_insert_user ( $self, $dbh, $user_name ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 8                    | * Private subroutine/method '_db_add_schema_patch' declared but not used                                       |
-## |      | 141                  | * Private subroutine/method '_db_insert_user' declared but not used                                            |
+## |      | 142                  | * Private subroutine/method '_db_insert_user' declared but not used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
