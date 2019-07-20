@@ -41,10 +41,10 @@ sub _db_add_schema_patch ( $self, $dbh ) {
             INSERT INTO "sqlite_sequence" ("name", "seq") VALUES ("user", 99);
 
             CREATE TRIGGER "on_user_email_update_trigger" AFTER UPDATE ON "user"
-            WHEN OLD."email" != NEW."email" OR NEW."email" IS NULL
+            WHEN COALESCE(OLD."email", '') != COALESCE(NEW."email", '')
             BEGIN
                 DELETE FROM "user_action_token" WHERE "email" = OLD."email";
-                UPDATE "user" SET "email_confirmed" = FALSE WHERE "id" = NEW."id";
+                UPDATE "user" SET "email_confirmed" = FALSE, "gravatar" = MD5(LOWER(NEW."email")) WHERE "id" = NEW."id";
             END;
 
             -- USER PERMISSIONS

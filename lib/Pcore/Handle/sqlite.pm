@@ -7,6 +7,7 @@ use DBD::SQLite qw[];
 use DBD::SQLite::Constants qw[:file_open];
 use Pcore::Lib::Scalar qw[weaken is_blessed_ref looks_like_number is_plain_arrayref is_plain_coderef is_blessed_arrayref];
 use Pcore::Lib::UUID qw[uuid_v1mc_str uuid_v4_str];
+use Pcore::Lib::Digest qw[md5_hex];
 use Pcore::Lib::Data qw[to_json];
 use Pcore::Lib::Text qw[encode_utf8];
 use Time::HiRes qw[];
@@ -133,6 +134,7 @@ sub BUILD ( $self, $args ) {
     $dbh->sqlite_create_function( 'uuid_generate_v4',   0, sub { return uuid_v4_str } );
     $dbh->sqlite_create_function( 'gen_random_uuid',    0, sub { return uuid_v4_str } );
     $dbh->sqlite_create_function( 'time_hires',         0, sub { return Time::HiRes::time() } );
+    $dbh->sqlite_create_function( 'md5',                1, sub { return defined $_[0] ? md5_hex encode_utf8 $_[0] : undef } );
 
     $self->{on_connect}->($self) if $self->{on_connect};
 
@@ -747,13 +749,13 @@ sub attach ( $self, $name, $path = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 364                  | Subroutines::ProhibitExcessComplexity - Subroutine "do" with high complexity score (28)                        |
+## |    3 | 366                  | Subroutines::ProhibitExcessComplexity - Subroutine "do" with high complexity score (28)                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 447                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 449                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 326                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 328                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 658                  | ControlStructures::ProhibitPostfixControls - Postfix control "while" used                                      |
+## |    2 | 660                  | ControlStructures::ProhibitPostfixControls - Postfix control "while" used                                      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

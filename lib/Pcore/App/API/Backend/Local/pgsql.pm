@@ -42,9 +42,9 @@ sub _db_add_schema_patch ( $self, $dbh ) {
 
             CREATE OR REPLACE FUNCTION on_user_email_update() RETURNS TRIGGER AS $$
             BEGIN
-                IF OLD."email" != NEW."email" OR NEW."email" IS NULL THEN
+                IF COALESCE(OLD."email", '') != COALESCE(NEW."email", '') THEN
                     DELETE FROM "user_action_token" WHERE "email" = OLD."email";
-                    UPDATE "user" SET "email_confirmed" = FALSE WHERE "id" = NEW."id";
+                    UPDATE "user" SET "email_confirmed" = FALSE, "gravatar" = MD5(LOWER(NEW."email")) WHERE "id" = NEW."id";
                 END IF;
 
                 RETURN NULL;
