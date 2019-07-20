@@ -128,6 +128,9 @@ sub AUTOLOAD {    ## no critic qw[ClassHierarchies::ProhibitAutoloading]
 
     ON_EXPORT($name);
 
+    # check, that method was installed to avoid deep recursion for AUTOLOAD
+    die qq[Sub "$name" is not defined] if !*{$name}{CODE};
+
     goto \&$name;
 }
 
