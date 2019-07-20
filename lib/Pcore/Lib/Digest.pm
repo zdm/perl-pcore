@@ -4,9 +4,9 @@ use Pcore -export;
 
 our $EXPORT = {
     CRC  => [qw[crc32_int]],
-    MD5  => [qw[md5 md5_hex md5_stream]],
-    SHA1 => [ qw[
-        sha1 sha1_hex sha1_b64 sha1_stream
+    MD5  => [qw[md5_bin md5_hex md5_b64 md5_stream]],
+    SHA1 => [qw[sha1 sha1_hex sha1_b64 sha1_stream]],
+    SHA2 => [ qw[
         sha224 sha224_hex sha224_b64
         sha256 sha256_hex sha256_b64
         sha384 sha384_hex sha384_b64
@@ -14,8 +14,8 @@ our $EXPORT = {
         sha512224 sha512224_hex sha512224_b64
         sha512256 sha512256_hex sha512256_b64
     ] ],
-    HMAC_SHA1 => [ qw[
-        hmac_sha1 hmac_sha1_hex hmac_sha1_b64
+    HMAC_SHA1 => [qw[hmac_sha1 hmac_sha1_hex hmac_sha1_b64]],
+    HMAC_SHA2 => [ qw[
         hmac_sha224 hmac_sha224_hex hmac_sha224_b64
         hmac_sha256 hmac_sha256_hex hmac_sha256_b64
         hmac_sha384 hmac_sha384_hex hmac_sha384_b64
@@ -34,8 +34,9 @@ our $EXPORT = {
 my $IMPORT = {
     crc32_int => [ 'String::CRC32', 'crc32' ],
 
-    md5     => ['Digest::MD5'],
+    md5_bin => [ 'Digest::MD5', 'md5' ],
     md5_hex => ['Digest::MD5'],
+    md5_b64 => [ 'Digest::MD5', 'md5_base64' ],
 
     sha1     => ['Digest::SHA1'],
     sha1_hex => ['Digest::SHA1'],
