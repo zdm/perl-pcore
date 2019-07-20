@@ -307,7 +307,7 @@ sub _set_status ( $self, $status, $reason = undef ) {
 
 # UTILS
 sub _get_challenge ( $self, $key ) {
-    return to_b64( sha1( ($key) . $WEBSOCKET_GUID ), $EMPTY );
+    return to_b64 sha1_bin( $key . $WEBSOCKET_GUID ), $EMPTY;
 }
 
 sub _build_frame ( $self, $fin, $rsv1, $rsv2, $rsv3, $op, $payload_ref ) {
