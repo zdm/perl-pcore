@@ -130,11 +130,11 @@ sub BUILD ( $self, $args ) {
     $dbh->sqlite_busy_timeout( $self->{busy_timeout} );
 
     # create custom functions
-    $dbh->sqlite_create_function( 'uuid_generate_v1mc', 0, sub { return uuid_v1mc_str } );
-    $dbh->sqlite_create_function( 'uuid_generate_v4',   0, sub { return uuid_v4_str } );
-    $dbh->sqlite_create_function( 'gen_random_uuid',    0, sub { return uuid_v4_str } );
+    $dbh->sqlite_create_function( 'uuid_generate_v1mc', 0, sub { return [ uuid_v1mc_str, $SQLITE_BLOB ] } );
+    $dbh->sqlite_create_function( 'uuid_generate_v4',   0, sub { return [ uuid_v4_str,   $SQLITE_BLOB ] } );
+    $dbh->sqlite_create_function( 'gen_random_uuid',    0, sub { return [ uuid_v4_str,   $SQLITE_BLOB ] } );
     $dbh->sqlite_create_function( 'time_hires',         0, sub { return Time::HiRes::time() } );
-    $dbh->sqlite_create_function( 'md5',                1, sub { return defined $_[0] ? md5_hex encode_utf8 $_[0] : undef } );
+    $dbh->sqlite_create_function( 'md5', 1, sub { return defined $_[0] ? [ md5_hex( encode_utf8 $_[0] ), $SQLITE_BLOB ] : undef } );
 
     $self->{on_connect}->($self) if $self->{on_connect};
 
