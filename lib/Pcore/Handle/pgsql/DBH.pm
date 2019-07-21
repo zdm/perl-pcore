@@ -106,7 +106,7 @@ const our $MESSAGE_METHOD => {
     $PG_MSG_ERROR_RESPONSE        => \&_ON_ERROR_RESPONSE,
     $PG_MSG_NOTICE_RESPONSE       => \&_ON_NOTICE_RESPONSE,
     $PG_MSG_NOTIFICATION_RESPONSE => \&_ON_NOTIFICATION_RESPONSE,
-    $PG_MSG_EMPTY_QUERY_RESPONSE  => undef,
+    $PG_MSG_EMPTY_QUERY_RESPONSE  => \&_ON_COMMAND_COMPLETE,        # Identifies the message as a response to an empty query string. (This substitutes for CommandComplete.)
 
     # STH RELATED MESSAGES
     $PG_MSG_PARSE_COMPLETE   => \&_ON_PARSE_COMPLETE,
