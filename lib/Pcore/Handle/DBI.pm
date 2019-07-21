@@ -6,8 +6,6 @@ use Pcore::Lib::Scalar qw[is_ref is_plain_scalarref is_blessed_arrayref is_bless
 
 with qw[Pcore::Handle::Base];
 
-requires qw[_get_schema_patch_table_query prepare quote];
-
 has on_connect    => ();                       # Maybe [CodeRef]
 has _schema_patch => ( init_arg => undef );    # HashRef
 
@@ -84,7 +82,7 @@ sub upgrade_schema ( $self ) {
     ( $res = $dbh->do( $self->_get_schema_patch_table_query($SCHEMA_PATCH_TABLE_NAME) ) ) || return $on_finish->();
 
     for my $module ( sort keys $self->{_schema_patch}->%* ) {
-        for my $id ( sort keys $self->{_schema_patch}->{$module}->%* ) {
+        for my $id ( sort { $a <=> $b } keys $self->{_schema_patch}->{$module}->%* ) {
             ( $res = $dbh->selectrow( qq[SELECT "id" FROM "$SCHEMA_PATCH_TABLE_NAME" WHERE "module" = \$1 AND "id" = \$2], [ $module, $id ] ) ) or return $on_finish->();
 
             # patch is already applied
