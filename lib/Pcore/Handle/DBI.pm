@@ -24,32 +24,48 @@ sub _get_schema_patch_table_query ( $self, $table_name ) {
 SQL
 }
 
-sub add_schema_patch ( $self, $id, $module, $query = undef ) {
-    if ( !defined $query ) {
-        $query = $module;
+sub add_schema_patch ( $self, $id, $module, $sql = undef ) {
+    if ( !defined $sql ) {
+        $sql = $module;
 
         $module = $DEFAULT_MODULE;
     }
 
     die qq[Schema patch id "$id" for module "$module" is already exists] if exists $self->{_schema_patch}->{$module}->{$id};
 
-    if ( is_plain_hashref $query) {
-        if ( $self->{is_sqlite} && exists $query->{sqlite} ) {
-            $query = $query->{sqlite};
+    if ( is_plain_hashref $sql) {
+        if ( $self->{is_sqlite} && exists $sql->{sqlite} ) {
+            $sql = $sql->{sqlite};
         }
-        elsif ( $self->{is_pgsql} && exists $query->{pgsql} ) {
-            $query = $query->{pgsql};
+        elsif ( $self->{is_pgsql} && exists $sql->{pgsql} ) {
+            $sql = $sql->{pgsql};
         }
         else {
             die qq[Schema patch id "$id" for module "$module" has no SQL statement for current database];
         }
     }
 
+    return if !$sql;
+
     $self->{_schema_patch}->{$module}->{$id} = {
         module => $module,
         id     => $id,
-        query  => $query,
+        sql    => $sql,
     };
+
+    return;
+}
+
+sub load_schema ( $self, $path, $module = $DEFAULT_MODULE ) {
+    $path = P->path($path);
+
+    for my $patch ( $path->read_dir->@* ) {
+        my ($id) = $patch =~ /\A(\d+)/sm;
+
+        my $sql = P->cfg->read("$path/$patch");
+
+        $self->add_schema_patch( 0+ $id, $module, $sql );
+    }
 
     return;
 }
@@ -89,7 +105,7 @@ sub upgrade_schema ( $self ) {
             next if $res->{data};
 
             # apply patch
-            ( $res = $dbh->do( $self->{_schema_patch}->{$module}->{$id}->{query} ) ) or return $on_finish->();
+            ( $res = $dbh->do( $self->{_schema_patch}->{$module}->{$id}->{sql} ) ) or return $on_finish->();
 
             # register patch
             ( $res = $dbh->do( qq[INSERT INTO "$SCHEMA_PATCH_TABLE_NAME" ("module", "id") VALUES (\$1, \$2)], [ $module, $id ] ) ) or return $on_finish->();
