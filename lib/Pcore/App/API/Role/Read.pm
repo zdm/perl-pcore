@@ -17,9 +17,6 @@ sub _read ( $self, $req, $args, $total_sql, $main_sql, $where, $page_size = $DEF
 
     # get all matched rows
     else {
-        $args->{start} = 0          if !defined $args->{start} || $args->{start} < 0;
-        $args->{limit} = $page_size if !$args->{limit}         || $args->{limit} > $page_size;
-
         my $total = $dbh->selectrow( is_ref $total_sql ? $total_sql : [ $total_sql, $where // () ] );
 
         # total query error
@@ -36,6 +33,9 @@ sub _read ( $self, $req, $args, $total_sql, $main_sql, $where, $page_size = $DEF
 
         # has results
         else {
+            $args->{start} = 0          if !defined $args->{start} || $args->{start} < 0;
+            $args->{limit} = $page_size if !$args->{limit}         || $args->{limit} > $page_size;
+
             $data = $dbh->selectall( is_ref $main_sql ? $main_sql : [ $main_sql, $where // (), ORDER_BY $args->{sort}, LIMIT $args->{limit}, OFFSET $args->{start} ] );
 
             if ($data) {
