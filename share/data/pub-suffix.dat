@@ -919,7 +919,6 @@ bms;bms
 bmw;bmw
 bn;bn
 bn.it;bn.it
-bnl;bnl
 bnpparibas;bnpparibas
 bnr.la;bnr.la
 bo;bo
@@ -1852,6 +1851,7 @@ diet;diet
 digital;digital
 dinosaur.museum;dinosaur.museum
 direct;direct
+direct.quickconnect.to;direct.quickconnect.to
 directory;directory
 discount;discount
 discourse.group;discourse.group
@@ -1951,7 +1951,6 @@ dubai;dubai
 duck;duck
 duckdns.org;duckdns.org
 dunlop;dunlop
-duns;duns
 dupont;dupont
 durban;durban
 durham.museum;durham.museum
@@ -3345,7 +3344,6 @@ honai.ehime.jp;honai.ehime.jp
 honbetsu.hokkaido.jp;honbetsu.hokkaido.jp
 honda;honda
 honefoss.no;honefoss.no
-honeywell;honeywell
 hongo.hiroshima.jp;hongo.hiroshima.jp
 honjo.akita.jp;honjo.akita.jp
 honjo.saitama.jp;honjo.saitama.jp
@@ -3724,7 +3722,6 @@ isa.us;isa.us
 isahaya.nagasaki.jp;isahaya.nagasaki.jp
 ise.mie.jp;ise.mie.jp
 isehara.kanagawa.jp;isehara.kanagawa.jp
-iselect;iselect
 isen.kagoshima.jp;isen.kagoshima.jp
 isernia.it;isernia.it
 iserv.dev;iserv.dev
@@ -4551,6 +4548,7 @@ livorno.it;livorno.it
 lixil;lixil
 lk;lk
 llc;llc
+llp;llp
 lmpm.com;lmpm.com
 ln.cn;ln.cn
 lo.it;lo.it
@@ -5765,12 +5763,10 @@ ntt;ntt
 nu;nu
 nu.ca;nu.ca
 nu.it;nu.it
-nuernberg.museum;nuernberg.museum
 numata.gunma.jp;numata.gunma.jp
 numata.hokkaido.jp;numata.hokkaido.jp
 numazu.shizuoka.jp;numazu.shizuoka.jp
 nuoro.it;nuoro.it
-nuremberg.museum;nuremberg.museum
 nv.us;nv.us
 nx.cn;nx.cn
 ny.us;ny.us
@@ -6537,6 +6533,7 @@ qualifioapp.com;qualifioapp.com
 quebec;quebec
 quebec.museum;quebec.museum
 quest;quest
+quickconnect.to;quickconnect.to
 quicksytes.com;quicksytes.com
 quipelements.com;quipelements.com
 qvc;qvc
@@ -7399,7 +7396,6 @@ staples;staples
 star;star
 starachowice.pl;starachowice.pl
 stargard.pl;stargard.pl
-starhub;starhub
 starnberg.museum;starnberg.museum
 starostwo.gov.pl;starostwo.gov.pl
 stat.no;stat.no
