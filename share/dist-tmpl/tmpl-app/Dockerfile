@@ -20,7 +20,7 @@ RUN /bin/bash -c ' \
     \
     # deploy non-CPAN deps
     # && mkdir "$PCORE_LIB/pcore-cdn-static-data" \
-    # && curl -fsSL https://bitbucket.org/softvisio/pcore-cdn-static-data/get/tip.tar.gz | tar -C "$PCORE_LIB/pcore-cdn-static-data" --strip-components=1 -xzf - \
+    # && curl -fsSL https://bitbucket.org/softvisio/pcore-cdn-static-data/get/master.tar.gz | tar -C "$PCORE_LIB/pcore-cdn-static-data" --strip-components=1 -xzf - \
     \
     # deploy and test distribution
     && pcore deploy --recommends --suggests \
