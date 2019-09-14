@@ -21,14 +21,14 @@ WORKDIR $DIST_PATH
 RUN /bin/bash -c ' \
     \
     # setup host
-    source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/tip/setup-host.sh || echo false ) \
+    source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/setup-host.sh || echo false ) \
     \
     # setup perl build env
-    && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh || echo false ) setup \
+    && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/perl-build-env.sh || echo false ) setup \
     \
     # install && update perl
     && yum -y install perl-$PERL_VERSION \
-    && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/tip/perl-modules.sh || echo false ) \
+    && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/perl-modules.sh || echo false ) \
     # && cpan-outdated | cpanm \
     \
     # deploy pcore, --devel ???
@@ -36,5 +36,5 @@ RUN /bin/bash -c ' \
     && pcore test -j $(nproc) \
     \
     # cleanup perl build env
-    && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh || echo false ) cleanup \
+    && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/perl-build-env.sh || echo false ) cleanup \
 '

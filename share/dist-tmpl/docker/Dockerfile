@@ -13,7 +13,7 @@ WORKDIR $DIST_PATH/data
 RUN /bin/bash -c ' \
     \
     # setup perl build env
-    source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh || echo false ) setup \
+    source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/perl-build-env.sh || echo false ) setup \
     \
     # deploy deps
     # && yum -y install ... \
@@ -28,7 +28,7 @@ RUN /bin/bash -c ' \
     && pcore test -j $(nproc) \
     \
     # cleanup perl build env
-    && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh || echo false ) cleanup \
+    && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/perl-build-env.sh || echo false ) cleanup \
 '
 
 ENTRYPOINT ["../bin/main.pl"]
