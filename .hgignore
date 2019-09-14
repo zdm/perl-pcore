@@ -2,4 +2,4 @@
 re:^data/
 
 re:^share/data/tld.dat$
-re:^share/data/pub_suffix.dat$
+re:^share/data/pub-suffix.dat$
