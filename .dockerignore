@@ -1,5 +1,4 @@
-# SCM
-.hg*
+# git
 .git*
 
 # pcore

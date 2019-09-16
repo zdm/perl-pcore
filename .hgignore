@@ -1,5 +1,0 @@
-# pcore
-re:^data/
-
-re:^share/data/tld.dat$
-re:^share/data/pub-suffix.dat$
