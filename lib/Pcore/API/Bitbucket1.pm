@@ -1,4 +1,4 @@
-package Pcore::API::BitBucket;
+package Pcore::API::Bitbucket;
 
 use Pcore -class, -res;
 use Pcore::Lib::Scalar qw[is_plain_coderef];
@@ -300,7 +300,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::BitBucket
+Pcore::API::Bitbucket
 
 =head1 SYNOPSIS
 

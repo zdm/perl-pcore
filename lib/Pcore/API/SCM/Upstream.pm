@@ -259,9 +259,9 @@ sub get_cpan_meta ( $self) {
 
 sub get_hosting_api ( $self, $args = undef ) {
     if ( $self->{hosting} eq $SCM_HOSTING_BITBUCKET ) {
-        require Pcore::API::BitBucket;
+        require Pcore::API::Bitbucket;
 
-        return Pcore::API::BitBucket->new( $args // () );
+        return Pcore::API::Bitbucket->new( $args // () );
     }
     elsif ( $self->{hosting} eq $SCM_HOSTING_GITHUB ) {
         require Pcore::API::GitHub;
