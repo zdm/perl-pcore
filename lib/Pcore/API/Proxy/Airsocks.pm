@@ -9,13 +9,12 @@ has proxy       => ( required => 1 );
 has session_key => ( required => 1 );
 has channel_id  => ( required => 1 );
 
-has change_ip_url => ( required => 1 );
-has change_fp_url => ( required => 1 );
-has status_url    => ( required => 1 );
-
 has changed => ( init_arg => undef );
 has ip      => ( init_arg => undef );
 has fp      => ( init_arg => undef );
+
+has _change_ip_url => ( init_arg => undef );
+has _status_url    => ( init_arg => undef );
 
 const our $AIRSOCKS_FP_WIN       => 'win';            # Windows 7 or 8 (and Windows 8.1)
 const our $AIRSOCKS_FP_WIN_FUZZY => 'win fuzzy';      # Windows 7 or 8 [fuzzy] is common on Windows Server 2012
@@ -36,18 +35,14 @@ around new => sub ( $orig, $self, $url, $key ) {
         channel_id  => substr( $url->{port}, -1, 1 ),
     };
 
-    $args->{change_ip_url} = P->uri("http://$url->{host}/api/v3/changer_channels/channel_$args->{channel_id}?session=$args->{session_key}");
-
-    $args->{change_fp_url} = P->uri("http://$url->{host}/api/v3/changer_channels/channel_$args->{channel_id}?session=$args->{session_key}");
-
-    $args->{status_url} = P->uri("http://$url->{host}/api/v3/changer_channels/channel_$args->{channel_id}/status?session=$args->{session_key}");
-
     return $self->$orig($args);
 };
 
 sub change_ip ( $self, $nowait = undef ) {
+    my $url = $self->{_change_ip_url} //= P->uri("http://$self->{proxy}->{uri}->{host}/api/v3/changer_channels/channel_$self->{channel_id}?session=$self->{session_key}");
+
   REDO:
-    my $res = P->http->get( $self->{change_ip_url} );
+    my $res = P->http->get($url);
 
     if ($res) {
         if ( $res->{data}->$* =~ /wait\s+(\d+)s/sm ) {
@@ -77,27 +72,23 @@ sub change_ip ( $self, $nowait = undef ) {
 # TODO
 # &fp=
 sub change_fp ( $self, $fp ) {
-    return;
+    my $url = P->uri( "http://$self->{proxy}->{uri}->{host}/api/v3/changer_channels/channel_$self->{channel_id}?session=$self->{session_key}&fp=" . P->data->to_uri($fp) );
+
+    my $res = P->http->get($url);
+
+    return $res;
 }
 
 # TODO
 sub get_status ($self) {
-    ...;
+    my $url = $self->{_status_url} //= P->uri("http://$self->{proxy}->{uri}->{host}/api/v3/changer_channels/channel_$self->{channel_id}/status?session=$self->{session_key}");
 
-    return;
+    my $res = P->http->get($url);
+
+    return $res;
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 85                   | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
