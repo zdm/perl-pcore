@@ -27,7 +27,7 @@ RUN /bin/bash -c ' \
     && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/perl-build-env.sh || echo false ) setup \
     \
     # install && update perl
-    && yum -y install perl-$PERL_VERSION \
+    && dnf -y install perl-$PERL_VERSION \
     && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/perl-modules.sh || echo false ) \
     # && cpan-outdated | cpanm \
     \
