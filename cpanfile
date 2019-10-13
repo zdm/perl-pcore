@@ -66,8 +66,9 @@ requires 'DBD::SQLite', v1.58.0;
 # requires 'HTML::TreeBuilder::LibXML', v0.26.0;
 requires 'HTML5::DOM',       v1.80.0;
 requires 'HTTP::Parser::XS', v0.17.0;
-requires 'Protocol::HTTP2',  v1.9.0;
-requires 'HTTP::Message',    v6.13.0;
+
+# TODO enable, when el8 will work, requires 'Protocol::HTTP2',  v1.9.0;
+requires 'HTTP::Message', v6.13.0;
 feature linux => sub {
     requires 'IO::Uncompress::Brotli';
 };
