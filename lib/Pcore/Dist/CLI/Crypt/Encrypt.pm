@@ -74,7 +74,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 }
 
 sub _process_file ( $self, $path, $verbose ) {
-    if ( $path->mime_has_tag( 'perl', 1 ) && !$path->mime_has_tag( 'perl-cpanfile', 1 ) && !$path->mime_has_tag( 'perl-config', 1 ) ) {
+    if ( $path->mime_has_tag( 'perl', 1 ) && !$path->mime_has_tag( 'perl-cpanfile', 1 ) ) {
         print qq[encrypt: "$path" ... ] if $verbose;
         my $res = P->src->compress(
             path   => $path,
