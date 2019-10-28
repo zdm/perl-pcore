@@ -157,7 +157,7 @@ sub encode_data ( $type, $data, @args ) {
 # JSON data should be without UTF8 flag
 # objects aren't deserialized automatically from JSON
 sub decode_data ( $type, $data_ref, @args ) {
-    $data_ref = \$data_ref if !is_ref $_[1];
+    $data_ref = \$_[1] if !is_ref $data_ref;
 
     my %args = (
         compress     => undef,
