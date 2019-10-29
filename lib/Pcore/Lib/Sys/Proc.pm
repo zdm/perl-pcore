@@ -168,6 +168,8 @@ sub _create_process ( $self, $cmd, $args, $restore ) {
     # local $ENV{PERL5LIB} = join $Config{path_sep}, grep { !ref } @INC;
     local $ENV{PATH} = "$ENV{PATH}$Config{path_sep}$ENV{PAR_TEMP}" if $ENV->{is_par};
 
+    my $chdir_guard = $args->{chdir} ? P->file->chdir( $args->{chdir} ) : undef;
+
     # run process
     if ($MSWIN) {
 
@@ -183,6 +185,8 @@ sub _create_process ( $self, $cmd, $args, $restore ) {
         );
 
         $restore->();
+
+        undef $chdir_guard;
 
         if ($win32_proc) {
             $self->{_win32_proc} = $win32_proc;
@@ -208,6 +212,7 @@ sub _create_process ( $self, $cmd, $args, $restore ) {
     else {
         my ( $r, $w ) = portable_socketpair();
 
+        # child process
         unless ( $self->{pid} = fork ) {
 
             # run process in own session
@@ -224,8 +229,12 @@ sub _create_process ( $self, $cmd, $args, $restore ) {
                 POSIX::_exit(-1);
             };
         }
+
+        # parent process
         else {
             $restore->();
+
+            undef $chdir_guard;
 
             close $w or die $!;
 

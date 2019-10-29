@@ -57,17 +57,12 @@ around new => sub ( $orig, $self, $path, $search = 1 ) {
 
 sub run ( $self, $cmd, $root = undef, $cb = undef ) {
     state $run = sub ( $self, $cmd, $root, $cb ) {
-        my $proc;
-
-        {
-            my $chdir_guard = P->file->chdir( $root || $self->{root} );
-
-            $proc = P->sys->run_proc(
-                [ is_plain_arrayref $cmd ? ( 'git', $cmd->@* ) : 'git ' . $cmd ],
-                stdout => 1,
-                stderr => 1,
-            );
-        }
+        my $proc = P->sys->run_proc(
+            [ is_plain_arrayref $cmd ? ( 'git', $cmd->@* ) : 'git ' . $cmd ],
+            chdir  => $root || $self->{root},
+            stdout => 1,
+            stderr => 1,
+        );
 
         $proc->capture->wait;
 
@@ -141,7 +136,7 @@ sub git_clone_url ( $self, $url_type = $GIT_UPSTREAM_URL_SSH ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 124                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 119                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
