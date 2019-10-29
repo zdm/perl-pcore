@@ -11,37 +11,6 @@ has repo_namespace => ( required => 1 );    # Str
 has repo_name      => ( required => 1 );    # Str
 has repo_id        => ( required => 1 );    # Str
 
-# NOTE https://bitbucket.org/repo_owner/repo_name - upstream SCM type can't be recognized correctly, use ".git" suffix fot git repositories
-
-# hggit upstream url type:
-# [SSH]     git+ssh://git@github.com:zdm/test.git
-# [SSH]     git+ssh://git@github.com:zdm/test
-# [INVALID] ssh://git@github.com:zdm/test.git
-# [INVALID] ssh://git@github.com:zdm/test
-# [INVALID] git@github.com:zdm/test.git - clone remote using SSH, but set upstream repo to local path in hgrc
-# [INVALID] git@github.com:zdm/test - clone remote using SSH, but set upstream repo to local path in hgrc
-# [HTTPS]   https://github.com/zdm/test.git
-# [INVALID] https://github.com/zdm/test - without .git suffix hggit can't recognize, that this is a git upstream
-# [HTTPS]   git://github.com/zdm/test.git
-# [HTTPS]   git://github.com/zdm/test
-
-# git upstream url type:
-# [INVALID] git+ssh://git@github.com:zdm/test.git
-# [INVALID] git+ssh://git@github.com:zdm/test
-# [INVALID] ssh://git@github.com:zdm/test.git
-# [INVALID] ssh://git@github.com:zdm/test
-# [SSH]     git@github.com:zdm/test.git
-# [SSH]     git@github.com:zdm/test
-# [HTTPS]   https://github.com/zdm/test.git
-# [HTTPS]   https://github.com/zdm/test
-# [HTTPS]   git://github.com/zdm/test.git
-# [HTTPS]   git://github.com/zdm/test
-
-# hg upstream url type:
-# ssh://hg@bitbucket.org/zdm/test
-# https://zdm@bitbucket.org/zdm/test
-# http://zdm@bitbucket.org/zdm/test
-
 sub BUILDARGS ( $self, $args ) {
     if ( $args->{uri} ) {
         my $uri = P->uri( $args->{uri} );
@@ -279,11 +248,11 @@ sub get_hosting_api ( $self, $args = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 50                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 19                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 65, 79               | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 34, 48               | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 119, 172             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 88, 141              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
