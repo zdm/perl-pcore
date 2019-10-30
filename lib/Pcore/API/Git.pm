@@ -55,11 +55,11 @@ around new => sub ( $orig, $self, $path, $search = 1 ) {
     return;
 };
 
-sub run ( $self, $cmd, $root = undef, $cb = undef ) {
-    state $run = sub ( $self, $cmd, $root, $cb ) {
+sub run ( $self, $cmd, $cb = undef ) {
+    state $run = sub ( $self, $cmd, $cb ) {
         my $proc = P->sys->run_proc(
             [ is_plain_arrayref $cmd ? ( 'git', $cmd->@* ) : 'git ' . $cmd ],
-            chdir  => $root || $self->{root},
+            chdir  => $self->{root},
             stdout => 1,
             stderr => 1,
         );
@@ -69,21 +69,21 @@ sub run ( $self, $cmd, $root = undef, $cb = undef ) {
         my $res;
 
         if ( $proc->is_success ) {
-            $res = res 200, $proc->{stdout} ? [ split /\x00/sm, $proc->{stdout}->$* ] : undef;
+            $res = res 200, $proc->{stdout} ? $proc->{stdout}->$* : undef;
         }
         else {
-            $res = res [ 500, $proc->{stderr} ? ( $proc->{stderr}->$* =~ /\A(.+?)\n/sm )[0] : () ];
+            $res = res [ 500, $proc->{stderr} ? $proc->{stderr}->$* : $EMPTY ];
         }
 
         return $cb ? $cb->($res) : $res;
     };
 
     if ( defined wantarray ) {
-        return $run->( $self, $cmd, $root, $cb );
+        return $run->( $self, $cmd, $cb );
     }
     else {
         Coro::async {
-            $run->( $self, $cmd, $root, $cb );
+            $run->( $self, $cmd, $cb );
 
             return;
         };
@@ -111,35 +111,64 @@ sub upstream ($self) {
     return;
 }
 
-# -------------------------
-sub git_has_upstream ($self) {
+# TODO branch, hash, tags, date, latest_release_tag, release_distance
+sub git_id ($self) {
+
     return;
 }
 
-sub git_clone_url ( $self, $url_type = $GIT_UPSTREAM_URL_SSH ) {
+sub git_releases ( $self, $cb = undef ) {
+    return $self->run(
+        'tag --merged master',
+        sub ($res) {
+            if ($res) {
+                $res->{data} = [ sort grep {/\Av\d+[.]\d+[.]\d+\z/sm} split /\n/sm, $res->{data} ];
+            }
 
-    # ssh
-    if ( $url_type == $GIT_UPSTREAM_URL_SSH ) {
-        return "git\@$GIT_UPSTREAM_HOST->{$self->{upstream}}:$self->{repo_id}.git";
-    }
+            return $cb ? $cb->($res) : $res;
+        },
+    );
+}
 
-    # https
-    else {
-        return "https://$GIT_UPSTREAM_HOST->{$self->{upstream}}/$self->{repo_id}.git";
-    }
+# TODO
+sub git_get_changesets ( $self, $tag = undef, $cb = undef ) {
+    return $self->scm_cmd(
+        [ $tag ? ( 'log', '-r', "$tag:" ) : 'log' ],
+        sub ($res) {
+            if ($res) {
+                my $data;
+
+                for my $line ( $res->{data}->@* ) {
+                    my $changeset = {};
+
+                    for my $field ( split /\n/sm, $line ) {
+                        my ( $k, $v ) = split /:\s+/sm, $field, 2;
+
+                        if ( exists $changeset->{$k} ) {
+                            if ( is_plain_arrayref $changeset->{$k} ) {
+                                push $changeset->{$k}->@*, $v;
+                            }
+                            else {
+                                $changeset->{$k} = [ $changeset->{$k}, $v ];
+                            }
+                        }
+                        else {
+                            $changeset->{$k} = $v;
+                        }
+                    }
+
+                    push $data->@*, $changeset;
+                }
+
+                $res->{data} = $data;
+            }
+
+            return $cb ? $cb->($res) : $res;
+        },
+    );
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 119                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

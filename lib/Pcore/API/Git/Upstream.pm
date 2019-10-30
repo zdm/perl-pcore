@@ -57,6 +57,20 @@ sub git_cpan_meta ($self) {
     return $cpan_meta;
 }
 
+# TODO
+sub git_clone_url ( $self, $url_type = $GIT_UPSTREAM_URL_SSH ) {
+
+    # ssh
+    if ( $url_type == $GIT_UPSTREAM_URL_SSH ) {
+        return "git\@$GIT_UPSTREAM_HOST->{$self->{upstream}}:$self->{repo_id}.git";
+    }
+
+    # https
+    else {
+        return "https://$GIT_UPSTREAM_HOST->{$self->{upstream}}/$self->{repo_id}.git";
+    }
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -64,7 +78,7 @@ sub git_cpan_meta ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 11                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 11, 61               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
