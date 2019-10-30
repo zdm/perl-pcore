@@ -130,6 +130,19 @@ sub git_releases ( $self, $cb = undef ) {
     );
 }
 
+sub git_is_commited ( $self, $cb = undef ) {
+    return $self->run(
+        'status --porcelain',
+        sub ($res) {
+            if ($res) {
+                $res->{data} = !$res->{data};
+            }
+
+            return $cb ? $cb->($res) : $res;
+        },
+    );
+}
+
 # TODO
 sub git_get_changesets ( $self, $tag = undef, $cb = undef ) {
     return $self->scm_cmd(
