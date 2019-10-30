@@ -1,7 +1,7 @@
 package Pcore::Lib::Sys::Proc;
 
 use Pcore -const, -class;
-use Pcore::Lib::Scalar qw[is_ref];
+use Pcore::Lib::Scalar qw[is_ref weaken];
 use AnyEvent::Util qw[portable_socketpair];
 use if $MSWIN, 'Win32::Process';
 use POSIX qw[:sys_wait_h];
@@ -258,6 +258,8 @@ sub _create_process ( $self, $cmd, $args, $restore ) {
 
 sub _set_watcher ($self) {
     return if $self->{status} != $PROC_STATUS_ACTIVE;
+
+    weaken $self;
 
     if ($MSWIN) {
         $self->{_watcher} = AE::timer 0, $self->{win32_alive_timeout}, sub {
