@@ -16,7 +16,7 @@ has docker_cfg  => ( is       => 'lazy', init_arg => undef );    # Maybe [HashRe
 has par_cfg     => ( is       => 'lazy', init_arg => undef );    # Maybe [HashRef], par.yaml
 has name        => ( is       => 'lazy', init_arg => undef );    # Dist-Name
 has is_pcore    => ( is       => 'lazy', init_arg => undef );
-has scm         => ( is       => 'lazy', init_arg => undef );    # Maybe [ ConsumerOf ['Pcore::API::SCM'] ]
+has git         => ( is       => 'lazy', init_arg => undef );    # Maybe [ InstanceOf ['Pcore::API::GIT'] ]
 has build       => ( is       => 'lazy', init_arg => undef );    # InstanceOf ['Pcore::Dist::Build']
 has id          => ( is       => 'lazy', init_arg => undef );
 has version     => ( is       => 'lazy', init_arg => undef );
@@ -197,10 +197,10 @@ sub _build_name ($self) { return $self->cfg->{name} }
 
 sub _build_is_pcore ($self) { return $self->name eq 'Pcore' }
 
-sub _build_scm ($self) {
+sub _build_git ($self) {
     return if $self->{is_installed};
 
-    return P->class->load('Pcore::API::SCM')->new( $self->{root} );
+    return P->class->load('Pcore::API::GIT')->new( $self->{root} );
 }
 
 sub _build_build ($self) { return P->class->load('Pcore::Dist::Build')->new( { dist => $self } ) }

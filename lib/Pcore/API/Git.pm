@@ -28,7 +28,7 @@ const our $GIT_UPSTREAM_HOST => {
     $GIT_UPSTREAM_GITLAB    => 'gitlab.com',
 };
 
-around new => sub ( $orig, $self, $path, $search = 1 ) {
+around new => sub ( $orig, $self, $path, $search = undef ) {
     $path = P->path($path)->to_abs;
 
     my $found;
