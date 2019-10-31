@@ -278,6 +278,30 @@ sub git_get_changesets ( $self, $tag = undef, $cb = undef ) {
     );
 }
 
+sub git_is_pushed ( $self, $cb = undef ) {
+    return $self->git_run(
+        'branch -v --no-color',
+        sub ($res) {
+            if ($res) {
+                my $data;
+
+                for my $br ( split /\n/sm, $res->{data} ) {
+                    if ( $br =~ /\A[*]?\s+(.+?)\s+(?:.+?)\s+(?:\[ahead\s(\d+)\])?/sm ) {
+                        $data->{$1} = $2 || 0;
+                    }
+                    else {
+                        die qq[Can't parse branch: $br];
+                    }
+
+                    $res->{data} = $data;
+                }
+            }
+
+            return $cb ? $cb->($res) : $res;
+        },
+    );
+}
+
 1;
 __END__
 =pod
