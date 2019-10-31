@@ -127,7 +127,7 @@ sub git_id ( $self, $cb = undef ) {
         is_dirty         => undef,
         release          => undef,
         release_distance => undef,
-        tag              => undef,
+        tags             => undef,
       };
 
     my $cv = P->cv->begin( sub ($cv) {
@@ -160,7 +160,7 @@ sub git_id ( $self, $cb = undef ) {
                 # parse tags
                 for my $token (@ref) {
                     if ( $token =~ /tag:\s(.+)/sm ) {
-                        $data->{tag}->{$1} = 1;
+                        $data->{tags}->{$1} = 1;
                     }
                 }
 
@@ -189,7 +189,7 @@ sub git_id ( $self, $cb = undef ) {
 
                 my @data = split /-/sm, $res->{data};
 
-                if ( $data[0] =~ /\Av\d/sm ) {
+                if ( $data[0] =~ /\Av\d+[.]\d+[.]\d+\z/sm ) {
                     $res1->{data}->{release} = $data[0];
 
                     $res1->{data}->{release_distance} = $data[1] || 0;
