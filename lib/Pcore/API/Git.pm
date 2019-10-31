@@ -55,7 +55,7 @@ around new => sub ( $orig, $self, $path, $search = undef ) {
     return;
 };
 
-sub run ( $self, $cmd, $cb = undef ) {
+sub git_run ( $self, $cmd, $cb = undef ) {
     state $run = sub ( $self, $cmd, $cb ) {
         my $proc = P->sys->run_proc(
             [ is_plain_arrayref $cmd ? ( 'git', $cmd->@* ) : 'git ' . $cmd ],
@@ -93,14 +93,14 @@ sub run ( $self, $cmd, $cb = undef ) {
 }
 
 # TODO
-sub init ( $self, $path ) {
+sub git_init ( $self, $path ) {
     my $res = P->sys->run_proc( qq[git init -q "$path"], stdout => 1, stderr => 1 )->wait;
 
     return $res;
 }
 
 # TODO
-sub clone ( $self, $from, $to ) {
+sub git_clone ( $self, $from, $to ) {
     return;
 }
 
@@ -111,7 +111,6 @@ sub upstream ($self) {
     return;
 }
 
-# TODO branch, hash, tags, date, latest_release_tag, release_distance
 sub git_id ( $self, $cb = undef ) {
 
     # get all tags - git tag --points-at HEAD
@@ -138,7 +137,7 @@ sub git_id ( $self, $cb = undef ) {
     } );
 
     $cv->begin;
-    $self->run(
+    $self->git_run(
         'log -1 --pretty=format:%H%n%h%n%cI%n%D',
         sub ($res) {
             $cv->end;
@@ -173,7 +172,7 @@ sub git_id ( $self, $cb = undef ) {
     );
 
     $cv->begin;
-    $self->run(
+    $self->git_run(
         'describe --tags --always --match "v[0-9]*.[0-9]*.[0-9]*"',
         sub ($res) {
             $cv->end;
@@ -202,7 +201,7 @@ sub git_id ( $self, $cb = undef ) {
     );
 
     $cv->begin;
-    $self->run(
+    $self->git_run(
         'status --porcelain',
         sub ($res) {
             $cv->end;
@@ -229,7 +228,7 @@ sub git_id ( $self, $cb = undef ) {
 }
 
 sub git_releases ( $self, $cb = undef ) {
-    return $self->run(
+    return $self->git_run(
         'tag --merged master',
         sub ($res) {
             if ($res) {
@@ -241,22 +240,9 @@ sub git_releases ( $self, $cb = undef ) {
     );
 }
 
-sub git_is_commited ( $self, $cb = undef ) {
-    return $self->run(
-        'status --porcelain',
-        sub ($res) {
-            if ($res) {
-                $res->{data} = !$res->{data};
-            }
-
-            return $cb ? $cb->($res) : $res;
-        },
-    );
-}
-
 # TODO
 sub git_get_changesets ( $self, $tag = undef, $cb = undef ) {
-    return $self->scm_cmd(
+    return $self->git_run(
         [ $tag ? ( 'log', '-r', "$tag:" ) : 'log' ],
         sub ($res) {
             if ($res) {
