@@ -112,9 +112,120 @@ sub upstream ($self) {
 }
 
 # TODO branch, hash, tags, date, latest_release_tag, release_distance
-sub git_id ($self) {
+sub git_id ( $self, $cb = undef ) {
 
-    return;
+    # get all tags - git tag --points-at HEAD
+    # get current branch git branch --show-current
+    # git rev-parse --short HEAD
+    # git rev-parse HEAD
+    # git branch --no-color --contains HEAD
+
+    my $res1 = res 200,
+      { branch           => undef,
+        date             => undef,
+        id               => undef,
+        id_short         => undef,
+        is_dirty         => undef,
+        release          => undef,
+        release_distance => undef,
+        tag              => undef,
+      };
+
+    my $cv = P->cv->begin( sub ($cv) {
+        $cv->( $cb ? $cb->($res1) : $res1 );
+
+        return;
+    } );
+
+    $cv->begin;
+    $self->run(
+        'log -1 --pretty=format:%H%n%h%n%cI%n%D',
+        sub ($res) {
+            $cv->end;
+
+            return if !$res1;
+
+            if ( !$res ) {
+                $res1 = $res;
+            }
+            else {
+                ( my $data->@{qw[id id_short date]}, my $ref ) = split /\n/sm, $res->{data};
+
+                my @ref = split /,/sm, $ref;
+
+                # parse current branch
+                if ( ( shift @ref ) =~ /->\s(.+)/sm ) {
+                    $data->{branch} = $1;
+                }
+
+                # parse tags
+                for my $token (@ref) {
+                    if ( $token =~ /tag:\s(.+)/sm ) {
+                        $data->{tag}->{$1} = 1;
+                    }
+                }
+
+                $res1->{data}->@{ keys $data->%* } = values $data->%*;
+            }
+
+            return;
+        },
+    );
+
+    $cv->begin;
+    $self->run(
+        'describe --tags --always --match "v[0-9]*.[0-9]*.[0-9]*"',
+        sub ($res) {
+            $cv->end;
+
+            return if !$res1;
+
+            if ( !$res ) {
+                $res1 = $res;
+            }
+            else {
+
+                # remove trailing "\n"
+                chomp $res->{data};
+
+                my @data = split /-/sm, $res->{data};
+
+                if ( $data[0] =~ /\Av\d/sm ) {
+                    $res1->{data}->{release} = $data[0];
+
+                    $res1->{data}->{release_distance} = $data[1] || 0;
+                }
+            }
+
+            return;
+        },
+    );
+
+    $cv->begin;
+    $self->run(
+        'status --porcelain',
+        sub ($res) {
+            $cv->end;
+
+            return if !$res1;
+
+            if ( !$res ) {
+                $res1 = $res;
+            }
+            else {
+                $res1->{data}->{is_dirty} = 0+ !!$res->{data};
+            }
+
+            return;
+        },
+    );
+
+    if ( defined wantarray ) {
+        return $cv->end->recv;
+    }
+    else {
+        return;
+    }
 }
 
 sub git_releases ( $self, $cb = undef ) {
