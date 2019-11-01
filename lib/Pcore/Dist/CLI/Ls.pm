@@ -37,8 +37,9 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
                     width => 12,
                     align => 1,
                 },
-                uncommited => {
-                    width => 14,
+                is_dirty => {
+                    title => 'IS DIRTY',
+                    width => 10,
                     align => 1,
                 },
                 pushed => {
@@ -72,7 +73,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
             }
 
             if ( $dist_id->{is_dirty} ) {
-                push @row, $WHITE . $ON_RED . ' uncommited ' . $RESET;
+                push @row, $WHITE . $ON_RED . ' dirty ' . $RESET;
             }
             else {
                 push @row, q[ - ];
