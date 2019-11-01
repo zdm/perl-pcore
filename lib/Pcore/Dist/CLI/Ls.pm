@@ -27,6 +27,10 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
                     width => 35,
                     align => -1,
                 },
+                branch => {
+                    width => 10,
+                    align => 1,
+                },
                 release => {
                     title => "CURRENT\nRELEASE",
                     width => 14,
@@ -54,9 +58,18 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
         for my $dist ( sort { $a->name cmp $b->name } $dists->@* ) {
             my @row;
 
+            # dist name
             push @row, $dist->name;
 
             my $dist_id = $dist->id;
+
+            # branch
+            if ( $dist_id->{branch} ) {
+                push @row, $dist_id->{branch};
+            }
+            else {
+                push @row, ' - ';
+            }
 
             if ( $dist_id->{release} eq 'v0.0.0' ) {
                 push @row, $WHITE . $ON_RED . ' unreleased ' . $RESET;
@@ -96,7 +109,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
                 }
 
                 if (@has_not_pushed) {
-                    push @row, join ', ', @has_not_pushed;
+                    push @row, join "\n", @has_not_pushed;
                 }
                 else {
                     push @row, q[ - ];
