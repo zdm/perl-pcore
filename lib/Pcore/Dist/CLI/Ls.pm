@@ -31,12 +31,17 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
                     width => 10,
                     align => 1,
                 },
+                latest_release => {
+                    title => "LATEST\nRELEASE",
+                    width => 14,
+                    align => 1,
+                },
                 release => {
                     title => "CURRENT\nRELEASE",
                     width => 14,
                     align => 1,
                 },
-                unreleased => {
+                release_distance => {
                     title => "UNRELEASED\nCHANGES",
                     width => 12,
                     align => 1,
@@ -64,34 +69,35 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
             my $dist_id = $dist->id;
 
             # branch
-            if ( $dist_id->{branch} ) {
-                push @row, $dist_id->{branch};
+            push @row, $dist_id->{branch} || ' - ';
+
+            # latest release
+            my $releases = $dist->git->git_releases;
+
+            if ( !$releases ) {
+                push @row, 'ERROR';
             }
             else {
-                push @row, ' - ';
+                my $latest_release = $releases->{data}->[-1];
+
+                if ( !defined $latest_release ) {
+                    push @row, $WHITE . $ON_RED . ' unreleased ' . $RESET;
+                }
+                else {
+                    push @row, $latest_release;
+                }
             }
 
-            if ( $dist_id->{release} eq 'v0.0.0' ) {
-                push @row, $WHITE . $ON_RED . ' unreleased ' . $RESET;
-            }
-            else {
-                push @row, $dist_id->{release};
-            }
+            # release
+            push @row, defined $dist_id->{release} ? $dist_id->{release} : $WHITE . $ON_RED . ' unreleased ' . $RESET;
 
-            if ( $dist_id->{release_distance} ) {
-                push @row, $WHITE . $ON_RED . sprintf( ' %3s ', $dist_id->{release_distance} ) . $RESET;
-            }
-            else {
-                push @row, q[ - ];
-            }
+            # release distance
+            push @row, !$dist_id->{release_distance} ? ' - ' : $WHITE . $ON_RED . sprintf( ' %3s ', $dist_id->{release_distance} ) . $RESET;
 
-            if ( $dist_id->{is_dirty} ) {
-                push @row, $WHITE . $ON_RED . ' dirty ' . $RESET;
-            }
-            else {
-                push @row, q[ - ];
-            }
+            # is dirty
+            push @row, !$dist_id->{is_dirty} ? ' - ' : $WHITE . $ON_RED . ' dirty ' . $RESET;
 
+            # is pushed
             my $is_pushed = $dist->git->git_is_pushed;
 
             if ( !$is_pushed ) {
