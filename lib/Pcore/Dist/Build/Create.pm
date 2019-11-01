@@ -3,9 +3,8 @@ package Pcore::Dist::Build::Create;
 use Pcore -class, -res;
 use Pcore::Dist;
 use Pcore::Lib::File::Tree;
-use Pcore::API::SCM::Const qw[:ALL];
-use Pcore::API::SCM;
-use Pcore::API::SCM::Upstream;
+use Pcore::API::Git qw[:ALL];
+use Pcore::API::Git::Upstream;
 
 has base_path      => ( required => 1 );    # Str
 has dist_namespace => ( required => 1 );    # Str, Dist::Name
@@ -14,9 +13,11 @@ has tmpl           => ( required => 1 );    # Str, Dist-Name
 
 has upstream_hosting        => $SCM_HOSTING_BITBUCKET;    # Enum [ $SCM_HOSTING_BITBUCKET, $SCM_HOSTING_GITHUB ]
 has is_private              => 0;                         # Bool
-has upstream_scm_type       => $SCM_TYPE_HG;              # Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ]
-has local_scm_type          => $SCM_TYPE_HG;              # Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ]
 has upstream_repo_namespace => ();                        # Maybe [Str]
+
+# TODO remove
+has upstream_scm_type => $SCM_TYPE_HG;                    # Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ]
+has local_scm_type    => $SCM_TYPE_HG;                    # Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ]
 
 has target_path => ( is => 'lazy', init_arg => undef );   # Str
 has tmpl_params => ( is => 'lazy', init_arg => undef );   # HashRef
@@ -163,7 +164,7 @@ sub _create_upstream_repo ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 103                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 104                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

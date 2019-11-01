@@ -18,9 +18,9 @@ our $EXPORT = {
 const our $GIT_UPSTREAM_URL_HTTPS => 1;
 const our $GIT_UPSTREAM_URL_SSH   => 2;
 
-const our $GIT_UPSTREAM_BITBUCKET => 1;
-const our $GIT_UPSTREAM_GITHUB    => 2;
-const our $GIT_UPSTREAM_GITLAB    => 3;
+const our $GIT_UPSTREAM_BITBUCKET => 'bitbucket';
+const our $GIT_UPSTREAM_GITHUB    => 'github';
+const our $GIT_UPSTREAM_GITLAB    => 'gitlab';
 
 const our $GIT_UPSTREAM_HOST => {
     $GIT_UPSTREAM_BITBUCKET => 'bitbucket.org',
