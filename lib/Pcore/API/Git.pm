@@ -160,7 +160,7 @@ sub git_id ( $self, $cb = undef ) {
                 # parse tags
                 for my $token (@ref) {
                     if ( $token =~ /tag:\s(.+)/sm ) {
-                        $data->{tags}->{$1} = 1;
+                        push $data->{tags}->@*, $1;
                     }
                 }
 
