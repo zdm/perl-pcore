@@ -55,38 +55,61 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 
             push @row, $dist->name;
 
-            if ( $dist->id->{release} eq 'v0.0.0' ) {
+            my $dist_id = $dist->id;
+
+            if ( $dist_id->{release} eq 'v0.0.0' ) {
                 push @row, $WHITE . $ON_RED . ' unreleased ' . $RESET;
             }
             else {
-                push @row, $dist->id->{release};
+                push @row, $dist_id->{release};
             }
 
-            if ( $dist->id->{release_distance} ) {
-                push @row, $WHITE . $ON_RED . sprintf( ' %3s ', $dist->id->{release_distance} ) . $RESET;
+            if ( $dist_id->{release_distance} ) {
+                push @row, $WHITE . $ON_RED . sprintf( ' %3s ', $dist_id->{release_distance} ) . $RESET;
             }
             else {
                 push @row, q[ - ];
             }
 
-            if ( !$dist->is_commited ) {
+            if ( $dist_id->{is_dirty} ) {
                 push @row, $WHITE . $ON_RED . ' uncommited ' . $RESET;
             }
             else {
                 push @row, q[ - ];
             }
 
-            if ( $dist->id->{phase} ) {
-                if ( lc $dist->id->{phase} eq 'public' ) {
-                    push @row, q[ - ];
-                }
-                else {
-                    push @row, $WHITE . $ON_RED . $SPACE . $dist->id->{phase} . $SPACE . $RESET;
-                }
+            my $is_pushed = $dist->git->git_is_pushed;
+
+            if ( !$is_pushed ) {
+                push @row, q[ ERROR ];
             }
             else {
-                push @row, q[ ??? ];
+                my $has_not_pushed;
+
+                for my $branch ( sort keys $is_pushed->{data}->%* ) {
+                    my $ahead = $is_pushed->{data}->{$branch};
+
+                    if ($ahead) {
+                        $has_not_pushed = 1;
+
+                        push @row, $WHITE . $ON_RED . $SPACE . "$branch ($ahead)" . $SPACE . $RESET;
+                    }
+                }
+
+                push @row, q[ - ] if !$has_not_pushed;
             }
+
+            # if ( $dist->id->{phase} ) {
+            #     if ( lc $dist->id->{phase} eq 'public' ) {
+            #         push @row, q[ - ];
+            #     }
+            #     else {
+            #         push @row, $WHITE . $ON_RED . $SPACE . $dist->id->{phase} . $SPACE . $RESET;
+            #     }
+            # }
+            # else {
+            #     push @row, q[ ??? ];
+            # }
 
             print $tbl->render_row( \@row );
         }
