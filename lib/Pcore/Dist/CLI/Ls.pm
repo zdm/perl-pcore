@@ -84,32 +84,23 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
                 push @row, q[ ERROR ];
             }
             else {
-                my $has_not_pushed;
+                my @has_not_pushed;
 
                 for my $branch ( sort keys $is_pushed->{data}->%* ) {
                     my $ahead = $is_pushed->{data}->{$branch};
 
                     if ($ahead) {
-                        $has_not_pushed = 1;
-
-                        push @row, $WHITE . $ON_RED . $SPACE . "$branch ($ahead)" . $SPACE . $RESET;
+                        push @has_not_pushed, $WHITE . $ON_RED . $SPACE . "$branch ($ahead)" . $SPACE . $RESET;
                     }
                 }
 
-                push @row, q[ - ] if !$has_not_pushed;
+                if (@has_not_pushed) {
+                    push @row, join ', ', @has_not_pushed;
+                }
+                else {
+                    push @row, q[ - ];
+                }
             }
-
-            # if ( $dist->id->{phase} ) {
-            #     if ( lc $dist->id->{phase} eq 'public' ) {
-            #         push @row, q[ - ];
-            #     }
-            #     else {
-            #         push @row, $WHITE . $ON_RED . $SPACE . $dist->id->{phase} . $SPACE . $RESET;
-            #     }
-            # }
-            # else {
-            #     push @row, q[ ??? ];
-            # }
 
             print $tbl->render_row( \@row );
         }
