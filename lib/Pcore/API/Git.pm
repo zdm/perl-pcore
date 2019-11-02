@@ -240,34 +240,23 @@ sub git_releases ( $self, $cb = undef ) {
     );
 }
 
-# TODO
-sub git_get_changesets ( $self, $tag = undef, $cb = undef ) {
+sub git_get_log ( $self, $tag = undef, $cb = undef ) {
+    my $cmd = 'log --pretty=format:%s';
+
+    $cmd .= " $tag..HEAD" if $tag;
+
     return $self->git_run(
-        [ $tag ? ( 'log', '-r', "$tag:" ) : 'log' ],
+        $cmd,
         sub ($res) {
             if ($res) {
-                my $data;
+                my ( $data, $idx );
 
-                for my $line ( $res->{data}->@* ) {
-                    my $changeset = {};
+                for my $log ( split /\n/sm, $res->{data} ) {
+                    if ( !exists $idx->{$log} ) {
+                        $idx->{$log} = 1;
 
-                    for my $field ( split /\n/sm, $line ) {
-                        my ( $k, $v ) = split /:\s+/sm, $field, 2;
-
-                        if ( exists $changeset->{$k} ) {
-                            if ( is_plain_arrayref $changeset->{$k} ) {
-                                push $changeset->{$k}->@*, $v;
-                            }
-                            else {
-                                $changeset->{$k} = [ $changeset->{$k}, $v ];
-                            }
-                        }
-                        else {
-                            $changeset->{$k} = $v;
-                        }
+                        push $data->@*, $log;
                     }
-
-                    push $data->@*, $changeset;
                 }
 
                 $res->{data} = $data;
