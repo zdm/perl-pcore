@@ -20,7 +20,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     }
 
     # get changesets since latest release
-    my $changesets = $dist->scm->scm_get_changesets( $dist->version eq 'v0.0.0' ? undef : 'latest' );
+    my $changesets = $dist->scm->scm_get_changesets( $dist->version // 'latest' );
 
     my ( $log, $summary_idx );
 

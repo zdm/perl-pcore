@@ -36,8 +36,8 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
                     width => 14,
                     align => 1,
                 },
-                release => {
-                    title => "CURRENT\nRELEASE",
+                parent_release => {
+                    title => "PARENT\nRELEASE",
                     width => 14,
                     align => 1,
                 },
@@ -88,10 +88,10 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
                 }
             }
 
-            # release
+            # parent release
             push @row, defined $dist_id->{release} ? $dist_id->{release} : $WHITE . $ON_RED . ' unreleased ' . $RESET;
 
-            # release distance
+            # parent release distance
             push @row, !$dist_id->{release_distance} ? ' - ' : $WHITE . $ON_RED . sprintf( ' %3s ', $dist_id->{release_distance} ) . $RESET;
 
             # is dirty
