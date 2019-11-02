@@ -227,7 +227,7 @@ sub git_id ( $self, $cb = undef ) {
     }
 }
 
-sub git_releases ( $self, $cb = undef ) {
+sub git_get_releases ( $self, $cb = undef ) {
     return $self->git_run(
         'tag --merged master',
         sub ($res) {

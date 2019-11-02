@@ -72,20 +72,13 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
             push @row, $dist_id->{branch} || ' - ';
 
             # latest release
-            my $releases = $dist->git->git_releases;
+            if ( my $releases = $dist->releases ) {
+                my $latest_release = $releases->[-1];
 
-            if ( !$releases ) {
-                push @row, 'ERROR';
+                push @row, $latest_release;
             }
             else {
-                my $latest_release = $releases->{data}->[-1];
-
-                if ( !defined $latest_release ) {
-                    push @row, $WHITE . $ON_RED . ' unreleased ' . $RESET;
-                }
-                else {
-                    push @row, $latest_release;
-                }
+                push @row, $WHITE . $ON_RED . ' unreleased ' . $RESET;
             }
 
             # parent release

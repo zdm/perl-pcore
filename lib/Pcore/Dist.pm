@@ -224,18 +224,9 @@ sub _build_id ($self) {
     elsif ( -f "$self->{share_dir}/dist-id.yaml" ) {
         $id = P->cfg->read("$self->{share_dir}/dist-id.yaml");
     }
-    else {
-        $id->{release_distance} = '?';
-    }
 
     # convert date to UTC
     $id->{date} = P->date->from_string( $id->{date} )->at_utc->to_string if defined $id->{date};
-
-    # try to get version from the main module
-    # $id->{release} //= $self->module->version;
-
-    # $id->{release_id} = $id->{release};
-    # $id->{release_id} .= "+$id->{release_distance}" if $id->{release_distance};
 
     return $id;
 }
@@ -252,8 +243,8 @@ sub _build_version ($self) {
 }
 
 sub _build_releases ($self) {
-    if ( !$self->{is_installed} && $self->scm && ( my $scm_releases = $self->scm->scm_releases ) ) {
-        return $scm_releases->{data};
+    if ( !$self->{is_installed} && $self->git && ( my $releases = $self->git->git_get_releases ) ) {
+        return $releases->{data};
     }
 
     return;
