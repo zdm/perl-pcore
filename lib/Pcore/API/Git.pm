@@ -55,6 +55,13 @@ around new => sub ( $orig, $self, $path, $search = undef ) {
     return;
 };
 
+# TODO
+sub upstream ($self) {
+    require Pcore::API::Git::Upstream;
+
+    return;
+}
+
 sub git_run ( $self, $cmd, $cb = undef ) {
     state $run = sub ( $self, $cmd, $cb ) {
         my $proc = P->sys->run_proc(
@@ -88,25 +95,6 @@ sub git_run ( $self, $cmd, $cb = undef ) {
             return;
         };
     }
-
-    return;
-}
-
-# TODO
-sub git_init ( $self, $path ) {
-    my $res = P->sys->run_proc( qq[git init -q "$path"], stdout => 1, stderr => 1 )->wait;
-
-    return $res;
-}
-
-# TODO
-sub git_clone ( $self, $from, $to ) {
-    return;
-}
-
-# TODO
-sub upstream ($self) {
-    require Pcore::API::Git::Upstream;
 
     return;
 }
