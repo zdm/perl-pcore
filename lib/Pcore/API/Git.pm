@@ -231,7 +231,9 @@ sub git_get_releases ( $self, $cb = undef ) {
         'tag --merged master',
         sub ($res) {
             if ($res) {
-                $res->{data} = [ sort { version->parse($a) <=> version->parse($b) } grep {/\Av\d+[.]\d+[.]\d+\z/sm} split /\n/sm, $res->{data} ];
+                my @releases = sort { version->parse($a) <=> version->parse($b) } grep {/\Av\d+[.]\d+[.]\d+\z/sm} split /\n/sm, $res->{data};
+
+                $res->{data} = \@releases if @releases;
             }
 
             return $cb ? $cb->($res) : $res;
