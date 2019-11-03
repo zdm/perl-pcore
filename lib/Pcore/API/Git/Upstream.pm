@@ -69,26 +69,8 @@ sub get_clone_url ( $self, $url_type = $GIT_UPSTREAM_URL_SSH ) {
     return $url;
 }
 
-=pod
-
 # TODO
-sub git_wiki_clone_url ( $self, $url_type = $GIT_UPSTREAM_URL_SSH ) {
-    my $repo_id;
-
-    # my $repo_id = $self->{hosting} eq $SCM_HOSTING_BITBUCKET ? "$self->{repo_id}/wiki" : "$self->{repo_id}.wiki";
-
-    # ssh
-    if ( $url_type == $GIT_UPSTREAM_URL_SSH ) {
-        return "git\@$GIT_UPSTREAM_HOST->{$self->{upstream}}:$repo_id.git";
-    }
-
-    # https
-    else {
-        return "https://$GIT_UPSTREAM_HOST->{$self->{upstream}}/$repo_id.git";
-    }
-}
-
-sub git_cpan_meta ($self) {
+sub get_cpan_meta ( $self) {
     my $cpan_meta;
 
     if ( $self->{hosting} eq $SCM_HOSTING_BITBUCKET ) {
@@ -122,20 +104,21 @@ sub git_cpan_meta ($self) {
 }
 
 # TODO
-sub git_clone_url ( $self, $url_type = $GIT_UPSTREAM_URL_SSH ) {
+sub git_wiki_clone_url ( $self, $url_type = $GIT_UPSTREAM_URL_SSH ) {
+    my $repo_id;
+
+    # my $repo_id = $self->{hosting} eq $SCM_HOSTING_BITBUCKET ? "$self->{repo_id}/wiki" : "$self->{repo_id}.wiki";
 
     # ssh
     if ( $url_type == $GIT_UPSTREAM_URL_SSH ) {
-        return "git\@$GIT_UPSTREAM_HOST->{$self->{upstream}}:$self->{repo_id}.git";
+        return "git\@$GIT_UPSTREAM_HOST->{$self->{upstream}}:$repo_id.git";
     }
 
     # https
     else {
-        return "https://$GIT_UPSTREAM_HOST->{$self->{upstream}}/$self->{repo_id}.git";
+        return "https://$GIT_UPSTREAM_HOST->{$self->{upstream}}/$repo_id.git";
     }
 }
-
-=cut
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
@@ -146,9 +129,7 @@ sub git_clone_url ( $self, $url_type = $GIT_UPSTREAM_URL_SSH ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 27                   | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 64                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 72                   | Documentation::RequirePodAtEnd - POD before __END__                                                            |
+## |    3 | 64, 107              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
