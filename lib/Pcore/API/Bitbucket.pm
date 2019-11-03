@@ -2,7 +2,6 @@ package Pcore::API::Bitbucket;
 
 use Pcore -class, -res;
 use Pcore::Lib::Scalar qw[is_plain_coderef];
-use Pcore::API::SCM::Const qw[:SCM_TYPE];
 
 has username => ( required => 1 );
 has password => ( required => 1 );
@@ -84,7 +83,6 @@ sub create_repo ( $self, $repo_id, @args ) {
         is_private  => 0,
 
         # bitbucket attrs
-        scm         => $SCM_TYPE_HG,
         fork_police => 'allow_forks',    # allow_forks, no_public_forks, no_forks
         language    => 'perl',
         @args,
@@ -289,7 +287,7 @@ sub update_issue ( $self, $repo_id, $issue_id, $data, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 276, 281             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 274, 279             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

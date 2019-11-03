@@ -21,8 +21,8 @@ sub CLI ($self) {
             },
             hosting => {
                 short   => 'H',
-                desc    => qq[define hosting for upstream repository. Possible values: "$GIT_UPSTREAM_BITBUCKET", "$GIT_UPSTREAM_GITHUB", "$GIT_UPSTREAM_GITLAB"],
-                isa     => [ $GIT_UPSTREAM_BITBUCKET, $GIT_UPSTREAM_GITHUB, $GIT_UPSTREAM_GITLAB ],
+                desc    => qq[define hosting for upstream repository. Possible values: @{[ join ', ', map {qq["$_"]} sort keys $GIT_UPSTREAM_HOST->%* ]}],
+                isa     => [ keys $GIT_UPSTREAM_HOST->%* ],
                 default => $GIT_UPSTREAM_BITBUCKET,
             },
             private => {

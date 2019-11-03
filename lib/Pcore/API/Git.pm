@@ -5,18 +5,16 @@ use Pcore::Lib::Scalar qw[is_plain_arrayref];
 
 has root => ( required => 1 );
 
-has _upstream => ( init_arg => undef );
-has upstream  => ( init_arg => undef );
-
-# TODO https://metacpan.org/release/App-IsGitSynced/source/bin/is_git_synced
+has upstream => ( is => 'lazy', init_arg => undef );    # InstanceOf ['Pcore::API::Git::Upstream'] ]
 
 our $EXPORT = {
-    GIT_UPSTREAM_URL => [qw[$GIT_UPSTREAM_URL_HTTPS $GIT_UPSTREAM_URL_SSH]],
-    GIT_UPSTREAM     => [qw[$GIT_UPSTREAM_BITBUCKET $GIT_UPSTREAM_GITHUB $GIT_UPSTREAM_GITLAB]],
+    GIT_UPSTREAM_URL => [qw[$GIT_UPSTREAM_URL_LOCAL $GIT_UPSTREAM_URL_HTTPS $GIT_UPSTREAM_URL_SSH]],
+    GIT_UPSTREAM     => [qw[$GIT_UPSTREAM_HOST $GIT_UPSTREAM_NAME $GIT_UPSTREAM_BITBUCKET $GIT_UPSTREAM_GITHUB $GIT_UPSTREAM_GITLAB]],
 };
 
-const our $GIT_UPSTREAM_URL_HTTPS => 1;
-const our $GIT_UPSTREAM_URL_SSH   => 2;
+const our $GIT_UPSTREAM_URL_LOCAL => 1;
+const our $GIT_UPSTREAM_URL_HTTPS => 2;
+const our $GIT_UPSTREAM_URL_SSH   => 3;
 
 const our $GIT_UPSTREAM_BITBUCKET => 'bitbucket';
 const our $GIT_UPSTREAM_GITHUB    => 'github';
@@ -27,6 +25,8 @@ const our $GIT_UPSTREAM_HOST => {
     $GIT_UPSTREAM_GITHUB    => 'github.com',
     $GIT_UPSTREAM_GITLAB    => 'gitlab.com',
 };
+
+const our $GIT_UPSTREAM_NAME => { map { $GIT_UPSTREAM_HOST->{$_} => $_ } keys $GIT_UPSTREAM_HOST->%* };
 
 around new => sub ( $orig, $self, $path, $search = undef ) {
     $path = P->path($path)->to_abs;
@@ -55,9 +55,14 @@ around new => sub ( $orig, $self, $path, $search = undef ) {
     return;
 };
 
-# TODO
-sub upstream ($self) {
+sub _build_upstream ($self) {
     require Pcore::API::Git::Upstream;
+
+    my $url = $self->git_run('ls-remote --get-url');
+
+    chomp $url->{data};
+
+    return Pcore::API::Git::Upstream->new( { url => $url->{data} } ) if $url && $url->{data};
 
     return;
 }
@@ -97,6 +102,12 @@ sub git_run ( $self, $cmd, $cb = undef ) {
     }
 
     return;
+}
+
+sub git_run_no_root ( $self, $cmd, $cb = undef ) {
+    $self = bless {}, __PACKAGE__;
+
+    return $self->git_run( $cmd, $cb );
 }
 
 sub git_id ( $self, $cb = undef ) {
@@ -220,7 +231,7 @@ sub git_get_releases ( $self, $cb = undef ) {
         'tag --merged master',
         sub ($res) {
             if ($res) {
-                $res->{data} = [ sort grep {/\Av\d+[.]\d+[.]\d+\z/sm} split /\n/sm, $res->{data} ];
+                $res->{data} = [ sort { version->parse($a) <=> version->parse($b) } grep {/\Av\d+[.]\d+[.]\d+\z/sm} split /\n/sm, $res->{data} ];
             }
 
             return $cb ? $cb->($res) : $res;

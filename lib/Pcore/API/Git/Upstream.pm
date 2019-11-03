@@ -6,6 +6,70 @@ use Pcore::API::Git qw[:ALL];
 has repo_namespace => ( required => 1 );    # Str
 has repo_name      => ( required => 1 );    # Str
 has repo_id        => ( required => 1 );    # Str
+has hosting        => ( required => 1 );    # Enum [ $GIT_UPSTREAM_BITBUCKET, $GIT_UPSTREAM_GITHUB, $GIT_UPSTREAM_GITLAB ]
+
+# https://github.com/softvisio/phonegap.git
+# git://github.com/softvisio/phonegap.git
+# ssh://git@github.com/softvisio/phonegap.git
+# git@github.com:softvisio/phonegap.git
+
+# https://git-scm.com/docs/git-clone#_git_urls_a_id_urls_a
+sub BUILDARGS ( $self, $args ) {
+    if ( my $url = delete $args->{url} ) {
+        if ( $url =~ m[\Agit@([[:alnum:].-]+?):([[:alnum:]]+?)/([[:alnum:]]+)]sm ) {
+            $args->{hosting}        = $1;
+            $args->{repo_namespace} = $2;
+            $args->{repo_name}      = $3;
+        }
+        else {
+            $url = P->uri($url);
+
+            ...;
+        }
+
+        $args->{repo_id} = "$args->{repo_namespace}/$args->{repo_name}";
+    }
+    else {
+        if ( $args->{repo_id} ) {
+            ( $args->{repo_namespace}, $args->{repo_name} ) = split m[/]sm, $args->{repo_id};
+        }
+        else {
+            $args->{repo_id} = "$args->{repo_namespace}/$args->{repo_name}";
+        }
+    }
+
+    return $args;
+}
+
+sub get_hosting_api ( $self, $args = undef ) {
+    if ( $self->{hosting} eq $GIT_UPSTREAM_BITBUCKET ) {
+        require Pcore::API::Bitbucket;
+
+        return Pcore::API::Bitbucket->new( $args // () );
+    }
+    elsif ( $self->{hosting} eq $GIT_UPSTREAM_GITHUB ) {
+        require Pcore::API::GitHub;
+
+        return Pcore::API::GitHub->new( $args // () );
+    }
+    elsif ( $self->{hosting} eq $GIT_UPSTREAM_GITLAB ) {
+        require Pcore::API::GitLab;
+
+        return Pcore::API::GitLab->new( $args // () );
+    }
+
+    return;
+}
+
+sub get_clone_url ( $self, $url_type = $GIT_UPSTREAM_URL_SSH ) {
+    my $url = $url_type == $GIT_UPSTREAM_URL_HTTPS ? 'https://' : 'ssh://git@';
+
+    $url .= "$GIT_UPSTREAM_HOST->{$self->{hosting}}/$self->{repo_id}";
+
+    return $url;
+}
+
+=pod
 
 # TODO
 sub git_wiki_clone_url ( $self, $url_type = $GIT_UPSTREAM_URL_SSH ) {
@@ -71,6 +135,8 @@ sub git_clone_url ( $self, $url_type = $GIT_UPSTREAM_URL_SSH ) {
     }
 }
 
+=cut
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -78,7 +144,11 @@ sub git_clone_url ( $self, $url_type = $GIT_UPSTREAM_URL_SSH ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 11, 61               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 27                   | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 64                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 72                   | Documentation::RequirePodAtEnd - POD before __END__                                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
