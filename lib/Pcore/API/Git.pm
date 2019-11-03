@@ -76,7 +76,7 @@ sub git_run ( $self, $cmd, $cb = undef ) {
             stderr => 1,
         );
 
-        $proc->capture->wait;
+        $proc->wait->capture;
 
         my $res;
 
