@@ -60,7 +60,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 
         print $tbl->render_header;
 
-        my $order = [ map { $_->name } sort { $a->name cmp $b->name } $dists->@* ];
+        my $order = [ map { $_->name } sort { lc $a->name cmp lc $b->name } $dists->@* ];
 
         my $dist_data;
 
