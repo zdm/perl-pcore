@@ -14,10 +14,11 @@ has hosting        => ( required => 1 );    # Enum [ $GIT_UPSTREAM_BITBUCKET, $G
 # git@github.com:softvisio/phonegap.git
 
 # https://git-scm.com/docs/git-clone#_git_urls_a_id_urls_a
+# TODO
 sub BUILDARGS ( $self, $args ) {
     if ( my $url = delete $args->{url} ) {
         if ( $url =~ m[\Agit@([[:alnum:].-]+?):([[:alnum:]]+?)/([[:alnum:]]+)]sm ) {
-            $args->{hosting}        = $1;
+            $args->{hosting}        = $GIT_UPSTREAM_NAME->{$1};
             $args->{repo_namespace} = $2;
             $args->{repo_name}      = $3;
         }
@@ -69,7 +70,22 @@ sub get_clone_url ( $self, $url_type = $GIT_UPSTREAM_URL_SSH ) {
     return $url;
 }
 
+sub get_wiki_clone_url ( $self, $url_type = $GIT_UPSTREAM_URL_SSH ) {
+    my $url = $self->get_clone_url($url_type);
+
+    if ( $self->{hosting} eq $GIT_UPSTREAM_BITBUCKET ) {
+        $url .= '/wiki';
+    }
+    else {
+        $url .= '.wiki';
+    }
+
+    return $url;
+}
+
 # TODO
+
+=pod
 sub get_cpan_meta ( $self) {
     my $cpan_meta;
 
@@ -103,22 +119,7 @@ sub get_cpan_meta ( $self) {
     return $cpan_meta;
 }
 
-# TODO
-sub git_wiki_clone_url ( $self, $url_type = $GIT_UPSTREAM_URL_SSH ) {
-    my $repo_id;
-
-    # my $repo_id = $self->{hosting} eq $SCM_HOSTING_BITBUCKET ? "$self->{repo_id}/wiki" : "$self->{repo_id}.wiki";
-
-    # ssh
-    if ( $url_type == $GIT_UPSTREAM_URL_SSH ) {
-        return "git\@$GIT_UPSTREAM_HOST->{$self->{upstream}}:$repo_id.git";
-    }
-
-    # https
-    else {
-        return "https://$GIT_UPSTREAM_HOST->{$self->{upstream}}/$repo_id.git";
-    }
-}
+=cut
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
@@ -127,9 +128,11 @@ sub git_wiki_clone_url ( $self, $url_type = $GIT_UPSTREAM_URL_SSH ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 27                   | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 28                   | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 64, 107              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 65, 73               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 88                   | Documentation::RequirePodAtEnd - POD before __END__                                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
