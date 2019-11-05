@@ -8,24 +8,26 @@ has repo_name      => ( required => 1 );    # Str
 has repo_id        => ( required => 1 );    # Str
 has hosting        => ( required => 1 );    # Enum [ $GIT_UPSTREAM_BITBUCKET, $GIT_UPSTREAM_GITHUB, $GIT_UPSTREAM_GITLAB ]
 
-# https://github.com/softvisio/phonegap.git
-# git://github.com/softvisio/phonegap.git
-# ssh://git@github.com/softvisio/phonegap.git
-# git@github.com:softvisio/phonegap.git
-
 # https://git-scm.com/docs/git-clone#_git_urls_a_id_urls_a
-# TODO
 sub BUILDARGS ( $self, $args ) {
+
+    # git@github.com:softvisio/phonegap.git
     if ( my $url = delete $args->{url} ) {
         if ( $url =~ m[\Agit@([[:alnum:].-]+?):([[:alnum:]]+?)/([[:alnum:]]+)]sm ) {
             $args->{hosting}        = $GIT_UPSTREAM_NAME->{$1};
             $args->{repo_namespace} = $2;
             $args->{repo_name}      = $3;
         }
+
+        # https://github.com/softvisio/phonegap.git
+        # git://github.com/softvisio/phonegap.git
+        # ssh://git@github.com/softvisio/phonegap.git
         else {
             $url = P->uri($url);
 
-            ...;
+            $args->{hosting} = $GIT_UPSTREAM_NAME->{ $url->{host} };
+
+            ( $args->{repo_namespace}, $args->{repo_name} ) = ( $url->{path} =~ m[/([[:alnum:]_-]+)/([[:alnum:]_-]+)]smi );
         }
 
         $args->{repo_id} = "$args->{repo_namespace}/$args->{repo_name}";
@@ -128,9 +130,9 @@ sub get_cpan_meta ( $self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 28, 118              | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 67, 75               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 65, 73               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 120                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
