@@ -83,13 +83,10 @@ sub get_wiki_clone_url ( $self, $url_type = $GIT_UPSTREAM_URL_SSH ) {
     return $url;
 }
 
-# TODO
-
-=pod
 sub get_cpan_meta ( $self) {
     my $cpan_meta;
 
-    if ( $self->{hosting} eq $SCM_HOSTING_BITBUCKET ) {
+    if ( $self->{hosting} eq $GIT_UPSTREAM_BITBUCKET ) {
         $cpan_meta = {
             homepage   => "https://bitbucket.org/$self->{repo_id}/overview",
             bugtracker => {                                                    #
@@ -97,12 +94,12 @@ sub get_cpan_meta ( $self) {
             },
             repository => {
                 type => $self->{scm_type},
-                url  => $self->get_clone_url( $SCM_URL_TYPE_HTTPS, $self->{scm_type} ),
+                url  => $self->get_clone_url($GIT_UPSTREAM_URL_HTTPS),
                 web  => "https://bitbucket.org/$self->{repo_id}/overview",
             },
         };
     }
-    elsif ( $self->{hosting} eq $SCM_HOSTING_GITHUB ) {
+    elsif ( $self->{hosting} eq $GIT_UPSTREAM_GITHUB ) {
         $cpan_meta = {
             homepage   => "https://github.com/$self->{repo_id}",
             bugtracker => {                                        #
@@ -110,16 +107,19 @@ sub get_cpan_meta ( $self) {
             },
             repository => {
                 type => 'git',
-                url  => $self->get_clone_url( $SCM_URL_TYPE_HTTPS, $SCM_TYPE_GIT ),
+                url  => $self->get_clone_url($GIT_UPSTREAM_URL_HTTPS),
                 web  => "https://github.com/$self->{repo_id}",
             },
         };
     }
+    elsif ( $self->{hosting} eq $GIT_UPSTREAM_GITLAB ) {
+
+        # TODO
+        ...;
+    }
 
     return $cpan_meta;
 }
-
-=cut
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
@@ -128,11 +128,9 @@ sub get_cpan_meta ( $self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 28                   | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 28, 118              | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 65, 73               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 88                   | Documentation::RequirePodAtEnd - POD before __END__                                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
