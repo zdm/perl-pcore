@@ -5,11 +5,10 @@ use Pod::Markdown;
 use CPAN::Meta;
 use Pcore::API::PAUSE;
 
-has dist => ( required => 1 );    # InstanceOf ['Pcore::Dist']
-
-has major  => 0;                  # Bool
-has minor  => 0;                  # Bool
-has bugfix => 0;                  # Bool
+has dist   => ( required => 1 );    # InstanceOf ['Pcore::Dist']
+has major  => 0;                    # Bool
+has minor  => 0;                    # Bool
+has bugfix => 0;                    # Bool
 
 sub run ($self) {
 
@@ -77,7 +76,7 @@ sub run ($self) {
     {
         print 'Committing ... ';
 
-        my $res = $self->{dist}->git->git_run( [ 'commit', '-m', qq[release $new_ver] ] );
+        my $res = $self->{dist}->git->git_run(qq[commit -m"release $new_ver"]);
 
         say $res && return if !$res;
 
