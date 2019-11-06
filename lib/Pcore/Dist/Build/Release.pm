@@ -96,6 +96,9 @@ sub run ($self) {
         say 'done';
     }
 
+    ## no critic
+    exit;
+
     if ( $self->{dist}->git->upstream ) {
       PUSH_UPSTREAM:
         print 'Pushing to the upstream repository ... ';
@@ -311,6 +314,16 @@ TXT
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 99                   | Miscellanea::ProhibitUnrestrictedNoCritic - Unrestricted '## no critic' annotation                             |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
