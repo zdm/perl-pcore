@@ -278,6 +278,10 @@ sub _create_changes ( $self, $ver, $issues ) {
 
     my $changesets = $self->{dist}->git->git_get_log($tag);
 
+    say dump $changesets;
+    ## no critic
+    exit;
+
     my $summary_idx;
 
     my $log = <<'TXT';
@@ -321,6 +325,16 @@ TXT
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 282                  | Miscellanea::ProhibitUnrestrictedNoCritic - Unrestricted '## no critic' annotation                             |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
