@@ -27,7 +27,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 
 sub _clone_upstream_wiki ( $self, $dist ) {
     if ( !$dist->git || !$dist->git->upstream ) {
-        say q[SCM wasn't found];
+        say q[Git repo wasn't found];
 
         return;
     }

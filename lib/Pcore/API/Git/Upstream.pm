@@ -95,7 +95,7 @@ sub get_cpan_meta ( $self) {
                 web => "https://bitbucket.org/$self->{repo_id}/issues?status=new&status=open",
             },
             repository => {
-                type => $self->{scm_type},
+                type => 'git',
                 url  => $self->get_clone_url($GIT_UPSTREAM_URL_HTTPS),
                 web  => "https://bitbucket.org/$self->{repo_id}/overview",
             },
