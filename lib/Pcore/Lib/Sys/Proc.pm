@@ -200,6 +200,11 @@ sub _create_process ( $self, $cmd, $args, $restore ) {
 
                 return;
             }
+
+            $self->{status} = $PROC_STATUS_ACTIVE;
+            $self->{reason} = $STATUS_REASON->{$PROC_STATUS_ACTIVE};
+
+            $self->_set_watcher;
         }
 
         # error creating process
@@ -236,6 +241,11 @@ sub _create_process ( $self, $cmd, $args, $restore ) {
 
             undef $chdir_guard;
 
+            $self->{status} = $PROC_STATUS_ACTIVE;
+            $self->{reason} = $STATUS_REASON->{$PROC_STATUS_ACTIVE};
+
+            $self->_set_watcher;
+
             close $w or die $!;
 
             my $h = P->handle($r);
@@ -247,11 +257,6 @@ sub _create_process ( $self, $cmd, $args, $restore ) {
             }
         }
     }
-
-    $self->{status} = $PROC_STATUS_ACTIVE;
-    $self->{reason} = $STATUS_REASON->{$PROC_STATUS_ACTIVE};
-
-    $self->_set_watcher;
 
     return;
 }
