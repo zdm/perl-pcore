@@ -278,26 +278,13 @@ sub _create_changes ( $self, $ver, $issues ) {
 
     my $changesets = $self->{dist}->git->git_get_log($tag);
 
-    say dump $changesets;
-    ## no critic
-    exit;
-
-    my $summary_idx;
-
     my $log = <<'TXT';
 LOG: Edit changelog.  Lines beginning with 'LOG:' are removed.
 
 TXT
+
     for my $changeset ( $changesets->{data}->@* ) {
-        if ( !exists $summary_idx->{ $changeset->{summary} } ) {
-            $summary_idx->{ $changeset->{summary} } = undef;
-
-            next if $changeset->{summary} =~ /\Arelease v[\d.]+\z/sm;
-
-            next if $changeset->{summary} =~ /\AAdded tag/sm;
-
-            $log .= "- $changeset->{summary}\n";
-        }
+        $log .= "- $changeset\n";
     }
 
     my $tempfile = P->file1->tempfile;
@@ -325,16 +312,6 @@ TXT
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 282                  | Miscellanea::ProhibitUnrestrictedNoCritic - Unrestricted '## no critic' annotation                             |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
