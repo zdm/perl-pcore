@@ -87,7 +87,7 @@ sub run ($self) {
     {
         print 'Setting tags ... ';
 
-        my $res = $self->{dist}->git->git_run(qq[tag -a "$new_ver" -m "Released version $new_ver" ]);
+        my $res = $self->{dist}->git->git_run(qq[tag -a "$new_ver" -m "Released version: $new_ver" ]);
         say $res && return if !$res;
 
         $res = $self->{dist}->git->git_run( [ 'tag', 'latest', '--force' ] );
@@ -103,10 +103,17 @@ sub run ($self) {
 
         # pushing changesets
       GIT_PUSH:
-        print 'Pushing to the upstream repository ... ';
-        my $res = $self->{dist}->git->git_run('push --follow-tags -f');
+        print 'Pushing changesets ... ';
+        my $res = $self->{dist}->git->git_run('push');
         say $res->{reason};
         goto GIT_PUSH if !$res && P->term->prompt( q[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
+
+        # pushing tags
+      GIT_PUSH_TAGS:
+        print 'Pushing tags ... ';
+        my $res = $self->{dist}->git->git_run(qq[push -f --tags $new_ver latest]);
+        say $res->{reason};
+        goto GIT_PUSH_TAGS if !$res && P->term->prompt( q[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
     }
 
     # upload to the CPAN if this is the CPAN distribution, prompt before upload
@@ -317,6 +324,8 @@ TXT
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
+## |    3 | 13                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (21)                       |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 99                   | Miscellanea::ProhibitUnrestrictedNoCritic - Unrestricted '## no critic' annotation                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
