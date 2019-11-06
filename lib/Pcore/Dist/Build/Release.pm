@@ -276,7 +276,7 @@ sub _create_changes ( $self, $ver, $issues ) {
     # get changesets since latest release
     my $tag = $ver eq 'v0.1.0' ? undef : 'latest';
 
-    my $changesets = $self->{dist}->git->git_get_changesets($tag);
+    my $changesets = $self->{dist}->git->git_get_log($tag);
 
     my $summary_idx;
 
