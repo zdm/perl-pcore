@@ -96,9 +96,6 @@ sub run ($self) {
         say 'done';
     }
 
-    ## no critic
-    exit;
-
     if ( $self->{dist}->git->upstream ) {
 
         # pushing changesets
@@ -325,8 +322,6 @@ TXT
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 13                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (21)                       |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 99                   | Miscellanea::ProhibitUnrestrictedNoCritic - Unrestricted '## no critic' annotation                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
