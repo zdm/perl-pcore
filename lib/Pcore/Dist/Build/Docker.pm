@@ -105,7 +105,7 @@ sub set_from_tag ( $self, $tag ) {
                 # cd to repo root
                 my $chdir_guard = P->file->chdir( $self->{dist}->{root} );
 
-                my $res = $self->{dist}->git->git_run( [ 'commit', '-m', qq[Docker base image changed from "$1:$2" to "$1:$tag"], 'Dockerfile' ] );
+                my $res = $self->{dist}->git->git_run(qq[commit -m"Docker base image changed from \\"$1:$2\\" to \\"$1:$tag\\"" Dockerfile]);
 
                 die "$res" if !$res;
             }
