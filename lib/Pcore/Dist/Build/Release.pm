@@ -66,7 +66,7 @@ sub run ($self) {
     {
         print 'Add/remove changes ... ';
 
-        my $res = $self->{dist}->scm->scm_addremove;
+        my $res = $self->{dist}->git->git_run('add .');
 
         say $res && return if !$res;
 
@@ -77,7 +77,7 @@ sub run ($self) {
     {
         print 'Committing ... ';
 
-        my $res = $self->{dist}->scm->scm_commit(qq[release $new_ver]);
+        my $res = $self->{dist}->git->git_run( [ 'commit', '-m', qq[release $new_ver] ] );
 
         say $res && return if !$res;
 
@@ -88,18 +88,20 @@ sub run ($self) {
     {
         print 'Setting tags ... ';
 
-        my $res = $self->{dist}->scm->scm_set_tag( [ 'latest', $new_ver ], 1 );
+        my $res = $self->{dist}->git->git_run( [ 'tag', $new_ver ] );
+        say $res && return if !$res;
 
+        $res = $self->{dist}->git->git_run( [ 'tag', 'latest', '--force' ] );
         say $res && return if !$res;
 
         say 'done';
     }
 
-    if ( $self->{dist}->scm->upstream ) {
+    if ( $self->{dist}->git->upstream ) {
       PUSH_UPSTREAM:
         print 'Pushing to the upstream repository ... ';
 
-        my $res = $self->{dist}->scm->scm_push;
+        my $res = $self->{dist}->git->git_run('push --tags');
 
         say $res->{reason};
 
@@ -115,15 +117,24 @@ sub run ($self) {
 }
 
 sub _can_release ($self) {
-    if ( !$self->{dist}->scm ) {
-        say q[SCM is required.];
+    if ( !$self->{dist}->git ) {
+        say q[Git is required.];
+
+        return;
+    }
+
+    my $id = $self->{dist}->id;
+
+    # check master branch
+    if ( !$id->{branch} || $id->{branch} ne 'master' ) {
+        say q[Git is not on mster branch.];
 
         return;
     }
 
     # check for uncommited changes
-    if ( !$self->{dist}->is_commited ) {
-        say q[Working copy or sub-repositories has uncommited changes or unknown files.];
+    if ( $id->{is_dirty} ) {
+        say q[Working copy or sub-repositories has uncommited changes or untracked files.];
 
         return;
     }
@@ -135,7 +146,7 @@ sub _can_release ($self) {
     }
 
     # check distance from the last release
-    if ( !$self->{dist}->id->{release_distance} ) {
+    if ( !$id->{release_distance} ) {
         return if P->term->prompt( q[No changes since last release. Continue?], [qw[yes no]], enter => 1 ) eq 'no';
     }
 
@@ -265,7 +276,7 @@ sub _create_changes ( $self, $ver, $issues ) {
     # get changesets since latest release
     my $tag = $ver eq 'v0.1.0' ? undef : 'latest';
 
-    my $changesets = $self->{dist}->scm->scm_get_changesets($tag);
+    my $changesets = $self->{dist}->git->git_get_changesets($tag);
 
     my $summary_idx;
 
