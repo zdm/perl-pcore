@@ -111,7 +111,7 @@ sub run ($self) {
         # pushing tags
       GIT_PUSH_TAGS:
         print 'Pushing tags ... ';
-        $res = $self->{dist}->git->git_run(qq[push -f --tags $new_ver latest]);
+        $res = $self->{dist}->git->git_run(qq[push origin -f "refs/tags/$new_ver" "refs/tags/latest"]);
         say $res->{reason};
         goto GIT_PUSH_TAGS if !$res && P->term->prompt( q[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
     }
