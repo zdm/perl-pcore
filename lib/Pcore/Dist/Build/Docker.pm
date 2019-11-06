@@ -323,7 +323,7 @@ sub build_local ( $self, $tag, $args ) {
 
     my $dockerignore = $self->_build_dockerignore("$clone_root/.dockerignore");
 
-    print 'Creating image tar ... ';
+    print 'Comressing image source ... ';
     my $tar = do {
         require Archive::Tar;
 
