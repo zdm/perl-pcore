@@ -100,7 +100,7 @@ sub run ($self) {
       PUSH_UPSTREAM:
         print 'Pushing to the upstream repository ... ';
 
-        my $res = $self->{dist}->git->git_run('push --tags -f');
+        my $res = $self->{dist}->git->git_run('push --follow-tags -f');
 
         say $res->{reason};
 
