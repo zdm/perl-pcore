@@ -76,7 +76,12 @@ sub git_run ( $self, $cmd, $cb = undef ) {
             stderr => 1,
         );
 
-        $proc->wait->capture;
+        if ($MSWIN) {
+            $proc->wait->capture;
+        }
+        else {
+            $proc->capture->wait;
+        }
 
         my $res;
 
