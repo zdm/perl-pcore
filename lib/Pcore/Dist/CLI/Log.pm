@@ -31,7 +31,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
         }
     }
 
-    print "Changelog since release: @{[ $dist->id->{release} ]}\n$log\n";
+    print "Changelog since release: @{[ $dist->id->{release} // 0 ]}\n$log\n";
 
     return;
 }
