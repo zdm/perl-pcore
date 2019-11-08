@@ -208,8 +208,8 @@ sub _build_id ($self) {
     my $id = {
         branch           => undef,
         date             => undef,
-        id               => undef,
-        id_short         => undef,
+        hash             => undef,
+        hash_short       => undef,
         is_dirty         => undef,
         release          => undef,
         release_distance => undef,
@@ -227,6 +227,9 @@ sub _build_id ($self) {
 
     # convert date to UTC
     $id->{date} = P->date->from_string( $id->{date} )->at_utc->to_string if defined $id->{date};
+
+    # create verion obj
+    $id->{release} = version->parse( $id->{release} ) if $id->{release};
 
     return $id;
 }

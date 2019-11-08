@@ -126,8 +126,8 @@ sub git_id ( $self, $cb = undef ) {
     my $res1 = res 200,
       { branch           => undef,
         date             => undef,
-        id               => undef,
-        id_short         => undef,
+        hash             => undef,
+        hash_short       => undef,
         is_dirty         => undef,
         release          => undef,
         release_distance => undef,
@@ -152,7 +152,7 @@ sub git_id ( $self, $cb = undef ) {
                 $res1 = $res;
             }
             else {
-                ( my $data->@{qw[id id_short date]}, my $ref ) = split /\n/sm, $res->{data};
+                ( my $data->@{qw[hash hash_short date]}, my $ref ) = split /\n/sm, $res->{data};
 
                 my @ref = split /,/sm, $ref;
 
