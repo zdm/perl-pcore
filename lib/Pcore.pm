@@ -118,7 +118,7 @@ sub import {
     if ( $import->{pragma}->{sql} ) {
         require Pcore::Handle::DBI::Const;
 
-        Pcore::Handle::DBI::Const->import( -caller => $caller, qw[:TYPES :QUERY] );
+        Pcore::Handle::DBI::Const->import( -caller => $caller, qw[:TYPES :QUERY :SQL_VALUES_IDX] );
     }
 
     # re-export OOP
