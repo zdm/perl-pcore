@@ -31,6 +31,8 @@ sub get_query ( $self, $dbh, $final, $i ) {
                 my $idx;
 
                 for my $token ( $self->{_buf}->@* ) {
+
+                    # get hash with keys
                     next if !is_plain_hashref $token || !$token->%*;
 
                     $idx->@{ keys $token->%* } = ();
@@ -41,8 +43,6 @@ sub get_query ( $self, $dbh, $final, $i ) {
                 @idx = sort keys $idx->%*;
 
                 die q[unable to build columns index] if !@idx;
-
-                next if $full_scan;
             }
 
             my @row;
@@ -126,7 +126,7 @@ sub get_query ( $self, $dbh, $final, $i ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 12                   | Subroutines::ProhibitExcessComplexity - Subroutine "get_query" with high complexity score (32)                 |
+## |    3 | 12                   | Subroutines::ProhibitExcessComplexity - Subroutine "get_query" with high complexity score (31)                 |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
