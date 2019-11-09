@@ -5,6 +5,10 @@ use Pcore::Lib::Scalar qw[is_ref is_plain_scalarref is_arrayref is_plain_arrayre
 
 has _buf => ( required => 1 );    # ArrayRef
 
+# VALUES [ { a => 1 }, { b => 1 } ] # get columns from the first not empty hash, columns will be ( "a" )
+# VALUES [ {}, { a => 1 }, { b => 1 } ] # perform full scan, columns will be ( "a", "b" ), first row will be ignored
+# VALUES [ [], {}, { a => 1 }, { b => 1 } ] # get columns from the first not empty hash, columns will be ( "a" ), first [] will be ignored, first {} will not be ignored
+
 sub get_query ( $self, $dbh, $final, $i ) {
     my ( @sql, @idx, @bind );
 
@@ -15,7 +19,31 @@ sub get_query ( $self, $dbh, $final, $i ) {
 
         # HashRef prosessed as values set
         if ( is_plain_hashref $token) {
-            @idx = sort keys $token->%* if !@idx;
+
+            # create fields index
+            if ( !@idx ) {
+
+                # first row is a hash without keys
+                # create idx by scanning all rows
+                # ignore first row
+                my $full_scan = is_plain_hashref $self->{_buf}->[0] && !$self->{_buf}->[0]->%*;
+
+                my $idx;
+
+                for my $token ( $self->{_buf}->@* ) {
+                    next if !is_plain_hashref $token || !$token->%*;
+
+                    $idx->@{ keys $token->%* } = ();
+
+                    last if !$full_scan;
+                }
+
+                @idx = sort keys $idx->%*;
+
+                die q[unable to build columns index] if !@idx;
+
+                next if $full_scan;
+            }
 
             my @row;
 
@@ -98,7 +126,7 @@ sub get_query ( $self, $dbh, $final, $i ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 8                    | Subroutines::ProhibitExcessComplexity - Subroutine "get_query" with high complexity score (25)                 |
+## |    3 | 12                   | Subroutines::ProhibitExcessComplexity - Subroutine "get_query" with high complexity score (32)                 |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
