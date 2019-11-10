@@ -6,12 +6,10 @@ USER root
 
 ENV TZ=UTC \
     PERL_VERSION="5.30.0" \
-    # PERL_CPANM_OPT="--metacpan --from https://cpan.metacpan.org/" \
-    # PERL_CPANM_HOME=/tmp/.cpanm \
     PCORE_LIB="/var/local" \
     DIST_PATH="/var/local/pcore"
 
-ENV PATH="$DIST_PATH/bin:/usr/plenv/versions/perl-$PERL_VERSION/bin:$PATH" \
+ENV PATH="$DIST_PATH/bin:$PATH" \
     PERL5LIB="$DIST_PATH/lib"
 
 ADD . $DIST_PATH
@@ -28,11 +26,7 @@ RUN /bin/bash -c ' \
     \
     # install && update perl
     && dnf -y install plenv perl-$PERL_VERSION \
-    && source /etc/profile.d/plenv.sh \
     && plenv global perl-$PERL_VERSION \
-    && plenv rehash \
-    && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/perl-modules.sh || echo false ) \
-    # && cpan-outdated | cpanm \
     \
     # deploy pcore, --devel ???
     && perl bin/pcore deploy --recommends --suggests \
