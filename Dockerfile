@@ -27,6 +27,7 @@ RUN /bin/bash -c ' \
     # install && update perl
     && dnf -y install plenv perl-$PERL_VERSION \
     && plenv global perl-$PERL_VERSION \
+    && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/perl-modules.sh || echo false ) \
     \
     # deploy pcore, --devel ???
     && perl bin/pcore deploy --recommends --suggests \
