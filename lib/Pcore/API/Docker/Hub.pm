@@ -1,4 +1,4 @@
-package Pcore::API::Docker::Cloud;
+package Pcore::API::Docker::Hub;
 
 use Pcore -const, -class, -res, -export;
 use Pcore::Lib::Scalar qw[is_plain_coderef];
@@ -36,9 +36,9 @@ const our $BUILD_STATUS_TEXT => {
 };
 
 sub BUILDARGS ( $self, $args = undef ) {
-    $args->{username} ||= $ENV->user_cfg->{DOCKER}->{username};
+    $args->{username} ||= $ENV->user_cfg->{DOCKERHUB}->{username};
 
-    $args->{password} ||= $ENV->user_cfg->{DOCKER}->{password};
+    $args->{password} ||= $ENV->user_cfg->{DOCKERHUB}->{password};
 
     return $args;
 }
@@ -553,7 +553,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::Docker::Cloud
+Pcore::API::Docker::Hub
 
 =head1 SYNOPSIS
 

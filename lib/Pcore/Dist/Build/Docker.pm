@@ -4,12 +4,12 @@ use Pcore -class, -ansi, -res;
 use Pcore::Lib::Scalar qw[is_plain_arrayref];
 
 has dist => ();                                     # InstanceOf ['Pcore::Dist']
-has api  => ( is => 'lazy', init_arg => undef );    # InstanceOf ['Pcore::API::Docker::Cloud']
+has api  => ( is => 'lazy', init_arg => undef );    # InstanceOf ['Pcore::API::Docker::Hub']
 
 sub _build_api($self) {
-    require Pcore::API::Docker::Cloud;
+    require Pcore::API::Docker::Hub;
 
-    return Pcore::API::Docker::Cloud->new;
+    return Pcore::API::Docker::Hub->new;
 }
 
 sub init ( $self, $args ) {
@@ -27,7 +27,7 @@ sub init ( $self, $args ) {
         exit 3;
     }
 
-    my $repo_namespace = $args->{namespace} || $ENV->user_cfg->{DOCKER}->{default_namespace} || $ENV->user_cfg->{DOCKER}->{username};
+    my $repo_namespace = $args->{namespace} || $ENV->user_cfg->{DOCKERHUB}->{default_namespace} || $ENV->user_cfg->{DOCKERHUB}->{username};
 
     if ( !$repo_namespace ) {
         say 'DockerHub repo namespace is not defined';
