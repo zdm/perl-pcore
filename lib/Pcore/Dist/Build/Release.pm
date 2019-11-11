@@ -155,7 +155,7 @@ sub _can_release ($self) {
 
     # check parent docker repo tag
     if ( $self->{dist}->docker ) {
-        if ( !$ENV->user_cfg->{DOCKERHUB}->{username} || !$ENV->user_cfg->{DOCKERHUB}->{password} ) {
+        if ( !$ENV->user_cfg->{DOCKERHUB}->{username} || !$ENV->user_cfg->{DOCKERHUB}->{token} ) {
             say q[You need to specify DockerHub credentials.];
 
             return;

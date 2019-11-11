@@ -6,7 +6,7 @@ use Pcore::Lib::Scalar qw[is_plain_coderef];
 our $EXPORT = { DOCKERHUB_SOURCE_TYPE => [qw[$DOCKERHUB_SOURCE_TYPE_TAG $DOCKERHUB_SOURCE_TYPE_BRANCH]] };
 
 has username => ( required => 1 );
-has password => ( required => 1 );
+has token    => ( required => 1 );
 
 has _login_token => ( init_arg => undef );
 has _reg_queue   => ( init_arg => undef );    # HashRef [ArrayRef]
@@ -38,7 +38,7 @@ const our $BUILD_STATUS_TEXT => {
 sub BUILDARGS ( $self, $args = undef ) {
     $args->{username} ||= $ENV->user_cfg->{DOCKERHUB}->{username};
 
-    $args->{password} ||= $ENV->user_cfg->{DOCKERHUB}->{password};
+    $args->{token} ||= $ENV->user_cfg->{DOCKERHUB}->{token};
 
     return $args;
 }
@@ -61,7 +61,7 @@ sub _login ( $self, $cb ) {
         $endpoint,
         undef,
         {   username => $self->{username},
-            password => $self->{password},
+            password => $self->{token},
         },
         sub ($res) {
             if ( !$res ) {
