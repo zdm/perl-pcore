@@ -288,7 +288,15 @@ sub build_local ( $self, $tag, $args ) {
     require Pcore::API::Git;
     require Pcore::API::Docker::Engine;
 
+    my $res;
+
     my $dist = $self->{dist};
+
+    if ( !$dist->docker ) {
+        $res = res [ 400, 'Docker is not configured for this dist' ];
+        say $res;
+        return $res;
+    }
 
     my ( $clone_root, $repo );
 
@@ -298,7 +306,7 @@ sub build_local ( $self, $tag, $args ) {
         $clone_root = P->file1->tempdir;
 
         # my $res = Pcore::API::Git->git_run_no_root( [ 'clone', $dist->git->upstream->get_clone_url, $clone_root ] );
-        my $res = Pcore::API::Git->git_run_no_root( [ 'clone', $dist->{root}, $clone_root ] );
+        $res = Pcore::API::Git->git_run_no_root( [ 'clone', $dist->{root}, $clone_root ] );
         say $res;
         return $res if !$res;
 
@@ -315,7 +323,7 @@ sub build_local ( $self, $tag, $args ) {
 
     # create build tags
     my $id      = $repo->id;
-    my $repo_id = $repo->docker->{repo_id};
+    my $repo_id = $dist->docker->{repo_id};
 
     my @tags;
 
@@ -356,7 +364,7 @@ sub build_local ( $self, $tag, $args ) {
     my $docker = Pcore::API::Docker::Engine->new;
 
     print 'Building image ... ';
-    my $res = $docker->image_build( $tar, \@tags );
+    $res = $docker->image_build( $tar, \@tags );
     say $res;
 
     # docker image build error
@@ -374,7 +382,6 @@ sub build_local ( $self, $tag, $args ) {
         return $res;
     }
 
-    # TODO push by id
     # push images
     if ( $args->{push} ) {
         for my $tag (@tags) {
@@ -384,13 +391,12 @@ sub build_local ( $self, $tag, $args ) {
         }
     }
 
-    # TODO remove by image id
+    # remove by image id
     if ( $args->{remove} ) {
-        for my $tag (@tags) {
-            print qq[Removing image "$tag" ... ];
-            $res = $docker->image_remove( $tag, 1 );
-            say $res;
-        }
+        print qq[Removing image "$res->{data}" ... ];
+        $res = $docker->image_remove( $res->{data}, 1 );
+        say $res;
+
     }
 
     return res 200;
