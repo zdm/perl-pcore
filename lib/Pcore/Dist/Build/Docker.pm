@@ -398,20 +398,37 @@ sub _build_dockerignore ( $self, $path ) {
 
         for my $line ( P->file->read_lines($path)->@* ) {
 
+            # trim spaces
+            $line =~ s/(?:\A\s+|\s+\z)//smg;
+
+            # remove leading "/"
+            $line =~ s[\A/][]sm;
+
+            # skip empty line
+            next if $line eq $EMPTY;
+
             # skip comments
-            next if $line =~ /\A\s*#/sm;
+            next if $line =~ /\A#/sm;
 
             my $pattern = quotemeta $line;
 
+            # "**" = zero or more number of directories
+            $pattern =~ s[\\[*]\\[*]][.*]smg;
+
+            # "?" = any character, excluding "/"
             $pattern =~ s[\\[?]][[^/]]smg;
 
+            # "*" = any substring, excluding "/"
             $pattern =~ s[\\[*]][[^/]*]smg;
 
+            # if pattern started with "!" - this is "including" pattern
             if ( substr( $line, 0, 2 ) eq '\!' ) {
                 substr $line, 0, 2, $EMPTY;
 
                 push @include, $pattern;
             }
+
+            # otherwise this is "excluding" pattern
             else {
                 push @exclude, $pattern;
             }
