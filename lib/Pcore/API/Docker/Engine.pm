@@ -3,7 +3,7 @@ package Pcore::API::Docker::Engine;
 use Pcore -class, -const, -res;
 
 const our $API_VER               => 'v1.39';
-const our $DEFAULT_BUILD_TIMEOUT => 60 * 60 * 2;
+const our $DEFAULT_BUILD_TIMEOUT => 60 * 60 * 2;    # 2 hours
 
 has username => sub { $ENV->user_cfg->{DOCKER}->{username} };
 has password => sub { $ENV->user_cfg->{DOCKER}->{password} };

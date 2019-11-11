@@ -290,38 +290,40 @@ sub build_local ( $self, $tag, $args ) {
 
     my $dist = $self->{dist};
 
-    print 'Cloning ... ';
+    my ( $clone_root, $repo );
 
-    my $clone_root = P->file1->tempdir;
+    if ( defined $tag ) {
+        print 'Cloning ... ';
 
-    # my $res = Pcore::API::Git->git_run_no_root( [ 'clone', $dist->git->upstream->get_clone_url, $clone_root ] );
-    my $res = Pcore::API::Git->git_run_no_root( [ 'clone', $dist->{root}, $clone_root ] );
-    say $res;
-    return $res if !$res;
+        $clone_root = P->file1->tempdir;
 
-    my $repo = Pcore::Dist->new($clone_root);
+        # my $res = Pcore::API::Git->git_run_no_root( [ 'clone', $dist->git->upstream->get_clone_url, $clone_root ] );
+        my $res = Pcore::API::Git->git_run_no_root( [ 'clone', $dist->{root}, $clone_root ] );
+        say $res;
+        return $res if !$res;
 
-    print 'Checking out ... ';
-    $res = $repo->git->git_run("checkout $tag");
-    say $res;
-    return $res if !$res;
+        $repo = Pcore::Dist->new($clone_root);
 
-    # create duild tags
+        print 'Checking out ... ';
+        $res = $repo->git->git_run("checkout $tag");
+        say $res;
+        return $res if !$res;
+    }
+    else {
+        $repo = $dist;
+    }
+
+    # create build tags
     my $id      = $repo->id;
     my $repo_id = $repo->docker->{repo_id};
 
     my @tags;
 
-    for ( $id->{branch}, $id->{tags}->@* ) {
-        next if !defined;
+    @tags = map {"$repo_id:$_"} grep {defined} $id->{branch}, $id->{tags}->@* if defined $tag;
 
-        push @tags, "$repo_id:$_";
-    }
+    push @tags, "$repo_id:$id->{hash_short}" if !@tags;
 
-    # add dist-id.yaml
-    P->cfg->write( "$repo->{root}/share/dist-id.yaml", $id );
-
-    my $dockerignore = $self->_build_dockerignore("$clone_root/.dockerignore");
+    my $dockerignore = $self->_build_dockerignore("$repo->{root}/.dockerignore");
 
     print 'Comressing image source ... ';
     my $tar = do {
@@ -329,7 +331,7 @@ sub build_local ( $self, $tag, $args ) {
 
         my $_tar = Archive::Tar->new;
 
-        for my $path ( $clone_root->read_dir( max_depth => 0, is_dir => 0 )->@* ) {
+        for my $path ( $repo->{root}->read_dir( max_depth => 0, is_dir => 0 )->@* ) {
             next if $dockerignore->($path);
 
             my $mode;
@@ -341,8 +343,11 @@ sub build_local ( $self, $tag, $args ) {
                 $mode = P->file->calc_chmod('rw-r--r--');
             }
 
-            $_tar->add_data( "$path", P->file->read_bin("$clone_root/$path"), { mode => $mode } );
+            $_tar->add_data( "$path", P->file->read_bin("$repo->{root}/$path"), { mode => $mode } );
         }
+
+        # add dist-id.yaml
+        $_tar->add_data( 'share/dist-id.yaml', P->data->to_yaml($id), { mode => P->file->calc_chmod('rw-r--r--') } );
 
         $_tar->write;
     };
@@ -351,7 +356,7 @@ sub build_local ( $self, $tag, $args ) {
     my $docker = Pcore::API::Docker::Engine->new;
 
     print 'Building image ... ';
-    $res = $docker->image_build( $tar, \@tags );
+    my $res = $docker->image_build( $tar, \@tags );
     say $res;
 
     # docker image build error
@@ -369,6 +374,7 @@ sub build_local ( $self, $tag, $args ) {
         return $res;
     }
 
+    # TODO push by id
     # push images
     if ( $args->{push} ) {
         for my $tag (@tags) {
@@ -378,6 +384,7 @@ sub build_local ( $self, $tag, $args ) {
         }
     }
 
+    # TODO remove by image id
     if ( $args->{remove} ) {
         for my $tag (@tags) {
             print qq[Removing image "$tag" ... ];
