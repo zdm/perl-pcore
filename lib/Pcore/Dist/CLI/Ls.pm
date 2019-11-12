@@ -156,12 +156,22 @@ sub _render_dist ( $self, $tbl, $dist, $data ) {
     my $dist_id = $data->{id};
 
     # branch
-    push @row, $dist_id->{branch} || ' - ';
+    if ( defined $dist_id->{branch} ) {
+        if ( $dist_id->{branch} eq 'master' ) {
+            push @row, $dist_id->{branch};
+        }
+        else {
+            push @row, $WHITE . $ON_RED . " $dist_id->{branch} " . $RESET;
+        }
+    }
+    else {
+        push @row, ' - ';
+    }
 
     # latest release
-    if ( my $releases = $data->{releases} ) {
-        my $latest_release = $releases->[-1];
+    my $latest_release = $data->{releases} ? $data->{releases}->[-1] : undef;
 
+    if ($latest_release) {
         push @row, $latest_release;
     }
     else {
@@ -169,7 +179,17 @@ sub _render_dist ( $self, $tbl, $dist, $data ) {
     }
 
     # parent release
-    push @row, defined $dist_id->{release} ? $dist_id->{release} : $WHITE . $ON_RED . ' v0.0.0 ' . $RESET;
+    if ( defined $dist_id->{release} ) {
+        if ( $dist_id->{release} eq $latest_release ) {
+            push @row, $dist_id->{release};
+        }
+        else {
+            push @row, $WHITE . $ON_RED . " $dist_id->{release} " . $RESET;
+        }
+    }
+    else {
+        push @row, $WHITE . $ON_RED . ' v0.0.0 ' . $RESET;
+    }
 
     # parent release distance
     push @row, !$dist_id->{release_distance} ? ' - ' : $WHITE . $ON_RED . sprintf( ' %3s ', $dist_id->{release_distance} ) . $RESET;
