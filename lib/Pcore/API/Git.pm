@@ -78,7 +78,6 @@ sub _do_request ( $self, $cmd ) {
         stderr => 1,
     );
 
-    # TODO describe the problem
     if ($MSWIN) {
         $proc->wait->capture;
     }
