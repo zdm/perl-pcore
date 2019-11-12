@@ -3,7 +3,10 @@ package Pcore::API::Git;
 use Pcore -class, -res, -const, -export;
 use Pcore::Lib::Scalar qw[is_plain_arrayref];
 
-has root => ( required => 1 );
+extends qw[Pcore::API::_Base];
+
+has root        => ( required => 1 );
+has max_threads => 1;
 
 has upstream => ( is => 'lazy', init_arg => undef );    # InstanceOf ['Pcore::API::Git::Upstream'] ]
 
@@ -68,53 +71,16 @@ sub _build_upstream ($self) {
 }
 
 sub git_run ( $self, $cmd, $cb = undef ) {
-    state $run = sub ( $self, $cmd, $cb ) {
-        my $proc = P->sys->run_proc(
-            [ is_plain_arrayref $cmd ? ( 'git', $cmd->@* ) : 'git ' . $cmd ],
-            chdir  => $self->{root},
-            stdout => 1,
-            stderr => 1,
-        );
-
-        if ($MSWIN) {
-            $proc->wait->capture;
-        }
-        else {
-            $proc->capture->wait;
-        }
-
-        my $res;
-
-        if ( $proc->is_success ) {
-            $res = res 200, $proc->{stdout} ? $proc->{stdout}->$* : undef;
-        }
-        else {
-            $res = res [ 500, $proc->{stderr} ? $proc->{stderr}->$* : $EMPTY ];
-        }
-
-        return $cb ? $cb->($res) : $res;
-    };
-
-    if ( defined wantarray ) {
-        return $run->( $self, $cmd, $cb );
-    }
-    else {
-        Coro::async {
-            $run->( $self, $cmd, $cb );
-
-            return;
-        };
-    }
-
-    return;
+    return $self->_create_request( $cmd, $cb );
 }
 
 sub git_run_no_root ( $self, $cmd, $cb = undef ) {
     $self = bless {}, __PACKAGE__;
 
-    return $self->git_run( $cmd, $cb );
+    return $self->_create_request( $cmd, $cb );
 }
 
+# TODO
 sub git_id ( $self, $cb = undef ) {
 
     # get all tags - git tag --points-at HEAD
@@ -141,7 +107,7 @@ sub git_id ( $self, $cb = undef ) {
     } );
 
     $cv->begin;
-    $self->git_run(
+    $self->_create_request(
         'log -1 --pretty=format:%H%n%h%n%cI%n%D',
         sub ($res) {
             $cv->end;
@@ -176,7 +142,7 @@ sub git_id ( $self, $cb = undef ) {
     );
 
     $cv->begin;
-    $self->git_run(
+    $self->_create_request(
         'describe --tags --always --match "v[0-9]*.[0-9]*.[0-9]*"',
         sub ($res) {
             $cv->end;
@@ -205,7 +171,7 @@ sub git_id ( $self, $cb = undef ) {
     );
 
     $cv->begin;
-    $self->git_run(
+    $self->_create_request(
         'status --porcelain',
         sub ($res) {
             $cv->end;
@@ -231,8 +197,37 @@ sub git_id ( $self, $cb = undef ) {
     }
 }
 
+# TODO describe problem
+sub _do_request ( $self, $cmd ) {
+    my $proc = P->sys->run_proc(
+        [ is_plain_arrayref $cmd ? ( 'git', $cmd->@* ) : 'git ' . $cmd ],
+        chdir  => $self->{root},
+        stdout => 1,
+        stderr => 1,
+    );
+
+    # TODO describe the problem
+    if ($MSWIN) {
+        $proc->wait->capture;
+    }
+    else {
+        $proc->capture->wait;
+    }
+
+    my $res;
+
+    if ( $proc->is_success ) {
+        $res = res 200, $proc->{stdout} ? $proc->{stdout}->$* : undef;
+    }
+    else {
+        $res = res [ 500, $proc->{stderr} ? $proc->{stderr}->$* : $EMPTY ];
+    }
+
+    return $res;
+}
+
 sub git_get_releases ( $self, $cb = undef ) {
-    return $self->git_run(
+    return $self->_create_request(
         'tag --merged master',
         sub ($res) {
             if ($res) {
@@ -251,7 +246,7 @@ sub git_get_log ( $self, $tag = undef, $cb = undef ) {
 
     $cmd .= " $tag..HEAD" if $tag;
 
-    return $self->git_run(
+    return $self->_create_request(
         $cmd,
         sub ($res) {
             if ($res) {
@@ -274,7 +269,7 @@ sub git_get_log ( $self, $tag = undef, $cb = undef ) {
 }
 
 sub git_is_pushed ( $self, $cb = undef ) {
-    return $self->git_run(
+    return $self->_create_request(
         'branch -v --no-color',
         sub ($res) {
             if ($res) {
@@ -298,6 +293,16 @@ sub git_is_pushed ( $self, $cb = undef ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 201                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_do_request' declared but not used  |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
