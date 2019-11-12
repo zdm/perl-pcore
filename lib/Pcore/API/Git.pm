@@ -70,7 +70,6 @@ sub _build_upstream ($self) {
     return;
 }
 
-# TODO describe problem
 sub _do_request ( $self, $cmd ) {
     my $proc = P->sys->run_proc(
         [ is_plain_arrayref $cmd ? ( 'git', $cmd->@* ) : 'git ' . $cmd ],
@@ -84,6 +83,8 @@ sub _do_request ( $self, $cmd ) {
         $proc->wait->capture;
     }
     else {
+
+        # TODO в linux, если git выводит относительно много данных в STDOUT (300 строк), процесс git не заверщается, пока не будет закрыт STDOUT handle
         $proc->capture->wait;
     }
 
@@ -109,123 +110,6 @@ sub git_run_no_root ( $self, $cmd, $cb = undef ) {
     return $self->_create_request( $cmd, $cb );
 }
 
-# TODO
-sub git_id ( $self, $cb = undef ) {
-
-    # get all tags - git tag --points-at HEAD
-    # get current branch git branch --show-current
-    # git rev-parse --short HEAD
-    # git rev-parse HEAD
-    # git branch --no-color --contains HEAD
-
-    my $res1 = res 200,
-      { branch           => undef,
-        date             => undef,
-        hash             => undef,
-        hash_short       => undef,
-        is_dirty         => undef,
-        release          => undef,
-        release_distance => undef,
-        tags             => undef,
-      };
-
-    my $cv = P->cv->begin( sub ($cv) {
-        $cv->( $cb ? $cb->($res1) : $res1 );
-
-        return;
-    } );
-
-    $cv->begin;
-    $self->_create_request(
-        'log -1 --pretty=format:%H%n%h%n%cI%n%D',
-        sub ($res) {
-            $cv->end;
-
-            return if !$res1;
-
-            if ( !$res ) {
-                $res1 = $res;
-            }
-            else {
-                ( my $data->@{qw[hash hash_short date]}, my $ref ) = split /\n/sm, $res->{data};
-
-                my @ref = split /,/sm, $ref;
-
-                # parse current branch
-                if ( ( shift @ref ) =~ /->\s(.+)/sm ) {
-                    $data->{branch} = $1;
-                }
-
-                # parse tags
-                for my $token (@ref) {
-                    if ( $token =~ /tag:\s(.+)/sm ) {
-                        push $data->{tags}->@*, $1;
-                    }
-                }
-
-                $res1->{data}->@{ keys $data->%* } = values $data->%*;
-            }
-
-            return;
-        },
-    );
-
-    $cv->begin;
-    $self->_create_request(
-        'describe --tags --always --match "v[0-9]*.[0-9]*.[0-9]*"',
-        sub ($res) {
-            $cv->end;
-
-            return if !$res1;
-
-            if ( !$res ) {
-                $res1 = $res;
-            }
-            else {
-
-                # remove trailing "\n"
-                chomp $res->{data};
-
-                my @data = split /-/sm, $res->{data};
-
-                if ( $data[0] =~ /\Av\d+[.]\d+[.]\d+\z/sm ) {
-                    $res1->{data}->{release} = $data[0];
-
-                    $res1->{data}->{release_distance} = $data[1] || 0;
-                }
-            }
-
-            return;
-        },
-    );
-
-    $cv->begin;
-    $self->_create_request(
-        'status --porcelain',
-        sub ($res) {
-            $cv->end;
-
-            return if !$res1;
-
-            if ( !$res ) {
-                $res1 = $res;
-            }
-            else {
-                $res1->{data}->{is_dirty} = 0+ !!$res->{data};
-            }
-
-            return;
-        },
-    );
-
-    if ( defined wantarray ) {
-        return $cv->end->recv;
-    }
-    else {
-        return;
-    }
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -233,7 +117,7 @@ sub git_id ( $self, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 74                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_do_request' declared but not used  |
+## |    3 | 73                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_do_request' declared but not used  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

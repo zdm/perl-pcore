@@ -216,11 +216,86 @@ sub _build_id ($self) {
         tags             => undef,
     };
 
-    if ( !$self->{is_installed} && $self->git ) {
-        if ( my $git_id = $self->git->git_id ) {
-            $id->@{ keys $git_id->{data}->%* } = values $git_id->{data}->%*;
-        }
+    # get data from git
+    if ( $self->git ) {
+        my ( $is_error, $res1 );
+
+        my $cv = P->cv->begin;
+
+        $cv->begin;
+        Coro::async_pool sub {
+            my $res = $self->git->git_run('log -1 --pretty=format:%H%n%h%n%cI%n%D');
+
+            $cv->end;
+
+            $is_error = 1 if !$res;
+
+            return if $is_error;
+
+            ( $res1->@{qw[hash hash_short date]}, my $ref ) = split /\n/sm, $res->{data};
+
+            my @ref = split /,/sm, $ref;
+
+            # parse current branch
+            if ( ( shift @ref ) =~ /->\s(.+)/sm ) {
+                $res1->{branch} = $1;
+            }
+
+            # parse tags
+            for my $token (@ref) {
+                if ( $token =~ /tag:\s(.+)/sm ) {
+                    push $res1->{tags}->@*, $1;
+                }
+            }
+
+            return;
+        };
+
+        $cv->begin;
+        Coro::async_pool sub {
+            my $res = $self->git->git_run('describe --tags --always --match "v[0-9]*.[0-9]*.[0-9]*"');
+
+            $cv->end;
+
+            $is_error = 1 if !$res;
+
+            return if $is_error;
+
+            # remove trailing "\n"
+            chomp $res->{data};
+
+            my @data = split /-/sm, $res->{data};
+
+            if ( $data[0] =~ /\Av\d+[.]\d+[.]\d+\z/sm ) {
+                $res1->{release} = $data[0];
+
+                $res1->{release_distance} = $data[1] || 0;
+            }
+
+            return;
+        };
+
+        $cv->begin;
+        Coro::async_pool sub {
+            my $res = $self->git->git_run('status --porcelain');
+
+            $cv->end;
+
+            $is_error = 1 if !$res;
+
+            return if $is_error;
+
+            $res1->{is_dirty} = 0+ !!$res->{data};
+
+            return;
+        };
+
+        $cv->end->recv;
+
+        $id->@{ keys $res1->%* } = values $res1->%* if !$is_error;
     }
+
+    # get data from dist-id.yaml
     elsif ( -f "$self->{share_dir}/dist-id.yaml" ) {
         $id = P->cfg->read("$self->{share_dir}/dist-id.yaml");
     }
