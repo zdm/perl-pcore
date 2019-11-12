@@ -186,8 +186,8 @@ sub _render_dist ( $self, $tbl, $dist, $data ) {
     else {
         my @has_not_pushed;
 
-        for my $branch ( sort keys $is_pushed->{data}->%* ) {
-            my $ahead = $is_pushed->{data}->{$branch};
+        for my $branch ( sort keys $is_pushed->%* ) {
+            my $ahead = $is_pushed->{$branch};
 
             if ($ahead) {
                 push @has_not_pushed, $WHITE . $ON_RED . $SPACE . "$branch ($ahead)" . $SPACE . $RESET;
