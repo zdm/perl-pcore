@@ -15,16 +15,15 @@ sub run ($self) {
     # check, if release can be performed
     return if !$self->_can_release;
 
-    # create new version
-    my $cur_ver = $self->{dist}->id->{release};
-
     my $new_ver = $self->_compose_new_version;
 
     return if !$new_ver;
 
-    say "\nCurrent version is: $cur_ver";
+    say $EMPTY;
 
-    say "New version will be: $new_ver\n";
+    say "Current release version is: @{[ $self->{dist}->id->{release} // 'v0.0.0' ]}";
+
+    say "New release version will be: $new_ver\n";
 
     return if P->term->prompt( 'Continue release process?', [qw[yes no]], enter => 1 ) ne 'yes';
 
@@ -38,7 +37,7 @@ sub run ($self) {
     # NOTE !!!WARNING!!! start release, next changes will be hard to revert
 
     # update release version in the main module
-    unless ( $self->{dist}->module->content->$* =~ s[^(\s*package\s+\w[\w\:\']*\s+)v?[\d._]+(\s*;)][$1$new_ver$2]sm ) {
+    unless ( $self->{dist}->module->content->$* =~ s[^(\s*package\s+\w[\w\:\']*)(?:\s+v?[\d._]*)?(\s*;)][$1 $new_ver$2]sm ) {
         say q[Error updating version in the main dist module];
 
         return;
@@ -53,7 +52,7 @@ sub run ($self) {
     $self->{dist}->build->update;
 
     # update CHANGES file
-    $self->_create_changes( $new_ver, undef );
+    $self->_create_changes($new_ver);
 
     # generate wiki
     if ( $self->{dist}->build->wiki ) {
@@ -129,7 +128,7 @@ sub _can_release ($self) {
 
     # check master branch
     if ( !$id->{branch} || $id->{branch} ne 'master' ) {
-        say q[Git is not on mster branch.];
+        say q[Git is not on the "master" branch.];
 
         return;
     }
@@ -148,12 +147,14 @@ sub _can_release ($self) {
     }
 
     # check distance from the last release
-    if ( !$id->{release_distance} ) {
+    if ( $id->{release} && !$id->{release_distance} ) {
         return if P->term->prompt( q[No changes since last release. Continue?], [qw[yes no]], enter => 1 ) eq 'no';
     }
 
-    # check parent docker repo tag
+    # docker
     if ( $self->{dist}->docker ) {
+
+        # check dockerhun credentials
         if ( !$ENV->user_cfg->{DOCKERHUB}->{username} || !$ENV->user_cfg->{DOCKERHUB}->{token} ) {
             say q[You need to specify DockerHub credentials.];
 
@@ -162,6 +163,7 @@ sub _can_release ($self) {
 
         say qq[Docker base image is "@{[$self->{dist}->docker->{from}]}".];
 
+        # check parent docker repo tag
         if ( !$self->{dist}->is_pcore && $self->{dist}->docker->{from_tag} !~ /\Av\d+[.]\d+[.]\d+\z/sm ) {
             say q[Docker base image tag must be set to "vx.x.x". Use "pcore docker --from <TAG>" to set needed tag.];
 
@@ -175,15 +177,15 @@ sub _can_release ($self) {
 sub _compose_new_version ($self) {
 
     # show current and new versions, take confirmation
-    my $cur_ver = $self->{dist}->id->{release};
+    my $cur_ver = version->parse( $self->{dist}->id->{release} // 'v0.0.0' );
 
-    if ( $cur_ver eq 'v0.0.0' && $self->{bugfix} ) {
+    if ( !$cur_ver && $self->{bugfix} ) {
         say 'Bugfix is impossible on first release';
 
         return;
     }
 
-    my ( $major, $minor, $bugfix ) = $cur_ver =~ /v(\d+)[.](\d+)[.](\d+)/sm;
+    my ( $major, $minor, $bugfix ) = $cur_ver->{version}->@*;
 
     # increment version
     if ( $self->{major} ) {
@@ -199,7 +201,7 @@ sub _compose_new_version ($self) {
         $bugfix++;
     }
 
-    my $new_ver = 'v' . join q[.], $major, $minor, $bugfix;
+    my $new_ver = version->parse("v$major.$minor.$bugfix");
 
     if ( $cur_ver eq $new_ver ) {
         say q[You forgot to specify release version];
@@ -207,7 +209,7 @@ sub _compose_new_version ($self) {
         return;
     }
 
-    if ( $new_ver ~~ $self->{dist}->releases ) {
+    if ( "$new_ver" ~~ $self->{dist}->releases ) {
         say qq[Version $new_ver is already released];
 
         return;
