@@ -8,17 +8,14 @@ use PAR::Filter;
 use Config;
 use Fcntl qw[:DEFAULT SEEK_END];
 
-has dist    => ( required => 1 );    # InstanceOf ['Pcore::Dist']
-has script  => ( required => 1 );    # InstanceOf ['Pcore::Lib::Path']
-has release => ( required => 1 );
-has crypt   => ( required => 1 );
-has clean   => ( required => 1 );
-has gui     => ( required => 1 );
-has mod     => ( required => 1 );    # HashRef
+has dist   => ( required => 1 );    # InstanceOf ['Pcore::Dist']
+has script => ( required => 1 );    # InstanceOf ['Pcore::Lib::Path']
+has crypt  => ( required => 1 );
+has clean  => ( required => 1 );
+has gui    => ( required => 1 );
+has mod    => ( required => 1 );    # HashRef
 
-has tree         => ( is => 'lazy', init_arg => undef );    # InstanceOf ['Pcore::Lib::File::Tree']
-has par_suffix   => ( is => 'lazy', init_arg => undef );
-has exe_filename => ( is => 'lazy', init_arg => undef );
+has tree => ( is => 'lazy', init_arg => undef );    # InstanceOf ['Pcore::Lib::File::Tree']
 has main_mod       => ( sub { {} }, is => 'lazy', init_arg => undef );    # HashRef, main modules, found during deps processing
 has shared_objects => ( init_arg       => undef );                        # HashRef
 
@@ -26,34 +23,8 @@ sub _build_tree ($self) {
     return Pcore::Lib::File::Tree->new;
 }
 
-sub _build_par_suffix ($self) {
-    return $MSWIN ? '.exe' : $EMPTY;
-}
-
-sub _build_exe_filename ($self) {
-    my $filename = $self->{script}->{filename_base};
-
-    my @attrs;
-
-    if ( $self->{release} ) {
-        push @attrs, $self->{dist}->version;
-    }
-    else {
-        if ( $self->{dist}->id->{bookmark} ) {
-            push @attrs, $self->{dist}->id->{bookmark};
-        }
-        else {
-            push @attrs, $self->{dist}->id->{branch};
-        }
-    }
-
-    push @attrs, 'x64' if $Config{archname} =~ /x64|x86_64/sm;
-
-    return $filename . q[-] . join( q[-], @attrs ) . $self->par_suffix;
-}
-
 sub run ($self) {
-    say qq[\nBuilding ] . ( $self->{crypt} ? $BLACK . $ON_GREEN . ' crypted ' : $BOLD . $WHITE . $ON_RED . q[ not crypted ] ) . $RESET . $SPACE . $BLACK . $ON_GREEN . ( $self->{clean} ? ' clean ' : ' cached ' ) . $RESET . qq[ "@{[$self->exe_filename]}" for $Config{archname}\n];
+    say qq[\nBuilding ] . ( $self->{crypt} ? $BLACK . $ON_GREEN . ' crypted ' : $BOLD . $WHITE . $ON_RED . q[ not crypted ] ) . $RESET . $SPACE . $BLACK . $ON_GREEN . ( $self->{clean} ? ' clean ' : ' cached ' ) . $RESET . qq[ "@{[ $self->{script}->{filename} ]}" for $Config{archname}\n];
 
     # add main script
     $self->_add_perl_source( $self->{script}->to_abs->{path}, 'script/main.pl' );
@@ -121,13 +92,36 @@ sub run ($self) {
     # patch windows GUI
     $self->_patch_gui("$parl_path") if $self->{gui} && $MSWIN;
 
-    my $target_exe = "$self->{dist}->{root}/data/" . $self->exe_filename;
+    # store final binaries
+    $self->_store_exe($parl_path);
 
-    P->file->move( $parl_path, $target_exe );
+    return;
+}
 
-    P->file->chmod( 'rwx------', $target_exe );
+sub _store_exe ( $self, $source_path ) {
+    my $dist_id = $self->{dist}->id;
 
-    say 'final binary size: ' . $BLACK . $ON_GREEN . $SPACE . add_num_sep( -s $target_exe ) . $SPACE . $RESET . ' bytes';
+    my @tags;
+    @tags = grep {defined} $dist_id->{branch}, $dist_id->{tags}->@*;
+    push @tags, $dist_id->{hash_short} if !@tags;
+
+    my $filename = $self->{script}->{filename_base};
+    my $arch     = $Config{archname} =~ /x64|x86_64/sm ? 'x64' : $EMPTY;
+    my $suffix   = $MSWIN ? '.exe' : $EMPTY;
+
+    for my $tag (@tags) {
+        my $target_filename = "$filename-$tag@{[ $dist_id->{is_dirty} ? '[+]' : $EMPTY ]}-${arch}${suffix}";
+
+        my $target_path = "$self->{dist}->{root}/data/$target_filename";
+
+        P->file->copy( $source_path, $target_path );
+
+        P->file->chmod( 'rwx------', $target_path );
+
+        say "created: $target_filename";
+    }
+
+    say 'final binary size: ' . $BLACK . $ON_GREEN . $SPACE . add_num_sep( -s $source_path ) . $SPACE . $RESET . ' bytes';
 
     return;
 }
@@ -440,11 +434,11 @@ sub _error ( $self, $msg ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 305                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 299                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 397                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "record"                                |
+## |    3 | 391                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "record"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 416                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 410                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

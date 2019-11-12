@@ -12,12 +12,6 @@ has clean  => ();
 has gui    => ();
 has script => ();                 # Maybe[ArrayRef]
 
-has release => ( is => 'lazy', init_arg => undef );
-
-sub _build_release ($self) {
-    return $self->{dist}->id->{release_distance} ? 0 : 1;
-}
-
 sub run ($self) {
     if ( !$self->{dist}->par_cfg ) {
         say q[PAR profile wasn't found.];
@@ -29,8 +23,11 @@ sub run ($self) {
 
         exit 1;
     }
-    elsif ( !$self->{dist}->is_commited && !$self->{force} ) {
-        say q[Working copy has uncommited changes. Use --force to make PAR.];
+
+    my $dist_id = $self->{dist}->id;
+
+    if ( $dist_id->{is_dirty} && !$self->{force} ) {
+        say q[Working copy has uncommited changes. Use --force to build PAR from the dirty source.];
 
         exit 1;
     }
@@ -39,16 +36,19 @@ sub run ($self) {
 
     $self->{script} //= [];
     my %scripts = map { $_ => 1 } $self->{script}->@*;
-
     my @scripts = %scripts ? keys %scripts : keys $par_cfg->%*;
 
     # build scripts
     for my $script ( sort @scripts ) {
+
+        # check, that par profile for script is exists
         if ( !$par_cfg->{$script} ) {
             say qq[Profile for script "$script" is ] . $BOLD . $WHITE . $ON_RED . ' not found ' . $RESET . '. Skip.';
 
             next;
         }
+
+        # skip script if it is disabled
         elsif ( !$scripts{$script} && $par_cfg->{$script}->{disabled} ) {
             say qq[Script "$script" is ] . $BOLD . $WHITE . $ON_RED . ' disabled ' . $RESET . '. Skip.';
 
@@ -75,12 +75,11 @@ sub run ($self) {
 
         my $profile = { $par_cfg->{$script}->%* };
 
-        $profile->{dist}    = $self->{dist};
-        $profile->{script}  = P->path("$self->{dist}->{root}/bin/$script");
-        $profile->{release} = $self->release;
-        $profile->{crypt}   = $self->{crypt} if defined $self->{crypt};
-        $profile->{clean}   = $self->{clean} if defined $self->{clean};
-        $profile->{gui}     = $self->{gui} if defined $self->{gui};
+        $profile->{dist}   = $self->{dist};
+        $profile->{script} = P->path("$self->{dist}->{root}/bin/$script");
+        $profile->{crypt}  = $self->{crypt} if defined $self->{crypt};
+        $profile->{clean}  = $self->{clean} if defined $self->{clean};
+        $profile->{gui}    = $self->{gui} if defined $self->{gui};
 
         # check, that script from par profile exists in filesystem
         if ( !-f $profile->{script} ) {
