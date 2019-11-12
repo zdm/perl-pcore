@@ -87,7 +87,15 @@ sub init ( $self, $args ) {
 }
 
 sub set_from_tag ( $self, $tag ) {
-    my $dockerfile = P->file->read_bin("$self->{dist}->{root}/Dockerfile");
+    my $path = "$self->{dist}->{root}/Dockerfile";
+
+    if ( !-f $path ) {
+        say q[Dockerfile is not exists.];
+
+        exit 1;
+    }
+
+    my $dockerfile = P->file->read_bin($path);
 
     if ( !defined $tag ) {
         $dockerfile =~ /^FROM\s+([[:alnum:]\/_-]+)(?::([[:alnum:]._-]+))?\s*$/sm;
@@ -99,7 +107,7 @@ sub set_from_tag ( $self, $tag ) {
             say q[Docker base image wasn't changed];
         }
         else {
-            P->file->write_bin( "$self->{dist}->{root}/Dockerfile", $dockerfile );
+            P->file->write_bin( $path, $dockerfile );
 
             {
                 # cd to repo root
