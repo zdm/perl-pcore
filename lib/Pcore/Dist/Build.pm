@@ -6,19 +6,12 @@ use Pcore::Lib::File::Tree;
 has dist => ();    # InstanceOf ['Pcore::Dist']
 
 has wiki   => ( is => 'lazy', init_arg => undef );    # Maybe [ InstanceOf ['Pcore::Dist::Build::Wiki'] ]
-has issues => ( is => 'lazy', init_arg => undef );    # Maybe [ InstanceOf ['Pcore::Dist::Build::Issues'] ]
 has docker => ( is => 'lazy', init_arg => undef );    # Maybe [ InstanceOf ['Pcore::Dist::Build::Docker'] ]
 
 sub _build_wiki ($self) {
     require Pcore::Dist::Build::Wiki;
 
     return Pcore::Dist::Build::Wiki->new( { dist => $self->{dist} } );
-}
-
-sub _build_issues ($self) {
-    require Pcore::Dist::Build::Issues;
-
-    return Pcore::Dist::Build::Issues->new( { dist => $self->{dist} } );
 }
 
 sub _build_docker ($self) {

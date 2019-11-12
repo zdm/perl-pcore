@@ -53,7 +53,6 @@ sub run ($self) {
     $self->{dist}->build->update;
 
     # update CHANGES file
-    # $self->_create_changes( $new_ver, $closed_issues->{data} );
     $self->_create_changes( $new_ver, undef );
 
     # generate wiki
@@ -248,7 +247,7 @@ sub _upload_to_cpan ($self) {
     return;
 }
 
-sub _create_changes ( $self, $ver, $issues ) {
+sub _create_changes ( $self, $ver ) {
     require CPAN::Changes;
 
     my $changes_path = "$self->{dist}->{root}/CHANGES";
@@ -259,22 +258,6 @@ sub _create_changes ( $self, $ver, $issues ) {
         version => $ver,
         date    => P->date->now_utc->to_w3cdtf,
     );
-
-    if ($issues) {
-        my $group = {};
-
-        for my $issue ( reverse sort { $a->priority_id <=> $b->priority_id } $issues->@* ) {
-            push $group->{ $issue->{metadata}->{kind} }->@*, qq[[$issue->{priority}] $issue->{title} (@{[$issue->url]})];
-        }
-
-        for my $group_name ( keys $group->%* ) {
-            $rel->add_changes( { group => uc $group_name }, $group->{$group_name}->@* );
-        }
-    }
-
-    # else {
-    #     $rel->add_changes('No issues on bugtracker were closed since the last release');
-    # }
 
     # get changesets since latest release
     my $tag = $ver eq 'v0.1.0' ? undef : 'latest';
