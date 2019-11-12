@@ -63,6 +63,8 @@ sub _build_upstream ($self) {
 
     my $url = $self->git_run('ls-remote --get-url');
 
+    return if !$url || !$url->{data};
+
     chomp $url->{data};
 
     return Pcore::API::Git::Upstream->new( { url => $url->{data} } ) if $url && $url->{data};
@@ -116,7 +118,7 @@ sub git_run_no_root ( $self, $cmd, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 73                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_do_request' declared but not used  |
+## |    3 | 75                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_do_request' declared but not used  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

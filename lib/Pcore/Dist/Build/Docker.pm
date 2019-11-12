@@ -14,7 +14,7 @@ sub _build_api($self) {
 
 sub init ( $self, $args ) {
     if ( $self->{dist}->docker ) {
-        say qq[Dist is already linked to "$self->{dist}->{docker}->{repo_id}"];
+        say qq[Docker profile is already created "$self->{dist}->{docker}->{repo_id}".];
 
         exit 3;
     }
@@ -22,7 +22,7 @@ sub init ( $self, $args ) {
     my $git_upstream = $self->{dist}->git ? $self->{dist}->git->upstream : undef;
 
     if ( !$git_upstream ) {
-        say q[Dist has no upstream repository];
+        say 'Dist has no upstream repository.';
 
         exit 3;
     }
@@ -30,7 +30,7 @@ sub init ( $self, $args ) {
     my $repo_namespace = $args->{namespace} || $ENV->user_cfg->{DOCKERHUB}->{default_namespace} || $ENV->user_cfg->{DOCKERHUB}->{username};
 
     if ( !$repo_namespace ) {
-        say 'DockerHub repo namespace is not defined';
+        say 'DockerHub repo namespace is not defined.';
 
         exit 3;
     }
@@ -39,27 +39,27 @@ sub init ( $self, $args ) {
 
     my $repo_id = "$repo_namespace/$repo_name";
 
-    my $confirm = P->term->prompt( qq[Create DockerHub repository "$repo_id"?], [qw[yes no cancel]], enter => 1 );
+    # my $confirm = P->term->prompt( qq[Create DockerHub repository "$repo_id"?], [qw[yes no cancel]], enter => 1 );
 
-    if ( $confirm eq 'cancel' ) {
-        exit 3;
-    }
-    elsif ( $confirm eq 'yes' ) {
-        my $api = $self->api;
+    # if ( $confirm eq 'cancel' ) {
+    #     exit 3;
+    # }
+    # elsif ( $confirm eq 'yes' ) {
+    #     my $api = $self->api;
 
-        print q[Creating DockerHub repository ... ];
+    #     print q[Creating DockerHub repository ... ];
 
-        my $res = $api->create_repo(
-            $repo_id,
-            desc      => $self->{dist}->module->abstract || $self->{dist}->name,
-            full_desc => $EMPTY,
-            private   => 0,
-        );
+    #     my $res = $api->create_repo(
+    #         $repo_id,
+    #         desc      => $self->{dist}->module->abstract || $self->{dist}->name,
+    #         full_desc => $EMPTY,
+    #         private   => 0,
+    #     );
 
-        say $res->{reason};
+    #     say $res->{reason};
 
-        exit 3 if !$res->is_success;
-    }
+    #     exit 3 if !$res->is_success;
+    # }
 
     require Pcore::Lib::File::Tree;
 
@@ -82,6 +82,8 @@ sub init ( $self, $args ) {
     } );
 
     $files->write_to( $self->{dist}->{root} );
+
+    say qq[Docker profile created "$repo_namespace/$repo_name".];
 
     return;
 }
