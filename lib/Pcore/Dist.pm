@@ -223,7 +223,7 @@ sub _build_id ($self) {
 
         $cv->begin;
         Coro::async_pool sub {
-            my $res = $self->git->git_run('log -1 --pretty=format:%H%n%h%n%cI%n%D');
+            my $res = $self->git->git_run('log -1 --pretty=format:%H%n%cI%n%D');
 
             $cv->end;
 
@@ -231,7 +231,9 @@ sub _build_id ($self) {
 
             return if $is_error;
 
-            ( $res1->@{qw[hash hash_short date]}, my $ref ) = split /\n/sm, $res->{data};
+            ( $res1->@{qw[hash date]}, my $ref ) = split /\n/sm, $res->{data};
+
+            $res1->{hash_short} = substr $res1->{hash}, 0, 7;
 
             my @ref = split /,/sm, $ref;
 
