@@ -6,7 +6,7 @@ use Pcore::Lib::Scalar qw[is_plain_arrayref];
 extends qw[Pcore::API::_Base];
 
 has root        => ( required => 1 );
-has max_threads => 1;
+has max_threads => 50;
 
 has upstream => ( is => 'lazy', init_arg => undef );    # InstanceOf ['Pcore::API::Git::Upstream'] ]
 
