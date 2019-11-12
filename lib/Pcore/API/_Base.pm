@@ -38,7 +38,7 @@ sub _create_request ( $self, $req, $cb = undef ) {
 
             my $res = $cv->recv;
 
-            return $cb ? $cb->($res) : $res;
+            return defined $cb ? $cb->($res) : $res;
         }
         else {
             push $self->{_queue}->@*, [ $req, $cb ];
@@ -56,7 +56,7 @@ sub _create_request ( $self, $req, $cb = undef ) {
         if ( defined wantarray ) {
             my $res = $self->_do_request($req);
 
-            return $cb ? $cb->($res) : $res;
+            return defined $cb ? $cb->($res) : $res;
         }
 
         # not blocking mode
@@ -64,7 +64,7 @@ sub _create_request ( $self, $req, $cb = undef ) {
             Coro::async {
                 my $res = $self->_do_request($req);
 
-                $cb->($res) if $cb;
+                $cb->($res) if defined $cb;
 
                 return;
             };
@@ -115,7 +115,7 @@ sub _do_request ( $self, $req ) {
 #         sub ($res) {
 #             say 'process cb';
 
-#             return $cb ? $cb->($res) : $res;
+#             return defined $cb ? $cb->($res) : $res;
 #         }
 #     );
 # }
