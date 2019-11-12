@@ -52,7 +52,7 @@ sub run ($self) {
     $self->{dist}->build->update;
 
     # update CHANGES file
-    $self->_create_changes($new_ver);
+    $self->_create_changes( $self->{dist}->id->{release}, $new_ver );
 
     # generate wiki
     if ( $self->{dist}->build->wiki ) {
@@ -249,7 +249,7 @@ sub _upload_to_cpan ($self) {
     return;
 }
 
-sub _create_changes ( $self, $ver ) {
+sub _create_changes ( $self, $cur_ver, $new_ver ) {
     require CPAN::Changes;
 
     my $changes_path = "$self->{dist}->{root}/CHANGES";
@@ -257,14 +257,12 @@ sub _create_changes ( $self, $ver ) {
     my $changes = -f $changes_path ? CPAN::Changes->load($changes_path) : CPAN::Changes->new;
 
     my $rel = CPAN::Changes::Release->new(
-        version => $ver,
+        version => $new_ver,
         date    => P->date->now_utc->to_w3cdtf,
     );
 
     # get changesets since latest release
-    my $tag = $ver eq 'v0.1.0' ? undef : 'latest';
-
-    my $changesets = $self->{dist}->get_changesets_log($tag);
+    my $changesets = $self->{dist}->get_changesets_log($cur_ver);
 
     my $log = <<'TXT';
 LOG: Edit changelog.  Lines beginning with 'LOG:' are removed.

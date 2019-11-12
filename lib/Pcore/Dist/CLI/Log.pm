@@ -31,7 +31,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
         $log = 'no changes';
     }
 
-    print qq[Changelog since release: @{[ $id->{release} // 'v0.0.0' ]}\n$log\n];
+    print qq[Changelog since release "@{[ $id->{release} // 'v0.0.0' ]}":\n$log\n];
 
     return;
 }
