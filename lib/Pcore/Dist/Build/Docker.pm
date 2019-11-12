@@ -303,7 +303,7 @@ sub build_local ( $self, $tag, $args ) {
     my $dist = $self->{dist};
 
     if ( !$dist->docker ) {
-        $res = res [ 400, 'Docker is not configured for this dist' ];
+        $res = res [ 400, 'Docker profile was not found.' ];
         say $res;
         return $res;
     }
