@@ -19,12 +19,18 @@ sub run ($self) {
         exit 1;
     }
     elsif ( !$self->{dist}->git ) {
-        say q[Git is required];
+        say q[Git was not required.];
 
         exit 1;
     }
 
     my $dist_id = $self->{dist}->id;
+
+    if ( !$dist_id->{hash} ) {
+        say q[Unable to identify current changeset.];
+
+        exit 1;
+    }
 
     if ( $dist_id->{is_dirty} && !$self->{force} ) {
         say q[Working copy has uncommited changes. Use --force to build PAR from the dirty source.];
@@ -67,8 +73,6 @@ sub run ($self) {
             say qq["$pardeps_path" is not exists.];
 
             say $BOLD . $RED . qq[Deps for script "$script" wasn't scanned.] . $RESET;
-
-            say q[Run source scripts with --scan-deps option.];
 
             exit 1;
         }
