@@ -19,7 +19,6 @@ has is_pcore   => ( is       => 'lazy', init_arg => undef );
 has git        => ( is       => 'lazy', init_arg => undef );    # Maybe [ InstanceOf ['Pcore::API::GIT'] ]
 has build      => ( is       => 'lazy', init_arg => undef );    # InstanceOf ['Pcore::Dist::Build']
 has id         => ( is       => 'lazy', init_arg => undef );
-has version    => ( is       => 'lazy', init_arg => undef );
 has releases   => ( is       => 'lazy', init_arg => undef );    # Maybe [ArrayRef]
 has docker     => ( is       => 'lazy', init_arg => undef );    # Maybe [HashRef]
 
@@ -306,18 +305,6 @@ sub _build_id ($self) {
     return $id;
 }
 
-# TODO remove
-sub _build_version ($self) {
-
-    # first, try to get version from the main module
-    my $ver = $self->module->version;
-
-    return $ver if defined $ver;
-
-    # for crypted PAR distrs try to get version from id
-    return version->parse( $self->id->{release} );
-}
-
 sub _build_releases ($self) {
     return if !$self->git;
 
@@ -339,9 +326,9 @@ sub clear ($self) {
     # clear version
     $self->module->clear if exists $self->{module};
 
-    delete $self->{version};
-
     delete $self->{id};
+
+    delete $self->{releases};
 
     delete $self->{cfg};
 

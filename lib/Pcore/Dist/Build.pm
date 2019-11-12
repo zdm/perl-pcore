@@ -128,7 +128,7 @@ sub tgz ($self) {
 
     my $tgz = Archive::Tar->new;
 
-    my $base_dir = $self->{dist}->name . q[-] . $self->{dist}->version;
+    my $base_dir = $self->{dist}->name . q[-] . $self->{dist}->id->{release};
 
     for my $path ( $temp->read_dir( max_depth => 0, is_dir => 0 )->@* ) {
         my $mode;

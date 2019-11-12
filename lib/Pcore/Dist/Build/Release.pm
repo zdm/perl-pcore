@@ -271,7 +271,7 @@ LOG: Edit changelog.  Lines beginning with 'LOG:' are removed.
 
 TXT
 
-    for my $changeset ( $changesets->{data}->@* ) {
+    for my $changeset ( $changesets->@* ) {
         $log .= "- $changeset\n";
     }
 
