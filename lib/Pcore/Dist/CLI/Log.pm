@@ -33,7 +33,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
         }
     }
 
-    print qq[Changelog since release: @{[ $id->{release} // '"unreleased"' ]}\n$log\n];
+    print qq[Changelog since release: @{[ $id->{release} // 'v0.0.0' ]}\n$log\n];
 
     return;
 }
