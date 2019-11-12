@@ -14,7 +14,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     my $dist = $self->get_dist;
 
     if ( !$dist->git ) {
-        say 'Git not found';
+        say 'Git was not found.';
 
         exit 3;
     }

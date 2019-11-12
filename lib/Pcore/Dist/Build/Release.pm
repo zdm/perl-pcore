@@ -119,7 +119,7 @@ sub run ($self) {
 
 sub _can_release ($self) {
     if ( !$self->{dist}->git ) {
-        say q[Git is required.];
+        say q[Git was not found.];
 
         return;
     }
