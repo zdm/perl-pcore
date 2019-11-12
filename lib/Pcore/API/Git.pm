@@ -31,7 +31,9 @@ const our $GIT_UPSTREAM_HOST => {
 
 const our $GIT_UPSTREAM_NAME => { map { $GIT_UPSTREAM_HOST->{$_} => $_ } keys $GIT_UPSTREAM_HOST->%* };
 
-around new => sub ( $orig, $self, $path, $search = undef ) {
+around new => sub ( $orig, $self, $path = undef, $search = undef ) {
+    return $self->$orig( { root => $path } ) if !defined $path;
+
     $path = P->path($path)->to_abs;
 
     my $found;
@@ -106,9 +108,7 @@ sub git_run ( $self, $cmd, $cb = undef ) {
 }
 
 sub git_run_no_root ( $self, $cmd, $cb = undef ) {
-    $self = bless {}, __PACKAGE__;
-
-    return $self->_create_request( $cmd, $cb );
+    return __PACKAGE__->new->_create_request( $cmd, $cb );
 }
 
 1;
@@ -118,7 +118,9 @@ sub git_run_no_root ( $self, $cmd, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 75                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_do_request' declared but not used  |
+## |    3 | 77                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_do_request' declared but not used  |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 111                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
