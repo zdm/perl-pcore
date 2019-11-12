@@ -170,11 +170,11 @@ sub _render_dist ( $self, $tbl, $dist, $data ) {
         push @row, $latest_release;
     }
     else {
-        push @row, $WHITE . $ON_RED . ' unreleased ' . $RESET;
+        push @row, $WHITE . $ON_RED . ' v0.0.0 ' . $RESET;
     }
 
     # parent release
-    push @row, defined $dist_id->{release} ? $dist_id->{release} : $WHITE . $ON_RED . ' unreleased ' . $RESET;
+    push @row, defined $dist_id->{release} ? $dist_id->{release} : $WHITE . $ON_RED . ' v0.0.0 ' . $RESET;
 
     # parent release distance
     push @row, !$dist_id->{release_distance} ? ' - ' : $WHITE . $ON_RED . sprintf( ' %3s ', $dist_id->{release_distance} ) . $RESET;
