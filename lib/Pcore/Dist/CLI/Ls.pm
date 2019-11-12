@@ -1,6 +1,6 @@
 package Pcore::Dist::CLI::Ls;
 
-use Pcore -class, -ansi;
+use Pcore -class, -ansi, -res;
 
 extends qw[Pcore::Dist::CLI];
 
@@ -123,14 +123,19 @@ sub _get_dist_info ( $self, $dist, $cb ) {
     };
 
     # dist is pushed
-    $cv->begin;
-    $dist->git->git_is_pushed( sub ($res) {
-        $data->{is_pushed} = $res;
+    if ( $dist->git ) {
+        $cv->begin;
+        $dist->git->git_is_pushed( sub ($res) {
+            $data->{is_pushed} = $res;
 
-        $cv->end;
+            $cv->end;
 
-        return;
-    } );
+            return;
+        } );
+    }
+    else {
+        $data->{is_pushed} = res 500;
+    }
 
     # dist releases
     $cv->begin;
