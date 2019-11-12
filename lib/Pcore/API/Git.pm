@@ -70,6 +70,35 @@ sub _build_upstream ($self) {
     return;
 }
 
+# TODO describe problem
+sub _do_request ( $self, $cmd ) {
+    my $proc = P->sys->run_proc(
+        [ is_plain_arrayref $cmd ? ( 'git', $cmd->@* ) : 'git ' . $cmd ],
+        chdir  => $self->{root},
+        stdout => 1,
+        stderr => 1,
+    );
+
+    # TODO describe the problem
+    if ($MSWIN) {
+        $proc->wait->capture;
+    }
+    else {
+        $proc->capture->wait;
+    }
+
+    my $res;
+
+    if ( $proc->is_success ) {
+        $res = res 200, $proc->{stdout} ? $proc->{stdout}->$* : undef;
+    }
+    else {
+        $res = res [ 500, $proc->{stderr} ? $proc->{stderr}->$* : $EMPTY ];
+    }
+
+    return $res;
+}
+
 sub git_run ( $self, $cmd, $cb = undef ) {
     return $self->_create_request( $cmd, $cb );
 }
@@ -197,106 +226,6 @@ sub git_id ( $self, $cb = undef ) {
     }
 }
 
-# TODO describe problem
-sub _do_request ( $self, $cmd ) {
-    my $proc = P->sys->run_proc(
-        [ is_plain_arrayref $cmd ? ( 'git', $cmd->@* ) : 'git ' . $cmd ],
-        chdir  => $self->{root},
-        stdout => 1,
-        stderr => 1,
-    );
-
-    # TODO describe the problem
-    if ($MSWIN) {
-        $proc->wait->capture;
-    }
-    else {
-        $proc->capture->wait;
-    }
-
-    my $res;
-
-    if ( $proc->is_success ) {
-        $res = res 200, $proc->{stdout} ? $proc->{stdout}->$* : undef;
-    }
-    else {
-        $res = res [ 500, $proc->{stderr} ? $proc->{stderr}->$* : $EMPTY ];
-    }
-
-    return $res;
-}
-
-sub git_get_releases ( $self, $cb = undef ) {
-    return $self->_create_request(
-        'tag --merged master',
-        sub ($res) {
-            if ($res) {
-                if ( $res->{data} ) {
-                    my @releases = sort { version->parse($a) <=> version->parse($b) } grep {/\Av\d+[.]\d+[.]\d+\z/sm} split /\n/sm, $res->{data};
-
-                    $res->{data} = \@releases if @releases;
-                }
-                else {
-                    $res->{data} = undef;
-                }
-            }
-
-            return $cb ? $cb->($res) : $res;
-        },
-    );
-}
-
-sub git_get_log ( $self, $tag = undef, $cb = undef ) {
-    my $cmd = 'log --pretty=format:%s';
-
-    $cmd .= " $tag..HEAD" if $tag;
-
-    return $self->_create_request(
-        $cmd,
-        sub ($res) {
-            if ($res) {
-                my ( $data, $idx );
-
-                for my $log ( split /\n/sm, $res->{data} ) {
-                    if ( !exists $idx->{$log} ) {
-                        $idx->{$log} = 1;
-
-                        push $data->@*, $log;
-                    }
-                }
-
-                $res->{data} = $data;
-            }
-
-            return $cb ? $cb->($res) : $res;
-        },
-    );
-}
-
-sub git_is_pushed ( $self, $cb = undef ) {
-    return $self->_create_request(
-        'branch -v --no-color',
-        sub ($res) {
-            if ($res) {
-                my $data;
-
-                for my $br ( split /\n/sm, $res->{data} ) {
-                    if ( $br =~ /\A[*]?\s+(.+?)\s+(?:.+?)\s+(?:\[ahead\s(\d+)\])?/sm ) {
-                        $data->{$1} = $2 || 0;
-                    }
-                    else {
-                        die qq[Can't parse branch: $br];
-                    }
-
-                    $res->{data} = $data;
-                }
-            }
-
-            return $cb ? $cb->($res) : $res;
-        },
-    );
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -304,7 +233,7 @@ sub git_is_pushed ( $self, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 201                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_do_request' declared but not used  |
+## |    3 | 74                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_do_request' declared but not used  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

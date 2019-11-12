@@ -123,19 +123,14 @@ sub _get_dist_info ( $self, $dist, $cb ) {
     };
 
     # dist is pushed
-    if ( $dist->git ) {
-        $cv->begin;
-        $dist->git->git_is_pushed( sub ($res) {
-            $data->{is_pushed} = $res;
+    $cv->begin;
+    Coro::async {
+        $data->{is_pushed} = $dist->is_pushed;
 
-            $cv->end;
+        $cv->end;
 
-            return;
-        } );
-    }
-    else {
-        $data->{is_pushed} = res 500;
-    }
+        return;
+    };
 
     # dist releases
     $cv->begin;

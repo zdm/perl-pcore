@@ -264,7 +264,7 @@ sub _create_changes ( $self, $ver ) {
     # get changesets since latest release
     my $tag = $ver eq 'v0.1.0' ? undef : 'latest';
 
-    my $changesets = $self->{dist}->git->git_get_log($tag);
+    my $changesets = $self->{dist}->get_changesets_log($tag);
 
     my $log = <<'TXT';
 LOG: Edit changelog.  Lines beginning with 'LOG:' are removed.

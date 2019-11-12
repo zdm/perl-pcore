@@ -244,9 +244,17 @@ sub _build_version ($self) {
 }
 
 sub _build_releases ($self) {
-    if ( !$self->{is_installed} && $self->git && ( my $releases = $self->git->git_get_releases ) ) {
-        return $releases->{data};
-    }
+    return if !$self->git;
+
+    my $res = $self->git->git_run('tag --merged master');
+
+    return if !$res;
+
+    return if !$res->{data};
+
+    my @releases = sort { version->parse($a) <=> version->parse($b) } grep {/\Av\d+[.]\d+[.]\d+\z/sm} split /\n/sm, $res->{data};
+
+    return \@releases if @releases;
 
     return;
 }
@@ -320,6 +328,55 @@ sub _build_docker ($self) {
     else {
         return;
     }
+}
+
+sub is_pushed ($self) {
+    return if !$self->git;
+
+    my $res = $self->git->git_run('branch -v --no-color');
+
+    return if !$res;
+
+    return if !$res->{data};
+
+    my $data;
+
+    for my $br ( split /\n/sm, $res->{data} ) {
+        if ( $br =~ /\A[*]?\s+(.+?)\s+(?:.+?)\s+(?:\[ahead\s(\d+)\])?/sm ) {
+            $data->{$1} = $2 || 0;
+        }
+        else {
+            die qq[Can't parse branch: $br];
+        }
+    }
+
+    return $data;
+}
+
+sub get_changesets_log ( $self, $tag = undef ) {
+    return if !$self->git;
+
+    my $cmd = 'log --pretty=format:%s';
+
+    $cmd .= " $tag..HEAD" if $tag;
+
+    my $res = $self->git->git_run($cmd);
+
+    return if !$res;
+
+    return if !$res->{data};
+
+    my ( $data, $idx );
+
+    for my $log ( split /\n/sm, $res->{data} ) {
+        if ( !exists $idx->{$log} ) {
+            $idx->{$log} = 1;
+
+            push $data->@*, $log;
+        }
+    }
+
+    return $data;
 }
 
 1;
