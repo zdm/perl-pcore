@@ -279,7 +279,7 @@ sub version_string ($self) {
             push @res, $id->{release} . ( $id->{release_distance} ? "+$id->{release_distance}" : $EMPTY );
         }
 
-        push @res, $id->{hash_short} . ( $id->{is_dirty} ? '+' : $EMPTY );
+        push @res, $id->{hash_short} . ( $id->{is_dirty} ? '.dirty' : $EMPTY );
 
         push @res, $id->{date} if $id->{date};
     }

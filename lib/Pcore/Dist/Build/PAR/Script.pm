@@ -110,7 +110,7 @@ sub _store_exe ( $self, $source_path ) {
     my $suffix   = $MSWIN ? '.exe' : $EMPTY;
 
     for my $tag (@tags) {
-        my $target_filename = "$filename-$tag@{[ $dist_id->{is_dirty} ? '[+]' : $EMPTY ]}-${arch}${suffix}";
+        my $target_filename = "$filename-$tag@{[ $dist_id->{is_dirty} ? '.dirty' : $EMPTY ]}-${arch}${suffix}";
 
         my $target_path = "$self->{dist}->{root}/data/$target_filename";
 

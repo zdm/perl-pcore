@@ -326,10 +326,9 @@ sub build_local ( $self, $tag, $args ) {
     my $repo_id = $dist->docker->{repo_id};
 
     my @tags;
-
-    @tags = map {"$repo_id:$_"} grep {defined} $id->{branch}, $id->{tags}->@* if defined $tag;
-
-    push @tags, "$repo_id:$id->{hash_short}" if !@tags;
+    my $is_dirty = $id->{is_dirty} ? '.dirty' : $EMPTY;
+    @tags = map {"$repo_id:${_}${is_dirty}"} grep {defined} $id->{branch}, $id->{tags}->@* if defined $tag;
+    push @tags, "$repo_id:$id->{hash_short}${is_dirty}" if !@tags;
 
     my $dockerignore = $self->_build_dockerignore("$repo->{root}/.dockerignore");
 
