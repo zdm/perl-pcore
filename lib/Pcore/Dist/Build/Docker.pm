@@ -341,6 +341,10 @@ sub build_local ( $self, $tag, $args ) {
     @tags = map {"$repo_id:${_}${is_dirty}"} grep {defined} $id->{branch}, $id->{tags}->@* if defined $tag;
     push @tags, "$repo_id:$id->{hash_short}${is_dirty}" if !@tags;
 
+    for my $tag (@tags) {
+        say "Tag: $tag";
+    }
+
     my $dockerignore = $self->_build_dockerignore("$repo->{root}/.dockerignore");
 
     print 'Comressing image source ... ';

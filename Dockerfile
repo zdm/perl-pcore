@@ -16,8 +16,11 @@ ADD . $DIST_PATH
 
 WORKDIR $DIST_PATH
 
-RUN /bin/bash -c ' \
-    \
+SHELL [ "/bin/bash", "-l", "-c" ]
+
+ONBUILD SHELL [ "/bin/bash", "-l", "-c" ]
+
+RUN \
     # setup host
     source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/setup-host.sh || echo false ) \
     \
@@ -34,5 +37,4 @@ RUN /bin/bash -c ' \
     && pcore test -j $(nproc) \
     \
     # cleanup perl build env
-    && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/perl-build-env.sh || echo false ) cleanup \
-'
+    && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/perl-build-env.sh || echo false ) cleanup
