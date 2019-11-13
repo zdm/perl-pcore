@@ -322,16 +322,11 @@ sub build_local ( $self, $tag, $args ) {
         $clone_root = P->file1->tempdir;
 
         # my $res = Pcore::API::Git->git_run_no_root( [ 'clone', $dist->git->upstream->get_clone_url, $clone_root ] );
-        $res = Pcore::API::Git->git_run_no_root( [ 'clone', $dist->{root}, $clone_root ] );
+        $res = Pcore::API::Git->git_run_no_root( [ 'clone', "file://$dist->{root}", $clone_root, '--branch', $tag, '--depth', 1 ] );
         say $res;
         return $res if !$res;
 
         $repo = Pcore::Dist->new($clone_root);
-
-        print 'Checking out ... ';
-        $res = $repo->git->git_run("checkout $tag");
-        say $res;
-        return $res if !$res;
     }
     else {
         $repo = $dist;
