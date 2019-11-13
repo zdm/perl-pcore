@@ -150,7 +150,7 @@ sub _create_upstream_repo ($self) {
 
     print qq[Cloning upstream repository "$clone_uri" ... ];
 
-    my $res = Pcore::API::Git->git_run_no_root( [ 'clone', $clone_uri, $self->target_path ] );
+    my $res = Pcore::API::Git->git_run( [ 'clone', $clone_uri, $self->target_path ], undef );
 
     say $res;
 

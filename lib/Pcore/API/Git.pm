@@ -72,10 +72,10 @@ sub _build_upstream ($self) {
     return;
 }
 
-sub git_run ( $self, $cmd, $no_chdir = undef ) {
+sub git_run ( $self, $cmd, $root = undef ) {
     my $proc = P->sys->run_proc(
         [ is_plain_arrayref $cmd ? ( 'git', $cmd->@* ) : 'git ' . $cmd ],
-        chdir  => $no_chdir ? undef : $self->{root},
+        chdir  => @_ == 2 ? $self->{root} : $root,    # take default value if $root argument was not specified
         stdout => 1,
         stderr => 1,
     );
@@ -99,10 +99,6 @@ sub git_run ( $self, $cmd, $no_chdir = undef ) {
     }
 
     return $res;
-}
-
-sub git_run_no_root ( $self, $cmd ) {
-    return $self->git_run( $cmd, 1 );
 }
 
 1;

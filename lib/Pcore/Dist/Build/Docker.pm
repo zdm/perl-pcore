@@ -321,8 +321,8 @@ sub build_local ( $self, $tag, $args ) {
 
         $clone_root = P->file1->tempdir;
 
-        # my $res = Pcore::API::Git->git_run_no_root( [ 'clone', $dist->git->upstream->get_clone_url, $clone_root ] );
-        $res = Pcore::API::Git->git_run_no_root( [ 'clone', $dist->{root}, $clone_root, '--branch', $tag ] );
+        # my $res = Pcore::API::Git->git_run( [ 'clone', $dist->git->upstream->get_clone_url, $clone_root ], undef );
+        $res = Pcore::API::Git->git_run( [ 'clone', '--quiet', $dist->{root}, $clone_root, '--branch', $tag ], undef );
         say $res;
         return $res if !$res;
 
