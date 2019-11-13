@@ -29,4 +29,4 @@ RUN \
     # cleanup perl build env
     && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/perl-build-env.sh || echo false ) cleanup
 
-ENTRYPOINT ["../bin/main.pl"]
+ENTRYPOINT [ "/bin/bash", "-l", "-c", "exec ../bin/main.pl \"$@\"", "--" ]
