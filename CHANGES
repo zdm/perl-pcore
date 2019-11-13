@@ -1,3 +1,15 @@
+v0.99.0 2019-11-13T06:40:04Z
+ - migrating to git
+ - par ported to git
+ - dist release fixes
+ - base class for api threads
+ - dist issues removed
+ - docker registry api:
+ - docker perl 5.30.1
+ - dockerhub api
+ - Pcore::API::Docker::Cloud -> Pcore::API::Docker::Hub
+ - docker engine api v1.40
+
 v0.98.16 2019-11-11T15:19:03Z
  - docker build improvements
  - .dockerignore parser improved
