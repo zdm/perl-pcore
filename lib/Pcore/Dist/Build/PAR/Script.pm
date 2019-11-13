@@ -33,7 +33,7 @@ sub run ($self) {
     $self->tree->add_file( 'META.yml', \P->data->to_yaml( { par => { clean => 1 } } ) ) if $self->{clean};
 
     # add modules
-    print 'adding modules ... ';
+    print 'Adding modules ... ';
 
     $self->_add_modules;
 
@@ -78,7 +78,7 @@ sub run ($self) {
     # create parl executable
     my $parl_path = P->file1->tempfile;
 
-    print 'writing parl ... ';
+    print 'Writing parl ... ';
 
     my $cmd = qq[parl -B -O"$parl_path" "$zip_path"];
 
@@ -118,10 +118,10 @@ sub _store_exe ( $self, $source_path ) {
 
         P->file->chmod( 'rwx------', $target_path );
 
-        say "created: $target_filename";
+        say "Created: $target_filename";
     }
 
-    say 'final binary size: ' . $BLACK . $ON_GREEN . $SPACE . add_num_sep( -s $source_path ) . $SPACE . $RESET . ' bytes';
+    say 'Final binary size: ' . $BLACK . $ON_GREEN . $SPACE . add_num_sep( -s $source_path ) . $SPACE . $RESET . ' bytes';
 
     return;
 }
@@ -240,7 +240,7 @@ sub _add_shlib ($self) {
     for my $filename ( sort keys $dso->%* ) {
         $self->tree->add_file( "shlib/$Config{archname}/$filename", $dso->{$filename} );
 
-        say sprintf 'shlib added: %-30s %s', $filename, $dso->{$filename};
+        say sprintf 'Shlib added: %-30s %s', $filename, $dso->{$filename};
     }
 
     return;
@@ -364,7 +364,7 @@ sub _add_dist ( $self, $dist ) {
         $self->tree->add_file( "lib/auto/share/dist/@{[ $dist->name ]}/dist-id.yaml", \P->data->to_yaml( $dist->id ) );
     }
 
-    say 'dist added: ' . $dist->name;
+    say 'Dist added: ' . $dist->name;
 
     return;
 }
@@ -422,7 +422,7 @@ sub _patch_gui ( $self, $file ) {
 }
 
 sub _error ( $self, $msg ) {
-    say $BOLD . $GREEN . 'PAR ERROR: ' . $msg . $RESET;
+    say $BOLD . $GREEN . 'PAR error: ' . $msg . $RESET;
 
     exit 5;
 }

@@ -70,7 +70,7 @@ sub run ($self) {
             $pardeps = P->cfg->read($pardeps_path);
         }
         else {
-            say qq["$pardeps_path" is not exists.];
+            say qq[File "$pardeps_path" is not exists.];
 
             say $BOLD . $RED . qq[Deps for script "$script" wasn't scanned.] . $RESET;
 
