@@ -270,7 +270,7 @@ sub _build_id ($self) {
             if ( $data[0] =~ /\Av\d+[.]\d+[.]\d+\z/sm ) {
                 $res1->{release} = $data[0];
 
-                $res1->{release_distance} = $data[1] || 0;
+                $res1->{release_distance} = 0+ $data[1] if defined $data[1];
             }
 
             return;
