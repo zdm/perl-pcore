@@ -36,6 +36,9 @@ sub run ($self) {
 
     # NOTE !!!WARNING!!! start release, next changes will be hard to revert
 
+    # update CHANGES file
+    $self->_create_changes( $self->{dist}->id->{release}, $new_ver );
+
     # update release version in the main module
     unless ( $self->{dist}->module->content->$* =~ s[^(\s*package\s+\w[\w\:\']*)(?:\s+v?[\d._]*)?(\s*;)][$1 $new_ver$2]sm ) {
         say q[Error updating version in the main dist module];
@@ -50,9 +53,6 @@ sub run ($self) {
 
     # update working copy
     $self->{dist}->build->update;
-
-    # update CHANGES file
-    $self->_create_changes( $self->{dist}->id->{release}, $new_ver );
 
     # generate wiki
     if ( $self->{dist}->build->wiki ) {
