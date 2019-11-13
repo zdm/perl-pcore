@@ -3,8 +3,6 @@ package Pcore::API::Git;
 use Pcore -class, -res, -const, -export;
 use Pcore::Lib::Scalar qw[is_plain_arrayref];
 
-extends qw[Pcore::API::_Base];
-
 has root        => ( required => 1 );
 has max_threads => 50;
 
@@ -74,10 +72,10 @@ sub _build_upstream ($self) {
     return;
 }
 
-sub _do_request ( $self, $cmd ) {
+sub git_run ( $self, $cmd, $no_chdir = undef ) {
     my $proc = P->sys->run_proc(
         [ is_plain_arrayref $cmd ? ( 'git', $cmd->@* ) : 'git ' . $cmd ],
-        chdir  => $self->{root},
+        chdir  => $no_chdir ? undef : $self->{root},
         stdout => 1,
         stderr => 1,
     );
@@ -103,27 +101,11 @@ sub _do_request ( $self, $cmd ) {
     return $res;
 }
 
-sub git_run ( $self, $cmd, $cb = undef ) {
-    return $self->_create_request( $cmd, $cb );
-}
-
-sub git_run_no_root ( $self, $cmd, $cb = undef ) {
-    return __PACKAGE__->new->_create_request( $cmd, $cb );
+sub git_run_no_root ( $self, $cmd ) {
+    return $self->git_run( $cmd, 1 );
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 77                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_do_request' declared but not used  |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 111                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
