@@ -76,18 +76,12 @@ sub git_run ( $self, $cmd, $root = undef ) {
     my $proc = P->sys->run_proc(
         [ is_plain_arrayref $cmd ? ( 'git', $cmd->@* ) : 'git ' . $cmd ],
         chdir  => @_ == 2 ? $self->{root} : $root,    # take default value if $root argument was not specified
+        use_fh => 1,
         stdout => 1,
         stderr => 1,
     );
 
-    if ($MSWIN) {
-        $proc->wait->capture;
-    }
-    else {
-
-        # TODO в linux, если git выводит относительно много данных в STDOUT (300 строк), процесс git не заверщается, пока не будет закрыт STDOUT handle
-        $proc->capture->wait;
-    }
+    $proc->capture;
 
     my $res;
 
