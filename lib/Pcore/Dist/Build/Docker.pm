@@ -308,6 +308,12 @@ sub build_local ( $self, $tag, $args ) {
         return $res;
     }
 
+    if ( !$dist->id->{hash} ) {
+        $res = res [ 500, 'Unable to identify current changeset.' ];
+        say $res;
+        return $res;
+    }
+
     my ( $clone_root, $repo );
 
     if ( defined $tag ) {
