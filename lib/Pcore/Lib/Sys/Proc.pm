@@ -87,6 +87,7 @@ around new => sub ( $orig, $self, $cmd, %args ) {
 
     if ($MSWIN) {
         $self->{win32_alive_timeout} = $args{win32_alive_timeout} if defined $args{win32_alive_timeout};
+        $args{win32_cflags} //= 0;    # NOTE handles redirect not works if not 0, Win32::Process::CREATE_NO_WINDOW(),
     }
     else {
         $args{setpgid} //= 1;
@@ -476,7 +477,7 @@ sub _set_exit_code ( $self, $exit_code, $reason = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (52)                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 108, 124, 157        | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 109, 125, 158        | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
