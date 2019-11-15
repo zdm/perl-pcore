@@ -4,6 +4,7 @@ use Pcore -const, -class;
 use Pcore::Lib::Scalar qw[is_ref weaken];
 use AnyEvent::Util qw[portable_socketpair];
 use if $MSWIN, 'Win32::Process';
+use if $MSWIN, 'Win32API::File';
 use POSIX qw[:sys_wait_h];
 use Config qw[%Config];
 use overload    #
@@ -102,15 +103,32 @@ around new => sub ( $orig, $self, $cmd, %args ) {
         $self->{stdin} = P->handle($parent_stdin);
 
         # backup and redirect
-        open $backup_stdin, '<&', *STDIN       or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
-        open *STDIN,        '<&', $child_stdin or die $!;
+        open $backup_stdin, '<&', *STDIN or do {    ## no critic qw[InputOutput::RequireBriefOpen]
+
+            # windows os native fh is invalid, reopen STDIN to NUL
+            if ( $MSWIN && Win32API::File::GetOsFHandle(*STDIN) == 18446744073709551614 ) {
+                open $backup_stdin, '<', 'NUL' or die $!;
+            }
+            else {
+                die $!;
+            }
+        };
+
+        open *STDIN, '<&', $child_stdin or die $!;
     }
 
     # redirect STDOUT
     if ( $args{stdout} ) {
+        open $backup_stdout, '>&', *STDOUT or do {    ## no critic qw[InputOutput::RequireBriefOpen]
 
-        # backup STDOUT
-        open $backup_stdout, '>&', *STDOUT or die $!;        ## no critic qw[InputOutput::RequireBriefOpen]
+            # windows os native fh is invalid, reopen STDOUT to NUL
+            if ( $MSWIN && Win32API::File::GetOsFHandle(*STDERR) == 18446744073709551614 ) {
+                open $backup_stdout, '>', 'NUL' or die $!;
+            }
+            else {
+                die $!;
+            }
+        };
 
         if ( $args{use_fh} ) {
             $self->{stdout} = P->file1->tempfile;
@@ -134,7 +152,16 @@ around new => sub ( $orig, $self, $cmd, %args ) {
     if ( $args{stderr} ) {
 
         # backup STDERR
-        open $backup_stderr, '>&', *STDERR or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
+        open $backup_stderr, '>&', *STDERR or do {    ## no critic qw[InputOutput::RequireBriefOpen]
+
+            # windows os native fh is invalid, reopen STDERR to NUL
+            if ( $MSWIN && Win32API::File::GetOsFHandle(*STDERR) == 18446744073709551614 ) {
+                open $backup_stderr, '>', 'NUL' or die $!;
+            }
+            else {
+                die $!;
+            }
+        };
 
         if ( $args{use_fh} ) {
 
@@ -318,7 +345,7 @@ sub _set_watcher ($self) {
             if ( waitpid $self->{pid}, WNOHANG ) {
                 undef $self->{_watcher};
 
-                $self->{_win32_proc}->GetExitCode( my $exit_code );
+                ( delete $self->{_win32_proc} )->GetExitCode( my $exit_code );
 
                 $self->_set_exit_code($exit_code);
 
@@ -448,7 +475,9 @@ sub _set_exit_code ( $self, $exit_code, $reason = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (40)                               |
+## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (53)                               |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 109, 125, 158        | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

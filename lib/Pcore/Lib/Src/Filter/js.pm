@@ -104,7 +104,7 @@ sub _run_jshint ($self) {
 
     my $proc = P->sys->run_proc(
         qq[jshint $jshint_args "$in_temp"],
-        win32_create_no_window => 1,
+        win32_create_no_window => 0,
         use_fh                 => 1,
         stdout                 => 1,
         stderr                 => 1,
