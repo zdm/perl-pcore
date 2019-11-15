@@ -76,7 +76,6 @@ sub git_run ( $self, $cmd, $root = undef ) {
     my $proc = P->sys->run_proc(
         [ is_plain_arrayref $cmd ? ( 'git', $cmd->@* ) : 'git ' . $cmd ],
         chdir  => @_ == 2 ? $self->{root} : $root,    # take default value if $root argument was not specified
-        use_fh => 1,
         stdout => 1,
         stderr => 1,
     );
