@@ -14,6 +14,7 @@ use overload    #
 
 has win32_alive_timeout => 0.5;
 has kill_on_destroy     => 1;
+has use_fh              => ();    # use file handles to redirect output
 
 has stdin  => ();
 has stdout => ();
@@ -80,7 +81,7 @@ around new => sub ( $orig, $self, $cmd, %args ) {
 
     $self = $self->$orig(
         kill_on_destroy => $args{kill_on_destroy} // 1,
-        use_sockets     => $args{use_sockets},
+        use_fh          => $args{use_fh},
     );
 
     if ($MSWIN) {
@@ -111,7 +112,13 @@ around new => sub ( $orig, $self, $cmd, %args ) {
         # backup STDOUT
         open $backup_stdout, '>&', *STDOUT or die $!;        ## no critic qw[InputOutput::RequireBriefOpen]
 
-        if ( $args{use_sockets} ) {
+        if ( $args{use_fh} ) {
+            $self->{stdout} = P->file1->tempfile;
+
+            # redirect STDOUT
+            open *STDOUT, '>', $self->{stdout} or die $!;
+        }
+        else {
             ( my $parent_stdout, $child_stdout ) = portable_socketpair();
 
             $self->{child_stdout} = $child_stdout;
@@ -121,12 +128,6 @@ around new => sub ( $orig, $self, $cmd, %args ) {
             # redirect STDOUT
             open *STDOUT, '>&', $child_stdout or die $!;
         }
-        else {
-            $self->{stdout} = P->file1->tempfile;
-
-            # redirect STDOUT
-            open *STDOUT, '>', $self->{stdout} or die $!;
-        }
     }
 
     # redirect STDERR
@@ -135,7 +136,31 @@ around new => sub ( $orig, $self, $cmd, %args ) {
         # backup STDERR
         open $backup_stderr, '>&', *STDERR or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
 
-        if ( $args{use_sockets} ) {
+        if ( $args{use_fh} ) {
+
+            # redirect STDERR to STDOUT
+            if ( $args{stderr} == 2 ) {
+
+                # redirect STDERR to child STDOUT
+                if ( $args{stdout} ) {
+
+                    # redirect
+                    open *STDERR, '>', $self->{stdout} or die $!;
+                }
+
+                # redirect STDERR to parent STDOUT
+                else {
+                    open *STDERR, '>&', *STDOUT or die $!;
+                }
+            }
+            else {
+                $self->{stderr} = P->file1->tempfile;
+
+                # redirect STDERR
+                open *STDERR, '>', $self->{stderr} or die $!;
+            }
+        }
+        else {
 
             # redirect STDERR to STDOUT
             if ( $args{stderr} == 2 ) {
@@ -160,30 +185,6 @@ around new => sub ( $orig, $self, $cmd, %args ) {
 
             # redirect STDERR
             open *STDERR, '>&', $child_stderr or die $!;
-        }
-        else {
-
-            # redirect STDERR to STDOUT
-            if ( $args{stderr} == 2 ) {
-
-                # redirect STDERR to child STDOUT
-                if ( $args{stdout} ) {
-
-                    # redirect
-                    open *STDERR, '>', $self->{stdout} or die $!;
-                }
-
-                # redirect STDERR to parent STDOUT
-                else {
-                    open *STDERR, '>&', *STDOUT or die $!;
-                }
-            }
-            else {
-                $self->{stderr} = P->file1->tempfile;
-
-                # redirect STDERR
-                open *STDERR, '>', $self->{stderr} or die $!;
-            }
         }
     }
 
@@ -356,19 +357,19 @@ sub wait ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
 }
 
 sub capture ( $self, %args ) {
-    if ( $self->{use_sockets} ) {
+    $self->wait;
+
+    if ( $self->{use_fh} ) {
+        $self->{stdout} = \P->file->read_bin( $self->{stdout} ) if defined $self->{stdout};
+
+        $self->{stderr} = \P->file->read_bin( $self->{stderr} ) if defined $self->{stderr};
+    }
+    else {
         undef $self->{child_stdout};
         $self->{stdout} = $self->{stdout}->read_eof( timeout => $args{timeout} ) if $self->{stdout};
 
         undef $self->{child_stderr};
         $self->{stderr} = $self->{stderr}->read_eof( timeout => $args{timeout} ) if $self->{stderr};
-    }
-    else {
-        $self->wait;
-
-        $self->{stdout} = \P->file->read_bin( $self->{stdout} ) if defined $self->{stdout};
-
-        $self->{stderr} = \P->file->read_bin( $self->{stderr} ) if defined $self->{stderr};
     }
 
     return $self;

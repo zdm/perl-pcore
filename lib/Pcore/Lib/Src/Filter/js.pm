@@ -97,21 +97,18 @@ sub _cut_log ($self) {
 }
 
 sub _run_jshint ($self) {
-    my $jshint_output = [];
-
     my $jshint_args = $self->dist_cfg->{jshint} || $self->src_cfg->{jshint};
 
     my $in_temp = P->file1->tempfile;
-
     P->file->write_bin( $in_temp, $self->{data} );
 
-    my $out_temp = "$ENV->{TEMP_DIR}/tmp-jshint-" . int rand 99_999;
-
-    my $proc = P->sys->run_proc( qq[jshint $jshint_args "$in_temp" > "$out_temp"], win32_create_no_window => 1 )->wait;
-
-    $jshint_output = P->file->read_lines($out_temp);
-
-    unlink $out_temp;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
+    my $proc = P->sys->run_proc(
+        qq[jshint $jshint_args "$in_temp"],
+        win32_create_no_window => 1,
+        use_fh                 => 1,
+        stdout                 => 1,
+        stderr                 => 1,
+    )->capture;
 
     my $res = {
         has_errors => 0,
@@ -119,7 +116,7 @@ sub _run_jshint ($self) {
         data       => [],
     };
 
-    for my $line ( $jshint_output->@* ) {
+    for my $line ( split /\n/sm, $proc->{stdout}->$* ) {
         next unless $line =~ s/^.+?: line/line/smg;
 
         my $descriptor = { raw => $line };
@@ -204,7 +201,7 @@ sub _run_eslint ($self) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 92                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 146                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_run_eslint' declared but not used  |
+## |    3 | 143                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_run_eslint' declared but not used  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
