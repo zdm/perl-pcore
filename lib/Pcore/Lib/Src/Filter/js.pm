@@ -104,10 +104,9 @@ sub _run_jshint ($self) {
 
     my $proc = P->sys->run_proc(
         qq[jshint $jshint_args "$in_temp"],
-        win32_create_no_window => 0,
-        use_fh                 => 1,
-        stdout                 => 1,
-        stderr                 => 1,
+        use_fh => 1,
+        stdout => 1,
+        stderr => 1,
     )->capture;
 
     my $res = {
@@ -152,7 +151,7 @@ sub _run_jshint ($self) {
 
 #     my $config = '/var/local/pcore-lib/arbitrator/data/cdn/app/09bc0f7872d3f6ddeae90acd113c0cab/.eslintrc.yaml';
 
-#     my $proc = P->sys->run_proc( qq[eslint --format json --config "$config" -o "$out_temp" "$in_temp"], win32_create_no_window => 1 )->wait;
+#     my $proc = P->sys->run_proc( qq[eslint --format json --config "$config" -o "$out_temp" "$in_temp"] )->wait;
 
 #     my $jshint_output = P->cfg->read($out_temp);
 
