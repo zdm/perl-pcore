@@ -87,7 +87,6 @@ around new => sub ( $orig, $self, $cmd, %args ) {
 
     if ($MSWIN) {
         $self->{win32_alive_timeout} = $args{win32_alive_timeout} if defined $args{win32_alive_timeout};
-        $args{win32_cflags} //= $args{win32_create_no_window} ? Win32::Process::CREATE_NO_WINDOW() : 0;    # NOTE handles redirect not works if not 0, Win32::Process::CREATE_NO_WINDOW(),
     }
     else {
         $args{setpgid} //= 1;
@@ -475,9 +474,9 @@ sub _set_exit_code ( $self, $exit_code, $reason = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (53)                               |
+## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (52)                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 109, 125, 158        | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 108, 124, 157        | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -494,7 +493,7 @@ Pcore::Lib::Sys::Proc
 
     my $proc = P->sys->run_proc(
         $cmd,
-        win32_create_no_window => 0,
+        use_fh                 => 0,
         stdin                  => 0,
         stdout                 => 0,
         stderr                 => 0,
