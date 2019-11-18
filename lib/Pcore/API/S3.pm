@@ -2,9 +2,8 @@ package Pcore::API::S3;
 
 use Pcore -class, -res, -const;
 use Pcore::Lib::Digest qw[sha256_hex hmac_sha256_bin hmac_sha256_hex];
-use Pcore::Lib::Scalar qw[is_ref is_plain_coderef];
+use Pcore::Lib::Scalar qw[is_ref];
 use Pcore::Lib::Data qw[to_uri_query from_xml];
-use Pcore::Lib::Scalar qw[weaken];
 use Pcore::Lib::Term::Progress;
 use IO::Compress::Gzip qw[gzip];
 
@@ -20,82 +19,25 @@ has max_retries => 3;
 
 has _queue   => ( init_arg => undef );
 has _threads => 0, init_arg => undef;
-has _signal  => sub { Coro::Signal->new }, init_arg => undef;
 
 const our $S3_ACL_READ_ONLY    => 0;
 const our $S3_ACL_FULL_CONTROL => 1;
 
 #  NOTE https://developers.digitalocean.com/documentation/spaces/
 
-sub DESTROY ($self) {
-    if ( ${^GLOBAL_PHASE} ne 'DESTRUCT' ) {
-
-        # finish threads
-        $self->{_signal}->broadcast;
-
-        # finish tasks
-        while ( my $task = shift $self->{_queue}->@* ) {
-            $task->{cb}->( res 500 ) if $task->{cb};
-        }
-    }
-
-    return;
-}
-
 sub _req ( $self, $args ) {
-    my $cv;
 
-    if ( defined wantarray ) {
-        $cv = P->cv;
+    # block thread
+    if ( $self->{max_threads} && $self->{_threads} == $self->{max_threads} ) {
+        my $cv = P->cv;
 
-        my $cb = delete $args->{cb};
+        push $self->{_queue}->@*, $cv;
 
-        $args->{cb} = sub ($res) { $cv->( $cb ? $cb->($res) : $res ) };
+        $cv->recv;
     }
-
-    push $self->{_queue}->@*, $args;
-
-    if ( $self->{_signal}->awaited ) {
-        $self->{_signal}->send;
-    }
-    elsif ( $self->{_threads} < $self->{max_threads} ) {
-        $self->_run_thread;
-    }
-
-    return $cv ? $cv->recv : ();
-}
-
-sub _run_thread ($self) {
-    weaken $self;
 
     $self->{_threads}++;
 
-    my $coro = Coro::async_pool {
-        while () {
-            last if !defined $self;
-
-            if ( my $task = shift $self->{_queue}->@* ) {
-                my $res = $self->_req1($task);
-
-                $task->{cb}->($res) if $task->{cb};
-
-                next;
-            }
-
-            $self->{_signal}->wait;
-        }
-
-        $self->{_threads}--;
-
-        return;
-    };
-
-    $coro->cede_to;
-
-    return;
-}
-
-sub _req1 ( $self, $args ) {
     no warnings qw[uninitialized];
 
     $args->{path} = "/$args->{path}" if substr( $args->{path}, 0, 1 ) ne '/';
@@ -152,75 +94,62 @@ sub _req1 ( $self, $args ) {
     # retry on connection error or TLS error
     goto REDO if ( $res == 590 || $res == 591 ) && --$retry;
 
+    $self->{_threads}--;
+
+    if ( my $cv = shift $self->{_queue}->@* ) { $cv->() }
+
     return $res;
 }
 
-sub get_buckets ( $self, @args ) {
-    my $cb = is_plain_coderef $_[-1] ? pop @args : ();
+sub get_buckets ( $self, %args ) {
+    my $res = $self->_req( { %args, method => 'GET' } );
 
-    my $args = {
-        @args,
-        method => 'GET',
-        cb     => sub ($res) {
-            if ($res) {
-                $res->{data} = from_xml $res->{data};
+    if ($res) {
+        $res->{data} = from_xml $res->{data};
 
-                my ( $data, $meta );
+        my ( $data, $meta );
 
-                for my $key ( keys $res->{data}->{ListAllMyBucketsResult}->%* ) {
-                    if ( $key eq 'Buckets' ) {
-                        for my $item ( $res->{data}->{ListAllMyBucketsResult}->{$key}->[0]->{Bucket}->@* ) {
-                            $data->{ $item->{Name}->[0]->{content} } = {
-                                name          => $item->{Name}->[0]->{content},
-                                creation_date => $item->{CreationDate}->[0]->{content},
-                            };
-                        }
-                    }
-                    else {
-                        $meta->{$key} = $res->{data}->{ListBucketResult}->{$key}->[0]->{content};
-                    }
+        for my $key ( keys $res->{data}->{ListAllMyBucketsResult}->%* ) {
+            if ( $key eq 'Buckets' ) {
+                for my $item ( $res->{data}->{ListAllMyBucketsResult}->{$key}->[0]->{Bucket}->@* ) {
+                    $data->{ $item->{Name}->[0]->{content} } = {
+                        name          => $item->{Name}->[0]->{content},
+                        creation_date => $item->{CreationDate}->[0]->{content},
+                    };
                 }
-
-                $res = res 200, $data, meta => $meta;
             }
-
-            return $cb ? $cb->($res) : $res;
+            else {
+                $meta->{$key} = $res->{data}->{ListBucketResult}->{$key}->[0]->{content};
+            }
         }
-    };
 
-    return $self->_req($args);
+        $res = res 200, $data, meta => $meta;
+    }
+
+    return $res;
 }
 
-sub get_bucket_location ( $self, @args ) {
-    my $cb = is_plain_coderef $_[-1] ? pop @args : ();
-
-    my $args = {
+sub get_bucket_location ( $self, %args ) {
+    my $res = $self->_req( {
         bucket => $self->{bucket},
-        @args,
+        %args,
         method => 'GET',
         query  => 'location=',
-        cb     => sub ($res) {
-            if ($res) {
-                $res->{data} = from_xml $res->{data};
+    } );
 
-                $res = res 200, $res->{data}->{LocationConstraint}->{content};
-            }
+    if ($res) {
+        $res->{data} = from_xml $res->{data};
 
-            return $cb ? $cb->($res) : $res;
-        }
-    };
+        $res = res 200, $res->{data}->{LocationConstraint}->{content};
+    }
 
-    return $self->_req($args);
+    return $res;
 }
 
 # - max: default 1000, 1000 is maximum allowed value;
 # - prefix: NOTE: must be relative. A string used to group keys. When specified, the response will only contain objects with keys beginning with the string;
 # - delim: A single character used to group keys. When specified, the response will only contain keys up to its first occurrence. (E.g. Using a slash as the delimiter can allow you to list keys as if they were folders, especially in combination with a prefix.);
-sub get_bucket_content ( $self, @args ) {
-    my $cb = is_plain_coderef $_[-1] ? pop @args : ();
-
-    my %args = @args;
-
+sub get_bucket_content ( $self, %args ) {
     my $args = {
         bucket => $args{bucket} || $self->{bucket},
         region => $args{region} || $self->{region},
@@ -232,93 +161,63 @@ sub get_bucket_content ( $self, @args ) {
             'max-keys' => $args{max}    // $EMPTY,
             prefix     => $args{prefix} // $EMPTY,
         ],
-        cb => sub ($res) {
-            if ( $res && $res->{data} ) {
-                $res->{data} = from_xml $res->{data};
-
-                my ( $data, $meta );
-
-                for my $key ( keys $res->{data}->{ListBucketResult}->%* ) {
-                    if ( $key eq 'Contents' ) {
-                        for my $item ( $res->{data}->{ListBucketResult}->{$key}->@* ) {
-                            $data->{ '/' . $item->{Key}->[0]->{content} } = {
-                                path          => '/' . $item->{Key}->[0]->{content},
-                                etag          => $item->{ETag}->[0]->{content} =~ s/"//smgr,
-                                last_modified => $item->{LastModified}->[0]->{content},
-                                size          => $item->{Size}->[0]->{content},
-                            };
-                        }
-                    }
-                    else {
-                        $meta->{$key} = $res->{data}->{ListBucketResult}->{$key}->[0]->{content};
-                    }
-                }
-
-                $res = res 200, $data, meta => $meta;
-            }
-
-            return $cb ? $cb->($res) : $res;
-        }
     };
 
-    return $self->_req($args);
+    my $res = $self->_req($args);
+
+    if ( $res && $res->{data} ) {
+        $res->{data} = from_xml $res->{data};
+
+        my ( $data, $meta );
+
+        for my $key ( keys $res->{data}->{ListBucketResult}->%* ) {
+            if ( $key eq 'Contents' ) {
+                for my $item ( $res->{data}->{ListBucketResult}->{$key}->@* ) {
+                    $data->{ '/' . $item->{Key}->[0]->{content} } = {
+                        path          => '/' . $item->{Key}->[0]->{content},
+                        etag          => $item->{ETag}->[0]->{content} =~ s/"//smgr,
+                        last_modified => $item->{LastModified}->[0]->{content},
+                        size          => $item->{Size}->[0]->{content},
+                    };
+                }
+            }
+            else {
+                $meta->{$key} = $res->{data}->{ListBucketResult}->{$key}->[0]->{content};
+            }
+        }
+
+        $res = res 200, $data, meta => $meta;
+    }
+
+    return $res;
 }
 
-sub get_all_bucket_content ( $self, @args ) {
-    my $cb = is_plain_coderef $_[-1] ? pop @args : ();
-
-    my %args = @args;
-
+sub get_all_bucket_content ( $self, %args ) {
     $args{max} = 1000;
 
     my $result = res 200;
 
-    my $cv = defined wantarray ? P->cv : ();
+  GET:
+    my $res = $self->get_bucket_content(%args);
 
-    my $req = sub {
-        my $sub = __SUB__;
+    if ($res) {
+        $result->{data}->@{ keys $res->{data}->%* } = values $res->{data}->%*;
 
-        $self->get_bucket_content(
-            %args,
-            sub ($res) {
-                if ( !$res ) {
-                    $result = $res;
-                }
-                else {
-                    $result->{data}->@{ keys $res->{data}->%* } = values $res->{data}->%*;
+        if ( $res->{meta}->{IsTruncated} eq 'true' ) {
+            $args{marker} = $res->{meta}->{NextMarker};
 
-                    if ( $res->{meta}->{IsTruncated} eq 'true' ) {
-                        $args{marker} = $res->{meta}->{NextMarker};
+            goto GET;
+        }
+    }
+    else {
+        $result = $res;
+    }
 
-                        $sub->();
-
-                        return;
-                    }
-                }
-
-                if ($cv) {
-                    $cv->( $cb ? $cb->($result) : $result );
-                }
-                else {
-                    $cb->($result) if $cb;
-                }
-
-                return;
-            }
-        );
-
-        return;
-    };
-
-    $req->();
-
-    return $cv ? $cv->recv : ();
+    return $result;
 }
 
 # TODO \$data - content, $data - path
-sub upload ( $self, $path, $data, @args ) {
-    my $cb = is_plain_coderef $_[-1] ? pop @args : ();
-
+sub upload ( $self, $path, $data, %args ) {
     my $args = {
         bucket        => $self->{bucket},
         private       => 0,
@@ -326,10 +225,9 @@ sub upload ( $self, $path, $data, @args ) {
         cache_control => undef,
         compress      => $self->{compress},
         etag          => undef,
-        @args,
+        %args,
         method => 'PUT',
         path   => $path,
-        cb     => $cb,
     };
 
     my $buf;
@@ -350,9 +248,7 @@ sub upload ( $self, $path, $data, @args ) {
     }
 
     if ( defined $args->{etag} && $args->{etag} eq P->digest->md5_hex( $buf->$* ) ) {
-        my $res = res 304;
-
-        return $cb ? $cb->($res) : $res;
+        return res 304;
     }
 
     $args->{data} = $buf;
@@ -368,94 +264,80 @@ sub upload ( $self, $path, $data, @args ) {
     return $self->_req($args);
 }
 
-sub get_object ( $self, $path, @args ) {
-    my $cb = is_plain_coderef $_[-1] ? pop @args : ();
-
+sub get_object ( $self, $path, %args ) {
     my $args = {
         bucket => $self->{bucket},
-        @args,
+        %args,
         method => 'GET',
         path   => $path,
-        cb     => $cb
     };
 
     return $self->_req($args);
 }
 
-sub get_metadata ( $self, $path, @args ) {
-    my $cb = is_plain_coderef $_[-1] ? pop @args : ();
-
+sub get_metadata ( $self, $path, %args ) {
     my $args = {
         bucket => $self->{bucket},
-        @args,
+        %args,
         method => 'HEAD',
         path   => $path,
-        cb     => sub ($res) {
-            if ($res) {
-                $res->{headers}->{etag} =~ s/"//smg;
-
-                $res = res 200, $res->{headers};
-            }
-
-            return $cb ? $cb->($res) : $res;
-        },
     };
 
-    return $self->_req($args);
+    my $res = $self->_req($args);
+
+    if ($res) {
+        $res->{headers}->{etag} =~ s/"//smg;
+
+        $res = res 200, $res->{headers};
+    }
+
+    return $res;
 }
 
-sub remove ( $self, $path, @args ) {
-    my $cb = is_plain_coderef $_[-1] ? pop @args : ();
-
+sub remove ( $self, $path, %args ) {
     my $args = {
         bucket => $self->{bucket},
-        @args,
+        %args,
         method => 'DELETE',
         path   => $path,
-        cb     => $cb
     };
 
     return $self->_req($args);
 }
 
-sub get_acl ( $self, $path, @args ) {
-    my $cb = is_plain_coderef $_[-1] ? pop @args : ();
-
+sub get_acl ( $self, $path, %args ) {
     my $args = {
         bucket => $self->{bucket},
-        @args,
+        %args,
         method => 'GET',
         query  => 'acl=',
         path   => $path,
-        cb     => sub ($res) {
-            if ($res) {
-                $res->{data} = from_xml $res->{data};
-
-                my $data;
-
-                for my $grant ( $res->{data}->{AccessControlPolicy}->{AccessControlList}->[0]->{Grant}->@* ) {
-                    if ( $grant->{Grantee}->[0]->{URI} ) {
-                        $data->{'*'} = $grant->{Permission}->[0]->{content} eq 'READ' ? $S3_ACL_READ_ONLY : $S3_ACL_FULL_CONTROL;
-                    }
-                    else {
-                        $data->{ $grant->{Grantee}->[0]->{ID}->[0]->{content} } = $grant->{Permission}->[0]->{content} eq 'READ' ? $S3_ACL_READ_ONLY : $S3_ACL_FULL_CONTROL;
-                    }
-                }
-
-                $res = res 200, $data;
-            }
-
-            return $cb ? $cb->($res) : $res;
-        }
     };
 
-    return $self->_req($args);
+    my $res = $self->_req($args);
+
+    if ($res) {
+        $res->{data} = from_xml $res->{data};
+
+        my $data;
+
+        for my $grant ( $res->{data}->{AccessControlPolicy}->{AccessControlList}->[0]->{Grant}->@* ) {
+            if ( $grant->{Grantee}->[0]->{URI} ) {
+                $data->{'*'} = $grant->{Permission}->[0]->{content} eq 'READ' ? $S3_ACL_READ_ONLY : $S3_ACL_FULL_CONTROL;
+            }
+            else {
+                $data->{ $grant->{Grantee}->[0]->{ID}->[0]->{content} } = $grant->{Permission}->[0]->{content} eq 'READ' ? $S3_ACL_READ_ONLY : $S3_ACL_FULL_CONTROL;
+            }
+        }
+
+        $res = res 200, $data;
+    }
+
+    return $res;
 }
 
 # TODO fucking stupid API, created by stupid idiots
-sub set_public_access ( $self, $path, $enabled, @args ) {
-    my $cb = is_plain_coderef $_[-1] ? pop @args : ();
-
+sub set_public_access ( $self, $path, $enabled, %args ) {
     my $data = <<"XML";
 <AccessControlPolicy xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
     <AccessControlList>
@@ -471,13 +353,12 @@ XML
 
     my $args = {
         bucket => $self->{bucket},
-        @args,
+        %args,
         method  => 'PUT',
         query   => 'acl=',
         path    => $path,
         headers => { 'Content-Length' => length $data },
         data    => \$data,
-        cb      => $cb
     };
 
     return $self->_req($args);
@@ -590,7 +471,7 @@ sub sync ( $self, $locations, $tree ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 497, 500             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 378, 381             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
