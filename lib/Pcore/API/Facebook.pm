@@ -12,17 +12,14 @@ with qw[
 has token       => ( required => 1 );
 has max_threads => 1;
 
-has _threads => ( 0, init_arg => undef );
-has _signal  => sub { Coro::Signal->new };
+has _semaphore => sub ($self) { Coro::Semaphore->new( $self->{max_threads} ) }, is => 'lazy';
 
 const our $DEFAULT_LIMIT => 500;
 
 sub _req ( $self, $method, $path, $params = undef, $data = undef ) {
 
     # block thread
-    $self->{_signal}->wait if $self->{max_threads} && $self->{_threads} == $self->{max_threads};
-
-    $self->{_threads}++;
+    my $guard = $self->{max_threads} && $self->_semaphore->guard;
 
     my $url = "https://graph.facebook.com/$path?access_token=$self->{token}";
 
@@ -75,10 +72,6 @@ sub _req ( $self, $method, $path, $params = undef, $data = undef ) {
         $result = res [ $res->{status}, $res_data->{error}->{message} ];
     }
 
-    $self->{_threads}--;
-
-    $self->{_signal}->send;
-
     return $result;
 }
 
@@ -89,7 +82,7 @@ sub _req ( $self, $method, $path, $params = undef, $data = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 20                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_req' declared but not used         |
+## |    3 | 19                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_req' declared but not used         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

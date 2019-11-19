@@ -7,18 +7,15 @@ has key   => ( required => 1 );
 
 has max_threads => 10;
 
-has _headers => ( init_arg => undef );
-has _threads => 0, init_arg => undef;
-has _signal  => sub { Coro::Signal->new };
+has _headers   => ( init_arg => undef );
+has _semaphore => sub ($self) { Coro::Semaphore->new( $self->{max_threads} ) }, is => 'lazy';
 
 const our $API_VER => 4;
 
 sub _req ( $self, $method, $path, $query = undef, $data = undef ) {
 
     # block thread
-    $self->{_signal}->wait if $self->{max_threads} && $self->{_threads} == $self->{max_threads};
-
-    $self->{_threads}++;
+    my $guard = $self->{max_threads} && $self->_semaphore->guard;
 
     my $url = qq[https://api.cloudflare.com/client/v$API_VER/$path];
 
@@ -34,10 +31,6 @@ sub _req ( $self, $method, $path, $query = undef, $data = undef ) {
         ],
         data => defined $data ? P->data->to_json($data) : undef,
     );
-
-    $self->{_threads}--;
-
-    $self->{_signal}->send;
 
     if ($res) {
         return res $res, P->data->from_json( $res->{data} );
