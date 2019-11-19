@@ -8,21 +8,15 @@ has key   => ( required => 1 );
 has max_threads => 10;
 
 has _headers => ( init_arg => undef );
-has _queue   => ( init_arg => undef );
 has _threads => 0, init_arg => undef;
+has _signal  => sub { Coro::Signal->new };
 
 const our $API_VER => 4;
 
 sub _req ( $self, $method, $path, $query = undef, $data = undef ) {
 
     # block thread
-    if ( $self->{max_threads} && $self->{_threads} == $self->{max_threads} ) {
-        my $cv = P->cv;
-
-        push $self->{_queue}->@*, $cv;
-
-        $cv->recv;
-    }
+    $self->{_signal}->wait if $self->{max_threads} && $self->{_threads} == $self->{max_threads};
 
     $self->{_threads}++;
 
@@ -43,7 +37,7 @@ sub _req ( $self, $method, $path, $query = undef, $data = undef ) {
 
     $self->{_threads}--;
 
-    if ( my $cv = shift $self->{_queue}->@* ) { $cv->() }
+    $self->{_signal}->send;
 
     if ($res) {
         return res $res, P->data->from_json( $res->{data} );

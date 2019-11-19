@@ -17,8 +17,8 @@ has compress    => 2;                          # 1 - yes, 2 - auto
 has max_threads => 10;
 has max_retries => 3;
 
-has _queue   => ( init_arg => undef );
 has _threads => 0, init_arg => undef;
+has _signal  => sub { Coro::Signal->new };
 
 const our $S3_ACL_READ_ONLY    => 0;
 const our $S3_ACL_FULL_CONTROL => 1;
@@ -28,13 +28,7 @@ const our $S3_ACL_FULL_CONTROL => 1;
 sub _req ( $self, $args ) {
 
     # block thread
-    if ( $self->{max_threads} && $self->{_threads} == $self->{max_threads} ) {
-        my $cv = P->cv;
-
-        push $self->{_queue}->@*, $cv;
-
-        $cv->recv;
-    }
+    $self->{_signal}->wait if $self->{max_threads} && $self->{_threads} == $self->{max_threads};
 
     $self->{_threads}++;
 
@@ -96,7 +90,7 @@ sub _req ( $self, $args ) {
 
     $self->{_threads}--;
 
-    if ( my $cv = shift $self->{_queue}->@* ) { $cv->() }
+    $self->{_signal}->send;
 
     return $res;
 }
@@ -471,7 +465,7 @@ sub sync ( $self, $locations, $tree ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 378, 381             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 372, 375             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
