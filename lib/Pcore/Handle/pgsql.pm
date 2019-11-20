@@ -37,41 +37,28 @@ has _dbh_pool => sub { Pcore::Lib::Hash::HashArray->new }, init_arg => undef;
 has _get_dbh_queue => sub { [] }, init_arg => undef;    # ArrayRef
 
 # DBH POOL METHODS
-sub get_dbh ( $self, $cb = undef ) {
+sub get_dbh ( $self ) {
     my $dbh = pop $self->{_dbh_pool}->@*;
 
-    return $cb ? $cb->( res(200), $dbh ) : ( res(200), $dbh ) if defined $dbh;
+    return res(200), $dbh if defined $dbh;
 
     # backlog is full
     if ( $self->{backlog} && $self->{_get_dbh_queue}->@* > $self->{backlog} ) {
         warn 'DBI: backlog queue is full';
 
-        my $res = res [ 500, 'backlog queue is full' ];
-
-        return $cb ? $cb->( $res, undef ) : ( $res, undef );
+        return res [ 500, 'backlog queue is full' ];
     }
 
-    if ( defined wantarray ) {
-        my $cv = P->cv;
+    my $cv = P->cv;
 
-        # push callback to the backlog queue
-        push $self->{_get_dbh_queue}->@*, $cv;
+    # push callback to the backlog queue
+    push $self->{_get_dbh_queue}->@*, $cv;
 
-        # create dbh if limit is not reached
-        $self->_create_dbh if $self->{active_dbh} < $self->{max_dbh};
+    # create dbh if limit is not reached
+    $self->_create_dbh if $self->{active_dbh} < $self->{max_dbh};
 
-        # block thread
-        return $cb ? $cb->( $cv->recv ) : $cv->recv;
-    }
-    else {
-        # push callback to the backlog queue
-        push $self->{_get_dbh_queue}->@*, $cb if $cb;
-
-        # create dbh if limit is not reached
-        $self->_create_dbh if $self->{active_dbh} < $self->{max_dbh};
-    }
-
-    return;
+    # block thread
+    return $cv->recv;
 }
 
 sub push_dbh ( $self, $dbh ) {
