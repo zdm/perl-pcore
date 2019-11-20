@@ -765,247 +765,192 @@ sub do ( $self, $query, @args ) {    ## no critic qw[Subroutines::ProhibitBuilti
 sub selectall ( $self, $query, @args ) {
     my ( $bind, $args ) = _parse_args( \@args );
 
-    my $on_finish = sub ( $sth, $res ) {
-        my $guard = $self;    # keep reference to $self until query is finished
+    $self->_execute( $query, $bind, my $cv = P->cv );
 
-        if ( $res && defined $sth->{rows} ) {
-            my @cols_names = map { $_->[0] } $sth->{cols}->@*;
+    my ( $sth, $res ) = $cv->recv;
 
-            if ( defined $args->{key_col} ) {
-                my $name2idx;
+    if ( $res && defined $sth->{rows} ) {
+        my @cols_names = map { $_->[0] } $sth->{cols}->@*;
 
-                # create columns index
-                for ( my $i = 0; $i <= $sth->{cols}->$#*; $i++ ) {
-                    $name2idx->{ $sth->{cols}->[$i]->[0] } = $i;
-                }
+        if ( defined $args->{key_col} ) {
+            my $name2idx;
 
-                my $num_of_fields = $sth->{cols}->@*;
-                my @key_col_idx;
-
-                for my $key_col ( is_plain_arrayref $args->{key_col} ? $args->{key_col}->@* : $args->{key_col} ) {
-                    if ( looks_like_number $key_col) {
-                        if ( $key_col + 1 > $num_of_fields ) {
-                            my $res = res [ 400, qq[Invalid field index "$key_col"] ];
-
-                            warn $res;
-
-                            return $res;
-                        }
-
-                        push @key_col_idx, $key_col;
-                    }
-                    else {
-                        my $idx = $name2idx->{$key_col};
-
-                        if ( !defined $idx ) {
-                            my $res = res [ 400, qq[DBI: Invalid field name "$key_col"] ];
-
-                            warn $res;
-
-                            return $res;
-                        }
-
-                        push @key_col_idx, $idx;
-                    }
-                }
-
-                my $data = {};
-
-                for my $row ( $sth->{rows}->@* ) {
-                    my $ref = $data;
-
-                    $ref = $ref->{ $row->[$_] // $EMPTY } //= {} for @key_col_idx;
-
-                    $ref->@{@cols_names} = $row->@*;
-                }
-
-                $res->{data} = $data;
+            # create columns index
+            for ( my $i = 0; $i <= $sth->{cols}->$#*; $i++ ) {
+                $name2idx->{ $sth->{cols}->[$i]->[0] } = $i;
             }
-            else {
-                my $data;
 
-                for my $row ( $sth->{rows}->@* ) {
-                    my $row_hashref->@{@cols_names} = $row->@*;
+            my $num_of_fields = $sth->{cols}->@*;
+            my @key_col_idx;
 
-                    push $data->@*, $row_hashref;
+            for my $key_col ( is_plain_arrayref $args->{key_col} ? $args->{key_col}->@* : $args->{key_col} ) {
+                if ( looks_like_number $key_col) {
+                    if ( $key_col + 1 > $num_of_fields ) {
+                        $res = res [ 400, qq[Invalid field index "$key_col"] ];
+
+                        warn $res;
+
+                        return $res;
+                    }
+
+                    push @key_col_idx, $key_col;
                 }
+                else {
+                    my $idx = $name2idx->{$key_col};
 
-                $res->{data} = $data;
+                    if ( !defined $idx ) {
+                        $res = res [ 400, qq[DBI: Invalid field name "$key_col"] ];
+
+                        warn $res;
+
+                        return $res;
+                    }
+
+                    push @key_col_idx, $idx;
+                }
             }
+
+            my $data = {};
+
+            for my $row ( $sth->{rows}->@* ) {
+                my $ref = $data;
+
+                $ref = $ref->{ $row->[$_] // $EMPTY } //= {} for @key_col_idx;
+
+                $ref->@{@cols_names} = $row->@*;
+            }
+
+            $res->{data} = $data;
         }
+        else {
+            my $data;
 
-        return $res;
-    };
+            for my $row ( $sth->{rows}->@* ) {
+                my $row_hashref->@{@cols_names} = $row->@*;
 
-    if ( defined wantarray ) {
-        $self->_execute( $query, $bind, my $cv = P->cv );
+                push $data->@*, $row_hashref;
+            }
 
-        return $on_finish->( $cv->recv );
+            $res->{data} = $data;
+        }
     }
-    else {
-        $self->_execute( $query, $bind, $on_finish );
 
-        return;
-    }
+    return $res;
 }
 
 sub selectall_arrayref ( $self, $query, @args ) {
     my ( $bind, $args ) = _parse_args( \@args );
 
-    my $on_finish = sub ( $sth, $res ) {
-        my $guard = $self;    # keep reference to $self until query is finished
+    $self->_execute( $query, $bind, my $cv = P->cv );
 
-        my $data;
+    my ( $sth, $res ) = $cv->recv;
 
-        if ( $res && defined $sth->{rows} ) {
-            $res->{data} = $sth->{rows};
-        }
+    my $data;
 
-        return $res;
-    };
-
-    if ( defined wantarray ) {
-        $self->_execute( $query, $bind, my $cv = P->cv );
-
-        return $on_finish->( $cv->recv );
+    if ( $res && defined $sth->{rows} ) {
+        $res->{data} = $sth->{rows};
     }
-    else {
-        $self->_execute( $query, $bind, $on_finish );
 
-        return;
-    }
+    return $res;
 }
 
 sub selectrow ( $self, $query, @args ) {
     my ( $bind, $args ) = _parse_args( \@args );
 
-    my $on_finish = sub ( $sth, $res ) {
-        my $guard = $self;    # keep reference to $self until query is finished
+    $self->_execute( $query, $bind, my $cv = P->cv, max_rows => 1 );
 
-        if ( $res && defined $sth->{rows} ) {
-            if ( $sth->{rows} ) {
-                my @cols_names = map { $_->[0] } $sth->{cols}->@*;
+    my ( $sth, $res ) = $cv->recv;
 
-                $res->{data}->@{@cols_names} = $sth->{rows}->[0]->@*;
-            }
+    if ( $res && defined $sth->{rows} ) {
+        if ( $sth->{rows} ) {
+            my @cols_names = map { $_->[0] } $sth->{cols}->@*;
+
+            $res->{data}->@{@cols_names} = $sth->{rows}->[0]->@*;
         }
-
-        return $res;
-    };
-
-    if ( defined wantarray ) {
-        $self->_execute( $query, $bind, my $cv = P->cv, max_rows => 1 );
-
-        return $on_finish->( $cv->recv );
     }
-    else {
-        $self->_execute( $query, $bind, $on_finish, max_rows => 1 );
 
-        return;
-    }
+    return $res;
 }
 
 sub selectrow_arrayref ( $self, $query, @args ) {
     my ( $bind, $args ) = _parse_args( \@args );
 
-    my $on_finish = sub ( $sth, $res ) {
-        my $guard = $self;    # keep reference to $self until query is finished
+    $self->_execute( $query, $bind, my $cv = P->cv, max_rows => 1 );
 
-        if ( $res && defined $sth->{rows} ) {
-            $res->{data} = $sth->{rows}->[0];
-        }
+    my ( $sth, $res ) = $cv->recv;
 
-        return $res;
-    };
-
-    if ( defined wantarray ) {
-        $self->_execute( $query, $bind, my $cv = P->cv, max_rows => 1 );
-
-        return $on_finish->( $cv->recv );
+    if ( $res && defined $sth->{rows} ) {
+        $res->{data} = $sth->{rows}->[0];
     }
-    else {
-        $self->_execute( $query, $bind, $on_finish, max_rows => 1 );
 
-        return;
-    }
+    return $res;
 }
 
 # col => [0, 'id'], col => 'id', default col => 0
 sub selectcol ( $self, $query, @args ) {
     my ( $bind, $args ) = _parse_args( \@args );
 
-    my $on_finish = sub ( $sth, $res ) {
-        my $guard = $self;    # keep reference to $self until query is finished
+    $self->_execute( $query, $bind, my $cv = P->cv );
 
-        if ( $res && defined $sth->{rows} ) {
-            my @slice;
+    my ( $sth, $res ) = $cv->recv;
 
-            my $num_of_fields = $sth->{cols}->@* - 1;
+    if ( $res && defined $sth->{rows} ) {
+        my @slice;
 
-            if ( !defined $args->{col} ) {
-                push @slice, 0;
-            }
-            else {
-                for my $col ( is_plain_arrayref $args->{col} ? $args->{col}->@* : $args->{col} ) {
-                    if ( looks_like_number $col) {
-                        if ( $col > $num_of_fields ) {
-                            my $res = res [ 400, qq[DBI: Invalid column index: "$col"] ];
+        my $num_of_fields = $sth->{cols}->@* - 1;
 
-                            warn $res;
+        if ( !defined $args->{col} ) {
+            push @slice, 0;
+        }
+        else {
+            for my $col ( is_plain_arrayref $args->{col} ? $args->{col}->@* : $args->{col} ) {
+                if ( looks_like_number $col) {
+                    if ( $col > $num_of_fields ) {
+                        $res = res [ 400, qq[DBI: Invalid column index: "$col"] ];
 
-                            return $res;
-                        }
+                        warn $res;
 
-                        push @slice, $col;
+                        return $res;
                     }
-                    else {
 
-                        # create columns index
-                        my $name2idx;
+                    push @slice, $col;
+                }
+                else {
 
-                        if ( !defined $name2idx ) {
-                            $name2idx = {};
+                    # create columns index
+                    my $name2idx;
 
-                            for ( my $i = 0; $i <= $sth->{cols}->$#*; $i++ ) {
-                                $name2idx->{ $sth->{cols}->[$i]->[0] } = $i;
-                            }
+                    if ( !defined $name2idx ) {
+                        $name2idx = {};
+
+                        for ( my $i = 0; $i <= $sth->{cols}->$#*; $i++ ) {
+                            $name2idx->{ $sth->{cols}->[$i]->[0] } = $i;
                         }
-
-                        if ( !exists $name2idx->{$col} ) {
-                            my $res = res [ 400, qq[DBI: Invalid column name: "$col"] ];
-
-                            warn $res;
-
-                            return $res;
-                        }
-
-                        push @slice, $name2idx->{$col};
                     }
+
+                    if ( !exists $name2idx->{$col} ) {
+                        $res = res [ 400, qq[DBI: Invalid column name: "$col"] ];
+
+                        warn $res;
+
+                        return $res;
+                    }
+
+                    push @slice, $name2idx->{$col};
                 }
             }
-
-            my $data;
-
-            for my $row ( $sth->{rows}->@* ) {
-                push $data->@*, $row->@[@slice];
-            }
-
-            $res->{data} = $data;
         }
 
-        return $res;
-    };
+        my $data;
 
-    if ( defined wantarray ) {
-        $self->_execute( $query, $bind, my $cv = P->cv );
+        for my $row ( $sth->{rows}->@* ) {
+            push $data->@*, $row->@[@slice];
+        }
 
-        return $on_finish->( $cv->recv );
+        $res->{data} = $data;
     }
-    else {
-        $self->_execute( $query, $bind, $on_finish );
 
-        return;
-    }
+    return $res;
 }
 
 # TRANSACTIONS
@@ -1094,11 +1039,11 @@ sub encode_json ( $self, $var ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 536                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (31)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 637, 969             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 637, 926             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 778, 969             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 779, 926             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 817                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 818                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
