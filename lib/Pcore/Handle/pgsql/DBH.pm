@@ -729,36 +729,25 @@ sub get_dbh ( $self ) {
 sub do ( $self, $query, @args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my ( $bind, $args ) = _parse_args( \@args );
 
-    my $on_finish = sub ( $sth, $res ) {
-        my $guard = $self;           # keep reference to $self until query is finished
+    $self->_execute( $query, $bind, my $cv = P->cv );
 
-        if ( $res && defined $sth->{rows} ) {
-            my @cols_names = map { $_->[0] } $sth->{cols}->@*;
+    my ( $sth, $res ) = $cv->recv;
 
-            my $data;
+    if ( $res && defined $sth->{rows} ) {
+        my @cols_names = map { $_->[0] } $sth->{cols}->@*;
 
-            for my $row ( $sth->{rows}->@* ) {
-                my $data_row->@{@cols_names} = $row->@*;
+        my $data;
 
-                push $data->@*, $data_row;
-            }
+        for my $row ( $sth->{rows}->@* ) {
+            my $data_row->@{@cols_names} = $row->@*;
 
-            $res->{data} = $data;
+            push $data->@*, $data_row;
         }
 
-        return $res;
-    };
-
-    if ( defined wantarray ) {
-        $self->_execute( $query, $bind, my $cv = P->cv );
-
-        return $on_finish->( $cv->recv );
+        $res->{data} = $data;
     }
-    else {
-        $self->_execute( $query, $bind, $on_finish );
 
-        return;
-    }
+    return $res;
 }
 
 # key_col => [0, 1, 'id'], key_col => 'id'
@@ -959,58 +948,27 @@ sub in_transaction ($self) {
 }
 
 sub begin_work ( $self ) {
-    my $on_finish = sub ( $sth, $res ) {
-        return $res;
-    };
+    $self->_execute( 'BEGIN', undef, my $cv = P->cv );
 
-    if ( defined wantarray ) {
-        $self->_execute( 'BEGIN', undef, my $cv = P->cv );
+    my ( $sth, $res ) = $cv->recv;
 
-        return $on_finish->( $cv->recv );
-    }
-    else {
-        $self->_execute( 'BEGIN', undef, $on_finish );
-
-        return;
-    }
+    return $res;
 }
 
 sub commit ( $self ) {
-    my $on_finish = sub ( $sth, $res ) {
-        my $guard = $self;    # keep reference to $self until query is finished
+    $self->_execute( 'COMMIT', undef, my $cv = P->cv );
 
-        return $res;
-    };
+    my ( $sth, $res ) = $cv->recv;
 
-    if ( defined wantarray ) {
-        $self->_execute( 'COMMIT', undef, my $cv = P->cv );
-
-        return $on_finish->( $cv->recv );
-    }
-    else {
-        $self->_execute( 'COMMIT', undef, $on_finish );
-
-        return;
-    }
+    return $res;
 }
 
 sub rollback ( $self ) {
-    my $on_finish = sub ( $sth, $res ) {
-        my $guard = $self;    # keep reference to $self until query is finished
+    $self->_execute( 'ROLLBACK', undef, my $cv = P->cv );
 
-        return $res;
-    };
+    my ( $sth, $res ) = $cv->recv;
 
-    if ( defined wantarray ) {
-        $self->_execute( 'ROLLBACK', undef, my $cv = P->cv );
-
-        return $on_finish->( $cv->recv );
-    }
-    else {
-        $self->_execute( 'ROLLBACK', undef, $on_finish );
-
-        return;
-    }
+    return $res;
 }
 
 # QUOTE
@@ -1039,11 +997,11 @@ sub encode_json ( $self, $var ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 536                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (31)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 637, 926             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 637, 915             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 779, 926             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 768, 915             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 818                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 807                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
