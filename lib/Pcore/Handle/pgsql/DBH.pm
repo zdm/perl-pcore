@@ -3,7 +3,7 @@ package Pcore::Handle::pgsql::DBH;
 use Pcore -class, -res, -const;
 use Pcore::Handle::DBI::Const qw[:CONST];
 use Pcore::Handle::pgsql qw[:ALL];
-use Pcore::Lib::Scalar qw[weaken looks_like_number is_plain_arrayref is_plain_coderef is_blessed_arrayref];
+use Pcore::Lib::Scalar qw[weaken looks_like_number is_plain_arrayref is_blessed_arrayref];
 use Pcore::Lib::Digest qw[md5_hex];
 use Pcore::Lib::Data qw[from_json];
 
@@ -702,10 +702,9 @@ sub _execute ( $self, $query, $bind, $cb, %args ) {
 
 sub _parse_args ( $args ) {
     my $bind = is_plain_arrayref $args->[0] ? shift $args->@* : undef;
-    my $cb   = is_plain_coderef $args->[-1] ? pop $args->@*   : undef;
     my %args = $args->@*;
 
-    return $bind, \%args, $cb;
+    return $bind, \%args;
 }
 
 # STH
@@ -713,22 +712,22 @@ sub prepare ( $self, $query ) {
     return $self->{pool}->prepare($query);
 }
 
-sub get_dbh ( $self, $cb = undef ) {
+sub get_dbh ( $self ) {
 
     # self is ready
     if ( $self->{state} == $STATE_READY && $self->{tx_status} eq $TX_STATUS_IDLE ) {
-        return $cb ? $cb->( res(200), $self ) : ( res(200), $self );
+        return res(200), $self;
     }
 
     # self is not ready
     else {
-        return $self->{pool}->get_dbh($cb);
+        return $self->{pool}->get_dbh;
     }
 }
 
 # PUBLIC DBI METHODS
 sub do ( $self, $query, @args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    my ( $bind, $args, $cb ) = _parse_args( \@args );
+    my ( $bind, $args ) = _parse_args( \@args );
 
     my $on_finish = sub ( $sth, $res ) {
         my $guard = $self;           # keep reference to $self until query is finished
@@ -747,7 +746,7 @@ sub do ( $self, $query, @args ) {    ## no critic qw[Subroutines::ProhibitBuilti
             $res->{data} = $data;
         }
 
-        return $cb ? $cb->($res) : $res;
+        return $res;
     };
 
     if ( defined wantarray ) {
@@ -764,7 +763,7 @@ sub do ( $self, $query, @args ) {    ## no critic qw[Subroutines::ProhibitBuilti
 
 # key_col => [0, 1, 'id'], key_col => 'id'
 sub selectall ( $self, $query, @args ) {
-    my ( $bind, $args, $cb ) = _parse_args( \@args );
+    my ( $bind, $args ) = _parse_args( \@args );
 
     my $on_finish = sub ( $sth, $res ) {
         my $guard = $self;    # keep reference to $self until query is finished
@@ -790,7 +789,7 @@ sub selectall ( $self, $query, @args ) {
 
                             warn $res;
 
-                            return $cb ? $cb->($res) : $res;
+                            return $res;
                         }
 
                         push @key_col_idx, $key_col;
@@ -803,7 +802,7 @@ sub selectall ( $self, $query, @args ) {
 
                             warn $res;
 
-                            return $cb ? $cb->($res) : $res;
+                            return $res;
                         }
 
                         push @key_col_idx, $idx;
@@ -835,7 +834,7 @@ sub selectall ( $self, $query, @args ) {
             }
         }
 
-        return $cb ? $cb->($res) : $res;
+        return $res;
     };
 
     if ( defined wantarray ) {
@@ -851,7 +850,7 @@ sub selectall ( $self, $query, @args ) {
 }
 
 sub selectall_arrayref ( $self, $query, @args ) {
-    my ( $bind, $args, $cb ) = _parse_args( \@args );
+    my ( $bind, $args ) = _parse_args( \@args );
 
     my $on_finish = sub ( $sth, $res ) {
         my $guard = $self;    # keep reference to $self until query is finished
@@ -862,7 +861,7 @@ sub selectall_arrayref ( $self, $query, @args ) {
             $res->{data} = $sth->{rows};
         }
 
-        return $cb ? $cb->($res) : $res;
+        return $res;
     };
 
     if ( defined wantarray ) {
@@ -878,7 +877,7 @@ sub selectall_arrayref ( $self, $query, @args ) {
 }
 
 sub selectrow ( $self, $query, @args ) {
-    my ( $bind, $args, $cb ) = _parse_args( \@args );
+    my ( $bind, $args ) = _parse_args( \@args );
 
     my $on_finish = sub ( $sth, $res ) {
         my $guard = $self;    # keep reference to $self until query is finished
@@ -891,7 +890,7 @@ sub selectrow ( $self, $query, @args ) {
             }
         }
 
-        return $cb ? $cb->($res) : $res;
+        return $res;
     };
 
     if ( defined wantarray ) {
@@ -907,7 +906,7 @@ sub selectrow ( $self, $query, @args ) {
 }
 
 sub selectrow_arrayref ( $self, $query, @args ) {
-    my ( $bind, $args, $cb ) = _parse_args( \@args );
+    my ( $bind, $args ) = _parse_args( \@args );
 
     my $on_finish = sub ( $sth, $res ) {
         my $guard = $self;    # keep reference to $self until query is finished
@@ -916,7 +915,7 @@ sub selectrow_arrayref ( $self, $query, @args ) {
             $res->{data} = $sth->{rows}->[0];
         }
 
-        return $cb ? $cb->($res) : $res;
+        return $res;
     };
 
     if ( defined wantarray ) {
@@ -933,7 +932,7 @@ sub selectrow_arrayref ( $self, $query, @args ) {
 
 # col => [0, 'id'], col => 'id', default col => 0
 sub selectcol ( $self, $query, @args ) {
-    my ( $bind, $args, $cb ) = _parse_args( \@args );
+    my ( $bind, $args ) = _parse_args( \@args );
 
     my $on_finish = sub ( $sth, $res ) {
         my $guard = $self;    # keep reference to $self until query is finished
@@ -954,7 +953,7 @@ sub selectcol ( $self, $query, @args ) {
 
                             warn $res;
 
-                            return $cb ? $cb->($res) : $res;
+                            return $res;
                         }
 
                         push @slice, $col;
@@ -977,7 +976,7 @@ sub selectcol ( $self, $query, @args ) {
 
                             warn $res;
 
-                            return $cb ? $cb->($res) : $res;
+                            return $res;
                         }
 
                         push @slice, $name2idx->{$col};
@@ -994,7 +993,7 @@ sub selectcol ( $self, $query, @args ) {
             $res->{data} = $data;
         }
 
-        return $cb ? $cb->($res) : $res;
+        return $res;
     };
 
     if ( defined wantarray ) {
@@ -1014,9 +1013,9 @@ sub in_transaction ($self) {
     return $self->{tx_status} ne $TX_STATUS_IDLE;
 }
 
-sub begin_work ( $self, $cb = undef ) {
+sub begin_work ( $self ) {
     my $on_finish = sub ( $sth, $res ) {
-        return $cb ? $cb->($res) : $res;
+        return $res;
     };
 
     if ( defined wantarray ) {
@@ -1031,11 +1030,11 @@ sub begin_work ( $self, $cb = undef ) {
     }
 }
 
-sub commit ( $self, $cb = undef ) {
+sub commit ( $self ) {
     my $on_finish = sub ( $sth, $res ) {
         my $guard = $self;    # keep reference to $self until query is finished
 
-        return $cb ? $cb->($res) : $res;
+        return $res;
     };
 
     if ( defined wantarray ) {
@@ -1050,11 +1049,11 @@ sub commit ( $self, $cb = undef ) {
     }
 }
 
-sub rollback ( $self, $cb = undef ) {
+sub rollback ( $self ) {
     my $on_finish = sub ( $sth, $res ) {
         my $guard = $self;    # keep reference to $self until query is finished
 
-        return $cb ? $cb->($res) : $res;
+        return $res;
     };
 
     if ( defined wantarray ) {
@@ -1095,11 +1094,11 @@ sub encode_json ( $self, $var ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 536                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (31)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 637, 970             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 637, 969             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 779, 970             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 778, 969             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 818                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 817                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
