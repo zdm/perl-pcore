@@ -1,4 +1,4 @@
-package Pcore::AE::DNS::Cache;
+package Pcore::Core::Patch::AnyEvent::DNSCache;
 
 use Pcore;
 use base qw[AnyEvent::DNS];
@@ -111,7 +111,7 @@ __END__
 
 =head1 NAME
 
-Pcore::AE::DNS::Cache
+Pcore::Core::Patch::AnyEvent::DNSCache
 
 =head1 SYNOPSIS
 

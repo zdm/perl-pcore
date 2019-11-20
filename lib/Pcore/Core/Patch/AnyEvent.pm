@@ -1,4 +1,4 @@
-package Pcore::AE::Patch;
+package Pcore::Core::Patch::AnyEvent;
 
 use Pcore;
 use Socket qw(AF_INET AF_UNIX SOCK_STREAM SOCK_DGRAM SOL_SOCKET SO_REUSEADDR);
@@ -133,7 +133,7 @@ __END__
 
 =head1 NAME
 
-Pcore::AE::Patch
+Pcore::Core::Patch::AnyEvent
 
 =head1 SYNOPSIS
 

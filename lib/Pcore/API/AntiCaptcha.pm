@@ -201,7 +201,7 @@ sub solve ( $self, $captcha ) {
     };
 
   REPEAT_GET_RESULT:
-    Coro::AnyEvent::sleep $DEFAULT_TIMEOUT;
+    Coro::sleep $DEFAULT_TIMEOUT;
 
     $res = P->http->post( 'https://api.anti-captcha.com/getTaskResult', data => $task );
 
