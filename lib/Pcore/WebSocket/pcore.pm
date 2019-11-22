@@ -117,7 +117,7 @@ sub _on_text ( $self, $data_ref ) {
     return;
 }
 
-sub _on_binary ( $self, $data_ref ) {
+sub _on_bin ( $self, $data_ref ) {
     my $msg = eval { $CBOR->decode( $data_ref->$* ) };
 
     # unable to decode message
@@ -308,7 +308,7 @@ sub _send_msg ( $self, $msg ) {
         $self->send_text( \$JSON->encode($msg) );
     }
     else {
-        $self->send_binary( \$CBOR->encode($msg) );
+        $self->send_bin( \$CBOR->encode($msg) );
     }
 
     return;
@@ -357,7 +357,7 @@ sub resume_events ($self) {
 ## |      | 85                   | * Private subroutine/method '_on_connect' declared but not used                                                |
 ## |      | 99                   | * Private subroutine/method '_on_disconnect' declared but not used                                             |
 ## |      | 107                  | * Private subroutine/method '_on_text' declared but not used                                                   |
-## |      | 120                  | * Private subroutine/method '_on_binary' declared but not used                                                 |
+## |      | 120                  | * Private subroutine/method '_on_bin' declared but not used                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 133                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (21)               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

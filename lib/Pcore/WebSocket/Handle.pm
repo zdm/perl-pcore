@@ -20,7 +20,7 @@ use overload    #
 # https://tools.ietf.org/html/rfc7692#page-10
 # https://www.igvita.com/2013/11/27/configuring-and-optimizing-websocket-compression/
 
-requires qw[_on_connect _on_disconnect _on_text _on_binary];
+requires qw[_on_connect _on_disconnect _on_text _on_bin];
 
 has max_message_size => 1_024 * 1_024 * 100;    # PositiveOrZeroInt, 0 - do not check message size
 has compression      => ();                     # Bool, use permessage_deflate compression
@@ -252,7 +252,7 @@ sub send_text ( $self, $data ) {
     return;
 }
 
-sub send_binary ( $self, $data ) {
+sub send_bin ( $self, $data ) {
     my $ref = is_plain_scalarref $data ? $data : \$data;
 
     $ref = \encode_utf8 $ref->$* if utf8::is_utf8 $ref->$*;
@@ -594,7 +594,7 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
 
         # BINARY message
         elsif ( $header->{op} == $WEBSOCKET_OP_BINARY ) {
-            $self->_on_binary($payload_ref) if $payload_ref;
+            $self->_on_bin($payload_ref) if $payload_ref;
         }
 
         # CLOSE message

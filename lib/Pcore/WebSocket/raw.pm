@@ -6,7 +6,7 @@ with qw[Pcore::WebSocket::Handle];
 
 has on_disconnect => ();    # Maybe [CodeRef], ($self, $status)
 has on_text       => ();    # Maybe [CodeRef], ($self, \$payload)
-has on_binary     => ();    # Maybe [CodeRef], ($self, \$payload)
+has on_bin        => ();    # Maybe [CodeRef], ($self, \$payload)
 
 sub _on_connect ( $self ) {
     return $self;
@@ -30,10 +30,10 @@ sub _on_text ( $self, $data_ref ) {
     return;
 }
 
-sub _on_binary ( $self, $data_ref ) {
-    if ( $self->{on_binary} ) {
+sub _on_bin ( $self, $data_ref ) {
+    if ( $self->{on_bin} ) {
         Coro::async_pool {
-            $self->{on_binary}->( $self, $data_ref );
+            $self->{on_bin}->( $self, $data_ref );
 
             return;
         };
@@ -53,7 +53,7 @@ sub _on_binary ( $self, $data_ref ) {
 ## |      | 11                   | * Private subroutine/method '_on_connect' declared but not used                                                |
 ## |      | 15                   | * Private subroutine/method '_on_disconnect' declared but not used                                             |
 ## |      | 21                   | * Private subroutine/method '_on_text' declared but not used                                                   |
-## |      | 33                   | * Private subroutine/method '_on_binary' declared but not used                                                 |
+## |      | 33                   | * Private subroutine/method '_on_bin' declared but not used                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
