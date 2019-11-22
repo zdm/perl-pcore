@@ -1,7 +1,7 @@
 package Pcore::Node;
 
 use Pcore -class, -res, -const;
-use Pcore::Lib::Scalar qw[is_callback weaken refaddr is_ref is_blessed_hashref is_plain_coderef is_plain_hashref];
+use Pcore::Lib::Scalar qw[weaken refaddr is_ref is_blessed_hashref is_plain_coderef is_plain_hashref];
 use Pcore::HTTP::Server;
 use Pcore::Node::Server;
 use Pcore::Node::Proc;
@@ -844,13 +844,7 @@ sub rpc_call ( $self, $type, $method, @args ) {
         push $self->{_ready_conn}->{$type}->@*, $h if defined $h;
     }
 
-    if ( !defined $h ) {
-        my $res = res [ 404, qq[Node type "$type" is not available] ];
-
-        my $cb = is_callback $args[-1] ? pop @args : undef;
-
-        return $cb ? $cb->($res) : $res;
-    }
+    return res [ 404, qq[Node type "$type" is not available] ] if !defined $h;
 
     return $h->rpc_call( $method, @args );
 }

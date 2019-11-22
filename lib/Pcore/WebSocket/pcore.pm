@@ -4,7 +4,7 @@ use Pcore -class, -const, -res;
 use Pcore::WebSocket::pcore::Request;
 use Pcore::Lib::Data qw[to_b64];
 use Pcore::Lib::UUID qw[uuid_v1mc_str];
-use Pcore::Lib::Scalar qw[is_callback weaken is_plain_arrayref is_plain_coderef];
+use Pcore::Lib::Scalar qw[weaken is_plain_arrayref is_plain_coderef];
 use Clone qw[];
 
 with qw[Pcore::WebSocket::Handle];
@@ -59,52 +59,25 @@ sub auth ( $self, $token, $bindings = undef ) {
 }
 
 sub rpc_call ( $self, $method, @args ) {
+    return res [ 500, 'Connection is not ready' ] if !$self->{is_ready};
 
-    # parse callback
-    my $cb = is_callback $_[-1] ? pop @args : undef;
+    my $msg = {
+        type   => $TX_TYPE_RPC,
+        method => $method,
+        args   => \@args,
+    };
 
-    if ( !$self->{is_ready} ) {
-        my $res = res [ 500, 'Connection is not ready' ];
+    if ( defined wantarray ) {
+        my $cv = $self->{_req_cb}->{ $msg->{tid} = uuid_v1mc_str } = P->cv;
 
-        if ( defined wantarray ) {
-            if   ($cb) { return $cb->($res) }
-            else       { return $res }
-        }
-        else {
-            if ($cb) { $cb->($res) }
+        $self->_send_msg($msg);
 
-            return;
-        }
+        return $cv->recv;
     }
     else {
-        my $msg = {
-            type   => $TX_TYPE_RPC,
-            method => $method,
-            args   => \@args,
-        };
+        $self->_send_msg($msg);
 
-        if ( defined wantarray ) {
-            my $cv = P->cv;
-
-            $msg->{tid} = uuid_v1mc_str;
-
-            $self->{_req_cb}->{ $msg->{tid} } = sub ($res) { $cv->( $cb ? $cb->($res) : $res ) };
-
-            $self->_send_msg($msg);
-
-            return $cv->recv;
-        }
-        else {
-            if ($cb) {
-                $msg->{tid} = uuid_v1mc_str;
-
-                $self->{_req_cb}->{ $msg->{tid} } = $cb;
-            }
-
-            $self->_send_msg($msg);
-
-            return;
-        }
+        return;
     }
 }
 
@@ -433,14 +406,14 @@ sub resume_events ($self) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 111                  | * Private subroutine/method '_on_connect' declared but not used                                                |
-## |      | 134                  | * Private subroutine/method '_on_disconnect' declared but not used                                             |
-## |      | 142                  | * Private subroutine/method '_on_text' declared but not used                                                   |
-## |      | 154                  | * Private subroutine/method '_on_binary' declared but not used                                                 |
+## |      | 84                   | * Private subroutine/method '_on_connect' declared but not used                                                |
+## |      | 107                  | * Private subroutine/method '_on_disconnect' declared but not used                                             |
+## |      | 115                  | * Private subroutine/method '_on_text' declared but not used                                                   |
+## |      | 127                  | * Private subroutine/method '_on_binary' declared but not used                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 166                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (23)               |
+## |    3 | 139                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (23)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 207, 224             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 180, 197             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

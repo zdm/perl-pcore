@@ -140,7 +140,7 @@ sub _send_ws ( $self, $method, $args ) {
 
     return $error if defined $error;
 
-    return $ws->rpc_call( $method, $args );
+    return $ws->rpc_call( $method, $args->@* );
 }
 
 sub _get_ws ( $self ) {
