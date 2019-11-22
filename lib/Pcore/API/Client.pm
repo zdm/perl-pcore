@@ -59,7 +59,9 @@ sub set_token ( $self, $token = undef ) {
     if ( $token // $EMPTY ne $self->{token} // $EMPTY ) {
         $self->{token} = $token;
 
-        $self->disconnect;
+        my $h = $self->{_ws};
+
+        $h->auth($token) if defined $h;
     }
 
     return;
