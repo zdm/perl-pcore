@@ -23,8 +23,6 @@ sub DESTROY ( $self ) {
     return;
 }
 
-sub IS_PCORE_CALLBACK ($self) { return 1 }
-
 sub _respond ( $self, @ ) {
     die q[Already responded] if $self->{_responded};
 

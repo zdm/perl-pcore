@@ -37,7 +37,9 @@ sub run ( $self, $req ) {
                 return $self->on_event( $h, $ev );
             },
             on_rpc => sub ( $h, $req, $tx ) {
-                $h->{auth}->api_call_arrayref( $tx->{method}, $tx->{args}, $req );
+                my $res = $h->{auth}->api_call( $tx->{method}, $tx->{args}->@* );
+
+                $req->($res);
 
                 return;
             }
@@ -144,21 +146,19 @@ sub _http_api_router ( $self, $auth, $data, $cb ) {
 
             $cv->begin;
 
-            $auth->api_call_arrayref(
-                $tx->{method},
-                $tx->{args},
-                sub ($res) {
-                    push $response->@*,
-                      { type   => $TX_TYPE_RPC,
-                        tid    => $tx->{tid},
-                        result => $res,
-                      };
+            Coro::async_pool sub ($tx) {
+                my $res = $auth->api_call( $tx->{method}, $tx->{args}->@* );
 
-                    $cv->end;
+                push $response->@*,
+                  { type   => $TX_TYPE_RPC,
+                    tid    => $tx->{tid},
+                    result => $res,
+                  };
 
-                    return;
-                }
-            );
+                $cv->end;
+
+                return;
+            }, $tx;
         }
     }
 

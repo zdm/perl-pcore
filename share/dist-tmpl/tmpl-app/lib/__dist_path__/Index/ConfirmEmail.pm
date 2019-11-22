@@ -9,26 +9,6 @@ has path => '/confirm-email/', init_arg => undef;
 sub run ( $self, $req ) {
     my $token;
 
-    my $accept = sub {
-        $req->(
-            200, [ 'Content-Type' => 'text/html' ], <<"HTML"
-                <h1><center>$l10n{'Email address confirmed successfully'}.</center></h1>
-HTML
-        )->finish;
-
-        return;
-    };
-
-    my $reject = sub {
-        $req->(
-            400, [ 'Content-Type' => 'text/html' ], <<"HTML"
-                <h1><center>$l10n{'Token is invalid or email address is already confirmed'}.</center></h1>
-HTML
-        )->finish;
-
-        return;
-    };
-
     if ( $req->{env}->{QUERY_STRING} && $req->{env}->{QUERY_STRING} =~ /id=([[:alnum:]]+)/sm ) {
         $token = $1;
 
@@ -36,20 +16,22 @@ HTML
 
         return $reject->() if !$auth;
 
-        $auth->api_call(
-            '/v1/Auth/confirm_email_by_token',
-            $token,
-            sub ($res) {
-                if ($res) {
-                    $accept->();
-                }
-                else {
-                    $reject->();
-                }
+        my $res = $auth->api_call( '/v1/Auth/confirm_email_by_token', $token );
 
-                return;
-            }
-        );
+        if ($res) {
+            $req->(
+                200, [ 'Content-Type' => 'text/html' ], <<"HTML"
+                <h1><center>$l10n{'Email address confirmed successfully'}.</center></h1>
+HTML
+            )->finish;
+        }
+        else {
+            $req->(
+                400, [ 'Content-Type' => 'text/html' ], <<"HTML"
+                <h1><center>$l10n{'Token is invalid or email address is already confirmed'}.</center></h1>
+HTML
+            )->finish;
+        }
 
         return;
     }

@@ -3,7 +3,7 @@ package Pcore::API::Client;
 use Pcore -class, -res;
 
 # use Pcore::WebSocket;
-use Pcore::Lib::Scalar qw[is_callback is_plain_arrayref is_plain_coderef weaken];
+use Pcore::Lib::Scalar qw[is_plain_arrayref weaken];
 use Pcore::Lib::Data qw[to_cbor from_cbor];
 use Pcore::Lib::UUID qw[uuid_v1mc_str];
 use Pcore::HTTP qw[:TLS_CTX];
@@ -143,6 +143,7 @@ sub _send_ws ( $self, $method, $args ) {
     return $ws->rpc_call( $method, $args->@* );
 }
 
+# TODO redesign without callbacks
 sub _get_ws ( $self ) {
     return $self->{_ws} if $self->{_ws};
 

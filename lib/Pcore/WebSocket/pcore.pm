@@ -218,7 +218,7 @@ sub _on_message ( $self, $msg ) {
                             };
                         }
 
-                        Coro::async_pool { $self->{on_rpc}->( $self, $req, $tx ) }->cede_to;
+                        Coro::async_pool sub ($tx) { $self->{on_rpc}->( $self, $req, $tx ) }, $tx;
                     }
                 }
 
@@ -270,8 +270,7 @@ sub _on_auth_request ( $self, $tx ) {
             $self->{on_ready}->($self) if $self->{on_ready};
 
             return;
-        }
-        ->cede_to;
+        };
     }
 
     # auth is not supported, reject
