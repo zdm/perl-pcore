@@ -15,7 +15,7 @@ sub tree ( $html, %args ) {
 
     my $cv = P->cv;
 
-    $parser->parseAsync( $html, \%args, sub ($tree) { $cv->($tree) } );
+    $parser->parseAsync( $html, \%args, sub { $cv->( $_[0] ) } );
 
     my $tree = $cv->recv;
 
