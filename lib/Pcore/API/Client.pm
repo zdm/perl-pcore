@@ -3,7 +3,7 @@ package Pcore::API::Client;
 use Pcore -class, -res;
 
 # use Pcore::WebSocket;
-use Pcore::Lib::Scalar qw[is_plain_arrayref weaken];
+use Pcore::Lib::Scalar qw[is_plain_arrayref];
 use Pcore::Lib::Data qw[to_cbor from_cbor];
 use Pcore::Lib::UUID qw[uuid_v1mc_str];
 use Pcore::HTTP qw[:TLS_CTX];
@@ -21,14 +21,16 @@ has persistent => 600;
 has timeout    => ();
 
 # WebSocket options
-has compression    => 0;
-has bind_events    => ();
-has forward_events => ();
-has on_connect     => ();                # Maybe [CodeRef]
-has on_disconnect  => ();                # Maybe [CodeRef]
-has on_rpc         => ();                # Maybe [CodeRef]
-has on_ping        => ();                # Maybe [CodeRef]
-has on_pong        => ();                # Maybe [CodeRef]
+has bindings         => ();
+has max_message_size => 1_024 * 1_024 * 100;
+has compression      => 0;
+has on_connect       => ();                    # Maybe [CodeRef]
+has on_disconnect    => ();                    # Maybe [CodeRef]
+has on_bind          => ();                    # Maybe [CodeRef]
+has on_event         => ();                    # Maybe [CodeRef]
+has on_rpc           => ();                    # Maybe [CodeRef]
+has on_ping          => ();                    # Maybe [CodeRef]
+has on_pong          => ();                    # Maybe [CodeRef]
 
 has _is_http => ( required => 1 );
 
@@ -136,14 +138,11 @@ sub _send_http ( $self, $method, $args ) {
 }
 
 sub _send_ws ( $self, $method, $args ) {
-    my ( $ws, $error ) = $self->_get_ws;
-
-    return $error if defined $error;
+    my $ws = $self->_get_ws;
 
     return $ws->rpc_call( $method, $args->@* );
 }
 
-# TODO redesign without callbacks
 sub _get_ws ( $self ) {
     return $self->{_ws} if $self->{_ws};
 
@@ -157,87 +156,25 @@ sub _get_ws ( $self ) {
 
     $self->{_get_ws_threads} = 1;
 
-    weaken $self;
-
-    my $cv = P->cv;
-
-    Pcore::WebSocket->connect_ws(
+    $self->{_ws} = Pcore::WebSocket::pcore->connect(
         $self->{uri},
-        protocol         => 'pcore',
-        max_message_size => 0,
+        max_message_size => $self->{max_message_size},
         compression      => $self->{compression},
-        connect_timeout  => $self->{connect_timeout},
-        tls_ctx          => $self->{tls_ctx},
-        before_connect   => {
-            token          => $self->{token},
-            bind_events    => $self->{bind_events},
-            forward_events => $self->{forward_events},
-        },
-        on_listen_event => sub ( $ws, $mask ) {    # API server can listen client events
-            return 1;
-        },
-        on_fire_event => sub ( $ws, $key ) {       # API server can fire client events
-            return 1;
-        },
-        on_connect_error => sub ($res) {
-            $cv->( undef, $res );
-
-            return;
-        },
-        on_connect => sub ( $ws, $headers ) {
-            $self->{_ws} = $ws;
-
-            $self->{on_connect}->( $self, $headers ) if defined $self->{on_connect};
-
-            $cv->( $ws, undef );
-
-            return;
-        },
-        on_disconnect => sub ( $ws, $status ) {
-            undef $self->{_ws};
-
-            $self->{on_disconnect}->( $self, $status ) if $self && $self->{on_disconnect};
-
-            return;
-        },
-        on_ping => do {
-            if ( $self->{on_ping} ) {
-                sub ( $ws, $payload_ref ) {
-                    $self->{on_ping}->( $self, $payload_ref ) if $self && $self->{on_ping};
-
-                    return;
-                };
-            }
-        },
-        on_pong => do {
-            if ( $self->{on_pong} ) {
-                sub ( $ws, $payload_ref ) {
-                    $self->{on_pong}->( $self, $payload_ref ) if $self && $self->{on_pong};
-
-                    return;
-                };
-            }
-        },
-        on_rpc => do {
-            if ( $self->{on_rpc} ) {
-                sub ( $ws, $req, $tx ) {
-                    $self->{on_rpc}->( $self, $req, $tx ) if $self && $self->{on_rpc};
-
-                    return;
-                };
-            }
-        },
+        token            => $self->{token},
+        bindings         => $self->{bindings},
+        on_disconnect    => sub { delete $self->{_ws} },
+        on_bind          => $self->{on_bind},
+        on_event         => $self->{on_event},
+        on_rpc           => $self->{on_rpc},
     );
-
-    my ( $ws, $error ) = $cv->recv;
 
     $self->{_get_ws_threads} = 0;
 
     while ( my $cb = shift $self->{_get_ws_queue}->@* ) {
-        $cb->( $ws, $error );
+        $cb->( $self->{_ws} );
     }
 
-    return $ws, $error;
+    return $self->{_ws};
 }
 
 1;
