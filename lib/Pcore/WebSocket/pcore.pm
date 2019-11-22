@@ -86,8 +86,9 @@ sub _on_connect ($self) {
     # create events listener
     $self->_create_listener;
 
+    # block websocket client until auth is finished
     if ( $self->{_is_client} ) {
-        $self->{_auth_cb} = P->cv;
+        my $cv = $self->{_auth_cb} = P->cv;
 
         $self->_send_msg( {
             type     => $TX_TYPE_AUTH,
@@ -95,7 +96,7 @@ sub _on_connect ($self) {
             bindings => $self->{bindings},
         } );
 
-        $self->{_auth_cb}->recv;
+        $cv->recv;
 
         return $self;
     }
@@ -238,6 +239,7 @@ sub _on_message ( $self, $msg ) {
 }
 
 # server, auth request
+# TODO call synchronously
 sub _on_auth_request ( $self, $tx ) {
     $self->_reset;
 
@@ -406,13 +408,13 @@ sub resume_events ($self) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 84                   | * Private subroutine/method '_on_connect' declared but not used                                                |
-## |      | 107                  | * Private subroutine/method '_on_disconnect' declared but not used                                             |
-## |      | 115                  | * Private subroutine/method '_on_text' declared but not used                                                   |
-## |      | 127                  | * Private subroutine/method '_on_binary' declared but not used                                                 |
+## |      | 108                  | * Private subroutine/method '_on_disconnect' declared but not used                                             |
+## |      | 116                  | * Private subroutine/method '_on_text' declared but not used                                                   |
+## |      | 128                  | * Private subroutine/method '_on_binary' declared but not used                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 139                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (23)               |
+## |    3 | 140                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (23)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 180, 197             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 181, 198             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
