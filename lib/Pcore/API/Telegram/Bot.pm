@@ -20,7 +20,7 @@ sub _req ( $self, $path, $data ) {
         data    => $data
     );
 
-    my $data = P->data->from_json( $res->{data} );
+    $data = P->data->from_json( $res->{data} );
 
     return res 200, $data;
 }
