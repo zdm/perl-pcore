@@ -35,6 +35,14 @@ my $CBOR = Pcore::Lib::Data::get_cbor();
 my $JSON = Pcore::Lib::Data::get_json( utf8 => 1 );
 
 sub rpc_call ( $self, $method, @args ) {
+
+    # not connected
+    if ( !$self->{is_connected} ) {
+        return res [ 1001, 'Going Away' ] if defined wantarray;
+
+        return;
+    }
+
     my $msg = {
         type   => $TX_TYPE_RPC,
         method => $method,
@@ -346,12 +354,12 @@ sub resume_events ($self) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 77                   | * Private subroutine/method '_on_connect' declared but not used                                                |
-## |      | 91                   | * Private subroutine/method '_on_disconnect' declared but not used                                             |
-## |      | 99                   | * Private subroutine/method '_on_text' declared but not used                                                   |
-## |      | 112                  | * Private subroutine/method '_on_binary' declared but not used                                                 |
+## |      | 85                   | * Private subroutine/method '_on_connect' declared but not used                                                |
+## |      | 99                   | * Private subroutine/method '_on_disconnect' declared but not used                                             |
+## |      | 107                  | * Private subroutine/method '_on_text' declared but not used                                                   |
+## |      | 120                  | * Private subroutine/method '_on_binary' declared but not used                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 125                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (21)               |
+## |    3 | 133                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (21)               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
