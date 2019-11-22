@@ -1,7 +1,7 @@
 package Pcore::HTTP::Server;
 
 use Pcore -class, -const, -res;
-use Pcore::Lib::Scalar qw[is_ref];
+use Pcore::Lib::Scalar qw[is_uri];
 use AnyEvent::Socket qw[];
 use Pcore::HTTP::Server::Request;
 
@@ -31,9 +31,19 @@ has _listen_socket => ( init_arg => undef );
 sub BUILD ( $self, $args ) {
 
     # parse listen
-    $self->{listen} = P->uri( $self->{listen}, base => 'tcp:', listen => 1 ) if !is_ref $self->{listen};
+    $self->{listen} = P->uri( $self->{listen}, base => 'tcp:', listen => 1 ) if !is_uri $self->{listen};
 
-    $self->{_listen_socket} = &AnyEvent::Socket::tcp_server( $self->{listen}->connect, Coro::unblock_sub { return $self->_on_accept(@_) }, sub { return $self->_on_prepare(@_) } );    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+    $self->{_listen_socket} = &AnyEvent::Socket::tcp_server(          ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+        $self->{listen}->connect,
+        sub {
+            Coro::async_pool sub { return $self->_on_accept(@_) }, @_;
+
+            return;
+        },
+        sub {
+            return $self->_on_prepare(@_);
+        }
+    );
 
     chmod( oct 777, $self->{listen}->{path} ) || die $! if !defined $self->{listen}->{host} && substr( $self->{listen}->{path}, 0, 2 ) ne "/\x00";
 
@@ -52,7 +62,8 @@ sub _on_accept ( $self, $fh, $host, $port ) {
     );
 
     # read HTTP headers
-  READ_HEADERS: my $env = $h->read_http_req_headers( timeout => $self->{client_header_timeout} );
+  READ_HEADERS:
+    my $env = $h->read_http_req_headers( timeout => $self->{client_header_timeout} );
 
     # HTTP headers read error
     if ( !$env ) {
@@ -118,7 +129,7 @@ sub _on_accept ( $self, $fh, $host, $port ) {
         $env->{CONTENT_LENGTH} = length $data->$*;
     }
 
-    # fixed body size
+    # fixed body length
     elsif ( $env->{CONTENT_LENGTH} ) {
 
         # payload too large
@@ -175,7 +186,9 @@ sub _on_accept ( $self, $fh, $host, $port ) {
           'Pcore::HTTP::Server::Request';
 
         # evaluate "on_request" callback
-        eval { $self->{on_request}->($req); 1; } or $@->sendlog;
+        eval { $self->{on_request}->($req) };
+
+        $@->sendlog if $@;
     };
 
     # keep-alive
@@ -211,7 +224,9 @@ sub return_xxx ( $self, $h, $status, $close_connection = 1 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 47                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (32)                |
+## |    3 | 57                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (32)                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 189                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -10,7 +10,7 @@ use overload    #
   '&{}' => sub ( $self, @ ) {
     return sub { return _respond( $self, @_ ) };
   },
-  fallback => undef;
+  fallback => 1;
 
 has _server => ( required => 1 );    # InstanceOf ['Pcore::HTTP::Server']
 has _h      => ( required => 1 );    # InstanceOf ['Pcore::Handle']
@@ -26,23 +26,6 @@ has _auth            => ();          # request authentication result
 
 const our $HTTP_SERVER_RESPONSE_STARTED  => 1;    # headers written
 const our $HTTP_SERVER_RESPONSE_FINISHED => 2;    # body written
-
-# const our $CONTENT_TYPE_HTML       => 1;
-# const our $CONTENT_TYPE_TEXT       => 2;
-# const our $CONTENT_TYPE_JSON       => 3;
-# const our $CONTENT_TYPE_CBOR       => 4;
-# const our $CONTENT_TYPE_JAVASCRIPT => 5;
-#
-# const our $CONTENT_TYPE_VALUE => {
-#     $CONTENT_TYPE_JSON       => 'application/json',                           # http://www.iana.org/assignments/media-types/application/json
-#     $CONTENT_TYPE_CBOR       => 'application/cbor',                           # http://www.iana.org/assignments/media-types/application/cbor
-#     $CONTENT_TYPE_JAVASCRIPT => 'application/javascript; charset=UTF-8',      # http://www.iana.org/assignments/media-types/application/javascript
-#     $CONTENT_TYPE_XML        => 'application/xml',
-#     $CONTENT_TYPE_HTML       => 'text/html; charset=UTF-8',                   # http://www.iana.org/assignments/media-types/text/html
-#     $CONTENT_TYPE_TEXT       => 'text/plain; charset=UTF-8',
-#     $CONTENT_TYPE_CSS        => 'text/css; charset=UTF-8',                    # http://www.iana.org/assignments/media-types/text/css
-#     $CONTENT_TYPE_CSV        => 'text/csv; charset=UTF-8; header=present',    # http://www.iana.org/assignments/media-types/text/csv
-# };
 
 sub DESTROY ( $self ) {
 
@@ -217,15 +200,19 @@ sub authenticate ( $self ) {
     else {
         my $env = $self->{env};
 
-        # get auth token from query param, header, cookie
         my $token;
 
+        # get token from query string: access_token=<token>
         if ( $env->{QUERY_STRING} && $env->{QUERY_STRING} =~ /\baccess_token=([^&]+)/sm ) {
             $token = $1;
         }
+
+        # get token from HTTP header: Authorization: Token <token>
         elsif ( $env->{HTTP_AUTHORIZATION} && $env->{HTTP_AUTHORIZATION} =~ /Token\s+(.+)\b/smi ) {
             $token = $1;
         }
+
+        # get token from HTTP Basic authoriation header
         elsif ( $env->{HTTP_AUTHORIZATION} && $env->{HTTP_AUTHORIZATION} =~ /Basic\s+(.+)\b/smi ) {
             $token = eval { from_b64 $1};
 
@@ -233,6 +220,8 @@ sub authenticate ( $self ) {
 
             undef $token if !defined $token->[0];
         }
+
+        # get token from HTTP cookie "token"
         elsif ( $env->{HTTP_COOKIE} && $env->{HTTP_COOKIE} =~ /\btoken=([^;]+)\b/sm ) {
             $token = $1;
         }
