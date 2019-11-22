@@ -1,75 +1,27 @@
 package Pcore::Lib::HTML;
 
 use Pcore;
-use Pcore::Lib::Scalar qw[is_callback];
 use HTML5::DOM qw[];
 
-our $MAX_THREADS = P->sys->cpus_num;
+my $SEM = Coro::Semaphore->new( P->sys->cpus_num );
+my @PARSERS;
 
-my @QUEUE;
-my $THREADS = 0;
-my $SIGNAL  = Coro::Signal->new;
+sub tree ( $html, %args ) {
+    my $guard = $SEM->guard;
 
-sub tree ( $html, @args ) {
-    my $cv;
+    my $parser = pop @PARSERS;
 
-    my $cb = is_callback $args[-1] ? pop @args : undef;
+    $parser //= HTML5::DOM->new( { utf8 => 1 } );
 
-    if ( defined wantarray ) {
-        $cv = P->cv;
+    my $cv = P->cv;
 
-        push @QUEUE, [
-            $html,
-            {@args},
-            sub ($tree) {
-                $tree = $cb->($tree) if $cb;
+    $parser->parseAsync( $html, \%args, sub ($tree) { $cv->($tree) } );
 
-                $cv->($tree);
+    my $tree = $cv->recv;
 
-                return;
-            }
-        ];
-    }
-    else {
-        push @QUEUE, [ $html, {@args}, $cb ];
-    }
+    push @PARSERS, $parser;
 
-    if ( $SIGNAL->awaited ) {
-        $SIGNAL->send;
-    }
-    elsif ( $THREADS < $MAX_THREADS ) {
-        _run_parse_thread();
-    }
-
-    return defined $cv ? $cv->recv : ();
-}
-
-sub _run_parse_thread {
-    $THREADS++;
-
-    Coro::async_pool {
-        my $parser = HTML5::DOM->new( { utf8 => 1 } );
-
-        while () {
-            if ( my $task = shift @QUEUE ) {
-                my $cv = P->cv;
-
-                $parser->parseAsync( $task->[0], $task->[1], sub { $cv->send( $_[0] ) } );
-
-                $task->[2]->( $cv->recv );
-
-                next;
-            }
-
-            $SIGNAL->wait;
-        }
-
-        $THREADS--;
-
-        return;
-    };
-
-    return;
+    return $tree;
 }
 
 # TODO remove
