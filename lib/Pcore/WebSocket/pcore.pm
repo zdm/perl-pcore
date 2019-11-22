@@ -20,10 +20,11 @@ has on_bind       => ();    # Maybe [CodeRef], ($self, $bindings), must return t
 has on_event      => ();    # Maybe [CodeRef], ($self, $ev)
 has on_rpc        => ();    # Maybe [CodeRef], ($self, $tx)
 
-has auth      => ( init_arg             => undef );
-has _auth_cb  => ( init_arg             => undef );    # client only
-has _rpc_cb   => ( sub { {} }, init_arg => undef );    # HashRef, tid => $cb
-has _listener => ( init_arg             => undef );    # ConsumerOf['Pcore::Core::Event::Listener']
+has auth      => ( init_arg => undef );
+has _listener => ( init_arg => undef );    # ConsumerOf['Pcore::Core::Event::Listener']
+has _auth_id => ( 1, init_arg => undef );
+has _auth_cb => ( sub { [] }, init_arg => undef );    # client only
+has _rpc_cb  => ( sub { {} }, init_arg => undef );    # HashRef, tid => $cb
 
 const our $PROTOCOL => 'pcore';
 
@@ -71,7 +72,9 @@ sub auth ( $self, $token, $bindings = undef ) {
 
     return res [ 1001, $Pcore::WebSocket::Handle::WEBSOCKET_STATUS_REASON ] if !$self->{is_connected};
 
-    my $cv = $self->{_auth_cb} = P->cv;
+    my $cv = P->cv;
+
+    push $self->{_auth_cb}->@*, $cv;
 
     $self->_send_msg( {
         type     => $TX_TYPE_AUTH,
@@ -94,7 +97,12 @@ sub _on_connect ($self) {
 }
 
 sub _on_disconnect ( $self ) {
-    $self->_reset( res [ $self->{status}, $self->{reason} ] );
+    my $status = res [ $self->{status}, $self->{reason} ];
+
+    $self->_reset($status);
+
+    # call auth callback, on client only
+    while ( my $cb = shift $self->{_auth_cb}->@* ) { $cb->($status) }
 
     $self->{on_disconnect}->($self) if $self->{on_disconnect};
 
@@ -174,13 +182,13 @@ sub _on_message ( $self, $msg ) {
 
                 # RPC call
                 else {
-                    Coro::async_pool sub ($tx) {
+                    Coro::async_pool sub ( $tx, $auth_id ) {
                         my @res = eval { $self->{on_rpc}->( $self, $tx ) };
 
                         $@->sendlog if $@;
 
                         # response is required
-                        if ( my $tid = $tx->{tid} ) {
+                        if ( ( my $tid = $tx->{tid} ) && $auth_id == $self->{_auth_id} ) {
                             $self->_send_msg( {
                                 type   => $TX_TYPE_RPC,
                                 tid    => $tid,
@@ -189,7 +197,7 @@ sub _on_message ( $self, $msg ) {
                         }
 
                         return;
-                    }, $tx;
+                    }, $tx, $self->{_auth_id};
                 }
             }
 
@@ -253,7 +261,7 @@ sub _on_auth_response ( $self, $tx ) {
     $self->_bind_events( $tx->{bindings} ) if defined $tx->{bindings};
 
     # call on_auth
-    if ( my $cb = delete $self->{_auth_cb} ) { $cb->( $self->{auth} ) }
+    if ( my $cb = shift $self->{_auth_cb}->@* ) { $cb->( $self->{auth} ) }
 
     return;
 }
@@ -276,6 +284,7 @@ sub _bind_events ( $self, $bindings ) {
 }
 
 sub _reset ( $self, $status = undef ) {
+    $self->{_auth_id}++;
 
     # 1012 Service Restart
     $status //= res [ 1012, $Pcore::WebSocket::Handle::WEBSOCKET_STATUS_REASON ];
@@ -294,10 +303,7 @@ sub _reset ( $self, $status = undef ) {
         }
     }
 
-    # call auth callback, on client only
-    if ( my $cb = delete $self->{_auth_cb} ) { $cb->($status) }
-
-    return $status;
+    return;
 }
 
 sub _send_msg ( $self, $msg ) {
@@ -351,12 +357,12 @@ sub resume_events ($self) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 85                   | * Private subroutine/method '_on_connect' declared but not used                                                |
-## |      | 96                   | * Private subroutine/method '_on_disconnect' declared but not used                                             |
-## |      | 104                  | * Private subroutine/method '_on_text' declared but not used                                                   |
-## |      | 117                  | * Private subroutine/method '_on_bin' declared but not used                                                    |
+## |      | 88                   | * Private subroutine/method '_on_connect' declared but not used                                                |
+## |      | 99                   | * Private subroutine/method '_on_disconnect' declared but not used                                             |
+## |      | 112                  | * Private subroutine/method '_on_text' declared but not used                                                   |
+## |      | 125                  | * Private subroutine/method '_on_bin' declared but not used                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 130                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (21)               |
+## |    3 | 138                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (22)               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
