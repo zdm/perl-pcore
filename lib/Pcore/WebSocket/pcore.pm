@@ -64,10 +64,12 @@ sub rpc_call ( $self, $method, @args ) {
 }
 
 sub auth ( $self, $token, $bindings = undef ) {
-    $self->_reset;
+    $self->_reset_auth;
 
     $self->{token}    = $token;
     $self->{bindings} = $bindings;
+
+    return $self if !$self->{is_connected};
 
     my $cv = $self->{_auth_cb} = P->cv;
 
@@ -97,7 +99,7 @@ sub _on_connect ($self) {
 }
 
 sub _on_disconnect ( $self ) {
-    $self->_reset( res [ $self->{status}, $self->{reason} ] );
+    $self->_reset_disconnect( res [ $self->{status}, $self->{reason} ] );
 
     $self->{on_disconnect}->($self) if $self->{on_disconnect};
 
@@ -212,7 +214,7 @@ sub _on_message ( $self, $msg ) {
 
 # server, auth request
 sub _on_auth_request ( $self, $tx ) {
-    $self->_reset;
+    $self->_reset_auth;
 
     if ( $self->{on_auth} ) {
         my ( $auth, $bindings ) = $self->{on_auth}->( $self, $tx->{token} );
@@ -278,7 +280,7 @@ sub _bind_events ( $self, $bindings ) {
     return;
 }
 
-sub _reset ( $self, $status = undef ) {
+sub _reset_auth ( $self, $status = undef ) {
     delete $self->{auth};
 
     # reset events listener
@@ -297,7 +299,13 @@ sub _reset ( $self, $status = undef ) {
         }
     }
 
-    # call auth callback
+    return;
+}
+
+sub _reset_disconnect ( $self, $status = undef ) {
+    $self->_reset_auth($status);
+
+    # call auth callback, on client only
     if ( my $cb = delete $self->{_auth_cb} ) { $cb->() }
 
     return;
@@ -354,12 +362,12 @@ sub resume_events ($self) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 85                   | * Private subroutine/method '_on_connect' declared but not used                                                |
-## |      | 99                   | * Private subroutine/method '_on_disconnect' declared but not used                                             |
-## |      | 107                  | * Private subroutine/method '_on_text' declared but not used                                                   |
-## |      | 120                  | * Private subroutine/method '_on_bin' declared but not used                                                    |
+## |      | 87                   | * Private subroutine/method '_on_connect' declared but not used                                                |
+## |      | 101                  | * Private subroutine/method '_on_disconnect' declared but not used                                             |
+## |      | 109                  | * Private subroutine/method '_on_text' declared but not used                                                   |
+## |      | 122                  | * Private subroutine/method '_on_bin' declared but not used                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 133                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (21)               |
+## |    3 | 135                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (21)               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
