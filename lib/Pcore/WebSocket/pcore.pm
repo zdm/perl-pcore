@@ -170,14 +170,16 @@ sub _on_message ( $self, $msg ) {
                 # RPC call
                 else {
                     Coro::async_pool sub ($tx) {
-                        my @res = $self->{on_rpc}->( $self, $tx );
+                        my @res = eval { $self->{on_rpc}->( $self, $tx ) };
+
+                        $@->sendlog if $@;
 
                         # response is required
                         if ( my $tid = $tx->{tid} ) {
                             $self->_send_msg( {
                                 type   => $TX_TYPE_RPC,
                                 tid    => $tid,
-                                result => is_res $res[0] ? $res[0] : res @res,
+                                result => $@ || !@res ? res 500 : is_res $res[0] ? $res[0] : res @res,
                             } );
                         }
 
@@ -348,6 +350,8 @@ sub resume_events ($self) {
 ## |      | 91                   | * Private subroutine/method '_on_disconnect' declared but not used                                             |
 ## |      | 99                   | * Private subroutine/method '_on_text' declared but not used                                                   |
 ## |      | 112                  | * Private subroutine/method '_on_binary' declared but not used                                                 |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 125                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (21)               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
