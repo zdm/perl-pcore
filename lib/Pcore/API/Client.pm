@@ -156,7 +156,7 @@ sub _get_ws ( $self ) {
 
     $self->{_get_ws_threads} = 1;
 
-    $self->{_ws} = Pcore::WebSocket::pcore->connect(
+    my $h = Pcore::WebSocket::pcore->connect(
         $self->{uri},
         max_message_size => $self->{max_message_size},
         compression      => $self->{compression},
@@ -168,13 +168,15 @@ sub _get_ws ( $self ) {
         on_rpc           => $self->{on_rpc},
     );
 
+    $self->{_ws} = $h if $h;
+
     $self->{_get_ws_threads} = 0;
 
     while ( my $cb = shift $self->{_get_ws_queue}->@* ) {
-        $cb->( $self->{_ws} );
+        $cb->($h);
     }
 
-    return $self->{_ws};
+    return $h;
 }
 
 1;
