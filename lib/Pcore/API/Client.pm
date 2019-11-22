@@ -13,12 +13,10 @@ has uri => ( required => 1 );    # InstanceOf ['Pcore::Lib::URI'], http://token@
 has token   => ();
 has api_ver => ();               # eg: 'v1', default API version for relative methods
 
-has tls_ctx         => $TLS_CTX_HIGH;    # Maybe [ HashRef | Enum [ $TLS_CTX_LOW, $TLS_CTX_HIGH ] ]
+has timeout         => ();
 has connect_timeout => 10;
-
-# HTTP options
-has persistent => 600;
-has timeout    => ();
+has tls_ctx         => $TLS_CTX_HIGH;    # Maybe [ HashRef | Enum [ $TLS_CTX_LOW, $TLS_CTX_HIGH ] ]
+has bind_ip         => ();
 
 # WebSocket options
 has bindings         => ();
@@ -103,9 +101,7 @@ sub _send_http ( $self, $method, $args ) {
     my $res = P->http->post(
         $self->{uri},
         connect_timeout => $self->{connect_timeout},
-
-        # persistent      => $self->{persistent},
-        tls_ctx => $self->{tls_ctx},
+        tls_ctx         => $self->{tls_ctx},
         ( $self->{timeout} ? ( timeout => $self->{timeout} ) : () ),
         headers => [
             Referer        => undef,
@@ -158,6 +154,10 @@ sub _get_ws ( $self ) {
 
     my $h = Pcore::WebSocket::pcore->connect(
         $self->{uri},
+        timeout          => $self->{timeout} // 30,
+        connect_timeout  => $self->{connect_timeout},
+        tls_ctx          => $self->{tls_ctx},
+        bind_ip          => $self->{bind_ip},
         max_message_size => $self->{max_message_size},
         compression      => $self->{compression},
         token            => $self->{token},
