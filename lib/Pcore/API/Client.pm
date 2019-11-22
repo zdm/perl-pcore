@@ -4,14 +4,15 @@ use Pcore -class, -res;
 
 # use Pcore::WebSocket;
 use Pcore::Lib::Scalar qw[is_plain_arrayref];
-use Pcore::Lib::Data qw[to_cbor from_cbor];
+use Pcore::Lib::Data qw[to_cbor from_cbor to_json from_json];
 use Pcore::Lib::UUID qw[uuid_v1mc_str];
 use Pcore::HTTP qw[:TLS_CTX];
 
 has uri => ( required => 1 );    # InstanceOf ['Pcore::Lib::URI'], http://token@host:port/api/, ws://token@host:port/api/
 
-has token   => ();
-has api_ver => ();               # eg: 'v1', default API version for relative methods
+has token    => ();
+has api_ver  => ();              # eg: 'v1', default API version for relative methods
+has use_json => ();
 
 has timeout         => ();
 has connect_timeout => 10;
@@ -106,9 +107,9 @@ sub _send_http ( $self, $method, $args ) {
         headers => [
             Referer        => undef,
             Authorization  => "Token $self->{token}",
-            'Content-Type' => 'application/cbor',
+            'Content-Type' => $self->{use_json} ? 'application/json' : 'application/cbor',
         ],
-        data => to_cbor($payload)
+        data => $self->{use_json} ? to_json $payload : to_cbor $payload
     );
 
     if ( !$res ) {
@@ -154,18 +155,25 @@ sub _get_ws ( $self ) {
 
     my $h = Pcore::WebSocket::pcore->connect(
         $self->{uri},
-        timeout          => $self->{timeout} // 30,
-        connect_timeout  => $self->{connect_timeout},
-        tls_ctx          => $self->{tls_ctx},
-        bind_ip          => $self->{bind_ip},
+
+        # connection
+        timeout         => $self->{timeout} // 30,
+        connect_timeout => $self->{connect_timeout},
+        tls_ctx         => $self->{tls_ctx},
+        bind_ip         => $self->{bind_ip},
+
+        # websocket
         max_message_size => $self->{max_message_size},
         compression      => $self->{compression},
-        token            => $self->{token},
-        bindings         => $self->{bindings},
-        on_disconnect    => sub { delete $self->{_ws} },
-        on_bind          => $self->{on_bind},
-        on_event         => $self->{on_event},
-        on_rpc           => $self->{on_rpc},
+
+        # pcore websocket
+        use_json      => $self->{use_json},
+        token         => $self->{token},
+        bindings      => $self->{bindings},
+        on_disconnect => sub { delete $self->{_ws} },
+        on_bind       => $self->{on_bind},
+        on_event      => $self->{on_event},
+        on_rpc        => $self->{on_rpc},
     );
 
     $self->{_ws} = $h if $h;

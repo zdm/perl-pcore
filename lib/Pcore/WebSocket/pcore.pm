@@ -9,6 +9,7 @@ use Clone qw[];
 with qw[Pcore::WebSocket::Handle];
 
 # client attributes
+has use_json => ();
 has token    => ();    # authentication token, used on client only
 has bindings => ();    # events bindings, used on client only
 
@@ -19,11 +20,10 @@ has on_bind       => ();    # Maybe [CodeRef], ($self, $bindings), must return t
 has on_event      => ();    # Maybe [CodeRef], ($self, $ev)
 has on_rpc        => ();    # Maybe [CodeRef], ($self, $tx)
 
-has auth          => ( init_arg             => undef );
-has _auth_cb      => ( init_arg             => undef );    # client only
-has _rpc_cb       => ( sub { {} }, init_arg => undef );    # HashRef, tid => $cb
-has _peer_is_text => ( init_arg             => undef );    # remote peer message serialization protocol
-has _listener     => ( init_arg             => undef );    # ConsumerOf['Pcore::Core::Event::Listener']
+has auth      => ( init_arg             => undef );
+has _auth_cb  => ( init_arg             => undef );    # client only
+has _rpc_cb   => ( sub { {} }, init_arg => undef );    # HashRef, tid => $cb
+has _listener => ( init_arg             => undef );    # ConsumerOf['Pcore::Core::Event::Listener']
 
 const our $PROTOCOL => 'pcore';
 
@@ -110,7 +110,7 @@ sub _on_text ( $self, $data_ref ) {
     # unable to decode message
     return if $@;
 
-    $self->{_peer_is_text} //= 1;
+    $self->{use_json} //= 1;
 
     $self->_on_message($msg);
 
@@ -123,7 +123,7 @@ sub _on_bin ( $self, $data_ref ) {
     # unable to decode message
     return if $@;
 
-    $self->{_peer_is_text} //= 0;
+    $self->{use_json} //= 0;
 
     $self->_on_message($msg);
 
@@ -304,7 +304,7 @@ sub _reset ( $self, $status = undef ) {
 }
 
 sub _send_msg ( $self, $msg ) {
-    if ( $self->{_peer_is_text} ) {
+    if ( $self->{use_json} ) {
         $self->send_text( \$JSON->encode($msg) );
     }
     else {
