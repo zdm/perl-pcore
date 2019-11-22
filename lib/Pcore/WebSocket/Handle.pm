@@ -1,7 +1,7 @@
 package Pcore::WebSocket::Handle;
 
 use Pcore -const, -role, -res;
-use Pcore::Lib::Scalar qw[is_ref weaken];
+use Pcore::Lib::Scalar qw[is_ref weaken is_plain_scalarref];
 use Pcore::Lib::Text qw[decode_utf8 encode_utf8];
 use Pcore::Lib::UUID qw[uuid_v4_str];
 use Pcore::Lib::Data qw[to_b64 to_xor];
@@ -242,14 +242,22 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
     return $self->__on_connect($h);
 }
 
-sub send_text ( $self, $data_ref ) {
-    $self->{_h}->write( $self->_build_frame( 1, $self->{_compression}, 0, 0, $WEBSOCKET_OP_TEXT, $data_ref ) );
+sub send_text ( $self, $data ) {
+    my $ref = is_plain_scalarref $data ? $data : \$data;
+
+    $ref = \encode_utf8 $ref->$* if utf8::is_utf8 $ref->$*;
+
+    $self->{_h}->write( $self->_build_frame( 1, $self->{_compression}, 0, 0, $WEBSOCKET_OP_TEXT, $ref ) );
 
     return;
 }
 
-sub send_binary ( $self, $data_ref ) {
-    $self->{_h}->write( $self->_build_frame( 1, $self->{_compression}, 0, 0, $WEBSOCKET_OP_BINARY, $data_ref ) );
+sub send_binary ( $self, $data ) {
+    my $ref = is_plain_scalarref $data ? $data : \$data;
+
+    $ref = \encode_utf8 $ref->$* if utf8::is_utf8 $ref->$*;
+
+    $self->{_h}->write( $self->_build_frame( 1, $self->{_compression}, 0, 0, $WEBSOCKET_OP_BINARY, $ref ) );
 
     return;
 }
@@ -632,12 +640,12 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 147                  | * Subroutine "connect" with high complexity score (24)                                                         |
-## |      | 371                  | * Subroutine "__on_connect" with high complexity score (28)                                                    |
-## |      | 541                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
+## |      | 379                  | * Subroutine "__on_connect" with high complexity score (28)                                                    |
+## |      | 549                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 257, 263, 313        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 265, 271, 321        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 485, 487, 489        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 493, 495, 497        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
