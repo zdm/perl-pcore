@@ -4,7 +4,6 @@ use Pcore -class, -const, -res;
 use Pcore::Lib::Scalar qw[is_ref is_plain_scalarref is_plain_arrayref];
 use Pcore::Lib::List qw[pairs];
 use Pcore::Lib::Text qw[encode_utf8];
-use Pcore::App::API::Auth;
 
 use overload    #
   '&{}' => sub ( $self, @ ) {
@@ -20,9 +19,7 @@ has data    => ();
 has keepalive => ();
 
 has is_websocket_connect_request => ( is => 'lazy' );
-
-has _response_status => 0;
-has _auth            => ();          # request authentication result
+has _response_status             => 0;
 
 const our $HTTP_SERVER_RESPONSE_STARTED  => 1;    # headers written
 const our $HTTP_SERVER_RESPONSE_FINISHED => 2;    # body written
@@ -185,49 +182,6 @@ sub accept_websocket ( $self, $headers = undef ) {
     $self->{_cb}->(1);
 
     return $h;
-}
-
-# AUTHENTICATE
-sub authenticate ( $self ) {
-
-    # request is already authenticated
-    if ( exists $self->{_auth} ) {
-        return $self->{_auth};
-    }
-    elsif ( !$self->{app}->{api} ) {
-        return $self->{_auth} = bless { api => undef }, 'Pcore::App::API::Auth';
-    }
-    else {
-        my $env = $self->{env};
-
-        my $token;
-
-        # get token from query string: access_token=<token>
-        if ( $env->{QUERY_STRING} && $env->{QUERY_STRING} =~ /\baccess_token=([^&]+)/sm ) {
-            $token = $1;
-        }
-
-        # get token from HTTP header: Authorization: Token <token>
-        elsif ( $env->{HTTP_AUTHORIZATION} && $env->{HTTP_AUTHORIZATION} =~ /Token\s+(.+)\b/smi ) {
-            $token = $1;
-        }
-
-        # get token from HTTP Basic authoriation header
-        elsif ( $env->{HTTP_AUTHORIZATION} && $env->{HTTP_AUTHORIZATION} =~ /Basic\s+(.+)\b/smi ) {
-            $token = eval { from_b64 $1};
-
-            $token = [ split /:/sm, $token ] if $token;
-
-            undef $token if !defined $token->[0];
-        }
-
-        # get token from HTTP cookie "token"
-        elsif ( $env->{HTTP_COOKIE} && $env->{HTTP_COOKIE} =~ /\btoken=([^;]+)\b/sm ) {
-            $token = $1;
-        }
-
-        return $self->{_auth} = $self->{app}->{api}->authenticate($token);
-    }
 }
 
 1;
