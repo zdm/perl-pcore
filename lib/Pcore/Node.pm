@@ -124,15 +124,18 @@ sub _build__on_rpc ($self) {
 
     weaken $self;
 
-    return sub ( $h, $req, $tx ) {
+    return sub ( $h, $tx ) {
         if ( !defined $self ) {
-            $req->( [ 1013, 'Node Destroyed' ] );
+            return [ 1013, 'Node Destroyed' ];
         }
         elsif ( $self->{status} < $NODE_STATUS_READY ) {
-            $req->( [ 1013, 'Node is Offline' ] );
+            return [ 1013, 'Node is Offline' ];
+        }
+        elsif ( defined $self->{listen}->{username} && !$h->{auth} ) {
+            $h->disconnect;
         }
         else {
-            $self->{on_rpc}->( $self, $req, $tx );
+            return $self->{on_rpc}->( $self, $tx );
         }
 
         return;
@@ -221,7 +224,7 @@ sub _connect_to_remote_server ($self) {
 
                 return;
             },
-            on_rpc => sub ( $h, $req, $tx ) {
+            on_rpc => sub ( $h, $tx ) {
 
                 # node was destroyed
                 return if !defined $self;
@@ -229,7 +232,7 @@ sub _connect_to_remote_server ($self) {
                 if ( exists $RPC_METHOD->{ $tx->{method} } ) {
                     my $method = $tx->{method};
 
-                    $self->$method( $tx->{args}->@* );
+                    return $self->$method( $tx->{args}->@* );
                 }
 
                 return;
@@ -282,17 +285,10 @@ sub _run_http_server ($self) {
                             return;
                         }
                         else {
+                            $self->_on_node_connect($h);
+
                             return res(200), $self->_get_bindings( $h->{node_type} );
                         }
-                    },
-                    on_ready => sub ($h) {
-
-                        # node was destroyed
-                        return if !defined $self;
-
-                        $self->_on_node_connect($h);
-
-                        return;
                     },
 
                     # TODO
@@ -857,14 +853,14 @@ sub rpc_call ( $self, $type, $method, @args ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 434                  | * Private subroutine/method '_on_node_register' declared but not used                                          |
-## |      | 442                  | * Private subroutine/method '_on_node_add' declared but not used                                               |
-## |      | 452                  | * Private subroutine/method '_on_node_update' declared but not used                                            |
-## |      | 460                  | * Private subroutine/method '_on_node_remove' declared but not used                                            |
+## |      | 430                  | * Private subroutine/method '_on_node_register' declared but not used                                          |
+## |      | 438                  | * Private subroutine/method '_on_node_add' declared but not used                                               |
+## |      | 448                  | * Private subroutine/method '_on_node_update' declared but not used                                            |
+## |      | 456                  | * Private subroutine/method '_on_node_remove' declared but not used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 468                  | Subroutines::ProhibitExcessComplexity - Subroutine "_update" with high complexity score (24)                   |
+## |    3 | 464                  | Subroutines::ProhibitExcessComplexity - Subroutine "_update" with high complexity score (24)                   |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 483                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 479                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
