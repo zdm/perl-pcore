@@ -36,7 +36,7 @@ sub BUILD ( $self, $args ) {
                     on_auth => sub ( $h, $token ) {
                         return if !defined $self;
 
-                        ( $token, $h->{node_id}, $h->{node_data} ) = $token->@*;
+                        ( $token, $h->{node_id}, my $node_data ) = $token->@*;
 
                         if ( $self->{token} && $token ne $self->{token} ) {
                             $h->disconnect;
@@ -44,15 +44,12 @@ sub BUILD ( $self, $args ) {
                             return;
                         }
                         else {
+                            $self->register_node( $h, $h->{node_id}, $node_data, 1 );
+
                             return res 200;
                         }
                     },
-                    on_ready => sub ($h) {
-                        $self->register_node( $h, $h->{node_id}, delete $h->{node_data}, 1 );
-
-                        return;
-                    },
-                    on_rpc => sub ( $h, $req, $tx ) {
+                    on_rpc => sub ( $h, $tx ) {
                         return if !defined $self;
 
                         if ( $tx->{method} eq 'update_status' ) {
@@ -178,7 +175,7 @@ sub _send_rpc ( $self, $node, $method, $data ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 78                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 75                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
