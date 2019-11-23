@@ -52,7 +52,10 @@ sub BUILD ( $self, $args ) {
                     on_rpc => sub ( $h, $tx ) {
                         return if !defined $self;
 
-                        if ( $tx->{method} eq 'update_status' ) {
+                        if ( $self->{token} && !$h->{auth} ) {
+                            $h->disconnect(401);
+                        }
+                        elsif ( $tx->{method} eq 'update_status' ) {
                             $self->update_node_status( $h->{node_id}, $tx->{args}->[0] );
                         }
 
@@ -175,7 +178,7 @@ sub _send_rpc ( $self, $node, $method, $data ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 75                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 78                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
