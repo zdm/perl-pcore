@@ -1,7 +1,7 @@
 package Pcore::Node;
 
 use Pcore -class, -res, -const;
-use Pcore::Lib::Scalar qw[weaken refaddr is_ref is_blessed_hashref is_plain_coderef is_plain_hashref];
+use Pcore::Lib::Scalar qw[weaken refaddr is_ref is_blessed_hashref is_plain_hashref];
 use Pcore::HTTP::Server;
 use Pcore::Node::Server;
 use Pcore::Node::Proc;

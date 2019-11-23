@@ -1,7 +1,7 @@
 package Pcore::CDN;
 
 use Pcore -class;
-use Pcore::Lib::Scalar qw[weaken is_ref is_plain_arrayref is_plain_coderef];
+use Pcore::Lib::Scalar qw[weaken is_ref is_plain_arrayref];
 use Pcore::Lib::File::Tree;
 use overload '&{}' => sub ( $self, @ ) {
     sub { $self->get_url(@_) }

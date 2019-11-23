@@ -3,7 +3,7 @@ package Pcore::WebSocket::pcore;
 use Pcore -class, -const, -res;
 use Pcore::Lib::Data qw[to_b64];
 use Pcore::Lib::UUID qw[uuid_v1mc_str];
-use Pcore::Lib::Scalar qw[is_res weaken is_plain_arrayref is_plain_coderef];
+use Pcore::Lib::Scalar qw[is_res weaken is_plain_arrayref];
 use Clone qw[];
 
 with qw[Pcore::WebSocket::Handle];

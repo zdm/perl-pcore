@@ -2,7 +2,7 @@ package Pcore::API::SMTP;
 
 use Pcore -dist, -const, -class, -res;
 use Pcore::Handle qw[:TLS_CTX];
-use Pcore::Lib::Scalar qw[is_ref is_plain_scalarref is_plain_arrayref is_plain_coderef];
+use Pcore::Lib::Scalar qw[is_ref is_plain_scalarref is_plain_arrayref];
 use Pcore::Lib::Data qw[from_b64 to_b64];
 use Pcore::Lib::Text qw[encode_utf8];
 use Authen::SASL;

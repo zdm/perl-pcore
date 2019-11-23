@@ -1,7 +1,6 @@
 package Pcore::Lib::Path::Dir;
 
 use Pcore -role;
-use Pcore::Lib::Scalar qw[is_plain_coderef];
 use Fcntl qw[];
 
 has _dir_is_root => ();
@@ -229,9 +228,9 @@ sub empty_dir ( $path, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 56                   | Subroutines::ProhibitExcessComplexity - Subroutine "read_dir" with high complexity score (30)                  |
+## |    3 | 55                   | Subroutines::ProhibitExcessComplexity - Subroutine "read_dir" with high complexity score (30)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 59                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 58                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
