@@ -2,7 +2,7 @@ package Pcore::App::API::Auth;
 
 use Pcore -class, -res;
 use Pcore::App::API qw[:TOKEN_TYPE :PRIVATE_TOKEN :PERMISSIONS];
-use Pcore::Lib::Scalar qw[is_plain_arrayref];
+use Pcore::Lib::Scalar qw[is_res is_plain_arrayref];
 
 use overload    #
   q[bool] => sub {

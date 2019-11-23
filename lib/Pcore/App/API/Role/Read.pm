@@ -5,7 +5,7 @@ use Pcore::Lib::Scalar qw[is_ref];
 
 const our $DEFAULT_PAGE_SIZE => 100;
 
-sub _read ( $self, $req, $args, $total_sql, $main_sql, $where, $page_size = $DEFAULT_PAGE_SIZE ) {
+sub _read ( $self, $args, $total_sql, $main_sql, $where, $page_size = $DEFAULT_PAGE_SIZE ) {
     my $dbh = $self->{dbh};
 
     my $data;
@@ -45,9 +45,7 @@ sub _read ( $self, $req, $args, $total_sql, $main_sql, $where, $page_size = $DEF
         }
     }
 
-    $req->($data);
-
-    return;
+    return $data;
 }
 
 1;
