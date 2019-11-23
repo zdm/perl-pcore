@@ -19,7 +19,7 @@ sub run ( $self, $req ) {
     if ( $req->is_websocket_connect_request ) {
 
         # create connection and accept websocket connect request
-        my $h = Pcore::WebSocket::pcore->accept(
+        return Pcore::WebSocket::pcore->accept(
             $req,
             max_message_size => $WS_MAX_MESSAGE_SIZE,
             compression      => $WS_COMPRESSION,
@@ -84,12 +84,8 @@ sub run ( $self, $req ) {
             return 200, [ 'Content-Type' => 'application/json' ], to_json $response;
         }
     }
-
-    return;
 }
 
-# TODO http api should return immediately if no transactions with the TID were received
-# TODO this is required to unblock http api client ASAP if it is not required API response
 sub _http_api_router ( $self, $auth, $data ) {
     my $response;
 
@@ -115,21 +111,25 @@ sub _http_api_router ( $self, $auth, $data ) {
                 next;
             }
 
-            $cv->begin;
+            my $tid = $tx->{tid};
 
-            Coro::async_pool sub ($tx) {
+            $cv->begin if $tid;
+
+            Coro::async_pool {
                 my $res = $auth->api_call( $tx->{method}, $tx->{args}->@* );
 
-                push $response->@*,
-                  { type   => $TX_TYPE_RPC,
-                    tid    => $tx->{tid},
-                    result => $res,
-                  };
+                if ($tid) {
+                    push $response->@*,
+                      { type   => $TX_TYPE_RPC,
+                        tid    => $tx->{tid},
+                        result => $res,
+                      };
 
-                $cv->end;
+                    $cv->end;
+                }
 
                 return;
-            }, $tx;
+            };
         }
     }
 

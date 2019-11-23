@@ -6,9 +6,7 @@ use Pcore::App::Router::Request;
 use overload    #
   '&{}' => sub ( $self, @ ) {
     return sub {
-        $self->run(@_);
-
-        return;
+        return $self->run(@_);
     };
   },
   fallback => undef;

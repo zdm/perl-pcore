@@ -23,7 +23,7 @@ sub BUILD ( $self, $args ) {
         listen     => $self->{listen},
         on_request => sub ($req) {
             if ( $req->is_websocket_connect_request ) {
-                my $h = Pcore::WebSocket::pcore->accept(
+                return Pcore::WebSocket::pcore->accept(
                     $req,
                     compression   => $self->{compression},
                     on_disconnect => sub ($h) {

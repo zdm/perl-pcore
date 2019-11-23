@@ -87,29 +87,21 @@ sub accept ( $self, $req, %args ) {    ## no critic qw[Subroutines::ProhibitBuil
 
     my $protocol = ${"$self\::PROTOCOL"};
 
-    $self = $self->new(%args);
-
-    state $on_error = sub ( $self, $req, $status, $reason = undef ) {
-        $req->return_xxx(400);
-
-        $self->_set_status( $status, $reason );
-
-        return $self;
-    };
-
     # websocket version is not specified or not supported
-    return $on_error->( $self, $req, 1002 ) if !$env->{HTTP_SEC_WEBSOCKET_VERSION} || $env->{HTTP_SEC_WEBSOCKET_VERSION} ne $WEBSOCKET_VERSION;
+    return 400 if !$env->{HTTP_SEC_WEBSOCKET_VERSION} || $env->{HTTP_SEC_WEBSOCKET_VERSION} ne $WEBSOCKET_VERSION;
 
     # websocket key is not specified
-    return $on_error->( $self, $req, 1002 ) if !$env->{HTTP_SEC_WEBSOCKET_KEY};
+    return 400 if !$env->{HTTP_SEC_WEBSOCKET_KEY};
 
     # check websocket protocol
     if ($protocol) {
-        return $on_error->( $self, $req, 1002 ) if !$env->{HTTP_SEC_WEBSOCKET_PROTOCOL} || $env->{HTTP_SEC_WEBSOCKET_PROTOCOL} !~ /\b$protocol\b/smi;
+        return 400 if !$env->{HTTP_SEC_WEBSOCKET_PROTOCOL} || $env->{HTTP_SEC_WEBSOCKET_PROTOCOL} !~ /\b$protocol\b/smi;
     }
     elsif ( $env->{HTTP_SEC_WEBSOCKET_PROTOCOL} ) {
-        return $on_error->( $self, $req, 1002 );
+        return 400;
     }
+
+    $self = $self->new(%args);
 
     # server send unmasked frames
     $self->{_send_masked} = 0;
@@ -134,14 +126,21 @@ sub accept ( $self, $req, %args ) {    ## no critic qw[Subroutines::ProhibitBuil
         }
     }
 
-    # accept websocket connection
-    my $h = $req->accept_websocket( \@headers );
+    Coro::async_pool {
 
-    # store connestion
-    $SERVER_CONN->{ $self->{id} } = $self;
+        # accept websocket connection
+        my $h = $req->accept_websocket( \@headers );
 
-    # start listen
-    return $self->__on_connect($h);
+        # store connestion
+        $SERVER_CONN->{ $self->{id} } = $self;
+
+        # start listen
+        $self->__on_connect($h);
+
+        return;
+    };
+
+    return;
 }
 
 sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
@@ -639,13 +638,13 @@ sub _on_frame ( $self, $header, $msg, $payload_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 147                  | * Subroutine "connect" with high complexity score (24)                                                         |
-## |      | 379                  | * Subroutine "__on_connect" with high complexity score (28)                                                    |
-## |      | 549                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
+## |      | 146                  | * Subroutine "connect" with high complexity score (24)                                                         |
+## |      | 378                  | * Subroutine "__on_connect" with high complexity score (28)                                                    |
+## |      | 548                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 265, 271, 321        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 264, 270, 320        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 493, 495, 497        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 492, 494, 496        | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
