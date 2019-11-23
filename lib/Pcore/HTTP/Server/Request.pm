@@ -13,35 +13,38 @@ use overload    #
 
 has _server => ( required => 1 );    # InstanceOf ['Pcore::HTTP::Server']
 has _h      => ( required => 1 );    # InstanceOf ['Pcore::Handle']
-has _cb     => ( required => 1 );    # callback
 has env     => ( required => 1 );
 has data    => ();
 has keepalive => ();
 
 has is_websocket_connect_request => ( is => 'lazy' );
 has _response_status             => 0;
+has _cb                          => ();                 # callback
 
-const our $HTTP_SERVER_RESPONSE_STARTED  => 1;    # headers written
-const our $HTTP_SERVER_RESPONSE_FINISHED => 2;    # body written
+const our $HTTP_SERVER_RESPONSE_STARTED  => 1;          # headers written
+const our $HTTP_SERVER_RESPONSE_FINISHED => 2;          # body written
 
 sub DESTROY ( $self ) {
+    if ( ${^GLOBAL_PHASE} ne 'DESTRUCT' ) {
+        if ( my $cb = $self->{_cb} ) {
 
-    # request is destroyed without ->finish call
-    if ( ( ${^GLOBAL_PHASE} ne 'DESTRUCT' ) && $self->{_response_status} != $HTTP_SERVER_RESPONSE_FINISHED ) {
+            # request is destroyed without ->finish call
+            if ( $self->{_response_status} != $HTTP_SERVER_RESPONSE_FINISHED ) {
 
-        # HTTP headers is not written
-        if ( !$self->{_response_status} ) {
-            $self->return_xxx( 500, 1 );
-        }
-        else {
-            $self->{_cb}->(1);
+                # HTTP headers was not written
+                if ( !$self->{_response_status} ) {
+                    $self->return_xxx( 500, 1 );
+                }
+                else {
+                    $cb->(1);
+                }
+            }
         }
     }
 
     return;
 }
 
-# TODO serialize body related to body ref type and content type
 sub _respond ( $self, @ ) {
     die q[Unable to write, HTTP response is already finished] if $self->{_response_status} == $HTTP_SERVER_RESPONSE_FINISHED;
 
@@ -88,7 +91,7 @@ sub _respond ( $self, @ ) {
             $buf .= sprintf "%x\r\n%s\r\n", bytes::length $body->$*, encode_utf8 $body->$*;
         }
         elsif ( is_plain_arrayref $body ) {
-            my $buf1 = join $EMPTY, map { encode_utf8 $_} $body->@*;
+            my $buf1 = join $EMPTY, map { encode_utf8 $_ } $body->@*;
 
             $buf .= sprintf "%x\r\n%s\r\n", bytes::length $buf1, $buf1;
         }

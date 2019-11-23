@@ -1,7 +1,9 @@
 package Pcore::HTTP::Server;
 
 use Pcore -class, -const, -res;
-use Pcore::Lib::Scalar qw[is_uri];
+use Pcore::Lib::Scalar qw[is_uri weaken is_ref is_plain_arrayref is_plain_scalarref];
+use Pcore::Lib::Text qw[encode_utf8];
+use Pcore::Lib::List qw[pairs];
 use AnyEvent::Socket qw[];
 use Pcore::HTTP::Server::Request;
 
@@ -169,30 +171,85 @@ sub _on_accept ( $self, $fh, $host, $port ) {
         }
     };
 
-    my $cv = P->cv;
+    # create request object
+    my $req = bless {
+        _server          => $self,
+        _h               => $h,
+        env              => $env,
+        data             => $data,
+        keepalive        => $keepalive,
+        _response_status => 0,
+      },
+      'Pcore::HTTP::Server::Request';
 
-    Coro::async_pool {
+    # evaluate "on_request" callback
+    my @res = eval { $self->{on_request}->($req) };
 
-        # create request object
-        my $req = bless {
-            _server          => $self,
-            _h               => $h,
-            _cb              => $cv,
-            env              => $env,
-            data             => $data,
-            keepalive        => $keepalive,
-            _response_status => 0,
-          },
-          'Pcore::HTTP::Server::Request';
+    weaken $req;
 
-        # evaluate "on_request" callback
-        eval { $self->{on_request}->($req) };
+    if ($@) {
+        $@->sendlog;
 
-        $@->sendlog if $@;
-    };
+        return;
+    }
 
-    # keep-alive
-    goto READ_HEADERS if !$cv->recv && $keepalive;
+    # request is not finished
+    elsif ( defined $req ) {
+        my $cv = $req->{_cb} = P->cv;
+
+        # keep-alive
+        goto READ_HEADERS if !$cv->recv && $keepalive;
+    }
+    else {
+
+        # compose headers
+        # https://tools.ietf.org/html/rfc7230#section-3.2
+        my ( $headers, $body );
+
+        $headers = do {
+            my $status = 0+ $res[0];
+            my $reason = P->result->resolve_reason($status);
+
+            "HTTP/1.1 $status $reason\r\n";
+        };
+
+        $headers .= "Server:$self->{server_tokens}\r\n" if $self->{server_tokens};
+
+        # keepalive
+        $headers .= 'Connection:' . ( $keepalive ? 'keep-alive' : 'close' ) . "\r\n";
+
+        # add custom headers
+        $headers .= join( "\r\n", map {"$_->[0]:$_->[1]"} pairs $res[1]->@* ) . "\r\n" if $res[1] && $res[1]->@*;
+
+        if ( @res > 2 ) {
+            for ( my $i = 2; $i <= $#res; $i++ ) {
+                if ( !is_ref $res[$i] ) {
+                    $body .= encode_utf8 $res[$i];
+                }
+                elsif ( is_plain_scalarref $res[$i] ) {
+                    $body .= encode_utf8 $res[$i]->$*;
+                }
+                elsif ( is_plain_arrayref $res[$i] ) {
+                    $body .= join $EMPTY, map { encode_utf8 $_ } $res[$i]->@*;
+                }
+                else {
+                    die q[Body type isn't supported];
+                }
+            }
+
+            if ( defined $body ) {
+                $headers .= "Content-Length:@{[ length $body ]}\r\n";
+            }
+            else {
+                $headers .= "Content-Length:0\r\n";
+            }
+        }
+        else {
+            $headers .= "Content-Length:0\r\n";
+        }
+
+        $h->write( $headers . "\r\n" . ( $body // $EMPTY ) );
+    }
 
     return;
 }
@@ -224,9 +281,9 @@ sub return_xxx ( $self, $h, $status, $close_connection = 1 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 57                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (32)                |
+## |    3 | 59                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (47)                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 189                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    2 | 225                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
