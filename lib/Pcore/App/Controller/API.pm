@@ -51,18 +51,14 @@ sub run ( $self, $req ) {
             $msg = eval { from_json $req->{data} };
 
             # content decode error
-            if ($@) {
-                return 400, q[Error decoding JSON request body];
-            }
+            return 400, q[Error decoding JSON request body] if $@;
         }
 
         elsif ( $env->{CONTENT_TYPE} =~ m[\bapplication/cbor\b]smi ) {
             $msg = eval { from_cbor $req->{data} };
 
             # content decode error
-            if ($@) {
-                return 400, q[Error decoding JSON request body];
-            }
+            return 400, q[Error decoding JSON request body] if $@;
 
             $CBOR = 1;
         }

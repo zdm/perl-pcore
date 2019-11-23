@@ -70,10 +70,10 @@ sub _on_accept ( $self, $fh, $host, $port ) {
     # HTTP headers read error
     if ( !$env ) {
         if ( $h->is_timeout ) {
-            $self->return_xxx( $h, 408 );
+            $self->return_xxx( $h, 408, 1 );
         }
         else {
-            $self->return_xxx( $h, 400 );
+            $self->return_xxx( $h, 400, 1 );
         }
 
         return;
@@ -114,17 +114,17 @@ sub _on_accept ( $self, $fh, $host, $port ) {
 
             # payload too large
             if ($payload_too_large) {
-                return $self->return_xxx( $h, 413 );
+                return $self->return_xxx( $h, 413, 1 );
             }
 
             # timeout
             elsif ( $h->is_timeout ) {
-                return $self->return_xxx( $h, 408 );
+                return $self->return_xxx( $h, 408, 1 );
             }
 
             # read error
             else {
-                return $self->return_xxx( $h, 400 );
+                return $self->return_xxx( $h, 400, 1 );
             }
         }
 
@@ -135,7 +135,7 @@ sub _on_accept ( $self, $fh, $host, $port ) {
     elsif ( $env->{CONTENT_LENGTH} ) {
 
         # payload too large
-        return $self->return_xxx( $h, 413 ) if $self->{client_max_body_size} && $self->{client_max_body_size} > $env->{CONTENT_LENGTH};
+        return $self->return_xxx( $h, 413, 1 ) if $self->{client_max_body_size} && $self->{client_max_body_size} > $env->{CONTENT_LENGTH};
 
         $data = $h->read_chunk( $env->{CONTENT_LENGTH}, timeout => $self->{client_body_timeout} );
 
@@ -144,12 +144,12 @@ sub _on_accept ( $self, $fh, $host, $port ) {
 
             # timeout
             if ( $h->is_timeout ) {
-                return $self->return_xxx( $h, 408 );
+                return $self->return_xxx( $h, 408, 1 );
             }
 
             # read error
             else {
-                return $self->return_xxx( $h, 400 );
+                return $self->return_xxx( $h, 400, 1 );
             }
         }
     }
@@ -206,7 +206,7 @@ sub _on_accept ( $self, $fh, $host, $port ) {
         $self->return_xxx( $h, 204, 0 );
     }
     else {
-        my $headers = $self->compose_headers( shift @res, shift @res, 0 );
+        my $headers = $self->compose_headers( shift @res, shift @res, [ Connection => 'keep-alive' ] );
 
         my $body = $self->compose_body( \@res );
 
@@ -218,7 +218,7 @@ sub _on_accept ( $self, $fh, $host, $port ) {
     return;
 }
 
-sub compose_headers ( $self, $status, $headers = undef, $close_connection = 1 ) {
+sub compose_headers ( $self, $status, $headers1 = undef, $headers2 = undef ) {
 
     # compose headers
     # https://tools.ietf.org/html/rfc7230#section-3.2
@@ -230,10 +230,11 @@ sub compose_headers ( $self, $status, $headers = undef, $close_connection = 1 ) 
 
     $buf .= "Server:$self->{server_tokens}\r\n" if $self->{server_tokens};
 
-    $buf .= 'Connection:' . ( $close_connection ? 'close' : 'keep-alive' ) . "\r\n";
+    # add custom headers1
+    $buf .= join $EMPTY, map {"$_->[0]:$_->[1]\r\n"} pairs $headers1->@* if $headers1;
 
-    # add custom headers
-    $buf .= join( "\r\n", map {"$_->[0]:$_->[1]"} pairs $_[2]->@* ) . "\r\n" if $headers && $headers->@*;
+    # add custom headers2
+    $buf .= join $EMPTY, map {"$_->[0]:$_->[1]\r\n"} pairs $headers2->@* if $headers2;
 
     return \$buf;
 }
@@ -261,12 +262,12 @@ sub compose_body ( $self, $data ) {
     return \$body;
 }
 
-sub return_xxx ( $self, $h, $status, $close_connection = 1 ) {
+sub return_xxx ( $self, $h, $status, $close_connection ) {
 
     # handle closed, do nothing
     return if !$h;
 
-    my $headers = $self->compose_headers( $status, undef, $close_connection );
+    my $headers = $self->compose_headers( $status, [ Connection => $close_connection ? 'close' : 'keep-alive' ] );
 
     $headers->$* .= "Content-Length:0\r\n";
 

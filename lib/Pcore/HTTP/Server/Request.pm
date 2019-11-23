@@ -54,10 +54,13 @@ sub _respond ( $self, @args ) {
     if ( !$self->{_response_status} ) {
         $self->{_response_status} = $HTTP_SERVER_RESPONSE_STARTED;
 
-        $buf = $self->{_server}->compose_headers( shift @args, shift @args, !$self->{keepalive} );
-
-        # always use chunked transfer
-        $buf->$* .= "Transfer-Encoding:chunked\r\n";
+        $buf = $self->{_server}->compose_headers(
+            shift @args,
+            shift @args,
+            [   Connection          => $self->{keepalive} ? 'keep-alive' : 'close',
+                'Transfer-Encoding' => 'chunked',                                     # always use chunked transfer
+            ]
+        );
 
         $buf->$* .= "\r\n";
     }
@@ -80,7 +83,7 @@ sub finish ( $self, $trailing_headers = undef ) {
     if ( !$response_status ) {
 
         # return 204 No Content - the server successfully processed the request and is not returning any content
-        $self->_return_xxx(204);
+        $self->_return_xxx( 204, 0 );
     }
 
     # HTTP headers are written
@@ -108,7 +111,7 @@ sub finish ( $self, $trailing_headers = undef ) {
 }
 
 # return simple response and finish request
-sub _return_xxx ( $self, $status, $close_connection = 0 ) {
+sub _return_xxx ( $self, $status, $close_connection ) {
     die q[Unable to finish already started HTTP request] if $self->{_response_status};
 
     # mark request as finished
@@ -129,22 +132,22 @@ sub _build_is_websocket_connect_request ( $self ) {
 }
 
 sub accept_websocket ( $self, $headers = undef ) {
-    state $reason = 'Switching Protocols';
-
     die q[Unable to finish already started HTTP request] if $self->{_response_status};
 
     # mark response as finished
     $self->{_response_status} = $HTTP_SERVER_RESPONSE_FINISHED;
 
-    my $buf = "HTTP/1.1 101 $reason\r\nContent-Length:0\r\nUpgrade:websocket\r\nConnection:upgrade\r\n";
-
-    $buf .= "Server:$self->{_server}->{server_tokens}\r\n" if $self->{_server}->{server_tokens};
-
-    $buf .= ( join "\r\n", map {"$_->[0]:$_->[1]"} pairs $headers->@* ) . "\r\n" if $headers && $headers->@*;
+    my $buf = $self->{_server}->compose_headers(
+        101, $headers,
+        [   Connection       => 'upgrade',
+            Upgrade          => 'websocket',
+            'Content-Length' => 0,
+        ]
+    );
 
     my $h = delete $self->{_h};
 
-    $h->write("$buf\r\n");
+    $h->write("$buf->$*\r\n");
 
     $self->{_cb}->(1);
 
