@@ -91,7 +91,7 @@ around new => sub ( $orig, $self, $type, % ) {
     }, $self;
 
     if ( $self->{on_finish} ) {
-        Coro::async_pool {
+        Coro::async {
             weaken $self;
 
             # blocks until $fh is closed
