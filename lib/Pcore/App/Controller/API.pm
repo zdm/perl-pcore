@@ -36,12 +36,8 @@ sub run ( $self, $req ) {
             on_event => sub ( $h, $ev ) {
                 return $self->on_event( $h, $ev );
             },
-            on_rpc => sub ( $h, $req, $tx ) {
-                my $res = $h->{auth}->api_call( $tx->{method}, $tx->{args}->@* );
-
-                $req->($res);
-
-                return;
+            on_rpc => sub ( $h, $tx ) {
+                return $h->{auth}->api_call( $tx->{method}, $tx->{args}->@* );
             }
         );
     }
