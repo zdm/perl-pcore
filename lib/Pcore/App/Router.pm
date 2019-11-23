@@ -144,9 +144,7 @@ sub run ( $self, $req ) {
 
         # unknown HTTP host
         else {
-            $req->return_xxx(421);    # 421 - misdirected request
-
-            return;
+            return 421;    # 421 - misdirected request
         }
     }
 
@@ -196,9 +194,7 @@ sub run ( $self, $req ) {
 
     my $ctrl = $self->{class_ctrl}->{$class};
 
-    $ctrl->run($req);
-
-    return;
+    return $ctrl->run($req);
 }
 
 sub get_host_api_path ( $self, $host ) {

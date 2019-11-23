@@ -33,7 +33,7 @@ sub DESTROY ( $self ) {
 
                 # HTTP headers was not written
                 if ( !$self->{_response_status} ) {
-                    $self->return_xxx( 500, 1 );
+                    $self->_return_xxx( 500, 1 );
                 }
                 else {
                     $cb->(1);
@@ -45,64 +45,28 @@ sub DESTROY ( $self ) {
     return;
 }
 
-sub _respond ( $self, @ ) {
+sub _respond ( $self, @args ) {
     die q[Unable to write, HTTP response is already finished] if $self->{_response_status} == $HTTP_SERVER_RESPONSE_FINISHED;
 
     my ( $buf, $body );
 
     # first call, $status, $headers, $body
     if ( !$self->{_response_status} ) {
+        $self->{_response_status} = $HTTP_SERVER_RESPONSE_STARTED;
 
-        # compose headers
-        # https://tools.ietf.org/html/rfc7230#section-3.2
-        $buf = do {
-            my $status = 0+ $_[1];
-            my $reason = P->result->resolve_reason($status);
-
-            "HTTP/1.1 $status $reason\r\n";
-        };
-
-        $buf .= "Server:$self->{_server}->{server_tokens}\r\n" if $self->{_server}->{server_tokens};
+        $buf = $self->{_server}->compose_headers( shift @args, shift @args, !$self->{keepalive} );
 
         # always use chunked transfer
-        $buf .= "Transfer-Encoding:chunked\r\n";
+        $buf->$* .= "Transfer-Encoding:chunked\r\n";
 
-        # keepalive
-        $buf .= 'Connection:' . ( $self->{keepalive} ? 'keep-alive' : 'close' ) . "\r\n";
-
-        # add custom headers
-        $buf .= join( "\r\n", map {"$_->[0]:$_->[1]"} pairs $_[2]->@* ) . "\r\n" if $_[2] && $_[2]->@*;
-
-        $buf .= "\r\n";
-
-        \$body = \$_[3] if $_[3];
-
-        $self->{_response_status} = $HTTP_SERVER_RESPONSE_STARTED;
-    }
-    else {
-        \$body = \$_[1];
+        $buf->$* .= "\r\n";
     }
 
-    if ($body) {
-        if ( !is_ref $body ) {
-            $buf .= sprintf "%x\r\n%s\r\n", bytes::length $body, encode_utf8 $body;
-        }
-        elsif ( is_plain_scalarref $body ) {
-            $buf .= sprintf "%x\r\n%s\r\n", bytes::length $body->$*, encode_utf8 $body->$*;
-        }
-        elsif ( is_plain_arrayref $body ) {
-            my $buf1 = join $EMPTY, map { encode_utf8 $_ } $body->@*;
+    $body = $self->{_server}->compose_body( \@args );
 
-            $buf .= sprintf "%x\r\n%s\r\n", bytes::length $buf1, $buf1;
-        }
-        else {
+    $buf->$* .= sprintf "%x\r\n%s\r\n", length $body->$*, $body->$* if length $body->$*;
 
-            # TODO add support for other body types
-            die q[Body type isn't supported];
-        }
-    }
-
-    $self->{_h}->write($buf);
+    $self->{_h}->write( $buf->$* ) if defined $buf;
 
     return $self;
 }
@@ -116,7 +80,7 @@ sub finish ( $self, $trailing_headers = undef ) {
     if ( !$response_status ) {
 
         # return 204 No Content - the server successfully processed the request and is not returning any content
-        $self->return_xxx(204);
+        $self->_return_xxx(204);
     }
 
     # HTTP headers are written
@@ -137,14 +101,14 @@ sub finish ( $self, $trailing_headers = undef ) {
 
         $self->{_h}->write($buf);
 
-        $self->{_cb}->(0);
+        if ( my $cb = delete $self->{_cb} ) { $cb->(0) }
     }
 
     return;
 }
 
 # return simple response and finish request
-sub return_xxx ( $self, $status, $close_connection = 0 ) {
+sub _return_xxx ( $self, $status, $close_connection = 0 ) {
     die q[Unable to finish already started HTTP request] if $self->{_response_status};
 
     # mark request as finished
@@ -152,7 +116,7 @@ sub return_xxx ( $self, $status, $close_connection = 0 ) {
 
     $self->{_server}->return_xxx( $self->{_h}, $status, $close_connection || !$self->{keepalive} );
 
-    $self->{_cb}->($close_connection);
+    if ( my $cb = delete $self->{_cb} ) { $cb->($close_connection) }
 
     return;
 }

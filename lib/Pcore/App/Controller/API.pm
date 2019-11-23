@@ -13,11 +13,7 @@ const our $WS_COMPRESSION      => 0;
 const our $TX_TYPE_RPC => 'rpc';
 
 sub run ( $self, $req ) {
-    if ( defined $req->{path} ) {
-        $req->(404)->finish;
-
-        return;
-    }
+    return 404 if defined $req->{path};
 
     # WebSocket API request
     if ( $req->is_websocket_connect_request ) {
@@ -56,9 +52,7 @@ sub run ( $self, $req ) {
 
             # content decode error
             if ($@) {
-                $req->( [ 400, q[Error decoding JSON request body] ] )->finish;
-
-                return;
+                return 400, q[Error decoding JSON request body];
             }
         }
 
@@ -67,9 +61,7 @@ sub run ( $self, $req ) {
 
             # content decode error
             if ($@) {
-                $req->( [ 400, q[Error decoding JSON request body] ] )->finish;
-
-                return;
+                return 400, q[Error decoding JSON request body];
             }
 
             $CBOR = 1;
@@ -77,33 +69,24 @@ sub run ( $self, $req ) {
 
         # invalid content type
         else {
-            $req->(415)->finish;
-
-            return;
+            return 415;
         }
 
         # authenticate request
         my $auth = $req->authenticate;
 
-        $self->_http_api_router(
-            $auth, $msg,
-            sub ($res) {
-                if ($CBOR) {
+        my $response = $self->_http_api_router( $auth, $msg );
 
-                    # write HTTP response
-                    $req->( 200, [ 'Content-Type' => 'application/cbor' ], to_cbor $res )->finish;
-                }
-                else {
+        if ($CBOR) {
 
-                    # write HTTP response
-                    $req->( 200, [ 'Content-Type' => 'application/json' ], to_json $res)->finish;
-                }
+            # write HTTP response
+            return 200, [ 'Content-Type' => 'application/cbor' ], to_cbor $response;
+        }
+        else {
 
-                return;
-            }
-        );
-
-        return;
+            # write HTTP response
+            return 200, [ 'Content-Type' => 'application/json' ], to_json $response;
+        }
     }
 
     return;
@@ -111,14 +94,10 @@ sub run ( $self, $req ) {
 
 # TODO http api should return immediately if no transactions with the TID were received
 # TODO this is required to unblock http api client ASAP if it is not required API response
-sub _http_api_router ( $self, $auth, $data, $cb ) {
+sub _http_api_router ( $self, $auth, $data ) {
     my $response;
 
-    my $cv = P->cv->begin( sub {
-        $cb->($response);
-
-        return;
-    } );
+    my $cv = P->cv->begin;
 
     for my $tx ( is_plain_arrayref $data ? $data->@* : $data ) {
         next if !$tx->{type};
@@ -158,9 +137,9 @@ sub _http_api_router ( $self, $auth, $data, $cb ) {
         }
     }
 
-    $cv->end;
+    $cv->end->recv;
 
-    return;
+    return $response;
 }
 
 sub on_connect ( $self, $ws ) {

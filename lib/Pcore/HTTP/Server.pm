@@ -197,61 +197,68 @@ sub _on_accept ( $self, $fh, $host, $port ) {
     elsif ( defined $req ) {
         my $cv = $req->{_cb} = P->cv;
 
+        my $close_connection = $cv->recv;
+
         # keep-alive
-        goto READ_HEADERS if !$cv->recv && $keepalive;
+        goto READ_HEADERS if !$close_connection && $keepalive;
+    }
+    elsif ( !@res ) {
+        $self->return_xxx( $h, 204, 0 );
     }
     else {
+        my $headers = $self->compose_headers( shift @res, shift @res, 0 );
 
-        # compose headers
-        # https://tools.ietf.org/html/rfc7230#section-3.2
-        my ( $headers, $body );
+        my $body = $self->compose_body( \@res );
 
-        $headers = do {
-            my $status = 0+ $res[0];
-            my $reason = P->result->resolve_reason($status);
+        $headers->$* .= "Content-Length:@{[ length $body->$* ]}\r\n";
 
-            "HTTP/1.1 $status $reason\r\n";
-        };
-
-        $headers .= "Server:$self->{server_tokens}\r\n" if $self->{server_tokens};
-
-        # keepalive
-        $headers .= 'Connection:' . ( $keepalive ? 'keep-alive' : 'close' ) . "\r\n";
-
-        # add custom headers
-        $headers .= join( "\r\n", map {"$_->[0]:$_->[1]"} pairs $res[1]->@* ) . "\r\n" if $res[1] && $res[1]->@*;
-
-        if ( @res > 2 ) {
-            for ( my $i = 2; $i <= $#res; $i++ ) {
-                if ( !is_ref $res[$i] ) {
-                    $body .= encode_utf8 $res[$i];
-                }
-                elsif ( is_plain_scalarref $res[$i] ) {
-                    $body .= encode_utf8 $res[$i]->$*;
-                }
-                elsif ( is_plain_arrayref $res[$i] ) {
-                    $body .= join $EMPTY, map { encode_utf8 $_ } $res[$i]->@*;
-                }
-                else {
-                    die q[Body type isn't supported];
-                }
-            }
-
-            if ( defined $body ) {
-                $headers .= "Content-Length:@{[ length $body ]}\r\n";
-            }
-            else {
-                $headers .= "Content-Length:0\r\n";
-            }
-        }
-        else {
-            $headers .= "Content-Length:0\r\n";
-        }
-
-        $h->write( $headers . "\r\n" . ( $body // $EMPTY ) );
+        $h->write( $headers->$* . "\r\n" . $body->$* );
     }
 
     return;
+}
+
+sub compose_headers ( $self, $status, $headers = undef, $close_connection = 1 ) {
+
+    # compose headers
+    # https://tools.ietf.org/html/rfc7230#section-3.2
+    $status += 0;
+
+    my $reason = P->result->resolve_reason($status);
+
+    my $buf = "HTTP/1.1 $status $reason\r\n";
+
+    $buf .= "Server:$self->{server_tokens}\r\n" if $self->{server_tokens};
+
+    $buf .= 'Connection:' . ( $close_connection ? 'close' : 'keep-alive' ) . "\r\n";
+
+    # add custom headers
+    $buf .= join( "\r\n", map {"$_->[0]:$_->[1]"} pairs $_[2]->@* ) . "\r\n" if $headers && $headers->@*;
+
+    return \$buf;
+}
+
+sub compose_body ( $self, $data ) {
+    my $body = $EMPTY;
+
+    for my $part ( $data->@* ) {
+        next if !defined $part;
+
+        if ( !is_ref $part ) {
+            $body .= encode_utf8 $part;
+        }
+        elsif ( is_plain_scalarref $part ) {
+            $body .= encode_utf8 $part->$*;
+        }
+        elsif ( is_plain_arrayref $part ) {
+            $body .= join $EMPTY, map { encode_utf8 $_ } $part->@*;
+        }
+        else {
+            die q[Body type isn't supported];
+        }
+    }
+
+    return \$body;
 }
 
 sub return_xxx ( $self, $h, $status, $close_connection = 1 ) {
@@ -259,17 +266,11 @@ sub return_xxx ( $self, $h, $status, $close_connection = 1 ) {
     # handle closed, do nothing
     return if !$h;
 
-    $status = 0+ $status;
+    my $headers = $self->compose_headers( $status, undef, $close_connection );
 
-    my $reason = P->result->resolve_reason($status);
+    $headers->$* .= "Content-Length:0\r\n";
 
-    my $buf = "HTTP/1.1 $status $reason\r\nContent-Length:0\r\n";
-
-    $buf .= 'Connection:' . ( $close_connection ? 'close' : 'keep-alive' ) . "\r\n";
-
-    $buf .= "Server:$self->{server_tokens}\r\n" if $self->{server_tokens};
-
-    $h->write("$buf\r\n");
+    $h->write("$headers->$*\r\n");
 
     return;
 }
@@ -281,9 +282,7 @@ sub return_xxx ( $self, $h, $status, $close_connection = 1 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 59                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (47)                |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 225                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    3 | 59                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (35)                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -297,6 +296,30 @@ __END__
 Pcore::HTTP::Server
 
 =head1 SYNOPSIS
+
+    my $svr = Pcore::HTTP::Server->new(
+        listen     => '//127.0.0.1:80',
+        on_request => sub ($req) {
+            return 200, [ 'Content-Type' => 'text/html' ], 'body';
+        }
+    );
+
+    # asynchronous response
+    on_request => sub ($req) {
+        async {
+            $req->( 200, [ 'Content-Type' => 'text/html' ] );
+
+            $req->('data1');
+
+            $req->('data2');
+
+            $req->finish;
+
+            return;
+        };
+
+        return;
+    }
 
 =head1 DESCRIPTION
 

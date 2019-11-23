@@ -19,27 +19,15 @@ sub run ( $self, $req ) {
         my $res = $auth->api_call( '/v1/Auth/confirm_email_by_token', $token );
 
         if ($res) {
-            $req->(
-                200, [ 'Content-Type' => 'text/html' ], <<"HTML"
-                <h1><center>$l10n{'Email address confirmed successfully'}.</center></h1>
+            return 200, [ 'Content-Type' => 'text/html' ], <<"HTML";
+<h1><center>$l10n{'Email address confirmed successfully'}.</center></h1>
 HTML
-            )->finish;
         }
-        else {
-            $req->(
-                400, [ 'Content-Type' => 'text/html' ], <<"HTML"
-                <h1><center>$l10n{'Token is invalid or email address is already confirmed'}.</center></h1>
-HTML
-            )->finish;
-        }
-
-        return;
-    }
-    else {
-        $reject->();
     }
 
-    return;
+    return 400, [ 'Content-Type' => 'text/html' ], <<"HTML";
+<h1><center>$l10n{'Token is invalid or email address is already confirmed'}.</center></h1>
+HTML
 }
 
 1;
