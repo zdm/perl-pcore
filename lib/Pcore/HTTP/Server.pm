@@ -205,9 +205,9 @@ sub _on_accept ( $self, $fh, $host, $port ) {
         $self->return_xxx( $h, 204, 0 );
     }
     else {
-        my $headers = $self->compose_headers( shift @res, shift @res, [ Connection => 'keep-alive' ] );
+        my $headers = $self->build_response_headers( shift @res, shift @res, [ Connection => 'keep-alive' ] );
 
-        my $body = Pcore::Lib::HTTP::compose_body( \@res );
+        my $body = Pcore::Lib::HTTP::build_body( \@res );
 
         $headers->$* .= "Content-Length:@{[ length $body->$* ]}\r\n";
 
@@ -217,8 +217,8 @@ sub _on_accept ( $self, $fh, $host, $port ) {
     return;
 }
 
-sub compose_headers ( $self, $status, @headers ) {
-    return Pcore::Lib::HTTP::compose_headers( $status, $self->{server_tokens} ? [ Server => $self->{server_tokens} ] : (), @headers );
+sub build_response_headers ( $self, $status, @headers ) {
+    return Pcore::Lib::HTTP::build_response_headers( $status, $self->{server_tokens} ? [ Server => $self->{server_tokens} ] : (), @headers );
 }
 
 sub return_xxx ( $self, $h, $status, $close_connection ) {
@@ -226,7 +226,7 @@ sub return_xxx ( $self, $h, $status, $close_connection ) {
     # handle closed, do nothing
     return if !$h;
 
-    my $headers = $self->compose_headers( $status, [ Connection => $close_connection ? 'close' : 'keep-alive' ] );
+    my $headers = $self->build_response_headers( $status, [ Connection => $close_connection ? 'close' : 'keep-alive' ] );
 
     $headers->$* .= "Content-Length:0\r\n";
 

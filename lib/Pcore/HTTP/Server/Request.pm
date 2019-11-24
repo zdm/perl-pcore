@@ -53,7 +53,7 @@ sub _respond ( $self, @args ) {
     if ( !$self->{_response_status} ) {
         $self->{_response_status} = $HTTP_SERVER_RESPONSE_STARTED;
 
-        $buf = $self->{_server}->compose_headers(
+        $buf = $self->{_server}->build_response_headers(
             shift @args,
             shift @args,
             [   Connection          => $self->{keepalive} ? 'keep-alive' : 'close',
@@ -64,7 +64,7 @@ sub _respond ( $self, @args ) {
         $buf->$* .= "\r\n";
     }
 
-    $body = Pcore::Lib::HTTP::compose_body( \@args );
+    $body = Pcore::Lib::HTTP::build_body( \@args );
 
     $buf->$* .= sprintf "%x\r\n%s\r\n", length $body->$*, $body->$* if length $body->$*;
 
@@ -136,7 +136,7 @@ sub accept_websocket ( $self, $headers = undef ) {
     # mark response as finished
     $self->{_response_status} = $HTTP_SERVER_RESPONSE_FINISHED;
 
-    my $buf = $self->{_server}->compose_headers(
+    my $buf = $self->{_server}->build_response_headers(
         101, $headers,
         [   Connection       => 'upgrade',
             Upgrade          => 'websocket',
