@@ -103,7 +103,7 @@ sub _store_exe ( $self, $source_path ) {
 
     my @tags;
     @tags = grep {defined} $dist_id->{branch}, $dist_id->{tags}->@*;
-    push @tags, $dist_id->{hash_short} if !@tags;
+    push @tags, P->date->now_utc->to_iso_8601_compact . "-$dist_id->{hash_short}" if !@tags;
 
     my $filename = $self->{script}->{filename_base};
     my $arch     = $Config{archname} =~ /x64|x86_64/sm ? 'x64' : $EMPTY;
