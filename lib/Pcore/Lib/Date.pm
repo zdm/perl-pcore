@@ -42,30 +42,29 @@ sub parse ( $self, $date ) {
 
 *to_w3cdtf = \&to_iso_8601;
 
-# Wed, 09 Feb 1994 22:23:32 -0100
-sub to_rfc_1123 ($self) {
-    return $self->strftime('%a, %d %b %Y %H:%M:%S %z');
-}
-
-# Wed, 09 Feb 94 22:23:32 -0100
+# Wed, 09 Feb 94 22:23:32 -0100, two digits year
 sub to_rfc_822 ($self) {
     return $self->strftime('%a, %d %b %y %H:%M:%S %z');
 }
 
-# Wed, 09 Feb 1994 22:23:32 GMT
-# always in UTC zone
+# Wed, 09 Feb 1994 22:23:32 -0100, RFC 822 + 4 digits year
+sub to_rfc_1123 ($self) {
+    return $self->strftime('%a, %d %b %Y %H:%M:%S %z');
+}
+
+# Wed, 09 Feb 1994 22:23:32 GMT, RFC 1123 + always in UTC zone
 sub to_rfc_7231 ($self) {
     return $self->at_utc->strftime('%a, %d %b %Y %H:%M:%S GMT');
 }
 
 # 2019-12-30T24:60:60Z
 sub to_iso_8601 ($self) {
-    return $self->strftime('%Y-%m-%dT%H:%M:%S%z');
+    return $self->strftime('%Y-%m-%dT%H:%M:%S%Z');
 }
 
 # 20190130T241260Z
 sub to_iso_8601_compact ($self) {
-    return $self->strftime('%Y%m%dT%H%M%S%z');
+    return $self->strftime('%Y%m%dT%H%M%S%Z');
 }
 
 sub duration ( $self, $start, $end ) {
