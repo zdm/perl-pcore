@@ -4,7 +4,7 @@ use Pcore -export, -res;
 use Pcore::Lib::Text qw[encode_utf8];
 use Pcore::Lib::Scalar qw[is_ref is_plain_arrayref is_plain_scalarref];
 
-our @EXPORT = [qw[build_headers build_response_headers build_body build_body_multipart]];
+our @EXPORT = [qw[build_headers build_response_headers build_body]];
 
 # https://tools.ietf.org/html/rfc7230#section-3.2
 sub build_headers ( @headers ) {
@@ -50,10 +50,6 @@ sub build_body ( $data ) {
     }
 
     return \$body;
-}
-
-sub build_body_multipart ($data) {
-    return;
 }
 
 1;
