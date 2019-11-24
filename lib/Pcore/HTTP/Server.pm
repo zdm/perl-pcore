@@ -1,9 +1,8 @@
 package Pcore::HTTP::Server;
 
 use Pcore -class, -const, -res;
-use Pcore::Lib::Scalar qw[is_uri weaken is_ref is_plain_arrayref is_plain_scalarref];
-use Pcore::Lib::Text qw[encode_utf8];
-use Pcore::Lib::List qw[pairs];
+use Pcore::Lib::Scalar qw[is_uri weaken];
+use Pcore::Lib::HTTP;
 use AnyEvent::Socket qw[];
 use Pcore::HTTP::Server::Request;
 
@@ -208,7 +207,7 @@ sub _on_accept ( $self, $fh, $host, $port ) {
     else {
         my $headers = $self->compose_headers( shift @res, shift @res, [ Connection => 'keep-alive' ] );
 
-        my $body = $self->compose_body( \@res );
+        my $body = Pcore::Lib::HTTP::compose_body( \@res );
 
         $headers->$* .= "Content-Length:@{[ length $body->$* ]}\r\n";
 
@@ -218,48 +217,8 @@ sub _on_accept ( $self, $fh, $host, $port ) {
     return;
 }
 
-sub compose_headers ( $self, $status, $headers1 = undef, $headers2 = undef ) {
-
-    # compose headers
-    # https://tools.ietf.org/html/rfc7230#section-3.2
-    $status += 0;
-
-    my $reason = P->result->resolve_reason($status);
-
-    my $buf = "HTTP/1.1 $status $reason\r\n";
-
-    $buf .= "Server:$self->{server_tokens}\r\n" if $self->{server_tokens};
-
-    # add custom headers1
-    $buf .= join $EMPTY, map {"$_->[0]:$_->[1]\r\n"} pairs $headers1->@* if $headers1;
-
-    # add custom headers2
-    $buf .= join $EMPTY, map {"$_->[0]:$_->[1]\r\n"} pairs $headers2->@* if $headers2;
-
-    return \$buf;
-}
-
-sub compose_body ( $self, $data ) {
-    my $body = $EMPTY;
-
-    for my $part ( $data->@* ) {
-        next if !defined $part;
-
-        if ( !is_ref $part ) {
-            $body .= encode_utf8 $part;
-        }
-        elsif ( is_plain_scalarref $part ) {
-            $body .= encode_utf8 $part->$*;
-        }
-        elsif ( is_plain_arrayref $part ) {
-            $body .= join $EMPTY, map { encode_utf8 $_ } $part->@*;
-        }
-        else {
-            die q[Body type isn't supported];
-        }
-    }
-
-    return \$body;
+sub compose_headers ( $self, $status, @headers ) {
+    return Pcore::Lib::HTTP::compose_headers( $status, $self->{server_tokens} ? [ Server => $self->{server_tokens} ] : (), @headers );
 }
 
 sub return_xxx ( $self, $h, $status, $close_connection ) {
@@ -283,7 +242,7 @@ sub return_xxx ( $self, $h, $status, $close_connection ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 59                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (35)                |
+## |    3 | 58                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (35)                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

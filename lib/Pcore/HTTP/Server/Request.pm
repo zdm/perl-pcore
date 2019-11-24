@@ -2,8 +2,7 @@ package Pcore::HTTP::Server::Request;
 
 use Pcore -class, -const, -res;
 use Pcore::Lib::Scalar qw[is_ref is_plain_scalarref is_plain_arrayref];
-use Pcore::Lib::List qw[pairs];
-use Pcore::Lib::Text qw[encode_utf8];
+use Pcore::Lib::HTTP;
 
 use overload    #
   '&{}' => sub ( $self, @ ) {
@@ -65,7 +64,7 @@ sub _respond ( $self, @args ) {
         $buf->$* .= "\r\n";
     }
 
-    $body = $self->{_server}->compose_body( \@args );
+    $body = Pcore::Lib::HTTP::compose_body( \@args );
 
     $buf->$* .= sprintf "%x\r\n%s\r\n", length $body->$*, $body->$* if length $body->$*;
 
