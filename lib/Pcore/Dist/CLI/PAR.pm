@@ -16,10 +16,6 @@ sub CLI ($self) {
                 desc    => 'clean temp dir on exit',
                 negated => 1,
             },
-            force => {
-                desc    => 'do not check for uncommited changes',
-                default => 0,
-            },
         },
         arg => [
             script => {

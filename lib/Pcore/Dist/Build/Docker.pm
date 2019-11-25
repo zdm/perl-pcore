@@ -333,13 +333,15 @@ sub build_local ( $self, $tag, $args ) {
     }
 
     # create build tags
-    my $id      = $repo->id;
-    my $repo_id = $dist->docker->{repo_id};
+    my $id       = $repo->id;
+    my $repo_id  = $dist->docker->{repo_id};
+    my $is_dirty = $id->{is_dirty} ? '.dirty' : $EMPTY;
 
     my @tags;
-    my $is_dirty = $id->{is_dirty} ? '.dirty' : $EMPTY;
-    @tags = map {"$repo_id:${_}${is_dirty}"} grep {defined} $id->{branch}, $id->{tags}->@* if defined $tag;
-    push @tags, "$repo_id:@{[ P->date->now_utc->to_iso_8601_compact ]}-$id->{hash_short}${is_dirty}" if !@tags;
+
+    @tags = map {"$repo_id:${_}${is_dirty}"} grep {defined} $id->{branch}, $id->{tags}->@*;
+
+    push @tags, "$repo_id:$id->{hash_short}${is_dirty}" if $is_dirty || !@tags;
 
     for my $tag (@tags) { say "Tag: $tag" }
 
