@@ -3,9 +3,9 @@ package Pcore::Util::Result::Role;
 use Pcore -role, -const;
 use Pcore::Util::Scalar qw[is_res is_ref is_plain_arrayref is_plain_hashref];
 use overload
-  bool     => sub { substr( $_[0]->{status}, 0, 1 ) == 2 },
-  '0+'     => sub { $_[0]->{status} },
-  q[""]    => sub {"$_[0]->{status} $_[0]->{reason}"},
+  bool  => sub { substr( $_[0]->{status}, 0, 1 ) == 2 },
+  '0+'  => sub { $_[0]->{status} },
+  q[""] => sub {"$_[0]->{status} $_[0]->{reason}"},
   fallback => 1;
 
 has status => ();

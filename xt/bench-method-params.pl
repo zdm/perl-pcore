@@ -9,11 +9,11 @@ use URI;
 const our $COUNT => -10;
 
 my $tests = {
-    shift       => sub { return t_shift( 'self',       aaa => 'value', bbb => 'value', ccc => 'value' ); },
+    shift       => sub { return t_shift( 'self', aaa => 'value', bbb => 'value', ccc => 'value' ); },
     copy_splice => sub { return t_copy_splice( 'self', aaa => 'value', bbb => 'value', ccc => 'value' ); },
-    copy_slice  => sub { return t_copy_slice( 'self',  aaa => 'value', bbb => 'value', ccc => 'value' ); },
+    copy_slice  => sub { return t_copy_slice( 'self', aaa => 'value', bbb => 'value', ccc => 'value' ); },
     sign_splice => sub { return t_sign_splice( 'self', aaa => 'value', bbb => 'value', ccc => 'value' ); },
-    sign_slice  => sub { return t_sign_slice( 'self',  aaa => 'value', bbb => 'value', ccc => 'value' ); },
+    sign_slice  => sub { return t_sign_slice( 'self', aaa => 'value', bbb => 'value', ccc => 'value' ); },
 };
 
 Benchmark::cmpthese( Benchmark::timethese( $COUNT, $tests ) );
