@@ -36,7 +36,9 @@ has journal_mode => 'WAL';         # Enum [qw[DELETE TRUNCATE PERSIST MEMORY WAL
 has synchronous  => 'OFF';         # Enum [qw[FULL NORMAL OFF]], OFF - data integrity on app failure, NORMAL - data integrity on app and OS failures, FULL - full data integrity on app or OS failures, slower
 has cache_size   => -1_048_576;    # Int, 0+ - pages,  -kilobytes, default 1G
 has foreign_keys => 1;             # Bool
-has to_string    => 999;           # automaticaly stringify query if number of bind params greater than this threshold
+
+# TODO
+# has to_string    => 999;           # automaticaly stringify query if number of bind params greater than this threshold
 
 has is_sqlite    => ( 1, init_arg => undef );    # Bool
 has h            => ( init_arg    => undef );    # Object
@@ -755,13 +757,13 @@ sub attach ( $self, $name, $path = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 366                  | Subroutines::ProhibitExcessComplexity - Subroutine "do" with high complexity score (24)                        |
+## |    3 | 368                  | Subroutines::ProhibitExcessComplexity - Subroutine "do" with high complexity score (24)                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 451                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 453                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 328                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 330                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 662                  | ControlStructures::ProhibitPostfixControls - Postfix control "while" used                                      |
+## |    2 | 664                  | ControlStructures::ProhibitPostfixControls - Postfix control "while" used                                      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
