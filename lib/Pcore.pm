@@ -30,7 +30,7 @@ our $CON_ENC     = undef;
 our $P = sub : const {'Pcore'};
 
 # configure standard library
-our $LIB = {
+our $UTIL = {
     handle => 'Pcore::Handle',
     html   => 'Pcore::Util::HTML',
     http   => 'Pcore::HTTP',
@@ -284,7 +284,7 @@ sub set_locale ( $self, $locale = undef ) {
 sub AUTOLOAD ( $self, @ ) {    ## no critic qw[ClassHierarchies::ProhibitAutoloading]
     my $lib = lc our $AUTOLOAD =~ s/\A.*:://smr;
 
-    my $class = $LIB->{$lib} // 'Pcore::Util::' . ucfirst $lib;
+    my $class = $UTIL->{$lib} // 'Pcore::Util::' . ucfirst $lib;
 
     require $class =~ s[::][/]smgr . '.pm';
 
