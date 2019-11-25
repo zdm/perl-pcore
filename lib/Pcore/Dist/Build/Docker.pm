@@ -341,7 +341,7 @@ sub build_local ( $self, $tag, $args ) {
 
     @tags = map {"$repo_id:${_}${is_dirty}"} grep {defined} $id->{branch}, $id->{tags}->@*;
 
-    push @tags, "$repo_id:$id->{hash_short}${is_dirty}" if $is_dirty || !@tags;
+    @tags = ("$repo_id:$id->{hash_short}${is_dirty}") if $is_dirty || !@tags;
 
     for my $tag (@tags) { say "Tag: $tag" }
 
