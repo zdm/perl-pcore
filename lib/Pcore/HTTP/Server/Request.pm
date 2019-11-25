@@ -1,8 +1,8 @@
 package Pcore::HTTP::Server::Request;
 
 use Pcore -class, -const, -res;
-use Pcore::Lib::Scalar qw[is_ref is_plain_scalarref is_plain_arrayref];
-use Pcore::Lib::HTTP;
+use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_plain_arrayref];
+use Pcore::Util::HTTP;
 
 use overload    #
   '&{}' => sub ( $self, @ ) {
@@ -64,7 +64,7 @@ sub _respond ( $self, @args ) {
         $buf->$* .= "\r\n";
     }
 
-    $body = Pcore::Lib::HTTP::build_body( \@args );
+    $body = Pcore::Util::HTTP::build_body( \@args );
 
     $buf->$* .= sprintf "%x\r\n%s\r\n", length $body->$*, $body->$* if length $body->$*;
 

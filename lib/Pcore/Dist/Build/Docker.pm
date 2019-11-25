@@ -1,7 +1,7 @@
 package Pcore::Dist::Build::Docker;
 
 use Pcore -class, -ansi, -res;
-use Pcore::Lib::Scalar qw[is_plain_arrayref];
+use Pcore::Util::Scalar qw[is_plain_arrayref];
 
 has dist => ();                                     # InstanceOf ['Pcore::Dist']
 has api  => ( is => 'lazy', init_arg => undef );    # InstanceOf ['Pcore::API::Docker::Hub']
@@ -61,10 +61,10 @@ sub init ( $self, $args ) {
     #     exit 3 if !$res->is_success;
     # }
 
-    require Pcore::Lib::File::Tree;
+    require Pcore::Util::File::Tree;
 
     # copy files
-    my $files = Pcore::Lib::File::Tree->new;
+    my $files = Pcore::Util::File::Tree->new;
 
     $files->add_dir( $ENV->{share}->get_location('/Pcore/dist-tmpl') . '/docker/' );
 

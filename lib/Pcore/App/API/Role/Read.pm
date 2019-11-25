@@ -1,7 +1,7 @@
 package Pcore::App::API::Role::Read;
 
 use Pcore -const, -role, -sql, -res;
-use Pcore::Lib::Scalar qw[is_ref];
+use Pcore::Util::Scalar qw[is_ref];
 
 const our $DEFAULT_PAGE_SIZE => 100;
 

@@ -1,8 +1,8 @@
 package Pcore::HTTP::Server;
 
 use Pcore -class, -const, -res;
-use Pcore::Lib::Scalar qw[is_uri weaken];
-use Pcore::Lib::HTTP;
+use Pcore::Util::Scalar qw[is_uri weaken];
+use Pcore::Util::HTTP;
 use AnyEvent::Socket qw[];
 use Pcore::HTTP::Server::Request;
 
@@ -207,7 +207,7 @@ sub _on_accept ( $self, $fh, $host, $port ) {
     else {
         my $headers = $self->build_response_headers( shift @res, shift @res, [ Connection => 'keep-alive' ] );
 
-        my $body = Pcore::Lib::HTTP::build_body( \@res );
+        my $body = Pcore::Util::HTTP::build_body( \@res );
 
         $headers->$* .= "Content-Length:@{[ length $body->$* ]}\r\n";
 
@@ -218,7 +218,7 @@ sub _on_accept ( $self, $fh, $host, $port ) {
 }
 
 sub build_response_headers ( $self, $status, @headers ) {
-    return Pcore::Lib::HTTP::build_response_headers( $status, $self->{server_tokens} ? [ Server => $self->{server_tokens} ] : (), @headers );
+    return Pcore::Util::HTTP::build_response_headers( $status, $self->{server_tokens} ? [ Server => $self->{server_tokens} ] : (), @headers );
 }
 
 sub return_xxx ( $self, $h, $status, $close_connection ) {

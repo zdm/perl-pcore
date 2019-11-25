@@ -1,11 +1,11 @@
 package Pcore::HTTP;
 
 use Pcore -const, -export;
-use Pcore::Lib::Scalar qw[is_ref is_plain_coderef is_blessed_ref is_coderef is_plain_hashref is_plain_arrayref];
+use Pcore::Util::Scalar qw[is_ref is_plain_coderef is_blessed_ref is_coderef is_plain_hashref is_plain_arrayref];
 use Pcore::Handle qw[:ALL];
 use Pcore::HTTP::Response;
 use Pcore::HTTP::Cookies;
-use Pcore::Lib::HTTP;
+use Pcore::Util::HTTP;
 use Pcore::API::Proxy qw[:PROXY_TYPE];
 
 our $EXPORT = {
@@ -378,7 +378,7 @@ sub _write_headers ( $h, $args, $res ) {
     }
 
     # write headers
-    $h->write("$args->{method} $request_path HTTP/1.1\r\n@{[ Pcore::Lib::HTTP::build_headers($args->{headers}, \@headers)->$* ]}\r\n");
+    $h->write("$args->{method} $request_path HTTP/1.1\r\n@{[ Pcore::Util::HTTP::build_headers($args->{headers}, \@headers)->$* ]}\r\n");
 
     # write error
     if ( !$h ) {
@@ -680,7 +680,7 @@ sub _read_data ( $h, $args, $res ) {
 }
 
 sub _get_on_progress_cb (%args) {
-    require Pcore::Lib::Term::Progress;
+    require Pcore::Util::Term::Progress;
 
     return sub ( $content_length, $bytes_received ) {
         state $indicator;
@@ -690,7 +690,7 @@ sub _get_on_progress_cb (%args) {
 
             $args{total} = $content_length;
 
-            $indicator = Pcore::Lib::Term::Progress::get_indicator(%args);
+            $indicator = Pcore::Util::Term::Progress::get_indicator(%args);
         }
         else {
             $indicator->update( value => $bytes_received );

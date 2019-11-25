@@ -3,12 +3,12 @@ package Pcore::API::Client;
 use Pcore -class, -res;
 
 # use Pcore::WebSocket;
-use Pcore::Lib::Scalar qw[is_plain_arrayref];
-use Pcore::Lib::Data qw[to_cbor from_cbor to_json from_json];
-use Pcore::Lib::UUID qw[uuid_v1mc_str];
+use Pcore::Util::Scalar qw[is_plain_arrayref];
+use Pcore::Util::Data qw[to_cbor from_cbor to_json from_json];
+use Pcore::Util::UUID qw[uuid_v1mc_str];
 use Pcore::HTTP qw[:TLS_CTX];
 
-has uri => ( required => 1 );    # InstanceOf ['Pcore::Lib::URI'], http://token@host:port/api/, ws://token@host:port/api/
+has uri => ( required => 1 );    # InstanceOf ['Pcore::Util::URI'], http://token@host:port/api/, ws://token@host:port/api/
 
 has token    => ();
 has api_ver  => ();              # eg: 'v1', default API version for relative methods
@@ -127,10 +127,10 @@ sub _send_http ( $self, $method, $args ) {
             my $tx = is_plain_arrayref $msg ? $msg->[0] : $msg;
 
             if ( $tx->{type} eq 'exception' ) {
-                return bless $tx->{message}, 'Pcore::Lib::Result::Class';
+                return bless $tx->{message}, 'Pcore::Util::Result::Class';
             }
             elsif ( $tx->{type} eq 'rpc' ) {
-                return bless $tx->{result}, 'Pcore::Lib::Result::Class';
+                return bless $tx->{result}, 'Pcore::Util::Result::Class';
             }
         }
     }
