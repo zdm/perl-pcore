@@ -99,18 +99,21 @@ sub run ($self) {
 }
 
 sub _store_exe ( $self, $source_path ) {
-    my $dist_id = $self->{dist}->id;
+    my $dist_id  = $self->{dist}->id;
+    my $is_dirty = $dist_id->{is_dirty} ? '.dirty' : $EMPTY;
 
     my @tags;
+
     @tags = grep {defined} $dist_id->{branch}, $dist_id->{tags}->@*;
-    push @tags, P->date->now_utc->to_iso_8601_compact . "-$dist_id->{hash_short}" if !@tags;
+
+    @tags = ("$dist_id->{hash_short}${is_dirty}") if $is_dirty || !@tags;
 
     my $filename = $self->{script}->{filename_base};
     my $arch     = $Config{archname} =~ /x64|x86_64/sm ? 'x64' : $EMPTY;
     my $suffix   = $MSWIN ? '.exe' : $EMPTY;
 
     for my $tag (@tags) {
-        my $target_filename = "$filename-$tag@{[ $dist_id->{is_dirty} ? '.dirty' : $EMPTY ]}-${arch}${suffix}";
+        my $target_filename = "$filename-${tag}-${arch}${suffix}";
 
         my $target_path = "$self->{dist}->{root}/data/$target_filename";
 
@@ -434,11 +437,11 @@ sub _error ( $self, $msg ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 299                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 302                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 391                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "record"                                |
+## |    3 | 394                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "record"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 410                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 413                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
