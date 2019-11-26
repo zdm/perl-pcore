@@ -22,10 +22,10 @@ ONBUILD SHELL [ "/bin/bash", "-l", "-c" ]
 
 RUN \
     # setup host
-    source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/setup-host.sh || echo false ) \
+    source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/setup-host.sh ) \
     \
     # setup perl build env
-    && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/perl-build-env.sh || echo false ) setup \
+    && curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/perl-build-env.sh | /bin/bash -s -- setup \
     \
     # install && update perl
     && dnf -y install plenv perl-$PERL_VERSION \
@@ -36,6 +36,6 @@ RUN \
     && pcore test -j $(nproc) \
     \
     # cleanup perl build env
-    && source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/perl-build-env.sh || echo false ) cleanup
+    && curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/perl-build-env.sh | /bin/bash -s -- cleanup
 
-ENTRYPOINT [ "/bin/bash", "-l" ] 
+ENTRYPOINT [ "/bin/bash", "-l" ]
