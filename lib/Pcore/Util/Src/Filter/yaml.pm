@@ -7,7 +7,7 @@ with qw[Pcore::Util::Src::Filter];
 sub decompress ($self) {
     my $data = P->data->from_yaml( $self->{data} );
 
-    $self->{data}->$* = P->data->to_data($data);
+    $self->{data}->$* = P->data->to_yaml($data);
 
     return res 200;
 }
