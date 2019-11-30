@@ -139,7 +139,10 @@ prettier:
     - --tab-width=4
     - --vue-indent-script-and-style
 terser_compress:
+    - --compress
 terser_obfuscate:
+    - --compress
+    - --mangle
 jshint:
     - --verbose
     # - --show-non-errors
