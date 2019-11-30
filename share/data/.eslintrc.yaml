@@ -1,9 +1,14 @@
 ---
+root: true
 env:
+    node: true
     browser: true
     es6: true
 
-extends: "eslint:recommended"
+extends:
+    - eslint:recommended
+    - plugin:vue/essential
+    # - "@vue/prettier"
 
 # globals:
 # jsSHA: readonly
@@ -11,8 +16,19 @@ extends: "eslint:recommended"
 # SharedArrayBuffer: readonly
 
 parserOptions:
+    parser: babel-eslint
     ecmaVersion: 2018
 
 rules:
-    no-unused-vars: off
+    # no-unused-vars: off
     # no-useless-escape: off
+
+    # 'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'off'
+    # 'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off'
+
+    prettier/prettier:
+        - warn
+        - tabWidth: 4
+          vueIndentScriptAndStyle: true
+          printWidth: 999999
+          singleQuote: true
