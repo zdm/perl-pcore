@@ -2041,12 +2041,14 @@ suffix:
     - application/x-xz
     yaml:
     - text/yaml
+    - yaml
     yang:
     - application/yang
     yin:
     - application/yin+xml
     yml:
     - text/yaml
+    - yaml
     z1:
     - application/x-zmachine
     z2:

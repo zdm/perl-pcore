@@ -37,8 +37,8 @@ TXT
                 default => 'decompress',
             },
             type => {
-                desc => 'define source files to process. Mandatory, if <source> is a directory. Recognized types: perl, html, css, js, vue, json',
-                isa  => [qw[perl html css js json]],
+                desc => 'define source files to process. Mandatory, if <source> is a directory. Recognized types: ' . join( ', ', supported_types()->@* ),
+                isa  => supported_types(),
                 max  => 0,
             },
             report => {
@@ -102,6 +102,12 @@ sub cfg {
     state $cfg = $ENV->{share}->read_cfg('/Pcore/data/src.yaml');
 
     return $cfg;
+}
+
+sub supported_types {
+    my $cfg = cfg();
+
+    return state $types = [ sort keys { map { $cfg->{mime_tag}->{$_}->{type} => 1 } keys $cfg->{mime_tag}->%* }->%* ];
 }
 
 sub decompress ( %args ) { return run( 'decompress', \%args ) }
@@ -466,11 +472,11 @@ sub _report_total ( $total ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 161                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (32)            |
+## |    3 | 167                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (32)            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 265, 369             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 271, 375             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 302                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 308                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

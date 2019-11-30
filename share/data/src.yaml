@@ -6,8 +6,6 @@ mime_tag:
         type: html
     javascript:
         type: js
-    vue:
-        type: vue
     json:
         type: json
     perl-config:                                            # *.perl
@@ -27,6 +25,10 @@ mime_tag:
         type: perl
         perl_critic: 0
         perl_compress_end_section: 1
+    vue:
+        type: vue
+    yaml:
+        type: yaml
 
 perlcritic:
     common:
