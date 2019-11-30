@@ -1,17 +1,13 @@
+---
 env:
     browser: true
     es6: true
-extends: 'eslint:recommended'
+extends: eslint:recommended
 globals:
-    Ext: readonly
-    EXTDIRECT: readonly
-    APP: readonly
-    PCORE: readonly
-    jsSHA: readonly
-    Atomics: readonly
-    SharedArrayBuffer: readonly
+    # Atomics: readonly
+    # SharedArrayBuffer: readonly
+    # jsSHA: readonly
 parserOptions:
     ecmaVersion: 2018
 rules:
     no-unused-vars: off
-    # no-useless-escape: off
