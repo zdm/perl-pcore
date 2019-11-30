@@ -52,7 +52,7 @@ sub decompress ( $self ) {
         !!require Perl::Tidy;
     };
 
-    my $perltidy_argv = $self->src_cfg->{perltidy};
+    my $perltidy_argv = join ' ', $self->src_cfg->{perltidy}->@*;
 
     $perltidy_argv .= $EMPTY . $self->dist_cfg->{perltidy} if $self->dist_cfg->{perltidy};
 
@@ -439,6 +439,8 @@ sub _cut_log ($self) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 40                   | Subroutines::ProhibitExcessComplexity - Subroutine "decompress" with high complexity score (29)                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 55                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 176                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

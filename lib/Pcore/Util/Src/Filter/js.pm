@@ -5,7 +5,7 @@ use Pcore::Util::Text qw[rcut_all encode_utf8];
 
 with qw[Pcore::Util::Src::Filter];
 
-has jshint => 1;    # use jshint on decompress
+has eslint => 1;
 
 # my $JS_PACKER;
 
@@ -26,29 +26,25 @@ sub decompress ($self) {
 
     my $log;
 
-    my $jshint_output;
+    my $eslint;
 
-    if ( $self->{jshint} && length $self->{data}->$* ) {
+    if ( $self->{eslint} && length $self->{data}->$* ) {
 
-        $jshint_output = $self->_run_jshint;
+        $eslint = $self->_run_eslint;
 
-        # $jshint_output = $self->_run_eslint;
-
-        if ( $jshint_output->{data}->@* ) {
-            for my $rec ( $jshint_output->{data}->@* ) {
-                $log .= qq[ * $rec->{code}, line: $rec->{line}, col: $rec->{col}, $rec->{msg}\n];
-            }
+        for my $msg ( sort { $a->{severity} <=> $b->{severity} } $eslint->{messages}->@* ) {
+            $log .= sprintf " * %5d %8d %8d %20s %s\n", $msg->{severity}, $msg->{line}, $msg->{column}, $msg->{ruleId}, $msg->{message};
         }
     }
 
     $self->_append_log($log);
 
-    if ( $self->{jshint} ) {
-        if ( $jshint_output->{has_errors} ) {
-            return res [ 500, 'Error, jshint' ];
+    if ($eslint) {
+        if ( $eslint->{has_errors} ) {
+            return res [ 500, 'Error, eslint' ];
         }
-        elsif ( $jshint_output->{has_warns} ) {
-            return res [ 201, 'Warning, jshint' ];
+        elsif ( $eslint->{has_warns} ) {
+            return res [ 201, 'Warning, eslint' ];
         }
     }
 
@@ -129,98 +125,23 @@ sub _cut_log ($self) {
     return;
 }
 
-sub _run_jshint ($self) {
-    my $options = $self->dist_cfg->{jshint} || $self->src_cfg->{jshint};
+sub _run_eslint ($self) {
+    state $config = $ENV->{share}->get('/Pcore/data/eslintrc.yaml');
 
     my $in_temp = P->file1->tempfile;
     P->file->write_bin( $in_temp, $self->{data} );
 
     my $proc = P->sys->run_proc(
-        [ 'jshint', $in_temp, $options->@* ],
+        [ 'eslint', $in_temp, '--format=json', "--config=$config", '--fix' ],
         use_fh => 1,
         stdout => 1,
         stderr => 1,
     )->capture;
 
-    my $res = {
-        has_errors => 0,
-        has_warns  => 0,
-        data       => [],
-    };
+    my $data = P->data->from_json( $proc->{stdout} );
 
-    for my $line ( split /\n/sm, $proc->{stdout}->$* ) {
-        next unless $line =~ s/^.+?: line/line/smg;
-
-        my $descriptor = { raw => $line };
-
-        ( $descriptor->{line}, $descriptor->{col}, $descriptor->{msg}, $descriptor->{code} ) = $line =~ /line (\d+), col (\d+|undefined), (.+)? [(]([WE]\d+)[)]/sm;
-
-        if ( index( $descriptor->{code}, 'E', 0 ) == 0 ) {
-            $descriptor->{is_error} = 1;
-
-            $res->{has_errors}++;
-        }
-        else {
-            $descriptor->{is_warn} = 1;
-
-            $res->{has_warns}++;
-        }
-
-        push $res->{data}->@*, $descriptor;
-    }
-
-    return $res;
+    return $data->[0];
 }
-
-# sub _run_eslint ($self) {
-
-#     # my $jshint_args = $self->dist_cfg->{jshint} || $self->src_cfg->{jshint};
-
-#     my $in_temp = P->file1->tempfile;
-
-#     P->file->write_bin( $in_temp, $self->{data} );
-
-#     my $out_temp = "$ENV->{TEMP_DIR}/tmp-jshint-@{[ int rand 99_999 ]}.json";
-
-#     my $config = '/var/local/pcore-lib/arbitrator/data/cdn/app/09bc0f7872d3f6ddeae90acd113c0cab/.eslintrc.yaml';
-
-#     my $proc = P->sys->run_proc( qq[eslint --format json --config "$config" -o "$out_temp" "$in_temp"] )->wait;
-
-#     my $jshint_output = P->cfg->read($out_temp);
-
-#     unlink $out_temp;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
-
-#     my $res = {
-#         has_errors => 0,
-#         has_warns  => 0,
-#         data       => [],
-#     };
-
-#     return $res;
-
-#     # for my $line ( $jshint_output->@* ) {
-#     #     next unless $line =~ s/^.+?: line/line/smg;
-
-#     #     my $descriptor = { raw => $line };
-
-#     #     ( $descriptor->{line}, $descriptor->{col}, $descriptor->{msg}, $descriptor->{code} ) = $line =~ /line (\d+), col (\d+|undefined), (.+)? [(]([WE]\d+)[)]/sm;
-
-#     #     if ( index( $descriptor->{code}, 'E', 0 ) == 0 ) {
-#     #         $descriptor->{is_error} = 1;
-
-#     #         $res->{has_errors}++;
-#     #     }
-#     #     else {
-#     #         $descriptor->{is_warn} = 1;
-
-#     #         $res->{has_warns}++;
-#     #     }
-
-#     #     push $res->{data}->@*, $descriptor;
-#     # }
-
-#     # return $res;
-# }
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
@@ -229,7 +150,7 @@ sub _run_jshint ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 125                  | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 121                  | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

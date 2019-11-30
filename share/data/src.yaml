@@ -1,6 +1,4 @@
 ---
-jshint:
-- --verbose
 mime_tag:
     css:
         type: css
@@ -131,10 +129,18 @@ perlcritic:
         Modules::RequireVersionVar: ~
         __parent__: common
         __pcore__: 1
-perltidy: --perl-best-practices --tight-secret-operators --continuation-indentation=2
-    --weld-nested-containers --one-line-block-semicolons=0 --maximum-line-length=0
-    --format-skipping --format-skipping-begin="# <<<" --format-skipping-end="# >>>"
-    --converge --nostandard-output --character-encoding=utf8
+perltidy:
+- --perl-best-practices
+- --tight-secret-operators
+- --continuation-indentation=2
+- --weld-nested-containers
+- --one-line-block-semicolons=0
+- --maximum-line-length=0
+- --format-skipping
+- --format-skipping-begin="# <<<"
+- --format-skipping-end="# >>>"
+- --converge --nostandard-output
+- --character-encoding=utf8
 prettier:
 - --end-of-line=lf
 - --tab-width=4
