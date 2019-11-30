@@ -23,8 +23,13 @@ rules:
     # no-unused-vars: off
     # no-useless-escape: off
 
-    # 'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'off'
-    # 'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off'
+    # development, process.env.NODE_ENV === 'development'
+    # no-console: off
+    # no-debugger: off
+
+    # production, process.env.NODE_ENV === 'production'
+    # no-console: error
+    # no-debugger: error
 
     prettier/prettier:
         - warn
