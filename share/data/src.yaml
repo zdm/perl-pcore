@@ -156,6 +156,7 @@ prettier:
     - --print-width=999999
     - --vue-indent-script-and-style
     - --single-quote
+    - --trailing-comma=es5
 
 terser_compress:
     - --compress

@@ -38,3 +38,4 @@ rules:
           vueIndentScriptAndStyle: true
           printWidth: 999999
           singleQuote: true
+          trailingComma: es5
