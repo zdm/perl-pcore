@@ -175,7 +175,7 @@ sub _cut_log ($self) {
 }
 
 sub _run_eslint ($self) {
-    state $config = $ENV->{share}->get('/Pcore/data/eslintrc.yaml');
+    state $config = $ENV->{share}->get('/Pcore/data/.eslintrc.yaml');
 
     my $in_temp = P->file1->tempfile;
     P->file->write_bin( $in_temp, $self->{data} );
