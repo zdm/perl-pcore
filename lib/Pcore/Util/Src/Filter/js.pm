@@ -10,6 +10,8 @@ has eslint => 1;
 # my $JS_PACKER;
 
 sub decompress ($self) {
+    my ( $log, $has_errors, $has_warnings );
+
     my $options = $self->dist_cfg->{prettier} || $self->src_cfg->{prettier};
 
     my $in_temp = P->file1->tempfile;
@@ -22,69 +24,72 @@ sub decompress ($self) {
         stderr => 1,
     )->capture;
 
-    $self->{data}->$* = $proc->{stdout}->$*;
+    if ( !$proc ) {
+        $has_errors++;
 
-    my $log;
+        $log .= $proc->{stderr}->$*;
+    }
+    else {
+        $self->{data}->$* = $proc->{stdout}->$*;
 
-    my ( $has_errors, $has_warnings );
+        if ( $self->{eslint} && length $self->{data}->$* && ( my $eslint = $self->_run_eslint ) ) {
 
-    if ( $self->{eslint} && length $self->{data}->$* && ( my $eslint = $self->_run_eslint ) ) {
+            # create table
+            my $tbl = P->text->table(
+                style => 'compact',
+                color => 0,
+                cols  => [
+                    severity => {
+                        title  => 'Sev.',
+                        width  => 6,
+                        align  => 1,
+                        valign => -1,
+                    },
+                    pos => {
+                        title       => 'Line:Col',
+                        width       => 15,
+                        title_align => -1,
+                        align       => -1,
+                        valign      => -1,
+                    },
+                    rule => {
+                        title       => 'Rule',
+                        width       => 20,
+                        title_align => -1,
+                        align       => -1,
+                        valign      => -1,
+                    },
+                    desc => {
+                        title       => 'Description',
+                        width       => 99,
+                        title_align => -1,
+                        align       => -1,
+                        valign      => -1,
+                    },
+                ],
+            );
 
-        # create table
-        my $tbl = P->text->table(
-            style => 'compact',
-            color => 0,
-            cols  => [
-                severity => {
-                    title  => 'Sev.',
-                    width  => 6,
-                    align  => 1,
-                    valign => -1,
-                },
-                pos => {
-                    title       => 'Line:Col',
-                    width       => 15,
-                    title_align => -1,
-                    align       => -1,
-                    valign      => -1,
-                },
-                rule => {
-                    title       => 'Rule',
-                    width       => 20,
-                    title_align => -1,
-                    align       => -1,
-                    valign      => -1,
-                },
-                desc => {
-                    title       => 'Description',
-                    width       => 99,
-                    title_align => -1,
-                    align       => -1,
-                    valign      => -1,
-                },
-            ],
-        );
+            $log .= $tbl->render_header;
 
-        $log .= $tbl->render_header;
+            my @items;
 
-        my @items;
+            for my $msg ( sort { $a->{severity} <=> $b->{severity} || $a->{line} <=> $b->{line} || $a->{column} <=> $b->{column} } $eslint->@* ) {
+                if ( $msg->{severity} >= 2 ) {
+                    $has_warnings++;
+                }
+                else {
+                    $has_errors++;
+                }
 
-        for my $msg ( sort { $a->{severity} <=> $b->{severity} || $a->{line} <=> $b->{line} || $a->{column} <=> $b->{column} } $eslint->@* ) {
-            if ( $msg->{severity} >= 2 ) {
-                $has_warnings++;
+                push @items, [ $msg->{severity}, "$msg->{line}:$msg->{column}", $msg->{ruleId}, $msg->{message} ];
             }
-            else {
-                $has_errors++;
-            }
 
-            push @items, [ $msg->{severity}, "$msg->{line}:$msg->{column}", $msg->{ruleId}, $msg->{message} ];
+            my $row_line = $tbl->render_row_line;
+
+            $log .= join $row_line, map { $tbl->render_row($_) } @items;
+
+            $log .= $tbl->finish;
         }
-
-        my $row_line = $tbl->render_row_line;
-
-        $log .= join $row_line, map { $tbl->render_row($_) } @items;
-
-        $log .= $tbl->finish;
     }
 
     $self->_append_log($log);
@@ -156,11 +161,11 @@ sub _append_log ( $self, $log ) {
     if ($log) {
         encode_utf8 $log;
 
-        $self->{data}->$* .= qq[\n/* -----SOURCE FILTER LOG BEGIN-----\n *\n];
+        $self->{data}->$* .= qq[\n/* -----SOURCE FILTER LOG BEGIN-----\n\n];
 
         $self->{data}->$* .= $log;
 
-        $self->{data}->$* .= qq[ *\n * -----SOURCE FILTER LOG END----- */];
+        $self->{data}->$* .= qq[\n/* -----SOURCE FILTER LOG END----- */];
     }
 
     return;
@@ -199,7 +204,7 @@ sub _run_eslint ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 170                  | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 175                  | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
