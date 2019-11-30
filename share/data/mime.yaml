@@ -1,25 +1,25 @@
 ---
 custom_suffix:
     PL:
-        - text/x-script.perl
-        - perl
-        - perl-script-auto
+    - text/x-script.perl
+    - perl
+    - perl-script-auto
     perl:
-        - text/x-script.perl
-        - perl
-        - perl-config
+    - text/x-script.perl
+    - perl
+    - perl-config
     t:
-        - text/x-script.perl
-        - perl
-        - perl-script
+    - text/x-script.perl
+    - perl
+    - perl-script
     vue:
-        - text/vue
-        - vue
+    - text/vue
+    - vue
 filename:
     cpanfile:
-        - text/x-script.perl
-        - perl
-        - perl-cpanfile
+    - text/x-script.perl
+    - perl
+    - perl-cpanfile
 shebang:
 -   - \A#!.+?perl
     - text/x-script.perl
