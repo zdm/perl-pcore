@@ -12,13 +12,19 @@ sub decompress ($self) {
 
     return res 200 if $self->has_kolon;
 
-    my $temp = P->file1->tempfile;
+    my $options = $self->dist_cfg->{prettier} || $self->src_cfg->{prettier};
 
-    P->file->write_bin( $temp, $self->{data} );
+    my $in_temp = P->file1->tempfile;
+    P->file->write_bin( $in_temp, $self->{data} );
 
-    my $proc = P->sys->run_proc(qq[html-beautify --quiet --indent-scripts separate --replace "$temp"])->wait;
+    my $proc = P->sys->run_proc(
+        [ 'prettier', $in_temp, $options->@*, '--parser=html' ],
+        use_fh => 1,
+        stdout => 1,
+        stderr => 1,
+    )->capture;
 
-    $self->{data}->$* = P->file->read_bin($temp);
+    $self->{data}->$* = $proc->{stdout}->$*;
 
     return res 200;
 }
@@ -66,7 +72,7 @@ sub compress ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 57                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 63                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

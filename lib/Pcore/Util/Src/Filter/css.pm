@@ -5,16 +5,28 @@ use CSS::Packer qw[];
 
 with qw[Pcore::Util::Src::Filter];
 
-my $PACKER = CSS::Packer->init;
-
 sub decompress ($self) {
-    $PACKER->minify( $self->{data}, { compress => 'pretty', indent => 4 } );
+    my $options = $self->dist_cfg->{prettier} || $self->src_cfg->{prettier};
+
+    my $in_temp = P->file1->tempfile;
+    P->file->write_bin( $in_temp, $self->{data} );
+
+    my $proc = P->sys->run_proc(
+        [ 'prettier', $in_temp, $options->@*, '--parser=css' ],
+        use_fh => 1,
+        stdout => 1,
+        stderr => 1,
+    )->capture;
+
+    $self->{data}->$* = $proc->{stdout}->$*;
 
     return res 200;
 }
 
 sub compress ($self) {
-    $PACKER->minify( $self->{data}, { compress => 'minify' } );
+    state $packer = CSS::Packer->init;
+
+    $packer->minify( $self->{data}, { compress => 'minify' } );
 
     return res 200;
 }

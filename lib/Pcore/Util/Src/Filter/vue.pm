@@ -8,11 +8,11 @@ with qw[Pcore::Util::Src::Filter];
 sub decompress ($self) {
     my $options = $self->dist_cfg->{prettier} || $self->src_cfg->{prettier};
 
-    my $in_temp = P->file1->tempfile( suffix => 'vue' );
+    my $in_temp = P->file1->tempfile;
     P->file->write_bin( $in_temp, $self->{data} );
 
     my $proc = P->sys->run_proc(
-        [ 'prettier', $in_temp, $options->@* ],
+        [ 'prettier', $in_temp, $options->@*, '--parser=vue' ],
         use_fh => 1,
         stdout => 1,
         stderr => 1,

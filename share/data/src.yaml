@@ -136,7 +136,9 @@ perlcritic:
         ValuesAndExpressions::RequireInterpolationOfMetachars: ~
 
 prettier:
+    - --end-of-line=lf
     - --tab-width=4
+    - --print-width=999999
     - --vue-indent-script-and-style
 terser_compress:
     - --compress
