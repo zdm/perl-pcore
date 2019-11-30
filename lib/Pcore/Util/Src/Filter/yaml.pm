@@ -5,9 +5,19 @@ use Pcore -class, -res;
 with qw[Pcore::Util::Src::Filter];
 
 sub decompress ($self) {
-    my $data = P->data->from_yaml( $self->{data} );
+    my $options = $self->dist_cfg->{prettier} || $self->src_cfg->{prettier};
 
-    $self->{data}->$* = P->data->to_yaml($data);
+    my $in_temp = P->file1->tempfile;
+    P->file->write_bin( $in_temp, $self->{data} );
+
+    my $proc = P->sys->run_proc(
+        [ 'prettier', $in_temp, $options->@*, '--parser=yaml' ],
+        use_fh => 1,
+        stdout => 1,
+        stderr => 1,
+    )->capture;
+
+    $self->{data}->$* = $proc->{stdout}->$*;
 
     return res 200;
 }
