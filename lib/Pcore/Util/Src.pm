@@ -37,7 +37,7 @@ TXT
                 default => 'decompress',
             },
             type => {
-                desc => 'define source files to process. Mandatory, if <source> is a directory. Recognized types: perl, html, css, js, json',
+                desc => 'define source files to process. Mandatory, if <source> is a directory. Recognized types: perl, html, css, js, vue, json',
                 isa  => [qw[perl html css js json]],
                 max  => 0,
             },

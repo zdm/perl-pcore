@@ -6,6 +6,8 @@ mime_tag:
         type: html
     javascript:
         type: js
+    vue:
+        type: vue
     json:
         type: json
     perl-config:                                            # *.perl
@@ -133,7 +135,14 @@ perlcritic:
         ValuesAndExpressions::ProhibitNoisyQuotes: ~
         ValuesAndExpressions::RequireInterpolationOfMetachars: ~
 
-jshint: --verbose # --show-non-errors
+prettier:
+    - --tab-width=4
+    - --vue-indent-script-and-style
+terser_compress:
+terser_obfuscate:
+jshint:
+    - --verbose
+    # - --show-non-errors
 
 perltidy: >-
     --perl-best-practices --tight-secret-operators --continuation-indentation=2

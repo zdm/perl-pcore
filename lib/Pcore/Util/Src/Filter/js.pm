@@ -7,19 +7,34 @@ with qw[Pcore::Util::Src::Filter];
 
 has jshint => 1;    # use jshint on decompress
 
-my $JS_PACKER;
+# my $JS_PACKER;
 
 sub decompress ($self) {
-    require JavaScript::Beautifier;
 
-    $self->{data}->$* = JavaScript::Beautifier::js_beautify(
-        $self->{data}->$*,
-        {   indent_size               => 4,
-            indent_character          => $SPACE,
-            preserve_newlines         => 1,
-            space_after_anon_function => 1,
-        }
-    );
+    # require JavaScript::Beautifier;
+
+    # $self->{data}->$* = JavaScript::Beautifier::js_beautify(
+    #     $self->{data}->$*,
+    #     {   indent_size               => 4,
+    #         indent_character          => $SPACE,
+    #         preserve_newlines         => 1,
+    #         space_after_anon_function => 1,
+    #     }
+    # );
+
+    my $options = $self->dist_cfg->{prettier} || $self->src_cfg->{prettier};
+
+    my $in_temp = P->file1->tempfile( suffix => 'js' );
+    P->file->write_bin( $in_temp, $self->{data} );
+
+    my $proc = P->sys->run_proc(
+        [ 'prettier', $in_temp, $options->@* ],
+        use_fh => 1,
+        stdout => 1,
+        stderr => 1,
+    )->capture;
+
+    $self->{data}->$* = $proc->{stdout}->$*;
 
     my $log;
 
@@ -53,21 +68,51 @@ sub decompress ($self) {
 }
 
 sub compress ($self) {
-    require JavaScript::Packer;
 
-    $JS_PACKER //= JavaScript::Packer->init;
+    # require JavaScript::Packer;
 
-    $JS_PACKER->minify( $self->{data}, { compress => 'clean' } );
+    # $JS_PACKER //= JavaScript::Packer->init;
+
+    # $JS_PACKER->minify( $self->{data}, { compress => 'clean' } );
+
+    my $options = $self->dist_cfg->{terser_compress} || $self->src_cfg->{terser_compress};
+
+    my $in_temp = P->file1->tempfile( suffix => 'js' );
+    P->file->write_bin( $in_temp, $self->{data} );
+
+    my $proc = P->sys->run_proc(
+        [ 'terser', $in_temp, $options->@* ],
+        use_fh => 1,
+        stdout => 1,
+        stderr => 1,
+    )->capture;
+
+    $self->{data}->$* = $proc->{stdout}->$*;
 
     return res 200;
 }
 
 sub obfuscate ($self) {
-    require JavaScript::Packer;
 
-    $JS_PACKER //= JavaScript::Packer->init;
+    # require JavaScript::Packer;
 
-    $JS_PACKER->minify( $self->{data}, { compress => 'obfuscate' } );
+    # $JS_PACKER //= JavaScript::Packer->init;
+
+    # $JS_PACKER->minify( $self->{data}, { compress => 'obfuscate' } );
+
+    my $options = $self->dist_cfg->{terser_obfuscate} || $self->src_cfg->{terser_obfuscate};
+
+    my $in_temp = P->file1->tempfile( suffix => 'js' );
+    P->file->write_bin( $in_temp, $self->{data} );
+
+    my $proc = P->sys->run_proc(
+        [ 'terser', $in_temp, $options->@* ],
+        use_fh => 1,
+        stdout => 1,
+        stderr => 1,
+    )->capture;
+
+    $self->{data}->$* = $proc->{stdout}->$*;
 
     return res 200;
 }
@@ -97,13 +142,13 @@ sub _cut_log ($self) {
 }
 
 sub _run_jshint ($self) {
-    my $jshint_args = $self->dist_cfg->{jshint} || $self->src_cfg->{jshint};
+    my $options = $self->dist_cfg->{jshint} || $self->src_cfg->{jshint};
 
     my $in_temp = P->file1->tempfile;
     P->file->write_bin( $in_temp, $self->{data} );
 
     my $proc = P->sys->run_proc(
-        qq[jshint $jshint_args "$in_temp"],
+        [ 'jshint', $in_temp, $options->@* ],
         use_fh => 1,
         stdout => 1,
         stderr => 1,
@@ -196,7 +241,7 @@ sub _run_jshint ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 92                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 137                  | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
