@@ -4,6 +4,9 @@ custom_suffix:
     - text/x-script.perl
     - perl
     - perl-script-auto
+    md:
+    - text/markdown
+    - markdown
     perl:
     - text/x-script.perl
     - perl

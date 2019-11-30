@@ -10,18 +10,6 @@ has jshint => 1;    # use jshint on decompress
 # my $JS_PACKER;
 
 sub decompress ($self) {
-
-    # require JavaScript::Beautifier;
-
-    # $self->{data}->$* = JavaScript::Beautifier::js_beautify(
-    #     $self->{data}->$*,
-    #     {   indent_size               => 4,
-    #         indent_character          => $SPACE,
-    #         preserve_newlines         => 1,
-    #         space_after_anon_function => 1,
-    #     }
-    # );
-
     my $options = $self->dist_cfg->{prettier} || $self->src_cfg->{prettier};
 
     my $in_temp = P->file1->tempfile;
@@ -241,7 +229,7 @@ sub _run_jshint ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 137                  | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 125                  | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

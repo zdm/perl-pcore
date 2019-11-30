@@ -10,6 +10,8 @@ mime_tag:
         type: js
     json:
         type: json
+    markdown:
+        type: markdown
     perl-config:
         perl_critic: pcore-config
         type: perl
