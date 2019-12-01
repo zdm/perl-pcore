@@ -32,10 +32,10 @@ rules:
     # no-console: error
     # no-debugger: error
 
-    prettier/prettier:
-        - warn
-        - tabWidth: 4
-          vueIndentScriptAndStyle: true
-          printWidth: 999999
-          singleQuote: true
-          trailingComma: es5
+    # prettier/prettier:
+    #     - warn
+    #     - tabWidth: 4
+    #       vueIndentScriptAndStyle: true
+    #       printWidth: 999999
+    #       singleQuote: true
+    #       trailingComma: es5
