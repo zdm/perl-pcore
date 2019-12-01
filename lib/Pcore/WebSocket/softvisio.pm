@@ -1,4 +1,4 @@
-package Pcore::WebSocket::pcore;
+package Pcore::WebSocket::softvisio;
 
 use Pcore -class, -const, -res;
 use Pcore::Util::Data qw[to_b64];
@@ -26,7 +26,7 @@ has _auth_id => ( 1, init_arg => undef );
 has _auth_cb => ( sub { [] }, init_arg => undef );    # client only
 has _rpc_cb  => ( sub { {} }, init_arg => undef );    # HashRef, tid => $cb
 
-const our $PROTOCOL => 'pcore';
+const our $PROTOCOL => 'softvisio';
 
 const our $TX_TYPE_AUTH  => 'auth';
 const our $TX_TYPE_EVENT => 'event';
@@ -373,7 +373,7 @@ __END__
 
 =head1 NAME
 
-Pcore::WebSocket::pcore
+Pcore::WebSocket::softvisio
 
 =head1 SYNOPSIS
 
