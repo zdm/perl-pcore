@@ -1,3 +1,9 @@
+v0.106.0 2019-12-02T20:57:53Z
+ - elsint
+ - resources updated
+ - websockert protocol pcore renamed to softvisio
+ - src filters updated
+
 v0.105.0 2019-11-27T08:20:24Z
  - wrappers updated
  - wrapper updated
