@@ -14,5 +14,6 @@ parser: babel-eslint
 parserOptions:
     sourceType: module
 
-# rules:
-# no-unused-vars: off
+rules:
+    no-console: off
+    # no-unused-vars: off
