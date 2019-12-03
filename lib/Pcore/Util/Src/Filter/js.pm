@@ -5,196 +5,171 @@ use Pcore::Util::Text qw[rcut_all encode_utf8];
 
 with qw[Pcore::Util::Src::Filter];
 
-has eslint => 1;
+has lint => 1;
 
-# my $JS_PACKER;
+sub decompress ( $self ) {
+    my $res = $self->filter_prettier('--parser=babel');
 
-sub decompress ($self) {
-    my ( $log, $has_errors, $has_warnings );
+    return $res if !$res;
 
-    my $options = $self->dist_cfg->{prettier} || $self->src_cfg->{prettier};
+    $res = $self->filter_eslint if $self->{lint};
 
-    my $in_temp = P->file1->tempfile;
-    P->file->write_bin( $in_temp, $self->{data} );
-
-    my $proc = P->sys->run_proc(
-        [ 'prettier', $in_temp, $options->@*, '--parser=babel' ],
-        use_fh => 1,
-        stdout => 1,
-        stderr => 1,
-    )->capture;
-
-    if ( !$proc ) {
-        $has_errors++;
-
-        $log .= $proc->{stderr}->$*;
-    }
-    else {
-        $self->{data}->$* = $proc->{stdout}->$*;
-
-        if ( $self->{eslint} && length $self->{data}->$* && ( my $eslint = $self->_run_eslint ) ) {
-
-            # create table
-            my $tbl = P->text->table(
-                style => 'compact',
-                color => 0,
-                cols  => [
-                    severity => {
-                        title  => 'Sev.',
-                        width  => 6,
-                        align  => 1,
-                        valign => -1,
-                    },
-                    pos => {
-                        title       => 'Line:Col',
-                        width       => 15,
-                        title_align => -1,
-                        align       => -1,
-                        valign      => -1,
-                    },
-                    rule => {
-                        title       => 'Rule',
-                        width       => 20,
-                        title_align => -1,
-                        align       => -1,
-                        valign      => -1,
-                    },
-                    desc => {
-                        title       => 'Description',
-                        width       => 99,
-                        title_align => -1,
-                        align       => -1,
-                        valign      => -1,
-                    },
-                ],
-            );
-
-            $log .= $tbl->render_header;
-
-            my @items;
-
-            for my $msg ( sort { $a->{severity} <=> $b->{severity} || $a->{line} <=> $b->{line} || $a->{column} <=> $b->{column} } $eslint->@* ) {
-                if ( $msg->{severity} >= 2 ) {
-                    $has_warnings++;
-                }
-                else {
-                    $has_errors++;
-                }
-
-                push @items, [ $msg->{severity}, "$msg->{line}:$msg->{column}", $msg->{ruleId}, $msg->{message} ];
-            }
-
-            my $row_line = $tbl->render_row_line;
-
-            $log .= join $row_line, map { $tbl->render_row($_) } @items;
-
-            $log .= $tbl->finish;
-        }
-    }
-
-    $self->_append_log($log);
-
-    if ($has_errors) {
-        return res [ 500, 'Error, eslint' ];
-    }
-    elsif ($has_warnings) {
-        return res [ 201, 'Warning, eslint' ];
-    }
-    else {
-        return res 200;
-    }
+    return $res;
 }
 
 sub compress ($self) {
-
-    # require JavaScript::Packer;
-
-    # $JS_PACKER //= JavaScript::Packer->init;
-
-    # $JS_PACKER->minify( $self->{data}, { compress => 'clean' } );
-
     my $options = $self->dist_cfg->{terser_compress} || $self->src_cfg->{terser_compress};
 
-    my $in_temp = P->file1->tempfile( suffix => 'js' );
-    P->file->write_bin( $in_temp, $self->{data} );
-
-    my $proc = P->sys->run_proc(
-        [ 'terser', $in_temp, $options->@* ],
-        use_fh => 1,
-        stdout => 1,
-        stderr => 1,
-    )->capture;
-
-    $self->{data}->$* = $proc->{stdout}->$*;
-
-    return res 200;
+    return $self->filter_terser( $options->@* );
 }
 
 sub obfuscate ($self) {
-
-    # require JavaScript::Packer;
-
-    # $JS_PACKER //= JavaScript::Packer->init;
-
-    # $JS_PACKER->minify( $self->{data}, { compress => 'obfuscate' } );
-
     my $options = $self->dist_cfg->{terser_obfuscate} || $self->src_cfg->{terser_obfuscate};
 
-    my $in_temp = P->file1->tempfile( suffix => 'js' );
-    P->file->write_bin( $in_temp, $self->{data} );
-
-    my $proc = P->sys->run_proc(
-        [ 'terser', $in_temp, $options->@* ],
-        use_fh => 1,
-        stdout => 1,
-        stderr => 1,
-    )->capture;
-
-    $self->{data}->$* = $proc->{stdout}->$*;
-
-    return res 200;
+    return $self->filter_terser( $options->@* );
 }
 
-sub _append_log ( $self, $log ) {
-    $self->_cut_log;
+sub update_log ( $self, $log = undef ) {
 
+    # clear log
+    $self->{data} =~ s[// -----SOURCE FILTER LOG BEGIN-----.*-----SOURCE FILTER LOG END-----][]sm;
+
+    rcut_all $self->{data};
+
+    # insert log
     if ($log) {
         encode_utf8 $log;
 
-        $self->{data}->$* .= qq[\n/* -----SOURCE FILTER LOG BEGIN-----\n\n];
+        $self->{data} .= qq[\n// -----SOURCE FILTER LOG BEGIN-----\n//\n];
 
-        $self->{data}->$* .= $log;
+        $self->{data} .= $log =~ s[^][// ]smgr;
 
-        $self->{data}->$* .= qq[\n/* -----SOURCE FILTER LOG END----- */];
+        $self->{data} .= qq[\n//\n// -----SOURCE FILTER LOG END-----];
     }
 
     return;
 }
 
-sub _cut_log ($self) {
-    $self->{data}->$* =~ s[/[*] -----SOURCE FILTER LOG BEGIN-----.*-----SOURCE FILTER LOG END----- [*]/\n*][]sm;
-
-    rcut_all $self->{data}->$*;
-
-    return;
-}
-
-sub _run_eslint ($self) {
+# TODO defined severity correctly
+# TODO --fix option ???
+sub filter_eslint ( $self, @options ) {
     state $config = $ENV->{share}->get('/Pcore/data/.eslintrc.yaml');
 
-    my $in_temp = P->file1->tempfile;
-    P->file->write_bin( $in_temp, $self->{data} );
+    my $temp = P->file1->tempfile;
+    P->file->write_bin( $temp, $self->{data} );
 
     my $proc = P->sys->run_proc(
-        [ 'eslint', $in_temp, '--format=json', "--config=$config", '--fix' ],
+        [ 'eslint', $temp, "--config=$config", @options, '--format=json', '--fix' ],
         use_fh => 1,
         stdout => 1,
         stderr => 1,
     )->capture;
 
-    my $data = P->data->from_json( $proc->{stdout} );
+    # unable to run elsint
+    return res [ 500, $proc->{stderr}->$* || $proc->{reason} ] if !$proc;
 
-    return $data->[0] && $data->[0]->{messages} && $data->[0]->{messages}->@* ? $data->[0]->{messages} : ();
+    my $eslint_log = P->data->from_json( $proc->{stdout} );
+
+    # eslint reported no violations
+    return res 200 if !$eslint_log->[0] || !$eslint_log->[0]->{messages} || !$eslint_log->[0]->{messages}->@*;
+
+    my ( $log, $has_warnings, $has_errors );
+
+    # create table
+    my $tbl = P->text->table(
+        style => 'compact',
+        color => 0,
+        cols  => [
+            severity => {
+                title  => 'Sev.',
+                width  => 6,
+                align  => 1,
+                valign => -1,
+            },
+            pos => {
+                title       => 'Line:Col',
+                width       => 15,
+                title_align => -1,
+                align       => -1,
+                valign      => -1,
+            },
+            rule => {
+                title       => 'Rule',
+                width       => 20,
+                title_align => -1,
+                align       => -1,
+                valign      => -1,
+            },
+            desc => {
+                title       => 'Description',
+                width       => 99,
+                title_align => -1,
+                align       => -1,
+                valign      => -1,
+            },
+        ],
+    );
+
+    $log .= $tbl->render_header;
+
+    my @items;
+
+    for my $msg ( sort { $a->{severity} <=> $b->{severity} || $a->{line} <=> $b->{line} || $a->{column} <=> $b->{column} } $eslint_log->[0]->{messages}->@* ) {
+
+        # TODO
+        if ( $msg->{severity} >= 2 ) {
+            $has_warnings++;
+        }
+        else {
+            $has_errors++;
+        }
+
+        push @items, [ $msg->{severity}, "$msg->{line}:$msg->{column}", $msg->{ruleId}, $msg->{message} ];
+    }
+
+    my $row_line = $tbl->render_row_line;
+
+    $log .= join $row_line, map { $tbl->render_row($_) } @items;
+
+    $log .= $tbl->finish;
+
+    $self->update_log($log);
+
+    my $status = do {
+        if    ($has_errors)   {400}
+        elsif ($has_warnings) {201}
+        else                  {200}
+    };
+
+    return res $status;
+}
+
+# TODO
+sub filter_terser ( $self, @options ) {
+    my $temp = P->file1->tempfile( suffix => 'js' );
+
+    P->file->write_bin( $temp, $self->{data} );
+
+    my $proc = P->sys->run_proc(
+        [ 'terser', $temp, @options ],
+        use_fh => 1,
+        stdout => 1,
+        stderr => 1,
+    )->capture;
+
+    $self->{data} = $proc->{stdout}->$*;
+
+    return res 200;
+}
+
+sub filer_packer ( $self, $obfuscate = undef ) {
+    require JavaScript::Packer;
+
+    state $packer = JavaScript::Packer->init;
+
+    $packer->minify( \$self->{data}, { compress => $obfuscate ? 'obfuscate' : 'clean' } );
+
+    return res 200;
 }
 
 1;
@@ -204,7 +179,7 @@ sub _run_eslint ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 175                  | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 35                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

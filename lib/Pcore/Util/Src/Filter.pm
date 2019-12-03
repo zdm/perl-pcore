@@ -2,7 +2,7 @@ package Pcore::Util::Src::Filter;
 
 use Pcore -role, -res, -const;
 
-has data      => ( required => 1 );                           # ScalarRef
+has data      => ( required => 1 );
 has has_kolon => ( is       => 'lazy', init_arg => undef );
 
 sub src_cfg ($self) { return Pcore::Util::Src::cfg() }
@@ -21,6 +21,57 @@ sub _build_has_kolon ($self) {
     return 1 if $self->{data}->$* =~ /^: /sm;
 
     return 0;
+}
+
+# TODO remove temporary filename from log
+sub filter_prettier ( $self, @options ) {
+    my $dist_options = $self->dist_cfg->{prettier} || $self->src_cfg->{prettier};
+
+    my $temp = P->file1->tempfile;
+    P->file->write_bin( $temp, $self->{data} );
+
+    my $proc = P->sys->run_proc(
+        [ 'prettier', $temp, $dist_options->@*, @options, '--no-color', '--no-config', '--loglevel=error' ],
+        use_fh => 1,
+        stdout => 1,
+        stderr => 1,
+    )->capture;
+
+    # ran without errors
+    if ($proc) {
+        $self->{data} = $proc->{stdout}->$*;
+
+        $self->update_log;
+
+        return res 200;
+    }
+
+    # run with errors
+    else {
+
+        my ( @log, $has_errors, $has_warnings );
+
+        # parse stderr
+        if ( $proc->{stderr}->$* ) {
+            for my $line ( split /\n/sm, $proc->{stderr}->$* ) {
+                if ( $line =~ s/\A\[(.+?)\]\s//sm ) {
+                    if    ( $1 eq 'error' ) { $has_errors++ }
+                    elsif ( $1 eq 'warn' )  { $has_warnings++ }
+                }
+
+                push @log, $line;
+            }
+
+        }
+
+        # unable to run prettier
+        return res [ 500, $log[0] || $proc->{reason} ] if $proc->{exit_code} == 1;
+
+        # prettier found erros in content
+        $self->update_log( join "\n", @log );
+
+        return res $has_errors ? 400 : 201;
+    }
 }
 
 1;

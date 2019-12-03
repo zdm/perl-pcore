@@ -9,6 +9,7 @@ const our $STATUS_REASON => {
     200 => 'OK',
     201 => 'Warning',
     202 => 'File skipped',
+    400 => 'Filter error',
     404 => 'File not found',
     500 => 'Error',
     510 => 'Params error',
@@ -17,6 +18,7 @@ const our $STATUS_REASON => {
 const our $STATUS_COLOR => {
     200 => $BOLD . $GREEN,
     201 => $YELLOW,
+    400 => $BOLD . $RED,
     404 => $BOLD . $RED,
     500 => $BOLD . $RED,
 };
@@ -305,10 +307,14 @@ sub _process_file ( $args, $action, $filter_profile, $path = undef, $data = unde
         # merge filter args
         $filter_profile->@{ keys $args->{filter}->%* } = values $args->{filter}->%* if defined $args->{filter};
 
-        my $filter_res = P->class->load( $filter_type, ns => 'Pcore::Util::Src::Filter' )->new( $filter_profile->%*, data => \$data, )->$action;
+        my $filter = P->class->load( $filter_type, ns => 'Pcore::Util::Src::Filter' )->new( $filter_profile->%*, data => $data );
+
+        my $filter_res = $filter->$action;
 
         $res->{status} = $filter_res->{status};
         $res->{reason} = $filter_res->{reason};
+
+        $data = $filter->{data} if !$filter_res->is_server_error;
     }
 
     # trim
@@ -472,11 +478,9 @@ sub _report_total ( $total ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 167                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (32)            |
+## |    3 | 169                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (32)            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 271, 375             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 308                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    3 | 273, 381             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
