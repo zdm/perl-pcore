@@ -1,32 +1,27 @@
 package Pcore::Util::Src::Filter::css;
 
 use Pcore -class, -res;
-use CSS::Packer qw[];
 
 with qw[Pcore::Util::Src::Filter];
 
 sub decompress ($self) {
-    my $options = $self->dist_cfg->{prettier} || $self->src_cfg->{prettier};
+    my $res = $self->filter_prettier('--parser=css');
 
-    my $in_temp = P->file1->tempfile;
-    P->file->write_bin( $in_temp, $self->{data} );
-
-    my $proc = P->sys->run_proc(
-        [ 'prettier', $in_temp, $options->@*, '--parser=css' ],
-        use_fh => 1,
-        stdout => 1,
-        stderr => 1,
-    )->capture;
-
-    $self->{data}->$* = $proc->{stdout}->$*;
-
-    return res 200;
+    return $res;
 }
 
 sub compress ($self) {
+    my $res = $self->filter_css_packer;
+
+    return $res;
+}
+
+sub filter_css_packer ($self) {
+    require CSS::Packer;
+
     state $packer = CSS::Packer->init;
 
-    $packer->minify( $self->{data}, { compress => 'minify' } );
+    $packer->minify( \$self->{data}, { compress => 'minify' } );
 
     return res 200;
 }

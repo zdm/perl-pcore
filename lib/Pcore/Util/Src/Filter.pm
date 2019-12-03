@@ -16,12 +16,14 @@ sub compress ($self) { return res 200 }
 sub obfuscate ($self) { return res 200 }
 
 sub _build_has_kolon ($self) {
-    return 1 if $self->{data}->$* =~ /<: /sm;
+    return 1 if $self->{data} =~ /<: /sm;
 
-    return 1 if $self->{data}->$* =~ /^: /sm;
+    return 1 if $self->{data} =~ /^: /sm;
 
     return 0;
 }
+
+sub update_log ( $self, $log ) {return}
 
 # TODO remove temporary filename from log
 sub filter_prettier ( $self, @options ) {

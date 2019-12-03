@@ -162,7 +162,7 @@ sub filter_terser ( $self, @options ) {
     return res 200;
 }
 
-sub filer_packer ( $self, $obfuscate = undef ) {
+sub filer_js_packer ( $self, $obfuscate = undef ) {
     require JavaScript::Packer;
 
     state $packer = JavaScript::Packer->init;

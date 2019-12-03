@@ -5,21 +5,9 @@ use Pcore -class, -res;
 with qw[Pcore::Util::Src::Filter];
 
 sub decompress ($self) {
-    my $options = $self->dist_cfg->{prettier} || $self->src_cfg->{prettier};
+    my $res = $self->filter_prettier('--parser=markdown');
 
-    my $in_temp = P->file1->tempfile;
-    P->file->write_bin( $in_temp, $self->{data} );
-
-    my $proc = P->sys->run_proc(
-        [ 'prettier', $in_temp, $options->@*, '--parser=markdown' ],
-        use_fh => 1,
-        stdout => 1,
-        stderr => 1,
-    )->capture;
-
-    $self->{data}->$* = $proc->{stdout}->$*;
-
-    return res 200;
+    return $res;
 }
 
 1;
