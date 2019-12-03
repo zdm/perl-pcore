@@ -307,14 +307,10 @@ sub _process_file ( $args, $action, $filter_profile, $path = undef, $data = unde
         # merge filter args
         $filter_profile->@{ keys $args->{filter}->%* } = values $args->{filter}->%* if defined $args->{filter};
 
-        my $filter = P->class->load( $filter_type, ns => 'Pcore::Util::Src::Filter' )->new( $filter_profile->%*, data => $data );
-
-        my $filter_res = $filter->$action;
+        my $filter_res = P->class->load( $filter_type, ns => 'Pcore::Util::Src::Filter' )->$action( \$data, $filter_profile->%* );
 
         $res->{status} = $filter_res->{status};
         $res->{reason} = $filter_res->{reason};
-
-        $data = $filter->{data} if !$filter_res->is_server_error;
     }
 
     # trim
@@ -480,7 +476,7 @@ sub _report_total ( $total ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 169                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (32)            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 273, 381             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 273, 377             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

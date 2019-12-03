@@ -17,6 +17,7 @@ sub decompress ($self) {
     return $res;
 }
 
+# TODO
 sub compress ($self) {
     return res 200 if !length $self->{data};
 
@@ -27,11 +28,9 @@ sub compress ($self) {
 
     for my $i ( 0 .. $#script ) {
         if ( $script[$i] =~ m[\A</script]sm && $script[ $i - 1 ] ) {
-            my $filter = Pcore::Util::Src::Filter::js->new( { data => $script[ $i - 1 ] } );
+            my $res = Pcore::Util::Src::Filter::js->compress( \$script[ $i - 1 ] );
 
-            my $res = $filter->compress;
-
-            $script[ $i - 1 ] = $filter->{data};
+            return $res if !$res;
 
             trim $script[ $i - 1 ];
         }
@@ -44,11 +43,9 @@ sub compress ($self) {
 
     for my $i ( 0 .. $#css ) {
         if ( $css[$i] =~ m[\A</style]sm && $css[ $i - 1 ] ) {
-            my $filter = Pcore::Util::Src::Filter::css->new( { data => $css[ $i - 1 ] } );
+            my $res = Pcore::Util::Src::Filter::css->compress( \$css[ $i - 1 ] );
 
-            my $res = $filter->compress;
-
-            $css[ $i - 1 ] = $filter->{data};
+            return $res if !$res;
         }
     }
 

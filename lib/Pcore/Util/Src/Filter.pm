@@ -5,6 +5,44 @@ use Pcore -role, -res, -const;
 has data      => ( required => 1 );
 has has_kolon => ( is       => 'lazy', init_arg => undef );
 
+around decompress => sub ( $orig, $self, $data, %args ) {
+    $self = $self->new( %args, data => $data->$* );
+
+    my $res = $self->$orig;
+
+    $data->$* = $self->{data} if !$res->is_server_error;
+
+    return $res;
+};
+
+around compress => sub ( $orig, $self, $data, %args ) {
+    $self = $self->new( %args, data => $data->$* );
+
+    my $res = $self->$orig;
+
+    $data->$* = $self->{data} if !$res->is_server_error;
+
+    return $res;
+};
+
+around obfuscate => sub ( $orig, $self, $data, %args ) {
+    $self = $self->new( %args, data => $data->$* );
+
+    my $res = $self->$orig;
+
+    $data->$* = $self->{data} if !$res->is_server_error;
+
+    return $res;
+};
+
+sub _build_has_kolon ($self) {
+    return 1 if $self->{data} =~ /<: /sm;
+
+    return 1 if $self->{data} =~ /^: /sm;
+
+    return 0;
+}
+
 sub src_cfg ($self) { return Pcore::Util::Src::cfg() }
 
 sub dist_cfg ($self) { return {} }
@@ -14,14 +52,6 @@ sub decompress ($self) { return res 200 }
 sub compress ($self) { return res 200 }
 
 sub obfuscate ($self) { return res 200 }
-
-sub _build_has_kolon ($self) {
-    return 1 if $self->{data} =~ /<: /sm;
-
-    return 1 if $self->{data} =~ /^: /sm;
-
-    return 0;
-}
 
 sub update_log ( $self, $log ) {return}
 

@@ -69,7 +69,7 @@ sub filter_terser ( $self, @options ) {
 }
 
 sub filer_js_packer ( $self, $obfuscate = undef ) {
-    state $packer = {
+    state $packer = do {
         require JavaScript::Packer;
 
         JavaScript::Packer->init;
