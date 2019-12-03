@@ -82,8 +82,8 @@ sub BUILD ( $self, $args ) {
     $self->{listen}->set_username(uuid_v4_str) if !defined $self->{listen}->{username};
 
     # init node status
-    $self->{status} = $self->{_has_requires} ? $NODE_STATUS_CONNECTING : $NODE_STATUS_ONLINE;
-    $self->{is_online} = $self->{status} == $NODE_STATUS_ONLINE ? 1 : 0;
+    $self->{status}    = $self->{_has_requires}                 ? $NODE_STATUS_CONNECTING : $NODE_STATUS_ONLINE;
+    $self->{is_online} = $self->{status} == $NODE_STATUS_ONLINE ? 1                       : 0;
 
     $self->{on_status}->( $self, $self->{status}, $NODE_STATUS_UNKNOWN ) if defined $self->{on_status};
 
