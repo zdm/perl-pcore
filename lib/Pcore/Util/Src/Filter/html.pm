@@ -1,7 +1,6 @@
 package Pcore::Util::Src::Filter::html;
 
 use Pcore -class, -res;
-use Pcore::Util::Text qw[trim];
 use Pcore::Util::Src::Filter::js;
 use Pcore::Util::Src::Filter::css;
 
@@ -15,7 +14,6 @@ sub decompress ($self) {
     return $res;
 }
 
-# TODO
 sub compress ($self) {
     return res 200 if $self->has_kolon;
 
@@ -23,12 +21,10 @@ sub compress ($self) {
     my @script = split m[(<script[^>]*>)(.*?)(</script[^>]*>)]smi, $self->{data};
 
     for my $i ( 0 .. $#script ) {
-        if ( $script[$i] =~ m[\A</script]sm && $script[ $i - 1 ] ) {
-            my $res = Pcore::Util::Src::Filter::js->compress( \$script[ $i - 1 ] );
+        if ( $script[$i] =~ m/\A<script/sm && $script[ $i + 1 ] ) {
+            my $res = Pcore::Util::Src::Filter::js->compress( \$script[ $i + 1 ] );
 
             return $res if !$res;
-
-            trim $script[ $i - 1 ];
         }
     }
 
@@ -38,8 +34,8 @@ sub compress ($self) {
     my @css = split m[(<style[^>]*>)(.*?)(</style[^>]*>)]smi, $self->{data};
 
     for my $i ( 0 .. $#css ) {
-        if ( $css[$i] =~ m[\A</style]sm && $css[ $i - 1 ] ) {
-            my $res = Pcore::Util::Src::Filter::css->compress( \$css[ $i - 1 ] );
+        if ( $css[$i] =~ m/\A<style/sm && $css[ $i + 1 ] ) {
+            my $res = Pcore::Util::Src::Filter::css->compress( \$css[ $i + 1 ] );
 
             return $res if !$res;
         }
