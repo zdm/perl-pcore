@@ -8,8 +8,6 @@ use Pcore::Util::Src::Filter::css;
 with qw[Pcore::Util::Src::Filter];
 
 sub decompress ($self) {
-    return res 200 if !length $self->{data};
-
     return res 200 if $self->has_kolon;
 
     my $res = $self->filter_prettier('--parser=html');
@@ -19,8 +17,6 @@ sub decompress ($self) {
 
 # TODO
 sub compress ($self) {
-    return res 200 if !length $self->{data};
-
     return res 200 if $self->has_kolon;
 
     # compress js

@@ -53,7 +53,7 @@ sub compress ($self) { return res 200 }
 
 sub obfuscate ($self) { return res 200 }
 
-sub update_log ( $self, $log ) {return}
+sub update_log ( $self, $log = undef ) {return}
 
 # TODO remove temporary filename from log
 sub filter_prettier ( $self, @options ) {
