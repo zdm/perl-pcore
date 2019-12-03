@@ -35,7 +35,7 @@ sub compress ($self) {
     $self->{data} = join $EMPTY, @script;
 
     # compress css
-    my @css = split m[(<style[^>]*>)(.*?)(</style[^>]*>)]smi, $self->{data}->$*;
+    my @css = split m[(<style[^>]*>)(.*?)(</style[^>]*>)]smi, $self->{data};
 
     for my $i ( 0 .. $#css ) {
         if ( $css[$i] =~ m[\A</style]sm && $css[ $i - 1 ] ) {
