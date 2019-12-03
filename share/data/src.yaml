@@ -143,10 +143,12 @@ perltidy:
     - --weld-nested-containers
     - --one-line-block-semicolons=0
     - --maximum-line-length=0
+    - --space-prototype-paren=2
     - --format-skipping
     - --format-skipping-begin="# <<<"
     - --format-skipping-end="# >>>"
-    - --converge --nostandard-output
+    - --converge
+    - --nostandard-output
     - --character-encoding=utf8
 
 # NOTE https://prettier.io/docs/en/options.html
