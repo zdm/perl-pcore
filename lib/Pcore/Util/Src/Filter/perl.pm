@@ -32,9 +32,9 @@ const our $SEVERITY         => {
     3 => [ 201, 'Warning, perlcritic(3)' ],
 
     # error
-    4        => [ 500, 'Error, perlcritic(4)' ],
-    5        => [ 500, 'Error, perlcritic(5)' ],
-    perltidy => [ 500, 'Error, perltidy' ],
+    4        => [ 400, 'Error, perlcritic(4)' ],
+    5        => [ 400, 'Error, perlcritic(5)' ],
+    perltidy => [ 400, 'Error, perltidy' ],
 };
 
 sub decompress ( $self ) {
