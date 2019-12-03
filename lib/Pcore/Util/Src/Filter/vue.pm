@@ -5,9 +5,14 @@ use Pcore::Util::Text qw[rcut_all encode_utf8];
 
 with qw[Pcore::Util::Src::Filter];
 
-# TODO run lint
+has lint => 1;
+
 sub decompress ($self) {
     my $res = $self->filter_prettier('--parser=vue');
+
+    return $res if !$res;
+
+    $res = $self->filter_eslint if $self->{lint};
 
     return $res;
 }

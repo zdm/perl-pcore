@@ -27,7 +27,11 @@ sub compress ($self) {
 
     for my $i ( 0 .. $#script ) {
         if ( $script[$i] =~ m[\A</script]sm && $script[ $i - 1 ] ) {
-            Pcore::Util::Src::Filter::js->new( { data => $script[ $i - 1 ] } )->compress;
+            my $filter = Pcore::Util::Src::Filter::js->new( { data => $script[ $i - 1 ] } );
+
+            my $res = $filter->compress;
+
+            $script[ $i - 1 ] = $filter->{data};
 
             trim $script[ $i - 1 ];
         }
@@ -40,7 +44,11 @@ sub compress ($self) {
 
     for my $i ( 0 .. $#css ) {
         if ( $css[$i] =~ m[\A</style]sm && $css[ $i - 1 ] ) {
-            Pcore::Util::Src::Filter::css->new( { data => $css[ $i - 1 ] } )->compress;
+            my $filter = Pcore::Util::Src::Filter::css->new( { data => $css[ $i - 1 ] } );
+
+            my $res = $filter->compress;
+
+            $css[ $i - 1 ] = $filter->{data};
         }
     }
 
