@@ -17,9 +17,11 @@ sub compress ($self) {
 }
 
 sub filter_css_packer ($self) {
-    require CSS::Packer;
+    state $packer = do {
+        require CSS::Packer;
 
-    state $packer = CSS::Packer->init;
+        CSS::Packer->init;
+    };
 
     $packer->minify( \$self->{data}, { compress => 'minify' } );
 

@@ -163,9 +163,11 @@ sub filter_terser ( $self, @options ) {
 }
 
 sub filer_js_packer ( $self, $obfuscate = undef ) {
-    require JavaScript::Packer;
+    state $packer = {
+        require JavaScript::Packer;
 
-    state $packer = JavaScript::Packer->init;
+        JavaScript::Packer->init;
+    };
 
     $packer->minify( \$self->{data}, { compress => $obfuscate ? 'obfuscate' : 'clean' } );
 
