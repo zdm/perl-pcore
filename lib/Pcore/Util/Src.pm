@@ -324,7 +324,7 @@ sub _process_file ( $args, $action, $filter_profile, $path = undef, $data = unde
         # merge filter args
         $filter_profile->@{ keys $args->{filter}->%* } = values $args->{filter}->%* if defined $args->{filter};
 
-        my $filter_res = P->class->load( $filter_type, ns => 'Pcore::Util::Src::Filter' )->$action( \$data, $filter_profile->%* );
+        my $filter_res = P->class->load( $filter_type, ns => 'Pcore::Util::Src::Filter' )->$action( \$data, $path, $filter_profile->%* );
 
         $res->{status} = $filter_res->{status};
         $res->{reason} = $filter_res->{reason};

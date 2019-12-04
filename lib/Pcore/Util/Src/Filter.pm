@@ -4,10 +4,11 @@ use Pcore -role, -res, -const;
 use Pcore::Util::Src qw[:FILTER_STATUS];
 
 has data      => ( required => 1 );
+has path      => ( required => 1 );
 has has_kolon => ( is       => 'lazy', init_arg => undef );
 
-around decompress => sub ( $orig, $self, $data, %args ) {
-    $self = $self->new( %args, data => $data->$* );
+around decompress => sub ( $orig, $self, $data, $path = undef, %args ) {
+    $self = $self->new( %args, data => $data->$*, path => $path );
 
     my $res = $self->$orig;
 
@@ -16,8 +17,8 @@ around decompress => sub ( $orig, $self, $data, %args ) {
     return $res;
 };
 
-around compress => sub ( $orig, $self, $data, %args ) {
-    $self = $self->new( %args, data => $data->$* );
+around compress => sub ( $orig, $self, $data, $path = undef, %args ) {
+    $self = $self->new( %args, data => $data->$*, path => $path );
 
     my $res = $self->$orig;
 
@@ -26,8 +27,8 @@ around compress => sub ( $orig, $self, $data, %args ) {
     return $res;
 };
 
-around obfuscate => sub ( $orig, $self, $data, %args ) {
-    $self = $self->new( %args, data => $data->$* );
+around obfuscate => sub ( $orig, $self, $data, $path = undef, %args ) {
+    $self = $self->new( %args, data => $data->$*, path => $path );
 
     my $res = $self->$orig;
 
@@ -112,7 +113,21 @@ sub filter_prettier ( $self, @options ) {
 }
 
 sub filter_eslint ( $self, @options ) {
-    state $config = $ENV->{share}->get('/Pcore/data/.eslintrc.yaml');
+    my $config;
+
+    if ( $self->{path} && -e $self->{path} ) {
+        my $path = P->path( $self->{path} );
+
+        while ( $path = $path->parent ) {
+            if ( -f "$path/.eslintrc.yaml" ) {
+                $config = "$path/.eslintrc.yaml";
+
+                last;
+            }
+        }
+    }
+
+    $config //= $ENV->{share}->get('/Pcore/data/.eslintrc.yaml');
 
     my $temp = P->file1->tempfile;
     P->file->write_bin( $temp, $self->{data} );
