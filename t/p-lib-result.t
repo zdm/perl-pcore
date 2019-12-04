@@ -18,15 +18,6 @@ my $STATUS_REASON2 = {
     202 => 23,
 };
 
-# package TestRes {
-#     use Pcore -class;
-
-#     extends qw[Pcore::Util::Result::Class];
-
-#     sub get_status_reason ($self) { return $STATUS_REASON2 }
-# }
-
-# res
 my $data1 = [    #
     [ 200, 200, 'OK' ],
     [ [ 200, 'OK1' ],           200, 'OK1' ],
@@ -40,11 +31,17 @@ my $data1 = [    #
 
 for my $t ( $data1->@* ) {
     my $res = res $t->[0];
+    ok( $res->{status} == $t->[1] && $res->{reason} eq $t->[2] );
 
+    $res = Pcore::Util::Result::Class->new( { status => $t->[0] } );
+    ok( $res->{status} == $t->[1] && $res->{reason} eq $t->[2] );
+
+    $res = Pcore::Util::Result::Class->new;
+    $res->set_status( $t->[0] );
     ok( $res->{status} == $t->[1] && $res->{reason} eq $t->[2] );
 }
 
-our $TESTS = $data1->@*;
+our $TESTS = $data1->@* * 3;
 plan tests => $TESTS;
 done_testing $TESTS;
 
@@ -55,7 +52,7 @@ done_testing $TESTS;
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 44                   | TestingAndDebugging::RequireTestLabels - Test without a label                                                  |
+## |    3 | 34, 37, 41           | TestingAndDebugging::RequireTestLabels - Test without a label                                                  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

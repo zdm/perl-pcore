@@ -73,7 +73,7 @@ sub res ( $status, @args ) {
         $self->{status} = $status;
     }
 
-    # parocess reason
+    # process reason
     if ( !defined $reason ) {
         $self->{reason} = resolve_reason($status);
     }
