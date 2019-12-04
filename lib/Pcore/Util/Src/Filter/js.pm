@@ -44,7 +44,7 @@ sub update_log ( $self, $log = undef ) {
 
         $self->{data} .= $log =~ s[^][// ]smgr;
 
-        $self->{data} .= qq[\n//\n// -----SOURCE FILTER LOG END-----];
+        $self->{data} .= qq[//\n// -----SOURCE FILTER LOG END-----];
     }
 
     return;
