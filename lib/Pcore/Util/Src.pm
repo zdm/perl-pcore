@@ -9,28 +9,25 @@ our $EXPORT = {    #
     FILTER_STATUS => [qw[$FILTER_STATUS_OK $FILTER_STATUS_WARN $FILTER_STATUS_ERROR $FILTER_STATUS_FATAL]],
 };
 
-const our $FILTER_STATUS_OK    => res [ 200, 'OK' ];       # content is OK
-const our $FILTER_STATUS_WARN  => res [ 201, 'WARN' ];     # content has warnings
-const our $FILTER_STATUS_ERROR => res [ 400, 'ERROR' ];    # content has errors
-const our $FILTER_STATUS_FATAL => res [ 500, 'FATAL' ];    # unable to run filter, runtime error
-
-const our $STATUS_REASON => {
-    200 => 'OK',
-    201 => 'Warning',
-    202 => 'File skipped',
-    400 => 'Filter error',
-    404 => 'File not found',
-    500 => 'Error',
-    510 => 'Params error',
+const our $STATUS => {
+    200 => [ 'OK',             $BOLD . $GREEN ],
+    201 => [ 'Warn',           $YELLOW ],
+    202 => [ 'File Ignored',   $YELLOW ],
+    400 => [ 'Error',          $BOLD . $RED ],
+    404 => [ 'File Not Found', $BOLD . $RED ],
+    500 => [ 'Fatal',          $BOLD . $RED ],
+    510 => [ 'Params Error',   $BOLD . $RED ],
 };
 
-const our $STATUS_COLOR => {
-    200 => $BOLD . $GREEN,
-    201 => $YELLOW,
-    400 => $BOLD . $RED,
-    404 => $BOLD . $RED,
-    500 => $BOLD . $RED,
-};
+const our $FILTER_STATUS_OK    => res [ 200, $STATUS->{200}->[0] ];    # content is OK
+const our $FILTER_STATUS_WARN  => res [ 201, $STATUS->{201}->[0] ];    # content has warnings
+const our $FILTER_STATUS_ERROR => res [ 400, $STATUS->{400}->[0] ];    # content has errors
+const our $FILTER_STATUS_FATAL => res [ 500, $STATUS->{500}->[0] ];    # unable to run filter, runtime error
+
+const our $SRC_FILE_IGNORED   => res [ 202, $STATUS->{202}->[0] ];
+const our $SRC_FILE_NOT_FOUND => res [ 404, $STATUS->{404}->[0] ];
+
+const our $SRC_PARAMS_ERROR => res [ 510, $STATUS->{510}->[0] ];
 
 # CLI
 sub CLI ($self) {
@@ -161,7 +158,7 @@ sub run ( $action, $args ) {
         my $filter_profile = _get_filter_profile( $args, $path, $args->{data} );
 
         # ignore file
-        return res [ 202, $STATUS_REASON ] if !defined $filter_profile;
+        return $SRC_FILE_IGNORED if !defined $filter_profile;
 
         # process file
         $res = _process_file( $args, $action, $filter_profile, $path, $args->{data} );
@@ -190,7 +187,7 @@ sub _process_files ( $args, $action ) {
 
         # path is directory
         if ( -d $path ) {
-            return res [ 510, 'Type must be specified in path is directory' ] if !defined $args->{type};
+            return res [ $SRC_PARAMS_ERROR, 'Type must be specified in path is directory' ] if !defined $args->{type};
 
             # read dir
             for my $path ( ( $path->read_dir( abs => 1, max_depth => 0, is_dir => 0 ) // [] )->@* ) {
@@ -256,16 +253,16 @@ sub _process_files ( $args, $action ) {
 
     my $tbl;
 
+    # process files
     for my $path ( sort keys %tasks ) {
         my $res = _process_file( $args, $action, $tasks{$path}->@* );
 
-        if ( $res != 202 ) {
-            if ( $res->{status} > $total->{status} ) {
-                $total->{status} = $res->{status};
-                $total->{reason} = $STATUS_REASON->{ $total->{status} };
-            }
+        if ( $res != $SRC_FILE_IGNORED ) {
 
-            $total->{ $res->{status} }++;
+            # update result status
+            $total->set_status( [ $res, $STATUS->{ $res->{status} }->[0] ] ) if $res->{status} > $total->{status};
+
+            $total->{data}->{ $res->{status} }++;
             $total->{modified}++ if $res->{is_modified};
 
             _report_file( \$tbl, $use_prefix ? substr $path, length $prefix : $path, $res, $max_path_len ) if $args->{report};
@@ -280,7 +277,7 @@ sub _process_files ( $args, $action ) {
 }
 
 sub _process_file ( $args, $action, $filter_profile, $path = undef, $data = undef ) {
-    my $res = res [ 200, $STATUS_REASON ],
+    my $res = res $FILTER_STATUS_OK,
       is_modified => 0,
       in_size     => 0,
       out_size    => 0,
@@ -298,8 +295,8 @@ sub _process_file ( $args, $action, $filter_profile, $path = undef, $data = unde
 
         # file not found
         else {
-            $res->{status} = 404;
-            $res->{reason} = $STATUS_REASON->{404};
+            $res->set_status($SRC_FILE_NOT_FOUND);
+
             return $res;
         }
     }
@@ -422,7 +419,7 @@ sub _report_file ( $tbl, $path, $res, $max_path_len ) {
     push @row, $path;
 
     # severity
-    push @row, $STATUS_COLOR->{ $res->{status} } . uc( $res->{reason} ) . $RESET;
+    push @row, $STATUS->{ $res->{status} }->[1] . uc( $res->{reason} ) . $RESET;
 
     # size
     push @row, $res->{out_size};
@@ -465,8 +462,11 @@ sub _report_total ( $total ) {
 
     print $tbl->render_header;
 
-    for my $status ( 200, 201, 500, 404 ) {
-        print $tbl->render_row( [ $STATUS_COLOR->{$status} . uc( $STATUS_REASON->{$status} ) . $RESET, $STATUS_COLOR->{$status} . ( $total->{$status} // 0 ) . $RESET ] );
+    for my $status ( sort keys $total->{data}->%* ) {
+        print $tbl->render_row( [    #
+            $STATUS->{$status}->[1] . uc( $STATUS->{$status}->[0] ) . $RESET,
+            $STATUS->{$status}->[1] . ( $total->{data}->{$status} // 0 ) . $RESET,
+        ] );
     }
 
     print $tbl->render_row( [ 'MODIFIED', $total->{modified} // 0 ] );
@@ -483,9 +483,9 @@ sub _report_total ( $total ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 178                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (32)            |
+## |    3 | 175                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (32)            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 282, 386             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 279, 383             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
