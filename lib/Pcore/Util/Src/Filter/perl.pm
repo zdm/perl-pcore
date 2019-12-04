@@ -1,6 +1,7 @@
 package Pcore::Util::Src::Filter::perl;
 
 use Pcore -class, -const, -res, -sql;
+use Pcore::Util::Src qw[:FILTER_STATUS];
 use Pcore::Util::Text qw[decode_utf8 encode_utf8 rcut_all trim];
 use Clone qw[];
 
@@ -20,21 +21,17 @@ has perl_strip_comment        => 1;
 has perl_strip_pod            => 1;
 has perl_encrypt              => 0;
 
-const our $PERLCRITIC_ERROR => 4;
-const our $SEVERITY         => {
-
-    # valid
-    0 => 200,
+const our $PERLCRITIC_ERROR_THRESHOLD => 4;
+const our $PERLCRITIC_SEVERITY        => {
 
     # warning
-    1 => [ 201, 'Warning, perlcritic(1)' ],
-    2 => [ 201, 'Warning, perlcritic(2)' ],
-    3 => [ 201, 'Warning, perlcritic(3)' ],
+    1 => [ $FILTER_STATUS_WARN, 'Warning, perlcritic(1)' ],
+    2 => [ $FILTER_STATUS_WARN, 'Warning, perlcritic(2)' ],
+    3 => [ $FILTER_STATUS_WARN, 'Warning, perlcritic(3)' ],
 
     # error
-    4        => [ 400, 'Error, perlcritic(4)' ],
-    5        => [ 400, 'Error, perlcritic(5)' ],
-    perltidy => [ 400, 'Error, perltidy' ],
+    4 => [ $FILTER_STATUS_ERROR, 'Error, perlcritic(4)' ],
+    5 => [ $FILTER_STATUS_ERROR, 'Error, perlcritic(5)' ],
 };
 
 sub decompress ( $self ) {
@@ -149,7 +146,7 @@ SQL
 
             # encryption error
             if ($Filter::Crypto::CryptFile::ErrStr) {
-                return res [ 500, $Filter::Crypto::CryptFile::ErrStr ];
+                return res [ $FILTER_STATUS_RUNTIME_ERROR, $Filter::Crypto::CryptFile::ErrStr ];
             }
             else {
                 $self->{data} = $hashbang . P->file->read_bin($temp);
@@ -157,7 +154,7 @@ SQL
         }
     }
 
-    return res $SEVERITY->{0};
+    return res $FILTER_STATUS_OK;
 }
 
 sub update_log ( $self, $log ) {
@@ -235,7 +232,7 @@ sub filter_perltidy ($self) {
 
     # perltidy error
     if ($perltidy_err) {
-        $res = res $SEVERITY->{perltidy};
+        $res = res [ $FILTER_STATUS_ERROR, 'Error, perltidy' ];
 
         $perltidy_err =~ s/^<source_stream>://smg;
 
@@ -244,7 +241,7 @@ sub filter_perltidy ($self) {
         $log .= "\n$perltidy_log" if $self->{perl_verbose};
     }
     else {
-        $res = res 200;
+        $res = res $FILTER_STATUS_OK;
     }
 
     $self->update_log($log);
@@ -263,7 +260,7 @@ sub filter_perlcritic ($self) {
 
         # perlcritic exception
         if ($@) {
-            $res = res $SEVERITY->{5};
+            $res = res $FILTER_STATUS_RUNTIME_ERROR;
         }
 
         # index violations
@@ -355,7 +352,7 @@ sub filter_perlcritic ($self) {
                 }
 
                 # add diagnostic
-                $report .= $tbl->render_row( [ $EMPTY, $EMPTY, "\nDiagnostics:\n$violations->{$v}->{diag}" ] ) if $self->{perl_verbose} && $violations->{$v}->{severity} >= $PERLCRITIC_ERROR;
+                $report .= $tbl->render_row( [ $EMPTY, $EMPTY, "\nDiagnostics:\n$violations->{$v}->{diag}" ] ) if $self->{perl_verbose} && $violations->{$v}->{severity} >= $PERLCRITIC_ERROR_THRESHOLD;
 
                 # add table row line
                 if ( --$total_violations ) {
@@ -370,18 +367,18 @@ sub filter_perlcritic ($self) {
 
             $log .= $report;
 
-            $res = res $SEVERITY->{$max_severity};
+            $res = res $PERLCRITIC_SEVERITY->{$max_severity};
         }
 
         # no perlcritic violations found
         else {
-            $res = res $SEVERITY->{0};
+            $res = res $FILTER_STATUS_OK;
         }
     }
 
-    # perltidy ok, percritic - not run
+    # percritic skipped
     else {
-        $res = res $SEVERITY->{0};
+        $res = res $FILTER_STATUS_OK;
     }
 
     $self->update_log($log);
@@ -455,11 +452,11 @@ sub _get_perlcritic_object ( $self, $name ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 255                  | Subroutines::ProhibitExcessComplexity - Subroutine "filter_perlcritic" with high complexity score (24)         |
+## |    3 | 252                  | Subroutines::ProhibitExcessComplexity - Subroutine "filter_perlcritic" with high complexity score (24)         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 208                  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 205                  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 340                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 337                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

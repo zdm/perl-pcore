@@ -1,6 +1,7 @@
 package Pcore::Util::Src::Filter::js;
 
 use Pcore -class, -res;
+use Pcore::Util::Src qw[:FILTER_STATUS];
 use Pcore::Util::Text qw[rcut_all encode_utf8];
 
 with qw[Pcore::Util::Src::Filter];
@@ -71,12 +72,12 @@ sub filter_terser ( $self, @options ) {
             $reason = $log[0];
         }
 
-        return res [ 500, $reason || $proc->{reason} ];
+        return res [ $FILTER_STATUS_RUNTIME_ERROR, $reason || $proc->{reason} ];
     }
 
     $self->{data} = $proc->{stdout}->$*;
 
-    return res 200;
+    return res $FILTER_STATUS_OK;
 }
 
 sub filer_js_packer ( $self, $obfuscate = undef ) {
@@ -88,7 +89,7 @@ sub filer_js_packer ( $self, $obfuscate = undef ) {
 
     $packer->minify( \$self->{data}, { compress => $obfuscate ? 'obfuscate' : 'clean' } );
 
-    return res 200;
+    return res $FILTER_STATUS_OK;
 }
 
 1;
@@ -98,7 +99,7 @@ sub filer_js_packer ( $self, $obfuscate = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 35                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 36                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

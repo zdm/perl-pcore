@@ -1,6 +1,7 @@
 package Pcore::Util::Src::Filter::vue;
 
 use Pcore -class, -res;
+use Pcore::Util::Src qw[:FILTER_STATUS];
 use Pcore::Util::Text qw[rcut_all encode_utf8];
 
 with qw[Pcore::Util::Src::Filter];

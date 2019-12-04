@@ -1,6 +1,7 @@
 package Pcore::Util::Src::Filter::md;
 
 use Pcore -class, -res;
+use Pcore::Util::Src qw[:FILTER_STATUS];
 
 with qw[Pcore::Util::Src::Filter];
 

@@ -1,6 +1,7 @@
 package Pcore::Util::Src::Filter::yaml;
 
 use Pcore -class, -res;
+use Pcore::Util::Src qw[:FILTER_STATUS];
 
 with qw[Pcore::Util::Src::Filter];
 
@@ -10,7 +11,27 @@ sub decompress ($self) {
     return $res;
 }
 
+sub filter_yaml_xs ($self) {
+    eval {
+        my $data = P->data->from_yaml( $self->{data} );
+
+        $self->{data} = P->data->to_yaml( $data, readable => 1 );
+    };
+
+    return res $@ ? $FILTER_STATUS_RUNTIME_ERROR : $FILTER_STATUS_OK;
+}
+
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 15                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

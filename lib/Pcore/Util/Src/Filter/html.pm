@@ -1,6 +1,7 @@
 package Pcore::Util::Src::Filter::html;
 
 use Pcore -class, -res;
+use Pcore::Util::Src qw[:FILTER_STATUS];
 use Pcore::Util::Src::Filter::js;
 use Pcore::Util::Src::Filter::css;
 
@@ -57,7 +58,7 @@ sub filter_html_packer ($self) {
 
     $packer->minify( \$self->{data}, { remove_comments => 0, remove_newlines => 1, html5 => 1 } );
 
-    return res 200;
+    return res $FILTER_STATUS_OK;
 }
 
 1;

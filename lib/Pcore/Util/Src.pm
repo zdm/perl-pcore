@@ -1,9 +1,18 @@
 package Pcore::Util::Src;
 
-use Pcore -const, -res, -ansi;
+use Pcore -const, -res, -ansi, -export;
 use Pcore::Util::Scalar qw[is_path is_plain_arrayref is_plain_hashref];
 use Pcore::Util::Text qw[encode_utf8 decode_eol lcut_all rcut_all rtrim_multi remove_bom];
 use Pcore::Util::Digest qw[md5_hex];
+
+our $EXPORT = {    #
+    FILTER_STATUS => [qw[$FILTER_STATUS_OK $FILTER_STATUS_WARN $FILTER_STATUS_ERROR $FILTER_STATUS_RUNTIME_ERROR]],
+};
+
+const our $FILTER_STATUS_OK            => 200;
+const our $FILTER_STATUS_WARN          => 201;
+const our $FILTER_STATUS_ERROR         => 400;
+const our $FILTER_STATUS_RUNTIME_ERROR => 500;
 
 const our $STATUS_REASON => {
     200 => 'OK',
@@ -474,9 +483,9 @@ sub _report_total ( $total ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 169                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (32)            |
+## |    3 | 178                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (32)            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 273, 377             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 282, 386             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

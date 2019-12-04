@@ -1,6 +1,7 @@
 package Pcore::Util::Src::Filter::css;
 
 use Pcore -class, -res;
+use Pcore::Util::Src qw[:FILTER_STATUS];
 
 with qw[Pcore::Util::Src::Filter];
 
@@ -25,7 +26,7 @@ sub filter_css_packer ($self) {
 
     $packer->minify( \$self->{data}, { compress => 'minify' } );
 
-    return res 200;
+    return res $FILTER_STATUS_OK;
 }
 
 1;

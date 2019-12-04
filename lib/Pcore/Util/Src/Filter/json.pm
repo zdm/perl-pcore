@@ -1,26 +1,41 @@
 package Pcore::Util::Src::Filter::json;
 
 use Pcore -class, -res;
+use Pcore::Util::Src qw[:FILTER_STATUS];
 
 with qw[Pcore::Util::Src::Filter];
 
 sub decompress ($self) {
-    my $data = P->data->from_json( $self->{data} );
+    eval {
+        my $data = P->data->from_json( $self->{data} );
 
-    $self->{data} = P->data->to_json( $data, readable => 1 );
+        $self->{data} = P->data->to_json( $data, readable => 1 );
+    };
 
-    return res 200;
+    return res $@ ? $FILTER_STATUS_RUNTIME_ERROR : $FILTER_STATUS_OK;
 }
 
 sub compress ($self) {
-    my $data = P->data->from_json( $self->{data} );
+    eval {
+        my $data = P->data->from_json( $self->{data} );
 
-    $self->{data} = P->data->to_json( $data, readable => 0 );
+        $self->{data} = P->data->to_json( $data, readable => 0 );
+    };
 
-    return res 200;
+    return res $@ ? $FILTER_STATUS_RUNTIME_ERROR : $FILTER_STATUS_OK;
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 9, 19                | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
