@@ -157,7 +157,7 @@ sub filter_eslint ( $self, @options ) {
         cols  => [
             severity => {
                 title  => 'Sev.',
-                width  => 6,
+                width  => 7,
                 align  => 1,
                 valign => -1,
             },
@@ -177,7 +177,7 @@ sub filter_eslint ( $self, @options ) {
             },
             desc => {
                 title       => 'Description',
-                width       => 99,
+                width       => 80,
                 title_align => -1,
                 align       => -1,
                 valign      => -1,
@@ -190,14 +190,20 @@ sub filter_eslint ( $self, @options ) {
     my @items;
 
     for my $msg ( sort { $a->{severity} <=> $b->{severity} || $a->{line} <=> $b->{line} || $a->{column} <=> $b->{column} } $eslint_log->[0]->{messages}->@* ) {
+        my $severity_text;
+
         if ( $msg->{severity} == 1 ) {
             $has_warnings++;
+
+            $severity_text = 'WARN';
         }
         else {
             $has_errors++;
+
+            $severity_text = 'ERROR';
         }
 
-        push @items, [ $msg->{severity}, "$msg->{line}:$msg->{column}", $msg->{ruleId}, $msg->{message} ];
+        push @items, [ $severity_text, "$msg->{line}:$msg->{column}", $msg->{ruleId}, $msg->{message} ];
     }
 
     my $row_line = $tbl->render_row_line;

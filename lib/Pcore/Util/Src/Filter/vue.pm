@@ -20,8 +20,11 @@ sub decompress ($self) {
 
 sub update_log ( $self, $log = undef ) {
 
+    # <!-- comment contents here -->
+    # <!-- -->
+
     # clear log
-    $self->{data} =~ s[// -----SOURCE FILTER LOG BEGIN-----.*-----SOURCE FILTER LOG END-----][]sm;
+    $self->{data} =~ s[<!-- -----SOURCE FILTER LOG BEGIN-----.*-----SOURCE FILTER LOG END----- -->][]sm;
 
     rcut_all $self->{data};
 
@@ -29,11 +32,14 @@ sub update_log ( $self, $log = undef ) {
     if ($log) {
         encode_utf8 $log;
 
-        $self->{data} .= qq[\n// -----SOURCE FILTER LOG BEGIN-----\n//\n];
+        $log =~ s[^][<!-- ]smg;
+        $log =~ s[\n][ -->\n]smg;
 
-        $self->{data} .= $log =~ s[^][// ]smgr;
-
-        $self->{data} .= qq[//\n// -----SOURCE FILTER LOG END-----];
+        $self->{data} .= "\n<!-- -----SOURCE FILTER LOG BEGIN----- -->";
+        $self->{data} .= "\n<!-- -->\n";
+        $self->{data} .= $log;
+        $self->{data} .= "<!-- -->";
+        $self->{data} .= "\n<!-- -----SOURCE FILTER LOG END----- -->";
     }
 
     return;
@@ -46,7 +52,9 @@ sub update_log ( $self, $log = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 24                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 27                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 41                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
