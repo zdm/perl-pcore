@@ -50,9 +50,8 @@ sub update_log ( $self, $log = undef ) {
     return;
 }
 
-# TODO
 sub filter_terser ( $self, @options ) {
-    my $temp = P->file1->tempfile( suffix => 'js' );
+    my $temp = P->file1->tempfile( suffix1 => 'js' );
 
     P->file->write_bin( $temp, $self->{data} );
 
@@ -62,6 +61,18 @@ sub filter_terser ( $self, @options ) {
         stdout => 1,
         stderr => 1,
     )->capture;
+
+    if ( !$proc ) {
+        my $reason;
+
+        if ( $proc->{stderr} ) {
+            my @log = split /\n/sm, $proc->{stderr}->$*;
+
+            $reason = $log[0];
+        }
+
+        return res [ 500, $reason || $proc->{reason} ];
+    }
 
     $self->{data} = $proc->{stdout}->$*;
 
