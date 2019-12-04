@@ -48,11 +48,11 @@ sub src_cfg ($self) { return Pcore::Util::Src::cfg() }
 
 sub dist_cfg ($self) { return {} }
 
-sub decompress ($self) { return res 200 }
+sub decompress ($self) { return $SRC_OK }
 
-sub compress ($self) { return res 200 }
+sub compress ($self) { return $SRC_OK }
 
-sub obfuscate ($self) { return res 200 }
+sub obfuscate ($self) { return $SRC_OK }
 
 sub update_log ( $self, $log = undef ) {return}
 
@@ -75,7 +75,7 @@ sub filter_prettier ( $self, @options ) {
 
         $self->update_log;
 
-        return res $SRC_OK;
+        return $SRC_OK;
     }
 
     # run with errors
@@ -107,7 +107,7 @@ sub filter_prettier ( $self, @options ) {
         # prettier found errors in content
         $self->update_log( join "\n", @log );
 
-        return res $has_errors ? $SRC_ERROR : $SRC_WARN;
+        return $has_errors ? $SRC_ERROR : $SRC_WARN;
     }
 }
 
@@ -145,7 +145,7 @@ sub filter_eslint ( $self, @options ) {
     if ( !$eslint_log->[0]->{messages}->@* ) {
         $self->update_log;
 
-        return res $SRC_OK;
+        return $SRC_OK;
     }
 
     my ( $log, $has_warnings, $has_errors );
@@ -208,9 +208,9 @@ sub filter_eslint ( $self, @options ) {
 
     $self->update_log($log);
 
-    if    ($has_errors)   { return res $SRC_ERROR}
-    elsif ($has_warnings) { return res $SRC_WARN}
-    else                  { return res $SRC_OK}
+    if    ($has_errors)   { return $SRC_ERROR }
+    elsif ($has_warnings) { return $SRC_WARN }
+    else                  { return $SRC_OK }
 }
 
 1;

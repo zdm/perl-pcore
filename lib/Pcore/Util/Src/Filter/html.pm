@@ -8,7 +8,7 @@ use Pcore::Util::Src::Filter::css;
 with qw[Pcore::Util::Src::Filter];
 
 sub decompress ($self) {
-    return res 200 if $self->has_kolon;
+    return $SRC_OK if $self->has_kolon;
 
     my $res = $self->filter_prettier('--parser=html');
 
@@ -16,7 +16,7 @@ sub decompress ($self) {
 }
 
 sub compress ($self) {
-    return res 200 if $self->has_kolon;
+    return $SRC_OK if $self->has_kolon;
 
     # compress js
     my @script = split m[(<script[^>]*>)(.*?)(</script[^>]*>)]smi, $self->{data};
@@ -58,7 +58,7 @@ sub filter_html_packer ($self) {
 
     $packer->minify( \$self->{data}, { remove_comments => 0, remove_newlines => 1, html5 => 1 } );
 
-    return res $SRC_OK;
+    return $SRC_OK;
 }
 
 1;

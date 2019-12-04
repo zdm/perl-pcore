@@ -18,7 +18,38 @@ sub decompress ($self) {
     return $res;
 }
 
+sub update_log ( $self, $log = undef ) {
+
+    # clear log
+    $self->{data} =~ s[// -----SOURCE FILTER LOG BEGIN-----.*-----SOURCE FILTER LOG END-----][]sm;
+
+    rcut_all $self->{data};
+
+    # insert log
+    if ($log) {
+        encode_utf8 $log;
+
+        $self->{data} .= qq[\n// -----SOURCE FILTER LOG BEGIN-----\n//\n];
+
+        $self->{data} .= $log =~ s[^][// ]smgr;
+
+        $self->{data} .= qq[//\n// -----SOURCE FILTER LOG END-----];
+    }
+
+    return;
+}
+
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 24                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

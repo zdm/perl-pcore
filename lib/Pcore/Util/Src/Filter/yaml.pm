@@ -18,7 +18,7 @@ sub filter_yaml_xs ($self) {
         $self->{data} = P->data->to_yaml( $data, readable => 1 );
     };
 
-    return res $@ ? $SRC_FATAL : $SRC_OK;
+    return $@ ? $SRC_FATAL : $SRC_OK;
 }
 
 1;

@@ -77,7 +77,7 @@ sub filter_terser ( $self, @options ) {
 
     $self->{data} = $proc->{stdout}->$*;
 
-    return res $SRC_OK;
+    return $SRC_OK;
 }
 
 sub filer_js_packer ( $self, $obfuscate = undef ) {
@@ -89,7 +89,7 @@ sub filer_js_packer ( $self, $obfuscate = undef ) {
 
     $packer->minify( \$self->{data}, { compress => $obfuscate ? 'obfuscate' : 'clean' } );
 
-    return res $SRC_OK;
+    return $SRC_OK;
 }
 
 1;

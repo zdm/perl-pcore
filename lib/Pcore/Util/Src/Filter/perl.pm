@@ -154,7 +154,7 @@ SQL
         }
     }
 
-    return res $SRC_OK;
+    return $SRC_OK;
 }
 
 sub update_log ( $self, $log ) {
@@ -190,7 +190,7 @@ sub filter_perlheredoc ($self) {
     # parse heredocs in $self->{data}
     # call correspondednt formatters
 
-    return res 200;
+    return $SRC_OK;
 }
 
 sub filter_perltidy ($self) {

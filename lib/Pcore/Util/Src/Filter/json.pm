@@ -12,7 +12,7 @@ sub decompress ($self) {
         $self->{data} = P->data->to_json( $data, readable => 1 );
     };
 
-    return res $@ ? $SRC_FATAL : $SRC_OK;
+    return $@ ? $SRC_FATAL : $SRC_OK;
 }
 
 sub compress ($self) {
@@ -22,7 +22,7 @@ sub compress ($self) {
         $self->{data} = P->data->to_json( $data, readable => 0 );
     };
 
-    return res $@ ? $SRC_FATAL : $SRC_OK;
+    return $@ ? $SRC_FATAL : $SRC_OK;
 }
 
 1;

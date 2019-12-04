@@ -26,7 +26,7 @@ sub filter_css_packer ($self) {
 
     $packer->minify( \$self->{data}, { compress => 'minify' } );
 
-    return res $SRC_OK;
+    return $SRC_OK;
 }
 
 1;
