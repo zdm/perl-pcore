@@ -55,7 +55,6 @@ sub obfuscate ($self) { return res 200 }
 
 sub update_log ( $self, $log = undef ) {return}
 
-# TODO remove temporary filename from log
 sub filter_prettier ( $self, @options ) {
     my $dist_options = $self->dist_cfg->{prettier} || $self->src_cfg->{prettier};
 
@@ -83,6 +82,8 @@ sub filter_prettier ( $self, @options ) {
 
         my ( @log, $has_errors, $has_warnings );
 
+        my $temp_filename = $temp->{filename};
+
         # parse stderr
         if ( $proc->{stderr}->$* ) {
             for my $line ( split /\n/sm, $proc->{stderr}->$* ) {
@@ -90,6 +91,9 @@ sub filter_prettier ( $self, @options ) {
                     if    ( $1 eq 'error' ) { $has_errors++ }
                     elsif ( $1 eq 'warn' )  { $has_warnings++ }
                 }
+
+                # remove temp filename from log
+                $line =~ s[\A.+$temp_filename:\s][]sm;
 
                 push @log, $line;
             }
@@ -99,7 +103,7 @@ sub filter_prettier ( $self, @options ) {
         # unable to run prettier
         return res [ 500, $log[0] || $proc->{reason} ] if $proc->{exit_code} == 1;
 
-        # prettier found erros in content
+        # prettier found errors in content
         $self->update_log( join "\n", @log );
 
         return res $has_errors ? 400 : 201;
