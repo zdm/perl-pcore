@@ -65,6 +65,11 @@ TXT
                 desc  => q[for internal use with commit hook],
                 max   => 1,
             },
+            report_ignored => {
+                short   => undef,
+                desc    => q[report ignored files],
+                default => 1,
+            },
         },
         arg => [
             path => {
@@ -85,9 +90,10 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     }
 
     if ( $opt->{action} eq 'commit' ) {
-        $opt->{action} = 'decompress';
-        $opt->{type}   = 'perl';
-        $opt->{prefix} = P->path( $opt->{prefix}, from_mswin => 1 )->to_abs;
+        $opt->{action}         = 'decompress';
+        $opt->{report_ignored} = 0;
+        $opt->{type}           = 'perl';
+        $opt->{prefix}         = P->path( $opt->{prefix}, from_mswin => 1 )->to_abs;
     }
     else {
         undef $opt->{prefix};
@@ -95,11 +101,12 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 
     my $res = P->src->run(
         $opt->{action},
-        {   path    => $arg->{path},
-            type    => $opt->{type},
-            report  => $opt->{report},
-            dry_run => $opt->{dry_run},
-            prefix  => $opt->{prefix},
+        {   path           => $arg->{path},
+            type           => $opt->{type},
+            report         => $opt->{report},
+            dry_run        => $opt->{dry_run},
+            prefix         => $opt->{prefix},
+            report_ignored => $opt->{report_ignored},
         }
     );
 
@@ -128,6 +135,7 @@ sub obfuscate ( %args ) { return run( 'obfuscate', \%args ) }
 # data, Str
 # type, ArrayRef[ Enum ['css', 'html', 'js', 'json', 'perl']], list of types to process, used if path is directory
 # ignore, Bool, ignore unsupported file types
+# report_ignored, Bool
 # filter, HashRef, additional filter arguments
 # dry_run, Bool, if true - do not write results to the source path
 # report, print report
@@ -203,7 +211,13 @@ sub _process_files ( $args, $action ) {
         else {
 
             # get filter profile
-            if ( my $filter_profile = _get_filter_profile( $args, $path ) ) {
+            my $filter_profile = _get_filter_profile( $args, $path );
+
+            # file is ignored
+            if ( !$filter_profile ) {
+                $tasks{$path} = [ $filter_profile, $path, $SRC_FILE_IGNORED ] if $args->{report} && $args->{report_ignored};
+            }
+            else {
                 $tasks{$path} = [ $filter_profile, $path ];
             }
         }
@@ -255,18 +269,15 @@ sub _process_files ( $args, $action ) {
 
     # process files
     for my $path ( sort keys %tasks ) {
-        my $res = _process_file( $args, $action, $tasks{$path}->@* );
+        my $res = $tasks{$path}->[2] // _process_file( $args, $action, $tasks{$path}->@* );
 
-        if ( $res != $SRC_FILE_IGNORED ) {
+        # update result status
+        $total->set_status( [ $res, $STATUS->{ $res->{status} }->[0] ] ) if $res->{status} > $total->{status};
 
-            # update result status
-            $total->set_status( [ $res, $STATUS->{ $res->{status} }->[0] ] ) if $res->{status} > $total->{status};
+        $total->{data}->{ $res->{status} }++;
+        $total->{modified}++ if $res->{is_modified};
 
-            $total->{data}->{ $res->{status} }++;
-            $total->{modified}++ if $res->{is_modified};
-
-            _report_file( \$tbl, $use_prefix ? substr $path, length $prefix : $path, $res, $max_path_len ) if $args->{report};
-        }
+        _report_file( \$tbl, $use_prefix ? substr $path, length $prefix : $path, $res, $max_path_len ) if $args->{report};
     }
 
     print $tbl->finish if defined $tbl;
@@ -375,6 +386,8 @@ sub _get_filter_profile ( $args, $path, $data = undef ) {
     elsif ( $args->{ignore} ) {
         return;
     }
+
+    # return empty filter profile
     else {
         return {};
     }
@@ -483,9 +496,9 @@ sub _report_total ( $total ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 175                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (32)            |
+## |    3 | 183                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (34)            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 279, 383             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 290, 396             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
