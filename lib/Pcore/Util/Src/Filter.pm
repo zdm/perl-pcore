@@ -11,7 +11,7 @@ around decompress => sub ( $orig, $self, $data, %args ) {
 
     my $res = $self->$orig;
 
-    $data->$* = $self->{data} if $res < $FILTER_STATUS_FATAL;
+    $data->$* = $self->{data} if $res < $SRC_FATAL;
 
     return $res;
 };
@@ -21,7 +21,7 @@ around compress => sub ( $orig, $self, $data, %args ) {
 
     my $res = $self->$orig;
 
-    $data->$* = $self->{data} if $res < $FILTER_STATUS_FATAL;
+    $data->$* = $self->{data} if $res < $SRC_FATAL;
 
     return $res;
 };
@@ -31,7 +31,7 @@ around obfuscate => sub ( $orig, $self, $data, %args ) {
 
     my $res = $self->$orig;
 
-    $data->$* = $self->{data} if $res < $FILTER_STATUS_FATAL;
+    $data->$* = $self->{data} if $res < $SRC_FATAL;
 
     return $res;
 };
@@ -75,7 +75,7 @@ sub filter_prettier ( $self, @options ) {
 
         $self->update_log;
 
-        return res $FILTER_STATUS_OK;
+        return res $SRC_OK;
     }
 
     # run with errors
@@ -102,12 +102,12 @@ sub filter_prettier ( $self, @options ) {
         }
 
         # unable to run prettier
-        return res [ $FILTER_STATUS_FATAL, $log[0] || $proc->{reason} ] if $proc->{exit_code} == 1;
+        return res [ $SRC_FATAL, $log[0] || $proc->{reason} ] if $proc->{exit_code} == 1;
 
         # prettier found errors in content
         $self->update_log( join "\n", @log );
 
-        return res $has_errors ? $FILTER_STATUS_ERROR : $FILTER_STATUS_WARN;
+        return res $has_errors ? $SRC_ERROR : $SRC_WARN;
     }
 }
 
@@ -134,7 +134,7 @@ sub filter_eslint ( $self, @options ) {
             $reason = $log[0];
         }
 
-        return res [ $FILTER_STATUS_FATAL, $reason || $proc->{reason} ];
+        return res [ $SRC_FATAL, $reason || $proc->{reason} ];
     }
 
     my $eslint_log = P->data->from_json( $proc->{stdout} );
@@ -145,7 +145,7 @@ sub filter_eslint ( $self, @options ) {
     if ( !$eslint_log->[0]->{messages}->@* ) {
         $self->update_log;
 
-        return res $FILTER_STATUS_OK;
+        return res $SRC_OK;
     }
 
     my ( $log, $has_warnings, $has_errors );
@@ -208,9 +208,9 @@ sub filter_eslint ( $self, @options ) {
 
     $self->update_log($log);
 
-    if    ($has_errors)   { return res $FILTER_STATUS_ERROR}
-    elsif ($has_warnings) { return res $FILTER_STATUS_WARN}
-    else                  { return res $FILTER_STATUS_OK}
+    if    ($has_errors)   { return res $SRC_ERROR}
+    elsif ($has_warnings) { return res $SRC_WARN}
+    else                  { return res $SRC_OK}
 }
 
 1;

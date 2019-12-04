@@ -58,7 +58,7 @@ sub filter_html_packer ($self) {
 
     $packer->minify( \$self->{data}, { remove_comments => 0, remove_newlines => 1, html5 => 1 } );
 
-    return res $FILTER_STATUS_OK;
+    return res $SRC_OK;
 }
 
 1;

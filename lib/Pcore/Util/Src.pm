@@ -6,7 +6,7 @@ use Pcore::Util::Text qw[encode_utf8 decode_eol lcut_all rcut_all rtrim_multi re
 use Pcore::Util::Digest qw[md5_hex];
 
 our $EXPORT = {    #
-    FILTER_STATUS => [qw[$FILTER_STATUS_OK $FILTER_STATUS_WARN $FILTER_STATUS_ERROR $FILTER_STATUS_FATAL]],
+    FILTER_STATUS => [qw[$SRC_OK $SRC_WARN $SRC_ERROR $SRC_FATAL]],
 };
 
 const our $STATUS => {
@@ -19,10 +19,10 @@ const our $STATUS => {
     510 => [ 'Params Error',   0, $BOLD . $RED ],
 };
 
-const our $FILTER_STATUS_OK    => res [ 200, $STATUS->{200}->[0] ];    # content is OK
-const our $FILTER_STATUS_WARN  => res [ 201, $STATUS->{201}->[0] ];    # content has warnings
-const our $FILTER_STATUS_ERROR => res [ 400, $STATUS->{400}->[0] ];    # content has errors
-const our $FILTER_STATUS_FATAL => res [ 500, $STATUS->{500}->[0] ];    # unable to run filter, runtime error
+const our $SRC_OK    => res [ 200, $STATUS->{200}->[0] ];    # content is OK
+const our $SRC_WARN  => res [ 201, $STATUS->{201}->[0] ];    # content has warnings
+const our $SRC_ERROR => res [ 400, $STATUS->{400}->[0] ];    # content has errors
+const our $SRC_FATAL => res [ 500, $STATUS->{500}->[0] ];    # unable to run filter, runtime error
 
 const our $SRC_FILE_IGNORED   => res [ 202, $STATUS->{202}->[0] ];
 const our $SRC_FILE_NOT_FOUND => res [ 404, $STATUS->{404}->[0] ];
@@ -277,7 +277,7 @@ sub _process_files ( $args, $action ) {
 }
 
 sub _process_file ( $args, $action, $filter_profile, $path = undef, $data = undef ) {
-    my $res = res $FILTER_STATUS_OK,
+    my $res = res $SRC_OK,
       is_modified => 0,
       in_size     => 0,
       out_size    => 0,

@@ -25,13 +25,13 @@ const our $PERLCRITIC_ERROR_THRESHOLD => 4;
 const our $PERLCRITIC_SEVERITY        => {
 
     # warning
-    1 => [ $FILTER_STATUS_WARN, 'Warning, perlcritic(1)' ],
-    2 => [ $FILTER_STATUS_WARN, 'Warning, perlcritic(2)' ],
-    3 => [ $FILTER_STATUS_WARN, 'Warning, perlcritic(3)' ],
+    1 => [ $SRC_WARN, 'Warning, perlcritic(1)' ],
+    2 => [ $SRC_WARN, 'Warning, perlcritic(2)' ],
+    3 => [ $SRC_WARN, 'Warning, perlcritic(3)' ],
 
     # error
-    4 => [ $FILTER_STATUS_ERROR, 'Error, perlcritic(4)' ],
-    5 => [ $FILTER_STATUS_ERROR, 'Error, perlcritic(5)' ],
+    4 => [ $SRC_ERROR, 'Error, perlcritic(4)' ],
+    5 => [ $SRC_ERROR, 'Error, perlcritic(5)' ],
 };
 
 sub decompress ( $self ) {
@@ -146,7 +146,7 @@ SQL
 
             # encryption error
             if ($Filter::Crypto::CryptFile::ErrStr) {
-                return res [ $FILTER_STATUS_FATAL, $Filter::Crypto::CryptFile::ErrStr ];
+                return res [ $SRC_FATAL, $Filter::Crypto::CryptFile::ErrStr ];
             }
             else {
                 $self->{data} = $hashbang . P->file->read_bin($temp);
@@ -154,7 +154,7 @@ SQL
         }
     }
 
-    return res $FILTER_STATUS_OK;
+    return res $SRC_OK;
 }
 
 sub update_log ( $self, $log ) {
@@ -232,7 +232,7 @@ sub filter_perltidy ($self) {
 
     # perltidy error
     if ($perltidy_err) {
-        $res = res [ $FILTER_STATUS_ERROR, 'Error, perltidy' ];
+        $res = res [ $SRC_ERROR, 'Error, perltidy' ];
 
         $perltidy_err =~ s/^<source_stream>://smg;
 
@@ -241,7 +241,7 @@ sub filter_perltidy ($self) {
         $log .= "\n$perltidy_log" if $self->{perl_verbose};
     }
     else {
-        $res = res $FILTER_STATUS_OK;
+        $res = res $SRC_OK;
     }
 
     $self->update_log($log);
@@ -260,7 +260,7 @@ sub filter_perlcritic ($self) {
 
         # perlcritic exception
         if ($@) {
-            $res = res $FILTER_STATUS_FATAL;
+            $res = res $SRC_FATAL;
         }
 
         # index violations
@@ -372,13 +372,13 @@ sub filter_perlcritic ($self) {
 
         # no perlcritic violations found
         else {
-            $res = res $FILTER_STATUS_OK;
+            $res = res $SRC_OK;
         }
     }
 
     # percritic skipped
     else {
-        $res = res $FILTER_STATUS_OK;
+        $res = res $SRC_OK;
     }
 
     $self->update_log($log);

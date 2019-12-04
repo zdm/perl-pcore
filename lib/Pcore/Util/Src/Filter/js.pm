@@ -72,12 +72,12 @@ sub filter_terser ( $self, @options ) {
             $reason = $log[0];
         }
 
-        return res [ $FILTER_STATUS_FATAL, $reason || $proc->{reason} ];
+        return res [ $SRC_FATAL, $reason || $proc->{reason} ];
     }
 
     $self->{data} = $proc->{stdout}->$*;
 
-    return res $FILTER_STATUS_OK;
+    return res $SRC_OK;
 }
 
 sub filer_js_packer ( $self, $obfuscate = undef ) {
@@ -89,7 +89,7 @@ sub filer_js_packer ( $self, $obfuscate = undef ) {
 
     $packer->minify( \$self->{data}, { compress => $obfuscate ? 'obfuscate' : 'clean' } );
 
-    return res $FILTER_STATUS_OK;
+    return res $SRC_OK;
 }
 
 1;
