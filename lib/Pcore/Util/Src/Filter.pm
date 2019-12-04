@@ -106,8 +106,6 @@ sub filter_prettier ( $self, @options ) {
     }
 }
 
-# TODO defined severity correctly
-# TODO --fix option ???
 sub filter_eslint ( $self, @options ) {
     state $config = $ENV->{share}->get('/Pcore/data/.eslintrc.yaml');
 
@@ -122,12 +120,28 @@ sub filter_eslint ( $self, @options ) {
     )->capture;
 
     # unable to run elsint
-    return res [ 500, $proc->{stderr}->$* || $proc->{reason} ] if !$proc;
+    if ( !$proc && !$proc->{stdout}->$* ) {
+        my $reason;
+
+        if ( $proc->{stderr}->$* ) {
+            my @log = split /\n/sm, $proc->{stderr}->$*;
+
+            $reason = $log[0];
+        }
+
+        return res [ 500, $reason || $proc->{reason} ];
+    }
 
     my $eslint_log = P->data->from_json( $proc->{stdout} );
 
+    $self->{data} = $eslint_log->[0]->{output} if $eslint_log->[0]->{output};
+
     # eslint reported no violations
-    return res 200 if !$eslint_log->[0] || !$eslint_log->[0]->{messages} || !$eslint_log->[0]->{messages}->@*;
+    if ( !$eslint_log->[0]->{messages}->@* ) {
+        $self->update_log;
+
+        return res 200;
+    }
 
     my ( $log, $has_warnings, $has_errors );
 
@@ -171,9 +185,7 @@ sub filter_eslint ( $self, @options ) {
     my @items;
 
     for my $msg ( sort { $a->{severity} <=> $b->{severity} || $a->{line} <=> $b->{line} || $a->{column} <=> $b->{column} } $eslint_log->[0]->{messages}->@* ) {
-
-        # TODO
-        if ( $msg->{severity} >= 2 ) {
+        if ( $msg->{severity} == 1 ) {
             $has_warnings++;
         }
         else {
