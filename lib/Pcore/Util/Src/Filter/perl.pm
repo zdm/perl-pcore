@@ -25,9 +25,9 @@ const our $PERLCRITIC_ERROR_THRESHOLD => 4;
 const our $PERLCRITIC_SEVERITY        => {
 
     # warning
-    1 => [ $SRC_WARN, 'Warning, perlcritic(1)' ],
-    2 => [ $SRC_WARN, 'Warning, perlcritic(2)' ],
-    3 => [ $SRC_WARN, 'Warning, perlcritic(3)' ],
+    1 => [ $SRC_WARN, 'Warn, perlcritic(1)' ],
+    2 => [ $SRC_WARN, 'Warn, perlcritic(2)' ],
+    3 => [ $SRC_WARN, 'Warn, perlcritic(3)' ],
 
     # error
     4 => [ $SRC_ERROR, 'Error, perlcritic(4)' ],

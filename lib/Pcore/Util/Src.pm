@@ -11,11 +11,11 @@ our $EXPORT = {    #
 
 const our $STATUS => {
     200 => [ 'OK',             1, $BOLD . $GREEN ],
-    201 => [ 'Warn',           1, $YELLOW ],
+    201 => [ 'Warn',           1, $BOLD . $YELLOW ],
     202 => [ 'File Ignored',   1, $YELLOW ],
-    400 => [ 'Error',          1, $BOLD . $RED ],
+    400 => [ 'Error',          1, $BOLD . $WHITE . $ON_RED ],
     404 => [ 'File Not Found', 1, $BOLD . $RED ],
-    500 => [ 'Fatal',          1, $BOLD . $RED ],
+    500 => [ 'Fatal',          1, $BOLD . $WHITE . $ON_RED ],
     510 => [ 'Params Error',   0, $BOLD . $RED ],
 };
 
@@ -404,7 +404,7 @@ sub _report_file ( $tbl, $path, $res, $max_path_len ) {
                     align => -1,
                 },
                 severity => {
-                    width => 24,
+                    width => 30,
                     align => 1,
                 },
                 size => {
@@ -432,7 +432,7 @@ sub _report_file ( $tbl, $path, $res, $max_path_len ) {
     push @row, $path;
 
     # severity
-    push @row, $STATUS->{ $res->{status} }->[2] . uc( $res->{reason} ) . $RESET;
+    push @row, "$STATUS->{ $res->{status} }->[2] $res->{reason} $RESET";
 
     # size
     push @row, $res->{out_size};
@@ -463,7 +463,7 @@ sub _report_total ( $total ) {
         style => 'full',
         cols  => [
             type => {
-                width => 16,
+                width => 20,
                 align => 1,
             },
             count => {
@@ -477,12 +477,12 @@ sub _report_total ( $total ) {
 
     for my $status ( sort grep { $STATUS->{$_}->[1] } keys $STATUS->%* ) {
         print $tbl->render_row( [    #
-            $STATUS->{$status}->[2] . uc( $STATUS->{$status}->[0] ) . $RESET,
-            $STATUS->{$status}->[2] . ( $total->{data}->{$status} // 0 ) . $RESET,
+            "$STATUS->{$status}->[2] $STATUS->{$status}->[0] $RESET",
+            "$STATUS->{$status}->[2]  @{[ $total->{data}->{$status} // 0 ]}  $RESET",
         ] );
     }
 
-    print $tbl->render_row( [ 'MODIFIED', $total->{modified} // 0 ] );
+    print $tbl->render_row( [ 'Modified', $total->{modified} // 0 ] );
 
     print $tbl->finish;
 
