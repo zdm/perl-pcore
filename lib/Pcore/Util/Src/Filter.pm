@@ -11,7 +11,7 @@ around decompress => sub ( $orig, $self, $data, %args ) {
 
     my $res = $self->$orig;
 
-    $data->$* = $self->{data} if $res < $FILTER_STATUS_RUNTIME_ERROR;
+    $data->$* = $self->{data} if $res < $FILTER_STATUS_FATAL;
 
     return $res;
 };
@@ -21,7 +21,7 @@ around compress => sub ( $orig, $self, $data, %args ) {
 
     my $res = $self->$orig;
 
-    $data->$* = $self->{data} if $res < $FILTER_STATUS_RUNTIME_ERROR;
+    $data->$* = $self->{data} if $res < $FILTER_STATUS_FATAL;
 
     return $res;
 };
@@ -31,7 +31,7 @@ around obfuscate => sub ( $orig, $self, $data, %args ) {
 
     my $res = $self->$orig;
 
-    $data->$* = $self->{data} if $res < $FILTER_STATUS_RUNTIME_ERROR;
+    $data->$* = $self->{data} if $res < $FILTER_STATUS_FATAL;
 
     return $res;
 };
@@ -102,7 +102,7 @@ sub filter_prettier ( $self, @options ) {
         }
 
         # unable to run prettier
-        return res [ $FILTER_STATUS_RUNTIME_ERROR, $log[0] || $proc->{reason} ] if $proc->{exit_code} == 1;
+        return res [ $FILTER_STATUS_FATAL, $log[0] || $proc->{reason} ] if $proc->{exit_code} == 1;
 
         # prettier found errors in content
         $self->update_log( join "\n", @log );
@@ -134,7 +134,7 @@ sub filter_eslint ( $self, @options ) {
             $reason = $log[0];
         }
 
-        return res [ $FILTER_STATUS_RUNTIME_ERROR, $reason || $proc->{reason} ];
+        return res [ $FILTER_STATUS_FATAL, $reason || $proc->{reason} ];
     }
 
     my $eslint_log = P->data->from_json( $proc->{stdout} );

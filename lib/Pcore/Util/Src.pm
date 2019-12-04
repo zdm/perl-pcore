@@ -6,13 +6,13 @@ use Pcore::Util::Text qw[encode_utf8 decode_eol lcut_all rcut_all rtrim_multi re
 use Pcore::Util::Digest qw[md5_hex];
 
 our $EXPORT = {    #
-    FILTER_STATUS => [qw[$FILTER_STATUS_OK $FILTER_STATUS_WARN $FILTER_STATUS_ERROR $FILTER_STATUS_RUNTIME_ERROR]],
+    FILTER_STATUS => [qw[$FILTER_STATUS_OK $FILTER_STATUS_WARN $FILTER_STATUS_ERROR $FILTER_STATUS_FATAL]],
 };
 
-const our $FILTER_STATUS_OK            => 200;
-const our $FILTER_STATUS_WARN          => 201;
-const our $FILTER_STATUS_ERROR         => 400;
-const our $FILTER_STATUS_RUNTIME_ERROR => 500;
+const our $FILTER_STATUS_OK    => res [ 200, 'OK' ];       # content is OK
+const our $FILTER_STATUS_WARN  => res [ 201, 'WARN' ];     # content has warnings
+const our $FILTER_STATUS_ERROR => res [ 400, 'ERROR' ];    # content has errors
+const our $FILTER_STATUS_FATAL => res [ 500, 'FATAL' ];    # unable to run filter, runtime error
 
 const our $STATUS_REASON => {
     200 => 'OK',

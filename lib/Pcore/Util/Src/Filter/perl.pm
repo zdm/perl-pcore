@@ -146,7 +146,7 @@ SQL
 
             # encryption error
             if ($Filter::Crypto::CryptFile::ErrStr) {
-                return res [ $FILTER_STATUS_RUNTIME_ERROR, $Filter::Crypto::CryptFile::ErrStr ];
+                return res [ $FILTER_STATUS_FATAL, $Filter::Crypto::CryptFile::ErrStr ];
             }
             else {
                 $self->{data} = $hashbang . P->file->read_bin($temp);
@@ -260,7 +260,7 @@ sub filter_perlcritic ($self) {
 
         # perlcritic exception
         if ($@) {
-            $res = res $FILTER_STATUS_RUNTIME_ERROR;
+            $res = res $FILTER_STATUS_FATAL;
         }
 
         # index violations

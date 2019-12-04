@@ -72,7 +72,7 @@ sub filter_terser ( $self, @options ) {
             $reason = $log[0];
         }
 
-        return res [ $FILTER_STATUS_RUNTIME_ERROR, $reason || $proc->{reason} ];
+        return res [ $FILTER_STATUS_FATAL, $reason || $proc->{reason} ];
     }
 
     $self->{data} = $proc->{stdout}->$*;

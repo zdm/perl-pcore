@@ -12,7 +12,7 @@ sub decompress ($self) {
         $self->{data} = P->data->to_json( $data, readable => 1 );
     };
 
-    return res $@ ? $FILTER_STATUS_RUNTIME_ERROR : $FILTER_STATUS_OK;
+    return res $@ ? $FILTER_STATUS_FATAL : $FILTER_STATUS_OK;
 }
 
 sub compress ($self) {
@@ -22,7 +22,7 @@ sub compress ($self) {
         $self->{data} = P->data->to_json( $data, readable => 0 );
     };
 
-    return res $@ ? $FILTER_STATUS_RUNTIME_ERROR : $FILTER_STATUS_OK;
+    return res $@ ? $FILTER_STATUS_FATAL : $FILTER_STATUS_OK;
 }
 
 1;

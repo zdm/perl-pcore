@@ -18,7 +18,7 @@ sub filter_yaml_xs ($self) {
         $self->{data} = P->data->to_yaml( $data, readable => 1 );
     };
 
-    return res $@ ? $FILTER_STATUS_RUNTIME_ERROR : $FILTER_STATUS_OK;
+    return res $@ ? $FILTER_STATUS_FATAL : $FILTER_STATUS_OK;
 }
 
 1;
