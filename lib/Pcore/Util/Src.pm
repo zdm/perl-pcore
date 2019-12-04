@@ -444,7 +444,7 @@ sub _report_file ( $tbl, $path, $res, $max_path_len ) {
 }
 
 sub _report_total ( $total ) {
-    return if !defined $total;
+    return if !defined $total || !$total->{data}->%*;
 
     my $tbl = P->text->table(
         style => 'full',
