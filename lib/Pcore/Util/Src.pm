@@ -10,13 +10,13 @@ our $EXPORT = {    #
 };
 
 const our $STATUS => {
-    200 => [ 'OK',             $BOLD . $GREEN ],
-    201 => [ 'Warn',           $YELLOW ],
-    202 => [ 'File Ignored',   $YELLOW ],
-    400 => [ 'Error',          $BOLD . $RED ],
-    404 => [ 'File Not Found', $BOLD . $RED ],
-    500 => [ 'Fatal',          $BOLD . $RED ],
-    510 => [ 'Params Error',   $BOLD . $RED ],
+    200 => [ 'OK',             1, $BOLD . $GREEN ],
+    201 => [ 'Warn',           1, $YELLOW ],
+    202 => [ 'File Ignored',   1, $YELLOW ],
+    400 => [ 'Error',          1, $BOLD . $RED ],
+    404 => [ 'File Not Found', 1, $BOLD . $RED ],
+    500 => [ 'Fatal',          1, $BOLD . $RED ],
+    510 => [ 'Params Error',   0, $BOLD . $RED ],
 };
 
 const our $FILTER_STATUS_OK    => res [ 200, $STATUS->{200}->[0] ];    # content is OK
@@ -419,7 +419,7 @@ sub _report_file ( $tbl, $path, $res, $max_path_len ) {
     push @row, $path;
 
     # severity
-    push @row, $STATUS->{ $res->{status} }->[1] . uc( $res->{reason} ) . $RESET;
+    push @row, $STATUS->{ $res->{status} }->[2] . uc( $res->{reason} ) . $RESET;
 
     # size
     push @row, $res->{out_size};
@@ -462,10 +462,10 @@ sub _report_total ( $total ) {
 
     print $tbl->render_header;
 
-    for my $status ( sort keys $total->{data}->%* ) {
+    for my $status ( sort grep { $STATUS->{$_}->[1] } keys $STATUS->%* ) {
         print $tbl->render_row( [    #
-            $STATUS->{$status}->[1] . uc( $STATUS->{$status}->[0] ) . $RESET,
-            $STATUS->{$status}->[1] . ( $total->{data}->{$status} // 0 ) . $RESET,
+            $STATUS->{$status}->[2] . uc( $STATUS->{$status}->[0] ) . $RESET,
+            $STATUS->{$status}->[2] . ( $total->{data}->{$status} // 0 ) . $RESET,
         ] );
     }
 
