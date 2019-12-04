@@ -129,11 +129,11 @@ sub filter_eslint ( $self, @options ) {
 
     $config //= $ENV->{share}->get('/Pcore/data/.eslintrc.yaml');
 
-    my $temp = P->file1->tempfile;
+    my $temp = P->file1->tempfile( suffix => $self->{path}->{suffix} );
     P->file->write_bin( $temp, $self->{data} );
 
     my $proc = P->sys->run_proc(
-        [ 'eslint', $temp, "--config=$config", @options, '--format=json', '--fix' ],
+        [ 'eslint', $temp, "--config=$config", @options, '--format=json', '--fix', '--no-eslintrc' ],
         use_fh => 1,
         stdout => 1,
         stderr => 1,
