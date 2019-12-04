@@ -20,9 +20,6 @@ sub decompress ($self) {
 
 sub update_log ( $self, $log = undef ) {
 
-    # <!-- comment contents here -->
-    # <!-- -->
-
     # clear log
     $self->{data} =~ s[<!-- -----SOURCE FILTER LOG BEGIN-----.*-----SOURCE FILTER LOG END----- -->][]sm;
 
@@ -32,6 +29,7 @@ sub update_log ( $self, $log = undef ) {
     if ($log) {
         encode_utf8 $log;
 
+        $log =~ s[-->][---]smg;
         $log =~ s[^][<!-- ]smg;
         $log =~ s[\n][ -->\n]smg;
 
@@ -52,9 +50,9 @@ sub update_log ( $self, $log = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 27                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 24                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 41                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 39                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
