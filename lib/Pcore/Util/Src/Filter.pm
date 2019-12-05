@@ -120,7 +120,7 @@ sub filter_eslint ( $self, @options ) {
 
         while ( $path = $path->parent ) {
             if ( -f "$path/package.json" ) {
-                $root = $path;
+                $root = $path if -f "$path/.eslintrc.yaml";
 
                 last;
             }
@@ -249,6 +249,16 @@ sub filter_eslint ( $self, @options ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 115                  | Subroutines::ProhibitExcessComplexity - Subroutine "filter_eslint" with high complexity score (21)             |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
