@@ -132,10 +132,13 @@ sub filter_eslint ( $self, @options ) {
 
     my $proc;
 
+    # --stdin
+    # --stdin-filename String
+
     # node project was found
     if ($root) {
         $proc = P->sys->run_proc(
-            [ 'npx', 'eslint', $temp, @options, '--format=json', '--fix', "--resolve-plugins-relative-to=$root", "--config=$root/.eslintrc.yaml" ],
+            [ 'npx', 'eslint', $temp, '--fix', @options, '--no-color', '--format=json', '--report-unused-disable-directives', "--resolve-plugins-relative-to=$root", "--config=$root/.eslintrc.yaml" ],
             chdir  => $root,
             use_fh => 1,
             stdout => 1,
@@ -146,7 +149,7 @@ sub filter_eslint ( $self, @options ) {
         state $config = $ENV->{share}->get('/Pcore/data/.eslintrc.yaml');
 
         $proc = P->sys->run_proc(
-            [ 'eslint', $temp, "--config=$config", @options, '--format=json', '--fix', '--no-eslintrc' ],
+            [ 'eslint', $temp, "--config=$config", '--fix', @options, '--no-color', '--format=json', '--report-unused-disable-directives', '--no-eslintrc' ],
             use_fh => 1,
             stdout => 1,
             stderr => 1,
