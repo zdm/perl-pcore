@@ -315,7 +315,7 @@ sub _process_file ( $args, $action, $filter_profile, $path = undef, $data = unde
         encode_utf8 $data;
     }
 
-    $res->{in_size} = bytes::length $data;
+    $res->{in_size} = length $data;
     my $in_md5 = md5_hex $data;
 
     # run filter
@@ -328,6 +328,8 @@ sub _process_file ( $args, $action, $filter_profile, $path = undef, $data = unde
 
         $res->{status} = $filter_res->{status};
         $res->{reason} = $filter_res->{reason};
+
+        encode_utf8 $data;
     }
 
     # trim
@@ -347,7 +349,7 @@ sub _process_file ( $args, $action, $filter_profile, $path = undef, $data = unde
 
     my $out_md5 = md5_hex $data;
     $res->{is_modified} = $in_md5 ne $out_md5;
-    $res->{out_size}    = bytes::length $data;
+    $res->{out_size}    = length $data;
     $res->{size_delta}  = $res->{out_size} - $res->{in_size};
 
     # write file
@@ -498,7 +500,7 @@ sub _report_total ( $total ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 183                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (34)            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 290, 396             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 290, 398             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
