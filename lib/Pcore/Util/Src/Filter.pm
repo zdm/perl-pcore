@@ -2,6 +2,7 @@ package Pcore::Util::Src::Filter;
 
 use Pcore -role, -res, -const;
 use Pcore::Util::Src qw[:FILTER_STATUS];
+use Pcore::Util::Sys::Proc qw[:PROC_REDIRECT];
 
 has data      => ( required => 1 );
 has path      => ( required => 1 );
@@ -65,9 +66,8 @@ sub filter_prettier ( $self, @options ) {
 
     my $proc = P->sys->run_proc(
         [ 'prettier', $temp, $dist_options->@*, @options, '--no-color', '--no-config', '--loglevel=error' ],
-        use_fh => 1,
-        stdout => 1,
-        stderr => 1,
+        stdout => $PROC_REDIRECT_FH,
+        stderr => $PROC_REDIRECT_FH,
     )->capture;
 
     # ran without errors
@@ -133,10 +133,9 @@ sub filter_eslint ( $self, @options ) {
     if ($root) {
         $proc = P->sys->run_proc(
             [ 'npx', 'eslint', '--fix-dry-run', @options, '--format=json', '--report-unused-disable-directives', '--stdin', "--stdin-filename=$self->{path}", '--fix-dry-run' ],
-            use_fh => 1,
             stdin  => \$self->{data},
-            stdout => 1,
-            stderr => 1,
+            stdout => $PROC_REDIRECT_FH,
+            stderr => $PROC_REDIRECT_FH,
         )->capture;
     }
 
@@ -146,10 +145,9 @@ sub filter_eslint ( $self, @options ) {
 
         $proc = P->sys->run_proc(
             [ 'eslint', '--fix-dry-run', @options, '--format=json', '--report-unused-disable-directives', '--stdin', "--stdin-filename=$self->{path}", "--config=$config", '--no-eslintrc' ],
-            use_fh => 1,
             stdin  => \$self->{data},
-            stdout => 1,
-            stderr => 1,
+            stdout => $PROC_REDIRECT_FH,
+            stderr => $PROC_REDIRECT_FH,
         )->capture;
     }
 

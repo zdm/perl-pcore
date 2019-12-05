@@ -3,6 +3,7 @@ package Pcore::Util::Src::Filter::js;
 use Pcore -class, -res;
 use Pcore::Util::Src qw[:FILTER_STATUS];
 use Pcore::Util::Text qw[rcut_all encode_utf8];
+use Pcore::Util::Sys::Proc qw[:PROC_REDIRECT];
 
 with qw[Pcore::Util::Src::Filter];
 
@@ -58,9 +59,8 @@ sub filter_terser ( $self, @options ) {
 
     my $proc = P->sys->run_proc(
         [ 'terser', $temp, @options ],
-        use_fh => 1,
-        stdout => 1,
-        stderr => 1,
+        stdout => $PROC_REDIRECT_FH,
+        stderr => $PROC_REDIRECT_FH,
     )->capture;
 
     if ( !$proc ) {
@@ -99,7 +99,7 @@ sub filer_js_packer ( $self, $obfuscate = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 36                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 37                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
