@@ -113,31 +113,44 @@ sub filter_prettier ( $self, @options ) {
 }
 
 sub filter_eslint ( $self, @options ) {
-    my $config;
+    my $root;
 
     if ( $self->{path} && -e $self->{path} ) {
         my $path = P->path( $self->{path} );
 
         while ( $path = $path->parent ) {
-            if ( -f "$path/.eslintrc.yaml" ) {
-                $config = "$path/.eslintrc.yaml";
+            if ( -f "$path/package.json" ) {
+                $root = $path;
 
                 last;
             }
         }
     }
 
-    $config //= $ENV->{share}->get('/Pcore/data/.eslintrc.yaml');
-
     my $temp = P->file1->tempfile( suffix => $self->{path}->{suffix} );
     P->file->write_bin( $temp, $self->{data} );
 
-    my $proc = P->sys->run_proc(
-        [ 'eslint', $temp, "--config=$config", @options, '--format=json', '--fix', '--no-eslintrc' ],
-        use_fh => 1,
-        stdout => 1,
-        stderr => 1,
-    )->capture;
+    my $proc;
+
+    # node project was found
+    if ($root) {
+        $proc = P->sys->run_proc(
+            [ 'eslint', $temp, @options, '--format=json', '--fix', "--resolve-plugins-relative-to=$root", "--config=$root/.eslintrc.yaml" ],
+            use_fh => 1,
+            stdout => 1,
+            stderr => 1,
+        )->capture;
+    }
+    else {
+        state $config = $ENV->{share}->get('/Pcore/data/.eslintrc.yaml');
+
+        $proc = P->sys->run_proc(
+            [ 'eslint', $temp, "--config=$config", @options, '--format=json', '--fix', '--no-eslintrc' ],
+            use_fh => 1,
+            stdout => 1,
+            stderr => 1,
+        )->capture;
+    }
 
     # unable to run elsint
     if ( !$proc && !$proc->{stdout}->$* ) {
@@ -235,6 +248,16 @@ sub filter_eslint ( $self, @options ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 115                  | Subroutines::ProhibitExcessComplexity - Subroutine "filter_eslint" with high complexity score (21)             |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
