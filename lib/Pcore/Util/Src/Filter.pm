@@ -139,6 +139,8 @@ sub filter_eslint ( $self, @options ) {
             stderr => 1,
         )->capture;
     }
+
+    # node project was not found, use default settings
     else {
         state $config = $ENV->{share}->get('/Pcore/data/.eslintrc.yaml');
 
