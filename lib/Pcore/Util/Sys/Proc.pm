@@ -1,7 +1,8 @@
 package Pcore::Util::Sys::Proc;
 
 use Pcore -const, -class;
-use Pcore::Util::Scalar qw[is_ref weaken];
+use Pcore::Util::Scalar qw[is_ref is_plain_scalarref weaken];
+use Pcore::Util::Text qw[encode_utf8];
 use AnyEvent::Util qw[portable_socketpair];
 use if $MSWIN, 'Win32::Process';
 use if $MSWIN, 'Win32API::File';
@@ -25,6 +26,9 @@ has pid       => ();
 has exit_code => ();
 has status    => ();
 has reason    => ();
+
+has child_stdin  => ( init_arg => undef );
+has child_stderr => ( init_arg => undef );
 
 has _win32_proc => ();
 has _watcher    => ();
@@ -98,11 +102,8 @@ around new => sub ( $orig, $self, $cmd, %args ) {
 
     # redirect STDIN
     if ( $args{stdin} ) {
-        ( $child_stdin, my $parent_stdin ) = portable_socketpair();
 
-        $self->{stdin} = P->handle($parent_stdin);
-
-        # backup and redirect
+        # backup STDIN
         open $backup_stdin, '<&', *STDIN or do {    ## no critic qw[InputOutput::RequireBriefOpen]
 
             # windows os native fh is invalid, reopen STDIN to NUL
@@ -114,11 +115,29 @@ around new => sub ( $orig, $self, $cmd, %args ) {
             }
         };
 
+        # redirect STDIN to the temporary filehandle
+        if ( is_plain_scalarref $args{stdin} ) {
+            $self->{stdin} = P->file1->tempfile;
+
+            P->file->write_bin( $self->{stdin}, encode_utf8 $args{stdin}->$* );
+
+            open $child_stdin, '<:raw', $self->{stdin} or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
+        }
+
+        # redirect STDIN to the socket
+        else {
+            ( $child_stdin, my $parent_stdin ) = portable_socketpair();
+
+            $self->{stdin} = P->handle($parent_stdin);
+        }
+
         open *STDIN, '<&', $child_stdin or die $!;
     }
 
     # redirect STDOUT
     if ( $args{stdout} ) {
+
+        # backup STDOUT
         open $backup_stdout, '>&', *STDOUT or do {    ## no critic qw[InputOutput::RequireBriefOpen]
 
             # windows os native fh is invalid, reopen STDOUT to NUL
@@ -130,12 +149,15 @@ around new => sub ( $orig, $self, $cmd, %args ) {
             }
         };
 
+        # redirect STDOUT to the temporary filehandle
         if ( $args{use_fh} ) {
             $self->{stdout} = P->file1->tempfile;
 
             # redirect STDOUT
-            open *STDOUT, '>', $self->{stdout} or die $!;
+            open *STDOUT, '>:raw', $self->{stdout} or die $!;
         }
+
+        # redirect STDOUT to the socket
         else {
             ( my $parent_stdout, $child_stdout ) = portable_socketpair();
 
@@ -175,16 +197,18 @@ around new => sub ( $orig, $self, $cmd, %args ) {
                     open *STDERR, '>', $self->{stdout} or die $!;
                 }
 
-                # redirect STDERR to parent STDOUT
+                # redirect STDERR to the parent STDOUT
                 else {
                     open *STDERR, '>&', *STDOUT or die $!;
                 }
             }
+
+            # redirect STDERR to the temporary filehandle
             else {
                 $self->{stderr} = P->file1->tempfile;
 
                 # redirect STDERR
-                open *STDERR, '>', $self->{stderr} or die $!;
+                open *STDERR, '>:raw', $self->{stderr} or die $!;
             }
         }
         else {
@@ -202,6 +226,8 @@ around new => sub ( $orig, $self, $cmd, %args ) {
                     open $child_stderr, '>&', *STDOUT or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
                 }
             }
+
+            # redirect STDERR to the socked
             else {
                 ( my $parent_stderr, $child_stderr ) = portable_socketpair();
 
@@ -475,9 +501,9 @@ sub _set_exit_code ( $self, $exit_code, $reason = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (52)                               |
+## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (55)                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 109, 125, 158        | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 110, 144, 180        | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

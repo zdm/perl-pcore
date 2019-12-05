@@ -131,25 +131,13 @@ sub filter_eslint ( $self, @options ) {
 
     # node project was found
     if ($root) {
-        open my $backup_stdin, '<&', *STDIN or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
-
-        my $temp = P->file1->tempfile;
-        open my $r, '<:raw', $temp or die $!;             ## no critic qw[InputOutput::RequireBriefOpen]
-        P->file->write_bin( $temp, $self->{data} );
-
-        open *STDIN, '<&', $r or die $!;
-
         $proc = P->sys->run_proc(
             [ 'npx', 'eslint', '--fix-dry-run', @options, '--format=json', '--report-unused-disable-directives', '--stdin', "--stdin-filename=$self->{path}", '--fix-dry-run' ],
             use_fh => 1,
-            stdin  => 0,
+            stdin  => \$self->{data},
             stdout => 1,
             stderr => 1,
-        );
-
-        open *STDIN, '<&', $backup_stdin or die $!;
-
-        $proc->capture;
+        )->capture;
     }
     else {
         state $config = $ENV->{share}->get('/Pcore/data/.eslintrc.yaml');
@@ -157,6 +145,7 @@ sub filter_eslint ( $self, @options ) {
         $proc = P->sys->run_proc(
             [ 'eslint', '--fix-dry-run', @options, '--format=json', '--report-unused-disable-directives', '--stdin', "--stdin-filename=$self->{path}", "--config=$config", '--no-eslintrc' ],
             use_fh => 1,
+            stdin  => \$self->{data},
             stdout => 1,
             stderr => 1,
         )->capture;
@@ -258,16 +247,6 @@ sub filter_eslint ( $self, @options ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 115                  | Subroutines::ProhibitExcessComplexity - Subroutine "filter_eslint" with high complexity score (24)             |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
