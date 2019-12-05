@@ -115,7 +115,7 @@ sub filter_prettier ( $self, @options ) {
 sub filter_eslint ( $self, @options ) {
     my $root;
 
-    if ( $self->{path} && -e $self->{path} ) {
+    if ( $self->{path} ) {
         my $path = P->path( $self->{path} );
 
         while ( $path = $path->parent ) {
@@ -135,7 +135,8 @@ sub filter_eslint ( $self, @options ) {
     # node project was found
     if ($root) {
         $proc = P->sys->run_proc(
-            [ 'eslint', $temp, @options, '--format=json', '--fix', "--resolve-plugins-relative-to=$root", "--config=$root/.eslintrc.yaml" ],
+            [ 'npx', 'eslint', $temp, @options, '--format=json', '--fix', "--resolve-plugins-relative-to=$root", "--config=$root/.eslintrc.yaml" ],
+            chdir  => $root,
             use_fh => 1,
             stdout => 1,
             stderr => 1,
@@ -248,16 +249,6 @@ sub filter_eslint ( $self, @options ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 115                  | Subroutines::ProhibitExcessComplexity - Subroutine "filter_eslint" with high complexity score (21)             |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
