@@ -120,36 +120,42 @@ sub filter_eslint ( $self, @options ) {
 
         while ( $path = $path->parent ) {
             if ( -f "$path/package.json" ) {
-                $root = $path if -f "$path/.eslintrc.yaml";
+                $root = $path;
 
                 last;
             }
         }
     }
 
-    my $temp = P->file1->tempfile( suffix => $self->{path}->{suffix} );
-    P->file->write_bin( $temp, $self->{data} );
-
     my $proc;
-
-    # --stdin
-    # --stdin-filename String
 
     # node project was found
     if ($root) {
+        open my $backup_stdin, '<&', *STDIN or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
+
+        my $temp = P->file1->tempfile;
+        open my $r, '<:raw', $temp or die $!;             ## no critic qw[InputOutput::RequireBriefOpen]
+        P->file->write_bin( $temp, $self->{data} );
+
+        open *STDIN, '<&', $r or die $!;
+
         $proc = P->sys->run_proc(
-            [ 'npx', 'eslint', $temp, '--fix', @options, '--no-color', '--format=json', '--report-unused-disable-directives', "--resolve-plugins-relative-to=$root", "--config=$root/.eslintrc.yaml" ],
-            chdir  => $root,
+            [ 'npx', 'eslint', '--fix-dry-run', @options, '--format=json', '--report-unused-disable-directives', '--stdin', "--stdin-filename=$self->{path}", '--fix-dry-run' ],
             use_fh => 1,
+            stdin  => 0,
             stdout => 1,
             stderr => 1,
-        )->capture;
+        );
+
+        open *STDIN, '<&', $backup_stdin or die $!;
+
+        $proc->capture;
     }
     else {
         state $config = $ENV->{share}->get('/Pcore/data/.eslintrc.yaml');
 
         $proc = P->sys->run_proc(
-            [ 'eslint', $temp, "--config=$config", '--fix', @options, '--no-color', '--format=json', '--report-unused-disable-directives', '--no-eslintrc' ],
+            [ 'eslint', '--fix-dry-run', @options, '--format=json', '--report-unused-disable-directives', '--stdin', "--stdin-filename=$self->{path}", "--config=$config", '--no-eslintrc' ],
             use_fh => 1,
             stdout => 1,
             stderr => 1,
@@ -258,7 +264,7 @@ sub filter_eslint ( $self, @options ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 115                  | Subroutines::ProhibitExcessComplexity - Subroutine "filter_eslint" with high complexity score (21)             |
+## |    3 | 115                  | Subroutines::ProhibitExcessComplexity - Subroutine "filter_eslint" with high complexity score (24)             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
