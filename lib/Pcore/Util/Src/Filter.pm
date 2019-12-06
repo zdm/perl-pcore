@@ -156,7 +156,7 @@ sub filter_eslint ( $self, @options ) {
         my $reason;
 
         if ( $proc->{stderr}->$* ) {
-            my @log = split /\n/sm, $proc->{stderr}->$*;
+            my @log = grep {$_} split /\n/sm, $proc->{stderr}->$*;
 
             $reason = $log[0];
         }
