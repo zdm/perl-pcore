@@ -7,16 +7,8 @@ use Pcore::Util::Sys::Proc qw[:PROC_REDIRECT];
 
 with qw[Pcore::Util::Src::Filter];
 
-has lint => 1;
-
 sub decompress ( $self ) {
-    my $res = $self->filter_prettier('--parser=babel');
-
-    return $res if !$res;
-
-    $res = $self->filter_eslint if $self->{lint};
-
-    return $res;
+    return $self->filter_eslint;
 }
 
 sub compress ($self) {
@@ -99,7 +91,7 @@ sub filer_js_packer ( $self, $obfuscate = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 37                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 29                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
