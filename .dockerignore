@@ -1,6 +1,6 @@
 # git
-/.git*
+.git*
 
-# pcore
-/data/
-/wiki/
+# common
+data/
+wiki/
