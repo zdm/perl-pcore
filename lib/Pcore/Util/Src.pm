@@ -200,6 +200,11 @@ sub _process_files ( $args, $action ) {
             # read dir
             for my $path ( ( $path->read_dir( abs => 1, max_depth => 0, is_dir => 0 ) // [] )->@* ) {
 
+                # ignore any file inside "node_modules" dir
+                if ( $path =~ m[/node_modules/]sm ) {
+                    next;
+                }
+
                 # get filter profile
                 if ( my $filter_profile = _get_filter_profile( $args, $path ) ) {
                     $tasks{$path} = [ $filter_profile, $path ];
@@ -498,9 +503,9 @@ sub _report_total ( $total ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 183                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (34)            |
+## |    3 | 183                  | Subroutines::ProhibitExcessComplexity - Subroutine "_process_files" with high complexity score (35)            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 290, 398             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 295, 403             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
