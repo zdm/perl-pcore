@@ -197,7 +197,7 @@ sub filter_eslint ( $self, @options ) {
             },
             rule => {
                 title       => 'Rule',
-                width       => 20,
+                width       => 30,
                 title_align => -1,
                 align       => -1,
                 valign      => -1,
