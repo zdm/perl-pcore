@@ -8,15 +8,21 @@ use Pcore::Util::Sys::Proc qw[:PROC_REDIRECT];
 with qw[Pcore::Util::Src::Filter];
 
 sub decompress ( $self ) {
+    my $res = $self->filter_prettier( parser => 'babel' );
+
+    return $res if !$res;
+
     return $self->filter_eslint;
 }
 
+# --compress
 sub compress ($self) {
     my $options = $self->dist_cfg->{terser_compress} || $self->src_cfg->{terser_compress};
 
     return $self->filter_terser( $options->@* );
 }
 
+# --compress, --mangle
 sub obfuscate ($self) {
     my $options = $self->dist_cfg->{terser_obfuscate} || $self->src_cfg->{terser_obfuscate};
 
@@ -91,7 +97,7 @@ sub filer_js_packer ( $self, $obfuscate = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 29                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 35                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -8,6 +8,9 @@ has data      => ( required => 1 );
 has path      => ( required => 1 );
 has has_kolon => ( is       => 'lazy', init_arg => undef );
 
+our $ESLINT;
+our $ESLINT_CONN;
+
 around decompress => sub ( $orig, $self, $data, $path = undef, %args ) {
     $self = $self->new( %args, data => $data->$*, path => $path );
 
@@ -58,61 +61,66 @@ sub obfuscate ($self) { return $SRC_OK }
 
 sub update_log ( $self, $log = undef ) {return}
 
-sub filter_prettier ( $self, @options ) {
-    my $dist_options = $self->dist_cfg->{prettier} || $self->src_cfg->{prettier};
+sub filter_prettier ( $self, %options ) {
+    $ESLINT //= P->sys->run_proc( [ 'softvisio-cli', '--vim' ] );
 
-    my $temp = P->file1->tempfile;
-    P->file->write_bin( $temp, $self->{data} );
+    return res [ $SRC_FATAL, $ESLINT->{reason} ] if !$ESLINT->is_active && !$ESLINT;
 
-    my $proc = P->sys->run_proc(
-        [ 'prettier', $temp, $dist_options->@*, @options, '--no-color', '--no-config', '--loglevel=error' ],
-        stdout => $PROC_REDIRECT_FH,
-        stderr => $PROC_REDIRECT_FH,
-    )->capture;
+    $ESLINT_CONN ||= P->handle( 'tcp://127.0.0.1:55556', connection_timeout => 3 );
 
-    # ran without errors
-    if ($proc) {
-        $self->{data} = $proc->{stdout}->$*;
+    return res [ $SRC_FATAL, $ESLINT_CONN->{reason} ] if !$ESLINT_CONN;
+
+    # my $dist_options = $self->dist_cfg->{prettier} || $self->src_cfg->{prettier};
+
+    my $msg = {
+        command => 'prettier',
+        options => {
+            %options,
+            "printWidth"              => 99999999,
+            "tabWidth"                => 4,
+            "semi"                    => \1,
+            "singleQuote"             => \1,
+            "trailingComma"           => "es5",
+            "bracketSpacing"          => \1,
+            "jsxBracketSameLine"      => \0,
+            "arrowParens"             => "always",
+            "vueIndentScriptAndStyle" => \1,
+            "endOfLine"               => "lf",
+            filepath                  => "$self->{path}",
+        },
+        data => $self->{data},
+    };
+
+    $ESLINT_CONN->write( P->data->to_json($msg) . "\n" );
+
+    my $res = $ESLINT_CONN->read_line;
+
+    $res = P->data->from_json($res);
+
+    # unable to run elsint
+    if ( !$res->{status} ) {
+        $self->update_log( $res->{reason} );
+
+        return $SRC_ERROR;
+    }
+    else {
+        $self->{data} = $res->{result};
 
         $self->update_log;
 
         return $SRC_OK;
     }
-
-    # run with errors
-    else {
-
-        my ( @log, $has_errors, $has_warnings );
-
-        my $temp_filename = $temp->{filename};
-
-        # parse stderr
-        if ( $proc->{stderr}->$* ) {
-            for my $line ( split /\n/sm, $proc->{stderr}->$* ) {
-                if ( $line =~ s/\A\[(.+?)\]\s//sm ) {
-                    if    ( $1 eq 'error' ) { $has_errors++ }
-                    elsif ( $1 eq 'warn' )  { $has_warnings++ }
-                }
-
-                # remove temp filename from log
-                $line =~ s[\A.+$temp_filename:\s][]sm;
-
-                push @log, $line;
-            }
-
-        }
-
-        # unable to run prettier
-        return res [ $SRC_FATAL, $log[0] || $proc->{reason} ] if $proc->{exit_code} == 1;
-
-        # prettier found errors in content
-        $self->update_log( join "\n", @log );
-
-        return $has_errors ? $SRC_ERROR : $SRC_WARN;
-    }
 }
 
 sub filter_eslint ( $self, @options ) {
+    $ESLINT //= P->sys->run_proc( [ 'softvisio-cli', '--vim' ] );
+
+    return res [ $SRC_FATAL, $ESLINT->{reason} ] if !$ESLINT->is_active && !$ESLINT;
+
+    $ESLINT_CONN ||= P->handle( 'tcp://127.0.0.1:55556', connection_timeout => 3 );
+
+    return res [ $SRC_FATAL, $ESLINT_CONN->{reason} ] if !$ESLINT_CONN;
+
     my $root;
 
     if ( $self->{path} ) {
@@ -127,44 +135,53 @@ sub filter_eslint ( $self, @options ) {
         }
     }
 
-    my $proc;
+    my $msg;
 
     # node project was found
     if ($root) {
-        $proc = P->sys->run_proc(
-            [ 'npx', 'eslint', '--fix-dry-run', @options, '--format=json', '--report-unused-disable-directives', '--stdin', "--stdin-filename=$self->{path}", '--fix-dry-run' ],
-            stdin  => \$self->{data},
-            stdout => $PROC_REDIRECT_FH,
-            stderr => $PROC_REDIRECT_FH,
-        )->capture;
+        $msg = {
+            command => 'eslint',
+            options => {
+                useEslintrc                   => \1,
+                fix                           => \1,
+                allowInlineConfig             => \1,
+                reportUnusedDisableDirectives => \1,
+            },
+            path => "$self->{path}",
+            data => $self->{data},
+        };
     }
 
     # node project was not found, use default settings
     else {
         state $config = $ENV->{share}->get('/Pcore/data/.eslintrc.yaml');
 
-        $proc = P->sys->run_proc(
-            [ 'eslint', '--fix-dry-run', @options, '--format=json', '--report-unused-disable-directives', '--stdin', "--stdin-filename=$self->{path}", "--config=$config", '--no-eslintrc' ],
-            stdin  => \$self->{data},
-            stdout => $PROC_REDIRECT_FH,
-            stderr => $PROC_REDIRECT_FH,
-        )->capture;
+        $msg = {
+            command => 'eslint',
+            options => {
+                useEslintrc                   => \0,
+                fix                           => \1,
+                allowInlineConfig             => \1,
+                reportUnusedDisableDirectives => \1,
+                configFile                    => $config,
+            },
+            path => "$self->{path}",
+            data => $self->{data},
+        };
     }
+
+    $ESLINT_CONN->write( P->data->to_json($msg) . "\n" );
+
+    my $res = $ESLINT_CONN->read_line;
+
+    $res = P->data->from_json($res);
 
     # unable to run elsint
-    if ( !$proc && !$proc->{stdout}->$* ) {
-        my $reason;
-
-        if ( $proc->{stderr}->$* ) {
-            my @log = grep {$_} split /\n/sm, $proc->{stderr}->$*;
-
-            $reason = $log[0];
-        }
-
-        return res [ $SRC_FATAL, $reason || $proc->{reason} ];
+    if ( !$res->{status} ) {
+        return res [ $SRC_FATAL, $res->{reason} ];
     }
 
-    my $eslint_log = P->data->from_json( $proc->{stdout} );
+    my $eslint_log = $res->{result};
 
     $self->{data} = $eslint_log->[0]->{output} if $eslint_log->[0]->{output};
 
@@ -247,6 +264,21 @@ sub filter_eslint ( $self, @options ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 79, 80, 81, 82, 83,  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |      | 84, 85, 86, 87, 88   |                                                                                                                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 115                  | Subroutines::ProhibitExcessComplexity - Subroutine "filter_eslint" with high complexity score (21)             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 79                   | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
