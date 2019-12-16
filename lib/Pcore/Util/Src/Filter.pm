@@ -8,9 +8,6 @@ has data      => ( required => 1 );
 has path      => ( required => 1 );
 has has_kolon => ( is       => 'lazy', init_arg => undef );
 
-our $ESLINT;
-our $ESLINT_CONN;
-
 around decompress => sub ( $orig, $self, $data, $path = undef, %args ) {
     $self = $self->new( %args, data => $data->$*, path => $path );
 
@@ -61,14 +58,28 @@ sub obfuscate ($self) { return $SRC_OK }
 
 sub update_log ( $self, $log = undef ) {return}
 
+sub _get_node ($self) {
+    state( $proc, $conn );
+
+    if ( !$conn ) {
+        if ( !P->net->check_port( '127.0.0.1', 55556, 0.1 ) ) {
+            $proc //= P->sys->run_proc( [ 'softvisio-cli', '--vim' ] );
+
+            return res [ $SRC_FATAL, $proc->{reason} ] if !$proc->is_active && !$proc;
+        }
+
+        $conn = P->handle( 'tcp://127.0.0.1:55556', connection_timeout => 3 );
+
+        return res [ $SRC_FATAL, $conn->{reason} ] if !$conn;
+    }
+
+    return $conn;
+}
+
 sub filter_eslint ( $self, @options ) {
-    $ESLINT //= P->sys->run_proc( [ 'softvisio-cli', '--vim' ] );
+    my $node = $self->_get_node;
 
-    return res [ $SRC_FATAL, $ESLINT->{reason} ] if !$ESLINT->is_active && !$ESLINT;
-
-    $ESLINT_CONN ||= P->handle( 'tcp://127.0.0.1:55556', connection_timeout => 3 );
-
-    return res [ $SRC_FATAL, $ESLINT_CONN->{reason} ] if !$ESLINT_CONN;
+    return $node if !$node;
 
     my $root;
 
@@ -119,9 +130,9 @@ sub filter_eslint ( $self, @options ) {
         };
     }
 
-    $ESLINT_CONN->write( P->data->to_json($msg) . "\n" );
+    $node->write( P->data->to_json($msg) . "\n" );
 
-    my $res = $ESLINT_CONN->read_line;
+    my $res = $node->read_line;
 
     $res = P->data->from_json($res);
 
@@ -213,13 +224,9 @@ sub filter_eslint ( $self, @options ) {
 }
 
 sub filter_prettier ( $self, %options ) {
-    $ESLINT //= P->sys->run_proc( [ 'softvisio-cli', '--vim' ] );
+    my $node = $self->_get_node;
 
-    return res [ $SRC_FATAL, $ESLINT->{reason} ] if !$ESLINT->is_active && !$ESLINT;
-
-    $ESLINT_CONN ||= P->handle( 'tcp://127.0.0.1:55556', connection_timeout => 3 );
-
-    return res [ $SRC_FATAL, $ESLINT_CONN->{reason} ] if !$ESLINT_CONN;
+    return $node if !$node;
 
     # my $dist_options = $self->dist_cfg->{prettier} || $self->src_cfg->{prettier};
 
@@ -242,9 +249,9 @@ sub filter_prettier ( $self, %options ) {
         data => $self->{data},
     };
 
-    $ESLINT_CONN->write( P->data->to_json($msg) . "\n" );
+    $node->write( P->data->to_json($msg) . "\n" );
 
-    my $res = $ESLINT_CONN->read_line;
+    my $res = $node->read_line;
 
     $res = P->data->from_json($res);
 
@@ -264,13 +271,9 @@ sub filter_prettier ( $self, %options ) {
 }
 
 sub filter_terser ( $self, %options ) {
-    $ESLINT //= P->sys->run_proc( [ 'softvisio-cli', '--vim' ] );
+    my $node = $self->_get_node;
 
-    return res [ $SRC_FATAL, $ESLINT->{reason} ] if !$ESLINT->is_active && !$ESLINT;
-
-    $ESLINT_CONN ||= P->handle( 'tcp://127.0.0.1:55556', connection_timeout => 3 );
-
-    return res [ $SRC_FATAL, $ESLINT_CONN->{reason} ] if !$ESLINT_CONN;
+    return $node if !$node;
 
     my $msg = {
         command => 'terser',
@@ -278,9 +281,9 @@ sub filter_terser ( $self, %options ) {
         data    => $self->{data},
     };
 
-    $ESLINT_CONN->write( P->data->to_json($msg) . "\n" );
+    $node->write( P->data->to_json($msg) . "\n" );
 
-    my $res = $ESLINT_CONN->read_line;
+    my $res = $node->read_line;
 
     $res = P->data->from_json($res);
 
@@ -301,15 +304,13 @@ sub filter_terser ( $self, %options ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 64                   | Subroutines::ProhibitExcessComplexity - Subroutine "filter_eslint" with high complexity score (21)             |
+## |    3 | 237, 238, 239, 240,  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |      | 241, 242, 243, 244,  |                                                                                                                |
+## |      | 245, 246             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 230, 231, 232, 233,  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
-## |      | 234, 235, 236, 237,  |                                                                                                                |
-## |      | 238, 239             |                                                                                                                |
+## |    2 | 65, 237              | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 230                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 185                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 196                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
