@@ -15,18 +15,12 @@ sub decompress ( $self ) {
     return $self->filter_eslint;
 }
 
-# --compress
 sub compress ($self) {
-    my $options = $self->dist_cfg->{terser_compress} || $self->src_cfg->{terser_compress};
-
-    return $self->filter_terser( $options->@* );
+    return $self->filter_terser( compress => \1, mangle => \0 );
 }
 
-# --compress, --mangle
 sub obfuscate ($self) {
-    my $options = $self->dist_cfg->{terser_obfuscate} || $self->src_cfg->{terser_obfuscate};
-
-    return $self->filter_terser( $options->@* );
+    return $self->filter_terser( compress => \1, mangle => \1 );
 }
 
 sub update_log ( $self, $log = undef ) {
@@ -50,34 +44,6 @@ sub update_log ( $self, $log = undef ) {
     return;
 }
 
-sub filter_terser ( $self, @options ) {
-    my $temp = P->file1->tempfile( suffix1 => 'js' );
-
-    P->file->write_bin( $temp, $self->{data} );
-
-    my $proc = P->sys->run_proc(
-        [ 'terser', $temp, @options ],
-        stdout => $PROC_REDIRECT_FH,
-        stderr => $PROC_REDIRECT_FH,
-    )->capture;
-
-    if ( !$proc ) {
-        my $reason;
-
-        if ( $proc->{stderr} ) {
-            my @log = split /\n/sm, $proc->{stderr}->$*;
-
-            $reason = $log[0];
-        }
-
-        return res [ $SRC_FATAL, $reason || $proc->{reason} ];
-    }
-
-    $self->{data} = $proc->{stdout}->$*;
-
-    return $SRC_OK;
-}
-
 sub filer_js_packer ( $self, $obfuscate = undef ) {
     state $packer = do {
         require JavaScript::Packer;
@@ -97,7 +63,7 @@ sub filer_js_packer ( $self, $obfuscate = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 35                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 29                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

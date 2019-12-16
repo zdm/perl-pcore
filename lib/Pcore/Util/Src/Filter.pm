@@ -61,57 +61,6 @@ sub obfuscate ($self) { return $SRC_OK }
 
 sub update_log ( $self, $log = undef ) {return}
 
-sub filter_prettier ( $self, %options ) {
-    $ESLINT //= P->sys->run_proc( [ 'softvisio-cli', '--vim' ] );
-
-    return res [ $SRC_FATAL, $ESLINT->{reason} ] if !$ESLINT->is_active && !$ESLINT;
-
-    $ESLINT_CONN ||= P->handle( 'tcp://127.0.0.1:55556', connection_timeout => 3 );
-
-    return res [ $SRC_FATAL, $ESLINT_CONN->{reason} ] if !$ESLINT_CONN;
-
-    # my $dist_options = $self->dist_cfg->{prettier} || $self->src_cfg->{prettier};
-
-    my $msg = {
-        command => 'prettier',
-        options => {
-            %options,
-            "printWidth"              => 99999999,
-            "tabWidth"                => 4,
-            "semi"                    => \1,
-            "singleQuote"             => \1,
-            "trailingComma"           => "es5",
-            "bracketSpacing"          => \1,
-            "jsxBracketSameLine"      => \0,
-            "arrowParens"             => "always",
-            "vueIndentScriptAndStyle" => \1,
-            "endOfLine"               => "lf",
-            filepath                  => "$self->{path}",
-        },
-        data => $self->{data},
-    };
-
-    $ESLINT_CONN->write( P->data->to_json($msg) . "\n" );
-
-    my $res = $ESLINT_CONN->read_line;
-
-    $res = P->data->from_json($res);
-
-    # unable to run elsint
-    if ( !$res->{status} ) {
-        $self->update_log( $res->{reason} );
-
-        return $SRC_ERROR;
-    }
-    else {
-        $self->{data} = $res->{result};
-
-        $self->update_log;
-
-        return $SRC_OK;
-    }
-}
-
 sub filter_eslint ( $self, @options ) {
     $ESLINT //= P->sys->run_proc( [ 'softvisio-cli', '--vim' ] );
 
@@ -233,7 +182,7 @@ sub filter_eslint ( $self, @options ) {
 
     my @items;
 
-    for my $msg ( sort { $a->{severity} <=> $b->{severity} || $a->{line} <=> $b->{line} || $a->{column} <=> $b->{column} } $eslint_log->[0]->{messages}->@* ) {
+    for my $msg ( sort { $b->{severity} <=> $a->{severity} || $a->{line} <=> $b->{line} || $a->{column} <=> $b->{column} } $eslint_log->[0]->{messages}->@* ) {
         my $severity_text;
 
         if ( $msg->{severity} == 1 ) {
@@ -263,6 +212,88 @@ sub filter_eslint ( $self, @options ) {
     else                  { return $SRC_OK }
 }
 
+sub filter_prettier ( $self, %options ) {
+    $ESLINT //= P->sys->run_proc( [ 'softvisio-cli', '--vim' ] );
+
+    return res [ $SRC_FATAL, $ESLINT->{reason} ] if !$ESLINT->is_active && !$ESLINT;
+
+    $ESLINT_CONN ||= P->handle( 'tcp://127.0.0.1:55556', connection_timeout => 3 );
+
+    return res [ $SRC_FATAL, $ESLINT_CONN->{reason} ] if !$ESLINT_CONN;
+
+    # my $dist_options = $self->dist_cfg->{prettier} || $self->src_cfg->{prettier};
+
+    my $msg = {
+        command => 'prettier',
+        options => {
+            %options,
+            "printWidth"              => 99999999,
+            "tabWidth"                => 4,
+            "semi"                    => \1,
+            "singleQuote"             => \1,
+            "trailingComma"           => "es5",
+            "bracketSpacing"          => \1,
+            "jsxBracketSameLine"      => \0,
+            "arrowParens"             => "always",
+            "vueIndentScriptAndStyle" => \1,
+            "endOfLine"               => "lf",
+            filepath                  => "$self->{path}",
+        },
+        data => $self->{data},
+    };
+
+    $ESLINT_CONN->write( P->data->to_json($msg) . "\n" );
+
+    my $res = $ESLINT_CONN->read_line;
+
+    $res = P->data->from_json($res);
+
+    # unable to run elsint
+    if ( !$res->{status} ) {
+        $self->update_log( $res->{reason} );
+
+        return $SRC_ERROR;
+    }
+    else {
+        $self->{data} = $res->{result};
+
+        $self->update_log;
+
+        return $SRC_OK;
+    }
+}
+
+sub filter_terser ( $self, %options ) {
+    $ESLINT //= P->sys->run_proc( [ 'softvisio-cli', '--vim' ] );
+
+    return res [ $SRC_FATAL, $ESLINT->{reason} ] if !$ESLINT->is_active && !$ESLINT;
+
+    $ESLINT_CONN ||= P->handle( 'tcp://127.0.0.1:55556', connection_timeout => 3 );
+
+    return res [ $SRC_FATAL, $ESLINT_CONN->{reason} ] if !$ESLINT_CONN;
+
+    my $msg = {
+        command => 'terser',
+        options => \%options,
+        data    => $self->{data},
+    };
+
+    $ESLINT_CONN->write( P->data->to_json($msg) . "\n" );
+
+    my $res = $ESLINT_CONN->read_line;
+
+    $res = P->data->from_json($res);
+
+    if ( !$res->{status} ) {
+        return res [ $SRC_ERROR, $res->{reason} ];
+    }
+    else {
+        $self->{data} = $res->{result};
+
+        return $SRC_OK;
+    }
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -270,12 +301,15 @@ sub filter_eslint ( $self, @options ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 79, 80, 81, 82, 83,  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
-## |      | 84, 85, 86, 87, 88   |                                                                                                                |
+## |    3 | 64                   | Subroutines::ProhibitExcessComplexity - Subroutine "filter_eslint" with high complexity score (21)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 115                  | Subroutines::ProhibitExcessComplexity - Subroutine "filter_eslint" with high complexity score (21)             |
+## |    3 | 230, 231, 232, 233,  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |      | 234, 235, 236, 237,  |                                                                                                                |
+## |      | 238, 239             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 79                   | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 230                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 185                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
