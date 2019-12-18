@@ -6,7 +6,7 @@ USER root
 
 ENV TZ=UTC \
     PERL_VERSION="5.30.1" \
-    PCORE_LIB="/var/local" \
+    WORKSPACE="/var/local" \
     DIST_PATH="/var/local/pcore"
 
 ENV PATH="$DIST_PATH/bin:$PATH" \

@@ -452,7 +452,7 @@ Documentation will be provided later.
 
 =over
 
-=item * PCORE_LIB
+=item * WORKSPACE
 
 =back
 
