@@ -81,54 +81,17 @@ sub filter_eslint ( $self, @options ) {
 
     return $node if !$node;
 
-    my $root;
-
-    if ( $self->{path} ) {
-        my $path = P->path( $self->{path} );
-
-        while ( $path = $path->parent ) {
-            if ( -f "$path/package.json" ) {
-                $root = $path;
-
-                last;
-            }
-        }
-    }
-
-    my $msg;
-
-    # node project was found
-    if ($root) {
-        $msg = {
-            command => 'eslint',
-            options => {
-                useEslintrc                   => \1,
-                fix                           => \1,
-                allowInlineConfig             => \1,
-                reportUnusedDisableDirectives => \1,
-            },
-            path => "$self->{path}",
-            data => $self->{data},
-        };
-    }
-
-    # node project was not found, use default settings
-    else {
-        state $config = $ENV->{share}->get('/Pcore/data/.eslintrc.yaml');
-
-        $msg = {
-            command => 'eslint',
-            options => {
-                useEslintrc                   => \0,
-                fix                           => \1,
-                allowInlineConfig             => \1,
-                reportUnusedDisableDirectives => \1,
-                configFile                    => $config,
-            },
-            path => "$self->{path}",
-            data => $self->{data},
-        };
-    }
+    my $msg = {
+        command => 'eslint',
+        options => {
+            useEslintrc                   => \1,
+            fix                           => \1,
+            allowInlineConfig             => \1,
+            reportUnusedDisableDirectives => \1,
+        },
+        path => "$self->{path}",
+        data => $self->{data},
+    };
 
     $node->write( P->data->to_json($msg) . "\n" );
 
@@ -304,13 +267,13 @@ sub filter_terser ( $self, %options ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 237, 238, 239, 240,  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
-## |      | 241, 242, 243, 244,  |                                                                                                                |
-## |      | 245, 246             |                                                                                                                |
+## |    3 | 200, 201, 202, 203,  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |      | 204, 205, 206, 207,  |                                                                                                                |
+## |      | 208, 209             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 65, 237              | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 65, 200              | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 196                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 159                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
