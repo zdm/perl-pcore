@@ -8,8 +8,8 @@ use Pcore::Util::Digest qw[sha256_bin hmac_sha256_hex];
 
 extends qw[Pcore::App::API::Base];
 
-const our $API_NAMESPACE_PERMISSIONS => undef;
-const our $TELEGRAM_AUTH_TIMEOUT     => 30;
+const our $API_NAMESPACE_PERMS   => undef;
+const our $TELEGRAM_AUTH_TIMEOUT => 30;
 
 sub API_signin ( $self, $auth, $args ) {
 
@@ -320,7 +320,7 @@ sub _send_password_recovery_email ( $self, $to, $token ) {
     return $self->{app}->{util}->sendmail( $to, undef, 'Change password', $tmpl->( 'email/recover-password.txt', $params ) );
 }
 
-# sub API_check_session : Permissions($PERMISSIONS_ANY_AUTHENTICATED_USER) ( $self, $auth ) {
+# sub API_check_session : Perms($PERMS_ANY_AUTHENTICATED_USER) ( $self, $auth ) {
 #     return 200;
 # }
 

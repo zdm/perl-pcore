@@ -6,7 +6,7 @@ use <: $module_name ~ "::Const qw[:PERMISSIONS]" :>;
 
 extends qw[Pcore::App::API::Base];
 
-const our $API_NAMESPACE_PERMISSIONS => [$PERMISSIONS_ANY_AUTHENTICATED_USER];
+const our $API_NAMESPACE_PERMS => [$PERMS_ANY_AUTHENTICATED_USER];
 
 sub API_read ( $self, $auth, @ ) {
     state $q1 = $self->{dbh}->prepare('SELECT "name", "email", "email_confirmed", "telegram_name" FROM "user" WHERE "id" = ?');

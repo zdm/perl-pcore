@@ -6,7 +6,7 @@ use Pcore::API::SMTP;
 
 extends qw[Pcore::App::API::Base];
 
-const our $API_NAMESPACE_PERMISSIONS => [$PERMISSIONS_ADMIN];
+const our $API_NAMESPACE_PERMS => [$PERMS_ADMIN];
 
 sub API_read ( $self, $auth, @ ) {
     return 200, $self->{api}->{settings};

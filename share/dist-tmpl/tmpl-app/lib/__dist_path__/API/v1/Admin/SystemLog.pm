@@ -7,7 +7,7 @@ extends qw[Pcore::App::API::Base];
 
 with qw[Pcore::App::API::Role::Read];
 
-const our $API_NAMESPACE_PERMISSIONS => [$PERMISSIONS_ADMIN];
+const our $API_NAMESPACE_PERMS => [$PERMS_ADMIN];
 
 sub API_read ( $self, $auth, $args ) {
     state $total_sql = 'SELECT COUNT(*) AS "total" FROM "system_log"';

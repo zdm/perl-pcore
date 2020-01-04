@@ -4,14 +4,14 @@ use Pcore -const, -export;
 use Pcore::App::API qw[:PERMISSIONS];
 
 our $EXPORT = {
-    PERMISSIONS => [qw[$PERMISSIONS_ANY_AUTHENTICATED_USER $PERMISSIONS_ADMIN $PERMISSIONS_USER]],
+    PERMISSIONS => [qw[$PERMS_ANY_AUTHENTICATED_USER $PERMS_ADMIN $PERMS_USER]],
     AVATAR      => [qw[$DEFAULT_GRAVATAR_IMAGE $DEFAULT_AVATAR]],
 };
 
 # PERMISSIONS
-const our $PERMISSIONS_ADMIN => 'admin';
-const our $PERMISSIONS_USER  => 'user';
-const our $PERMISSIONS       => [ $PERMISSIONS_ADMIN, $PERMISSIONS_USER ];
+const our $PERMS_ADMIN => 'admin';
+const our $PERMS_USER  => 'user';
+const our $PERMS       => [ $PERMS_ADMIN, $PERMS_USER ];
 
 # AVATAR
 const our $DEFAULT_GRAVATAR_IMAGE => 'identicon';                                                                                   # url encoded url or 404, mp, identicon, monsterid, wavatar, retro, robohash, blank, used if email is provided, but has no gravatar associated
