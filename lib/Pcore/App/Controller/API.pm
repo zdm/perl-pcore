@@ -169,13 +169,16 @@ sub get_nginx_cfg ($self) {
     }
 : } else {
     location =<: $location :> {
-        error_page 418 = @backend;
-        return 418;
+        return 301 <: $location :>/;
     }
 
     location =<: $location :>/ {
         error_page 418 = @backend;
         return 418;
+    }
+
+    location <: $location :>/ {
+        return 404;
     }
 : }
 NGINX
