@@ -1,5 +1,5 @@
 # database connect uri
-db: sqlite://<: $DATA_DIR :>/db.sqlite
+db: sqlite:<: "<: $DATA_DIR :>/db.sqlite" | raw :>
 # db: pgsql://postgres:1@devel?db=test
 
 smtp:
