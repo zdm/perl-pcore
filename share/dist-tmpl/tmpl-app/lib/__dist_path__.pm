@@ -26,7 +26,7 @@ sub NODE_ON_RPC ( $self, $ev ) {
 
 # PERMISSIONS
 sub get_permissions ($self) {
-    return <: "$" ~ $module_name ~"::Const::PERMISSIONS" :>;
+    return <: "$" ~ $module_name ~"::Const::PERMS" :>;
 }
 
 # RUN

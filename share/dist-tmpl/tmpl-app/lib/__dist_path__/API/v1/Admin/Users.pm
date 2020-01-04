@@ -1,7 +1,7 @@
 package <: $module_name ~ "::API::v1::Admin::Users" :>;
 
 use Pcore -const, -class, -sql;
-use <: $module_name ~ "::Const qw[:PERMISSIONS]" :>;
+use <: $module_name ~ "::Const qw[:PERMS]" :>;
 
 extends qw[Pcore::App::API::Base];
 

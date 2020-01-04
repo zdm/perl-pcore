@@ -1,7 +1,7 @@
 package <: $module_name ~ "::API::v1::Admin::Settings" :>;
 
 use Pcore -const, -class, -sql, -res;
-use <: $module_name ~ "::Const qw[:PERMISSIONS]" :>;
+use <: $module_name ~ "::Const qw[:PERMS]" :>;
 use Pcore::API::SMTP;
 
 extends qw[Pcore::App::API::Base];

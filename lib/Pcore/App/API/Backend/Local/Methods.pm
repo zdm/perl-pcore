@@ -3,7 +3,7 @@ package Pcore::App::API::Backend::Local::Methods;
 use Pcore -role, -res;
 use Pcore::Util::Scalar qw[is_plain_arrayref];
 use Package::Stash::XS qw[];
-use Pcore::App::API qw[:PERMISSIONS];
+use Pcore::App::API qw[:PERMS];
 
 has _method => ( init_arg => undef );    # HashRef
 has _obj    => ( init_arg => undef );    # HashRef

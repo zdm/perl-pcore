@@ -2,7 +2,7 @@ package <: $module_name ~ "::API::v1::Profile" :>;
 
 use Pcore -const, -class, -sql, -res;
 use Pcore::App::API qw[:PRIVATE_TOKEN :TOKEN_TYPE];
-use <: $module_name ~ "::Const qw[:PERMISSIONS]" :>;
+use <: $module_name ~ "::Const qw[:PERMS]" :>;
 
 extends qw[Pcore::App::API::Base];
 

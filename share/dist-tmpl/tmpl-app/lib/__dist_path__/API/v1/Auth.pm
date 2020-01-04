@@ -2,7 +2,7 @@ package <: $module_name ~ "::API::v1::Auth" :>;
 
 use Pcore -const, -class, -sql, -res;
 use Pcore::App::API qw[:TOKEN_TYPE :PRIVATE_TOKEN];
-use <: $module_name ~ "::Const qw[:PERMISSIONS :AVATAR]" :>;
+use <: $module_name ~ "::Const qw[:PERMS :AVATAR]" :>;
 use Pcore::Util::Scalar qw[is_plain_hashref];
 use Pcore::Util::Digest qw[sha256_bin hmac_sha256_hex];
 
