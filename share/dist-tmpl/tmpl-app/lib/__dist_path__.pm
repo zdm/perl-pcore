@@ -26,7 +26,7 @@ sub NODE_ON_RPC ( $self, $ev ) {
 
 # PERMISSIONS
 sub get_permissions ($self) {
-    return "$<: $module_name :>::Const::PERMISSIONS";
+    return <: "$" ~ $module_name ~"::Const::PERMISSIONS" :>;
 }
 
 # RUN
@@ -75,7 +75,7 @@ sub run ( $self ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 4, 5                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 4, 5, 29             | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 73                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 77 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
