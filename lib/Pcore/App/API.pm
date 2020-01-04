@@ -7,7 +7,6 @@ use Pcore::Util::Data qw[from_b64u];
 use Pcore::Util::Digest qw[sha3_512_bin];
 use Pcore::Util::Text qw[encode_utf8];
 use Pcore::Util::UUID qw[uuid_from_bin];
-use Pcore::App::API::Auth;
 
 our $EXPORT = {
     ROOT_USER       => [qw[$ROOT_USER_NAME $ROOT_USER_ID]],
@@ -46,6 +45,8 @@ const our $PRIVATE_TOKEN_HASH => 1;
 const our $PRIVATE_TOKEN_TYPE => 2;
 
 const our $AUTH_CACHE_CLEANUP_TIMEOUT => 60 * 60 * 12;    # remove sessions tokens, that are older than 12 hours
+
+require Pcore::App::API::Auth;
 
 sub new ( $self, $app ) {
     state $scheme_class = {
@@ -325,7 +326,7 @@ sub _auth_cache_cleanup ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 184                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 185                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

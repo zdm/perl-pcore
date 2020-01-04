@@ -31,7 +31,7 @@ sub get_permissions ($self) {
 
 # RUN
 sub run ( $self ) {
-    $self->{util} = <: $module_name ~ " ::Util " :>->new( app => $self );
+    $self->{util} = <: $module_name ~ "::Util " :>->new( app => $self );
 
     # update schema
     print 'Updating DB schema ... ';
