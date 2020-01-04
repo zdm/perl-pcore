@@ -7,36 +7,43 @@ with qw[Pcore::App::Controller];
 has app_dist => ( required => 1, init_arg => undef );
 
 sub get_nginx_cfg ($self) {
-    return <<"TXT";
-    # webpack $self->{path}
-    location $self->{path} {
-        root $self->{app_dist};
+    my $tmpl = <<'TXT';
+    # webpack <: $location :> -> <: $root :>
+    location <: $location :> {
+        alias <: $root :>/;
 
-        rewrite  ^$self->{path}(.*) \$1 break;
         add_header Cache-Control "public, max-age=30672000";
 
-        location =$self->{path} {
-            root $self->{app_dist};
-
-            rewrite  ^$self->{path} /index.html break;
+        # index
+        location =<: $location :> {
             add_header Cache-Control "public, private, must-revalidate, proxy-revalidate";
+            try_files index.html =404;
         }
+: if $location != '/' {
 
-        location =$self->{path}/ {
-            root $self->{app_dist};
-
-            rewrite  ^$self->{path} /index.html break;
+        location =<: $location :>/ {
             add_header Cache-Control "public, private, must-revalidate, proxy-revalidate";
+            try_files index.html =404;
         }
+: }
 
-        location $self->{path}/index.html {
-            root $self->{app_dist};
-
-            rewrite  ^$self->{path}/index.html /index.html break;
+: if $location == '/' {
+        location =/index.html {
+: } else {
+        location =<: $location :>/index.html {
+: }
             add_header Cache-Control "public, private, must-revalidate, proxy-revalidate";
+            try_files index.html =404;
         }
     }
 TXT
+
+    return P->tmpl->(
+        \$tmpl,
+        {   location => $self->{path},
+            root     => $self->{app_dist},
+        }
+    )->$*;
 }
 
 1;
