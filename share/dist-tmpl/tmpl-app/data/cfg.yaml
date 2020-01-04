@@ -1,5 +1,6 @@
 # database connect uri
-db: pgsql://postgres:1@devel?db=test
+db: sqlite://<: $DATA_DIR :>/db.sqlite
+# db: pgsql://postgres:1@devel?db=test
 
 smtp:
     username: no-reply@softvisio.net

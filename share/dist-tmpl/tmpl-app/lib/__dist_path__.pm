@@ -1,18 +1,12 @@
 package <: $module_name :>;
 
-use Pcore -dist, -class, -const, -res, -export;
+use Pcore -dist, -class, -const, -res;
 use <: $module_name ~ "::Const qw[]" :>;
 use <: $module_name ~ "::Util" :>;
-
-our $EXPORT = { PERMISSIONS => [qw[$PERMISSIONS_ADMIN $PERMISSIONS_USER]], };
 
 has util => ( init_arg => undef );    # InstanceOf ['<: $module_name :>::Util']
 
 with qw[Pcore::App];
-
-const our $PERMISSIONS_ADMIN => 'admin';
-const our $PERMISSIONS_USER  => 'user';
-const our $PERMISSIONS       => [ $PERMISSIONS_ADMIN, $PERMISSIONS_USER ];
 
 const our $NODE_REQUIRES => {
 
@@ -32,12 +26,12 @@ sub NODE_ON_RPC ( $self, $ev ) {
 
 # PERMISSIONS
 sub get_permissions ($self) {
-    return $PERMISSIONS;
+    return "$<: $module_name :>::Const::PERMISSIONS";
 }
 
 # RUN
 sub run ( $self ) {
-    $self->{util} = <: $module_name ~ "::Util" :>->new( app => $self );
+    $self->{util} = <: $module_name ~ " ::Util " :>->new( app => $self );
 
     # update schema
     print 'Updating DB schema ... ';
@@ -83,7 +77,7 @@ sub run ( $self ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 4, 5                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 79                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 83 does not match the package declaration       |
+## |    1 | 73                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 77 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -1,11 +1,19 @@
 package <: $module_name ~ "::Const" :>;
 
 use Pcore -const, -export;
+use Pcore::App::API qw[:PERMISSIONS];
 
-our $EXPORT = {    #
-    AVATAR => [qw[$DEFAULT_GRAVATAR_IMAGE $DEFAULT_AVATAR]],
+our $EXPORT = {
+    PERMISSIONS => [qw[$PERMISSIONS_ANY_AUTHENTICATED_USER $PERMISSIONS_ADMIN $PERMISSIONS_USER]],
+    AVATAR      => [qw[$DEFAULT_GRAVATAR_IMAGE $DEFAULT_AVATAR]],
 };
 
+# PERMISSIONS
+const our $PERMISSIONS_ADMIN => 'admin';
+const our $PERMISSIONS_USER  => 'user';
+const our $PERMISSIONS       => [ $PERMISSIONS_ADMIN, $PERMISSIONS_USER ];
+
+# AVATAR
 const our $DEFAULT_GRAVATAR_IMAGE => 'identicon';                                                                                   # url encoded url or 404, mp, identicon, monsterid, wavatar, retro, robohash, blank, used if email is provided, but has no gravatar associated
 const our $DEFAULT_AVATAR         => "https://s.gravatar.com/avatar/4732e01b487869e3e6d42c2720468036?d=$DEFAULT_GRAVATAR_IMAGE";    # noname@softvisio.net, used if no user email is provided
 
@@ -18,7 +26,7 @@ const our $DEFAULT_AVATAR         => "https://s.gravatar.com/avatar/4732e01b4878
 ## |======+======================+================================================================================================================|
 ## |    3 | 1                    | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 14                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 18 does not match the package declaration       |
+## |    1 | 22                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 26 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

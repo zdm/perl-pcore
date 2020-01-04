@@ -49,8 +49,8 @@ my $app = <: $module_name :>->new(
 
             # API
             api => {
-                connect => $cfg->{auth},
-                rpc     => {
+                backend => $cfg->{db},
+                node    => {
                     workers => undef,
                     argon   => {
                         argon2_time        => 3,
