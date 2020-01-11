@@ -1,3 +1,10 @@
+v0.110.3 2020-01-11T11:47:05Z
+ - pcore deploy --no-deps option added
+ - scripts updated
+ - arbitrator const removed
+ - app tmpl updated
+ - updated
+
 v0.110.2 2020-01-11T09:26:02Z
  - resources updated
  - app tmpl updated
