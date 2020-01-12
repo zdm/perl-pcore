@@ -25,7 +25,7 @@ RUN \
     source <( curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/setup-host.sh ) \
     \
     # setup perl build env
-    && curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/perl-build-env.sh | /bin/bash -s -- setup \
+    && curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/env-build-perl.sh | /bin/bash -s -- setup \
     \
     # install && update perl
     && dnf -y install plenv perl-$PERL_VERSION \
@@ -36,6 +36,6 @@ RUN \
     && pcore test -j $(nproc) \
     \
     # cleanup perl build env
-    && curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/perl-build-env.sh | /bin/bash -s -- cleanup
+    && curl -fsSL https://bitbucket.org/softvisio/scripts/raw/master/env-build-perl.sh | /bin/bash -s -- cleanup
 
 ENTRYPOINT [ "/bin/bash", "-l" ]
