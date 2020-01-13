@@ -1,6 +1,6 @@
 package Pcore::App::API::Role::Admin::SystemLog;
 
-use Pcore -role, -sql, -res;
+use Pcore -role, -sql;
 
 with qw[Pcore::App::API::Role::Read];
 

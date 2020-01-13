@@ -1,6 +1,6 @@
 package Pcore::App::API::Role::Admin::Settings;
 
-use Pcore -role, -sql, -res;
+use Pcore -role;
 use Pcore::API::SMTP;
 
 sub API_read ( $self, $auth, @ ) {
