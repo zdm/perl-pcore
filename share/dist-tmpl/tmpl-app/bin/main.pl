@@ -64,14 +64,14 @@ my $app = <: $module_name :>->new(
             cdn => {
                 native_cdn => 0,
                 resources  => [    #
-                    '<: $module_name :>',
+                    '<: $dist_name :>',
                 ],
                 buckets => {
                     local => {
                         type      => 'local',
                         locations => [          #
                             "$ENV->{DATA_DIR}/cdn",
-                            '<: $module_name :>',
+                            '<: $dist_name :>',
                         ],
                     },
 
