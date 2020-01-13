@@ -1,6 +1,6 @@
 package Pcore::App::API::Role::Profile;
 
-use Pcore -const, -role, -sql, -res;
+use Pcore -role, -sql, -res;
 use Pcore::App::API qw[:TOKEN_TYPE :PRIVATE_TOKEN];
 
 sub API_read ( $self, $auth, @ ) {

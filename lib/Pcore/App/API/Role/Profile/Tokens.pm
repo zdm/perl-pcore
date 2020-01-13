@@ -1,6 +1,8 @@
 package Pcore::App::API::Role::Profile::Tokens;
 
-use Pcore -const, -role, -sql, -res;
+use Pcore -role, -sql, -res;
+
+with qw[Pcore::App::API::Role::Read];
 
 sub API_read ( $self, $auth, $args ) {
     state $total_sql = 'SELECT COUNT(*) AS "total" FROM "user_token"';

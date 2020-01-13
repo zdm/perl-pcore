@@ -1,6 +1,6 @@
 package Pcore::App::API::Role::Auth;
 
-use Pcore -const, -role, -sql, -res;
+use Pcore -role, -sql, -res;
 use Pcore::App::API qw[:TOKEN_TYPE :PRIVATE_TOKEN];
 use Pcore::Util::Scalar qw[is_plain_hashref];
 use Pcore::Util::Digest qw[sha256_bin hmac_sha256_hex];
