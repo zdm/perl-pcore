@@ -41,7 +41,7 @@ sub API_signin ( $self, $auth, $args ) {
 
         my $dbh = $self->{dbh};
 
-        my $user = $dbh->selectrow( q[SELECT "id", "email", "has_avatar", "gravatar", "locale" FROM "user" WHERE "id" = ?], [$user_id] );
+        my $user = $dbh->selectrow( q[SELECT "id", "email", "gravatar", "locale" FROM "user" WHERE "id" = ?], [$user_id] );
 
         # user session created
         return
@@ -69,7 +69,7 @@ sub API_signin ( $self, $auth, $args ) {
     else {
         my $dbh = $self->{dbh};
 
-        my $user = $dbh->selectrow( q[SELECT "id", "email", "has_avatar", "gravatar", "locale" FROM "user" WHERE "id" = ?], [ $auth->{user_id} ] );
+        my $user = $dbh->selectrow( q[SELECT "id", "email", "gravatar", "locale" FROM "user" WHERE "id" = ?], [ $auth->{user_id} ] );
 
         return 200,
           { settings         => $self->_get_app_settings($auth),
@@ -319,10 +319,7 @@ sub _send_password_recovery_email ( $self, $to, $token ) {
 }
 
 sub _get_avatar ( $self, $user ) {
-    if ( $user->{has_avatar} ) {
-        return $self->{app}->{cdn}->('/user/') . "/$user->{guid}/avatar.png";
-    }
-    elsif ( $user->{gravatar} ) {
+    if ( $user->{gravatar} ) {
         return "https://s.gravatar.com/avatar/$user->{gravatar}?d=$self->{default_gravatar_image}";
     }
     else {

@@ -1,13 +1,16 @@
 package <: $module_name ~ "::API::v1::Admin::Users" :>;
 
 use Pcore -const, -class;
-use <: $module_name ~ "::Const qw[:PERMS]" :>;
+use <: $module_name ~ "::Const qw[:PERMS :AVATAR]" :>;
 
 extends qw[Pcore::App::API::Base];
 
 with qw[Pcore::App::API::Role::Admin::Users];
 
 const our $API_NAMESPACE_PERMS => [$PERMS_ADMIN];
+
+has default_gravatar       => $DEFAULT_AVATAR;
+has default_gravatar_image => $DEFAULT_GRAVATAR_IMAGE;
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
@@ -18,7 +21,7 @@ const our $API_NAMESPACE_PERMS => [$PERMS_ADMIN];
 ## |======+======================+================================================================================================================|
 ## |    3 | 1, 4                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 14                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 18 does not match the package declaration       |
+## |    1 | 17                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 21 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

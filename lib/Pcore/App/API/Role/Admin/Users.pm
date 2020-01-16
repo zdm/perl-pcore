@@ -5,9 +5,21 @@ use Pcore::Util::Scalar qw[is_plain_hashref];
 
 with qw[Pcore::App::API::Role::Read];
 
+has default_gravatar       => ();
+has default_gravatar_image => ();
+
 sub API_read ( $self, $auth, $args ) {
     state $total_sql = 'SELECT COUNT(*) AS "total" FROM "user"';
-    state $main_sql  = 'SELECT * FROM "user"';
+    state $main_sql  = <<"SQL";
+        SELECT
+            *,
+            CASE
+                WHEN "gravatar" IS NOT NULL THEN 'https://s.gravatar.com/avatar/' || "gravatar" || '?d=@{[ $self->{default_gravatar_image} ]}'
+                ELSE '@{[ $self->{default_gravatar} ]}'
+            END "avatar"
+        FROM
+            "user"
+SQL
 
     my $where;
 
@@ -47,7 +59,9 @@ sub API_read ( $self, $auth, $args ) {
         $where = $where1 & $where2;
     }
 
-    return $self->_read( $args, $total_sql, $main_sql, $where, 100 );
+    my $res = $self->_read( $args, $total_sql, $main_sql, $where, 100 );
+
+    return $res;
 }
 
 sub API_create ( $self, $auth, $args ) {
