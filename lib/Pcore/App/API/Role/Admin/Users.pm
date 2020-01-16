@@ -1,6 +1,7 @@
 package Pcore::App::API::Role::Admin::Users;
 
 use Pcore -role, -sql;
+use Pcore::Util::Scalar qw[is_plain_hashref];
 
 with qw[Pcore::App::API::Role::Read];
 
@@ -110,6 +111,10 @@ sub API_create ( $self, $auth, $args ) {
     }
 
     return $res;
+}
+
+sub API_delete ( $self, $auth, $user_id ) {
+    return $self->{api}->user_delete($user_id);
 }
 
 sub API_set_enabled ( $self, $auth, $user_id, $enabled ) {
