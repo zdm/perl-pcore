@@ -128,7 +128,9 @@ sub API_create ( $self, $auth, $args ) {
 }
 
 sub API_delete ( $self, $auth, $user_id ) {
-    return $self->{api}->user_delete($user_id);
+    my $res = $self->{api}->user_delete($user_id);
+
+    return $res;
 }
 
 sub API_set_enabled ( $self, $auth, $user_id, $enabled ) {
