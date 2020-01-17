@@ -9,6 +9,19 @@ has default_gravatar       => ();
 has default_gravatar_image => ();
 has telegram_auth_timeout  => 30;
 
+sub API_signout ( $self, $auth ) {
+
+    # request is authenticated from the session token
+    if ( $auth->{private_token}->[$PRIVATE_TOKEN_TYPE] && $auth->{private_token}->[$PRIVATE_TOKEN_TYPE] == $TOKEN_TYPE_SESSION ) {
+
+        # remove user session
+        return $self->{api}->user_session_remove( $auth->{private_token}->[$PRIVATE_TOKEN_ID] );
+    }
+
+    # not a session token
+    return 400;
+}
+
 sub API_signin ( $self, $auth, $args ) {
 
     # authenticate
@@ -334,7 +347,7 @@ sub _get_avatar ( $self, $user ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 301                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_send_confirmation_email' declared  |
+## |    3 | 310                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_send_confirmation_email' declared  |
 ## |      |                      | but not used                                                                                                   |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
