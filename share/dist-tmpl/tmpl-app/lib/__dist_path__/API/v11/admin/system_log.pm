@@ -1,13 +1,13 @@
-package <: $module_name ~ "::API::v1::Profile::Tokens" :>;
+package <: $module_name ~ "::API::v1::admin::system_log" :>;
 
 use Pcore -const, -class;
 use <: $module_name ~ "::Const qw[:PERMS]" :>;
 
 extends qw[Pcore::App::API::Base];
 
-with qw[Pcore::App::API::Role::Profile::Tokens];
+with qw[Pcore::App::API::Role::Admin::SystemLog];
 
-const our $API_NAMESPACE_PERMS => [$PERMS_ANY_AUTHENTICATED_USER];
+const our $API_NAMESPACE_PERMS => [$PERMS_ADMIN];
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
@@ -29,7 +29,7 @@ __END__
 
 =head1 NAME
 
-<: $module_name ~ "::API::v1::Profile::Tokens" :>
+<: $module_name ~ "::API::v1::admin::system_log" :>
 
 =head1 SYNOPSIS
 

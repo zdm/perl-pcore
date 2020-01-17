@@ -1,4 +1,4 @@
-package <: $module_name ~ "::API::v1::Profile" :>;
+package <: $module_name ~ "::API::v1::profile" :>;
 
 use Pcore -const, -class;
 use <: $module_name ~ "::Const qw[:PERMS]" :>;
@@ -29,7 +29,7 @@ __END__
 
 =head1 NAME
 
-<: $module_name ~ "::API::v1::Profile" :>
+<: $module_name ~ "::API::v1::profile" :>
 
 =head1 SYNOPSIS
 

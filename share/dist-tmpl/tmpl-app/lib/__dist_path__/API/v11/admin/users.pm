@@ -1,20 +1,16 @@
-package <: $module_name ~ "::API::v1::Admin::Settings" :>;
+package <: $module_name ~ "::API::v1::admin::users" :>;
 
-use Pcore -const, -class, -sql;
-use <: $module_name ~ "::Const qw[:PERMS]" :>;
+use Pcore -const, -class;
+use <: $module_name ~ "::Const qw[:PERMS :AVATAR]" :>;
 
 extends qw[Pcore::App::API::Base];
 
-with qw[Pcore::App::API::Role::Admin::Settings];
+with qw[Pcore::App::API::Role::Admin::Users];
 
 const our $API_NAMESPACE_PERMS => [$PERMS_ADMIN];
 
-around API_update => sub ( $orig, $self, $auth, $args ) {
-
-    # $args->{use_proxy} = SQL_BOOL $args->{use_proxy} if defined $args->{use_proxy};
-
-    return $self->$orig($args);
-};
+has default_gravatar       => $DEFAULT_AVATAR;
+has default_gravatar_image => $DEFAULT_GRAVATAR_IMAGE;
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
@@ -25,7 +21,7 @@ around API_update => sub ( $orig, $self, $auth, $args ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 1, 4                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 21                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 25 does not match the package declaration       |
+## |    1 | 17                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 21 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -36,7 +32,7 @@ __END__
 
 =head1 NAME
 
-<: $module_name ~ "::API::v1::Admin::Settings" :>
+<: $module_name ~ "::API::v1::admin::users" :>
 
 =head1 SYNOPSIS
 

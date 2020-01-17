@@ -1,20 +1,20 @@
-package <: $module_name ~ "::API::v1::Auth" :>;
+package <: $module_name ~ "::API::v1::admin::settings" :>;
 
-use Pcore -const, -class;
-use <: $module_name ~ "::Const qw[:PERMS :AVATAR]" :>;
+use Pcore -const, -class, -sql;
+use <: $module_name ~ "::Const qw[:PERMS]" :>;
 
 extends qw[Pcore::App::API::Base];
 
-with qw[Pcore::App::API::Role::Auth];
+with qw[Pcore::App::API::Role::Admin::Settings];
 
-const our $API_NAMESPACE_PERMS => undef;
+const our $API_NAMESPACE_PERMS => [$PERMS_ADMIN];
 
-has default_gravatar       => $DEFAULT_AVATAR;
-has default_gravatar_image => $DEFAULT_GRAVATAR_IMAGE;
+around API_update => sub ( $orig, $self, $auth, $args ) {
 
-# sub API_check_session : Permissions($PERMISSIONS_ANY_AUTHENTICATED_USER) ( $self, $auth ) {
-#     return 200;
-# }
+    # $args->{use_proxy} = SQL_BOOL $args->{use_proxy} if defined $args->{use_proxy};
+
+    return $self->$orig($args);
+};
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
@@ -36,7 +36,7 @@ __END__
 
 =head1 NAME
 
-<: $module_name ~ "::API::v1::Auth" :>
+<: $module_name ~ "::API::v1::admin::settings" :>
 
 =head1 SYNOPSIS
 

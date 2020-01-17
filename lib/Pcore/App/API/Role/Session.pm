@@ -1,4 +1,4 @@
-package Pcore::App::API::Role::Auth;
+package Pcore::App::API::Role::Session;
 
 use Pcore -role, -sql, -res;
 use Pcore::App::API qw[:TOKEN_TYPE :PRIVATE_TOKEN];
@@ -334,7 +334,7 @@ sub _get_avatar ( $self, $user ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 297                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_send_confirmation_email' declared  |
+## |    3 | 301                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_send_confirmation_email' declared  |
 ## |      |                      | but not used                                                                                                   |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
@@ -346,7 +346,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Role::Auth
+Pcore::App::API::Role::Session
 
 =head1 SYNOPSIS
 

@@ -1,16 +1,19 @@
-package <: $module_name ~ "::API::v1::Admin::Users" :>;
+package <: $module_name ~ "::API::v1::test" :>;
 
-use Pcore -const, -class;
-use <: $module_name ~ "::Const qw[:PERMS :AVATAR]" :>;
+use Pcore -const, -class, -sql, -res;
+use <: $module_name ~ "::Const qw[:PERMS]" :>;
 
 extends qw[Pcore::App::API::Base];
 
-with qw[Pcore::App::API::Role::Admin::Users];
+const our $API_NAMESPACE_PERMS => undef;
 
-const our $API_NAMESPACE_PERMS => [$PERMS_ADMIN];
+sub API_test ( $self, $auth, @ ) {
+    return 200;
+}
 
-has default_gravatar       => $DEFAULT_AVATAR;
-has default_gravatar_image => $DEFAULT_GRAVATAR_IMAGE;
+sub API_test1 : Perms($PERMS_ANY_AUTHENTICATED_USER) ( $self, $auth, @ ) {
+    return 200;
+}
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
@@ -21,7 +24,7 @@ has default_gravatar_image => $DEFAULT_GRAVATAR_IMAGE;
 ## |======+======================+================================================================================================================|
 ## |    3 | 1, 4                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 17                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 21 does not match the package declaration       |
+## |    1 | 20                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 24 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -32,7 +35,7 @@ __END__
 
 =head1 NAME
 
-<: $module_name ~ "::API::v1::Admin::Users" :>
+<: $module_name ~ "::API::v1::test" :>
 
 =head1 SYNOPSIS
 
