@@ -7,7 +7,7 @@ extends qw[Pcore::App::API::Base];
 
 with qw[Pcore::App::API::Role::Profile];
 
-const our $API_NAMESPACE_PERMS => [$PERMS_ANY_AUTHENTICATED_USER];
+const our $API_NAMESPACE_PERMS => $PERMS_AUTHENTICATED;
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----

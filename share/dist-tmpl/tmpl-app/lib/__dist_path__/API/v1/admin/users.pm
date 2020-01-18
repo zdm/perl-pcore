@@ -7,7 +7,7 @@ extends qw[Pcore::App::API::Base];
 
 with qw[Pcore::App::API::Role::Admin::Users];
 
-const our $API_NAMESPACE_PERMS => [$PERMS_ADMIN];
+const our $API_NAMESPACE_PERMS => $PERMS_ADMIN;
 
 has default_gravatar       => $DEFAULT_AVATAR;
 has default_gravatar_image => $DEFAULT_GRAVATAR_IMAGE;

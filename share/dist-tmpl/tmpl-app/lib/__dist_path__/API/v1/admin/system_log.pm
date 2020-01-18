@@ -7,7 +7,7 @@ extends qw[Pcore::App::API::Base];
 
 with qw[Pcore::App::API::Role::Admin::SystemLog];
 
-const our $API_NAMESPACE_PERMS => [$PERMS_ADMIN];
+const our $API_NAMESPACE_PERMS => $PERMS_ADMIN;
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----

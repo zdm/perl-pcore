@@ -5,13 +5,13 @@ use <: $module_name ~ "::Const qw[:PERMS]" :>;
 
 extends qw[Pcore::App::API::Base];
 
-const our $API_NAMESPACE_PERMS => undef;
+const our $API_NAMESPACE_PERMS => $PERMS_ANY;
 
 sub API_test ( $self, $auth, @ ) {
     return 200;
 }
 
-sub API_test1 : Perms($PERMS_ANY_AUTHENTICATED_USER) ( $self, $auth, @ ) {
+sub API_test1 : Perms($PERMS_AUTHENTICATED) ( $self, $auth, @ ) {
     return 200;
 }
 

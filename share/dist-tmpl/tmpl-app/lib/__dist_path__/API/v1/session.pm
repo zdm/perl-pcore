@@ -7,7 +7,7 @@ extends qw[Pcore::App::API::Base];
 
 with qw[Pcore::App::API::Role::Session];
 
-const our $API_NAMESPACE_PERMS => undef;
+const our $API_NAMESPACE_PERMS => $PERMS_ANY;
 
 has default_gravatar       => $DEFAULT_AVATAR;
 has default_gravatar_image => $DEFAULT_GRAVATAR_IMAGE;
@@ -21,7 +21,7 @@ has default_gravatar_image => $DEFAULT_GRAVATAR_IMAGE;
 ## |======+======================+================================================================================================================|
 ## |    3 | 1, 4                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 21                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 25 does not match the package declaration       |
+## |    1 | 17                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 21 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

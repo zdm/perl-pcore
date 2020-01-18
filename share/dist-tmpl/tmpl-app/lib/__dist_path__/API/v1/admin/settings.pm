@@ -7,7 +7,7 @@ extends qw[Pcore::App::API::Base];
 
 with qw[Pcore::App::API::Role::Admin::Settings];
 
-const our $API_NAMESPACE_PERMS => [$PERMS_ADMIN];
+const our $API_NAMESPACE_PERMS => $PERMS_ADMIN;
 
 around API_update => sub ( $orig, $self, $auth, $args ) {
 
