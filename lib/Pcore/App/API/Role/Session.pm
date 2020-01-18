@@ -226,7 +226,7 @@ sub API_recover_password ( $self, $auth, $user_id ) {
     return $res;
 }
 
-sub API_change_password ( $self, $auth, $token, $password ) {
+sub API_set_password ( $self, $auth, $token, $password ) {
     return 400 if !$token;
 
     $token = $self->{api}->user_action_token_verify( $token, $TOKEN_TYPE_PASSWORD_RECOVERY );

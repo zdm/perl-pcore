@@ -191,6 +191,8 @@ sub _unpack_token ( $self, $token ) {
         # unpack token id
         $token_id = uuid_from_bin( substr $token_bin, 0, 16 )->str;
 
+        die if length $token_bin < 16;
+
         $token_type = unpack 'C', substr $token_bin, 16, 1;
 
         $private_token_hash = sha3_512_bin substr $token_bin, 17;
