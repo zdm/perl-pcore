@@ -307,6 +307,7 @@ sub API_signup ( $self, $auth, $args ) {
 }
 
 # EMAIL
+# TODO domain
 sub _send_confirmation_email ( $self, $to, $token ) {
     my $domain = $self->{api}->{settings}->{domain};
 
@@ -319,11 +320,12 @@ sub _send_confirmation_email ( $self, $to, $token ) {
     return $self->{app}->{util}->sendmail( $to, undef, 'Confirm your email', $tmpl->( 'email/confirm-email.txt', $params ) );
 }
 
+# TODO domain
 sub _send_password_recovery_email ( $self, $to, $token ) {
     my $domain = $self->{api}->{settings}->{domain};
 
     my $params = {    #
-        url => qq[https://$domain/#!change-password/$token],
+        url => "https://$domain/#/recover-password/$token",
     };
 
     state $tmpl = P->tmpl;
@@ -347,7 +349,7 @@ sub _get_avatar ( $self, $user ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 310                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_send_confirmation_email' declared  |
+## |    3 | 311                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_send_confirmation_email' declared  |
 ## |      |                      | but not used                                                                                                   |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
