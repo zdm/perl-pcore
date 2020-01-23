@@ -3,21 +3,33 @@ package Pcore::App::API::Role::Read;
 use Pcore -const, -role, -sql, -res;
 use Pcore::Util::Scalar qw[is_ref];
 
-const our $DEFAULT_PAGE_SIZE => 100;
+has max_limit        => 100;
+has default_limit    => ();
+has default_order_by => ();
 
-sub _read ( $self, $args, $total_sql, $main_sql, $where, $page_size = $DEFAULT_PAGE_SIZE ) {
+around BUILD => sub ( $orig, $self, $args ) {
+    $self->$orig($args);
+
+    $self->{default_limit} //= $self->{max_limit};
+
+    return;
+};
+
+sub BUILD ( $self, $args ) {return}
+
+sub _read ( $self, $total_sql, $main_sql, $args = undef ) {
     my $dbh = $self->{dbh};
 
     my $data;
 
     # get by id
     if ( exists $args->{id} ) {
-        $data = $dbh->selectrow( is_ref $main_sql ? $main_sql : [ $main_sql, $where // () ] );
+        $data = $dbh->selectrow( is_ref $main_sql ? $main_sql : [ $main_sql, $args->{where} // () ] );
     }
 
     # get all matched rows
     else {
-        my $total = $dbh->selectrow( is_ref $total_sql ? $total_sql : [ $total_sql, $where // () ] );
+        my $total = $dbh->selectrow( is_ref $total_sql ? $total_sql : [ $total_sql, $args->{where} // () ] );
 
         # total query error
         if ( !$total ) {
@@ -33,10 +45,34 @@ sub _read ( $self, $args, $total_sql, $main_sql, $where, $page_size = $DEFAULT_P
 
         # has results
         else {
-            $args->{start} = 0          if !defined $args->{start} || $args->{start} < 0;
-            $args->{limit} = $page_size if !$args->{limit}         || $args->{limit} > $page_size;
-
-            $data = $dbh->selectall( is_ref $main_sql ? $main_sql : [ $main_sql, $where // (), ORDER_BY $args->{sort}, LIMIT $args->{limit}, OFFSET $args->{start} ] );
+            $data = $dbh->selectall(
+                is_ref $main_sql ? $main_sql : [    #
+                    $main_sql,
+                    $args->{where} // (),
+                    ORDER_BY $args->{order_by} // $self->{default_order_by},
+                    LIMIT do {
+                        if ( $args->{limit} ) {
+                            if ( $self->{max_limit} && $args->{limit} > $self->{max_limit} ) {
+                                $self->{max_limit};
+                            }
+                            else {
+                                $args->{limit};
+                            }
+                        }
+                        else {
+                            $self->{default_limit};
+                        }
+                    },
+                    OFFSET do {
+                        if ( defined $args->{offset} && $args->{offset} < 0 ) {
+                            undef;
+                        }
+                        else {
+                            $args->{offset};
+                        }
+                    },
+                ]
+            );
 
             if ($data) {
                 $data->{total}   = $total->{data}->{total};
@@ -55,9 +91,9 @@ sub _read ( $self, $args, $total_sql, $main_sql, $where, $page_size = $DEFAULT_P
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 8                    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 20                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 8                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_read' declared but not used        |
+## |    3 | 20                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_read' declared but not used        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
