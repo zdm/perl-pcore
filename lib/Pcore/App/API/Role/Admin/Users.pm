@@ -8,9 +8,13 @@ with qw[Pcore::App::API::Role::Read];
 has default_gravatar       => ();
 has default_gravatar_image => ();
 
+has max_limit        => 100;
+has default_order_by => sub { [ [ 'name', 'DESC' ] ] };
+
 sub API_read ( $self, $auth, $args ) {
     state $total_sql = 'SELECT COUNT(*) AS "total" FROM "user"';
-    state $main_sql  = <<"SQL";
+
+    state $main_sql = <<"SQL";
         SELECT
             *,
             CASE
@@ -21,22 +25,17 @@ sub API_read ( $self, $auth, $args ) {
             "user"
 SQL
 
-    my $where;
-
     # get by id
     if ( exists $args->{id} ) {
-        $where = WHERE [ '"id" = ', \$args->{id} ];
+        $args->{where} = WHERE [ '"id" = ', \$args->{id} ];
     }
 
     # get all matched rows
     else {
 
-        # default sort
-        $args->{sort} = [ [ 'name', 'DESC' ] ] if !$args->{sort};
-
         # filter search
         my $where1 = WHERE do {
-            if ( my $search = delete $args->{filter}->{search} ) {
+            if ( my $search = delete $args->{where}->{search} ) {
                 my $val = lc "%$search->[1]%";
 
                 [ '"name" LIKE', \$val, 'OR "email" LIKE', \$val, 'OR "telegram_name" LIKE', \$val ];
@@ -48,18 +47,18 @@ SQL
 
         # filter status
         my $where2 = WHERE do {
-            if ( exists $args->{filter}->{status} ) {
-                [ '"enabled"', IN [ map { SQL_BOOL $_} $args->{filter}->{status}->[1]->@* ] ];
+            if ( exists $args->{where}->{status} ) {
+                [ '"enabled"', IN [ map { SQL_BOOL $_} $args->{where}->{status}->[1]->@* ] ];
             }
             else {
                 undef;
             }
         };
 
-        $where = $where1 & $where2;
+        $args->{where} = $where1 & $where2;
     }
 
-    my $res = $self->_read( $args, $total_sql, $main_sql, $where, 100 );
+    my $res = $self->_read( $total_sql, $main_sql, $args );
 
     return $res;
 }

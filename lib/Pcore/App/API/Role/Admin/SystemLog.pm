@@ -4,26 +4,24 @@ use Pcore -role, -sql;
 
 with qw[Pcore::App::API::Role::Read];
 
+has max_limit        => 100;
+has default_order_by => sub { [ [ 'created', 'DESC' ] ] };
+
 sub API_read ( $self, $auth, $args ) {
     state $total_sql = 'SELECT COUNT(*) AS "total" FROM "system_log"';
     state $main_sql  = 'SELECT * FROM "system_log"';
 
-    my $where;
-
     # get by id
     if ( exists $args->{id} ) {
-        $where = WHERE [ '"id" = ', \$args->{id} ];
+        $args->{where} = WHERE [ '"id" = ', \$args->{id} ];
     }
 
     # get all matched rows
     else {
 
-        # default sort
-        $args->{sort} = [ [ 'created', 'DESC' ] ] if !$args->{sort};
-
         # filter search
         my $where1 = WHERE do {
-            if ( my $search = delete $args->{filter}->{search} ) {
+            if ( my $search = delete $args->{where}->{search} ) {
                 my $val = "%$search->[1]%";
 
                 [ '"title" ILIKE', \$val ];
@@ -33,10 +31,10 @@ sub API_read ( $self, $auth, $args ) {
             }
         };
 
-        $where = $where1 & WHERE [ $args->{filter} ];
+        $args->{where} = $where1 & WHERE [ $args->{where} ];
     }
 
-    return $self->_read( $args, $total_sql, $main_sql, $where, 100 );
+    return $self->_read( $total_sql, $main_sql, $args );
 }
 
 sub API_delete ( $self, $auth, $args ) {

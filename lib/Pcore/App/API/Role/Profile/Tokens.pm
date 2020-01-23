@@ -4,29 +4,26 @@ use Pcore -role, -sql, -res;
 
 with qw[Pcore::App::API::Role::Read];
 
+has max_limit        => undef;
+has default_order_by => sub { [ [ 'created', 'DESC' ] ] };
+
 sub API_read ( $self, $auth, $args ) {
     state $total_sql = 'SELECT COUNT(*) AS "total" FROM "user_token"';
     state $main_sql  = 'SELECT * FROM "user_token"';
 
     my $owner = WHERE [ '"user_id" =', \$auth->{user_id} ];
 
-    my $where;
-
     # get by id
     if ( exists $args->{id} ) {
-        $where = $owner & WHERE [ '"id" = ', SQL_UUID $args->{id} ];
+        $args->{where} = $owner & WHERE [ '"id" = ', SQL_UUID $args->{id} ];
     }
 
     # get all matched rows
     else {
-
-        # default sort
-        $args->{sort} = [ [ 'created', 'DESC' ] ] if !$args->{sort};
-
-        $where = $owner;
+        $args->{where} = $owner;
     }
 
-    return $self->_read( $args, $total_sql, $main_sql, $where, 100 );
+    return $self->_read( $total_sql, $main_sql, $args );
 }
 
 sub API_create ( $self, $auth, $args ) {
