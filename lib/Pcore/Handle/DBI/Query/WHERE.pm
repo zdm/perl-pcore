@@ -42,6 +42,7 @@ use overload    #
 
 has _buf          => ( required => 1 );         # ArrayRef
 has _is_not_empty => ( is       => 'lazy' );    # Bool
+has _type         => ( required => 1 );         # WHERE, HAVING
 
 const our $SQL_COMPARISON_OPERATOR => {
     '<'      => '<',
@@ -217,7 +218,7 @@ sub get_query ( $self, $dbh, $final, $i ) {
     }
 
     if (@sql) {
-        return ( $final ? 'WHERE (' : '(' ) . join( $SPACE, @sql ) . ')', \@bind;
+        return ( $final ? "$self->{_type} (" : '(' ) . join( $SPACE, @sql ) . ')', \@bind;
     }
     else {
         return;
@@ -231,9 +232,9 @@ sub get_query ( $self, $dbh, $final, $i ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 77                   | Subroutines::ProhibitExcessComplexity - Subroutine "get_query" with high complexity score (38)                 |
+## |    3 | 78                   | Subroutines::ProhibitExcessComplexity - Subroutine "get_query" with high complexity score (38)                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 153, 165, 183        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 154, 166, 184        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
