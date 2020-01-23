@@ -5,7 +5,7 @@ use Pcore::Util::Scalar qw[is_ref];
 
 has _buf => ( required => 1 );    # ArrayRef
 
-sub get_query ( $self, $dbh, $final, $i ) {
+sub get_query ( $self, $dbh, $i ) {
     my @sql;
 
     for my $token ( $self->{_buf}->@* ) {

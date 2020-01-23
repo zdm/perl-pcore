@@ -18,7 +18,7 @@ use overload    #
         return $_[1];
     }
     else {
-        return bless { _is_not_empty => 1, _buf => [ $_[0], 'AND', $_[1] ], _type => $_[0]->{_type} }, __PACKAGE__;
+        return bless { _is_not_empty => 1, _buf => [ '(', $_[0]->{_buf}->@*, ') AND (', $_[1]->{_buf}->@*, ')' ], _type => $_[0]->{_type} }, __PACKAGE__;
     }
   },
   q[|] => sub {
@@ -35,7 +35,7 @@ use overload    #
         return $_[1];
     }
     else {
-        return bless { _is_not_empty => 1, _buf => [ $_[0], 'OR', $_[1] ], _type => $_[0]->{_type} }, __PACKAGE__;
+        return bless { _is_not_empty => 1, _buf => [ '(', $_[0]->{_buf}->@*, ') OR (', $_[1]->{_buf}->@*, ')' ], _type => $_[0]->{_type} }, __PACKAGE__;
     }
   },
   fallback => undef;
@@ -75,7 +75,7 @@ sub _build__is_not_empty ($self) {
     return;
 }
 
-sub get_query ( $self, $dbh, $final, $i ) {
+sub get_query ( $self, $dbh, $i ) {
     my ( @sql, @bind );
 
     for my $token ( $self->{_buf}->@* ) {
@@ -95,8 +95,8 @@ sub get_query ( $self, $dbh, $final, $i ) {
             push @bind, $token->$*;
         }
 
-        # ArrayRef value is processed as parameter with type
-        elsif ( is_arrayref $token) {
+        # blesses ArrayRef value is processed as parameter with type
+        elsif ( is_blessed_arrayref $token) {
             push @sql, '$' . $i->$*++;
 
             push @bind, $token;
@@ -120,7 +120,7 @@ sub get_query ( $self, $dbh, $final, $i ) {
 
                 # Object is expanded to SQL
                 elsif ( is_blessed_hashref $token->{$field} ) {
-                    my ( $sql, $bind ) = $token->{$field}->get_query( $dbh, 0, $i );
+                    my ( $sql, $bind ) = $token->{$field}->get_query( $dbh, $i );
 
                     if ( defined $sql ) {
                         push @buf, "$quoted_field = $sql";
@@ -149,7 +149,7 @@ sub get_query ( $self, $dbh, $final, $i ) {
                     if ( $op eq 'IN' ) {
                         my $in = Pcore::Handle::DBI::Const::IN($val);
 
-                        my ( $in_sql, $in_bind ) = $in->get_query( $dbh, $final, $i );
+                        my ( $in_sql, $in_bind ) = $in->get_query( $dbh, $i );
 
                         if ($in_sql) {
                             push @buf, "$quoted_field $in_sql";
@@ -161,7 +161,7 @@ sub get_query ( $self, $dbh, $final, $i ) {
                     elsif ( $op eq 'NOT IN' ) {
                         my $in = Pcore::Handle::DBI::Const::IN($val);
 
-                        my ( $in_sql, $in_bind ) = $in->get_query( $dbh, $final, $i );
+                        my ( $in_sql, $in_bind ) = $in->get_query( $dbh, $i );
 
                         if ($in_sql) {
                             push @buf, "$quoted_field NOT $in_sql";
@@ -179,7 +179,7 @@ sub get_query ( $self, $dbh, $final, $i ) {
 
                     # object
                     elsif ( is_blessed_hashref $val) {
-                        my ( $sql, $bind ) = $val->get_query( $dbh, 0, $i );
+                        my ( $sql, $bind ) = $val->get_query( $dbh, $i );
 
                         if ( defined $sql ) {
                             push @buf, "$quoted_field $op $sql";
@@ -204,7 +204,7 @@ sub get_query ( $self, $dbh, $final, $i ) {
 
         # Object
         elsif ( is_blessed_hashref $token) {
-            my ( $sql, $bind ) = $token->get_query( $dbh, 0, $i );
+            my ( $sql, $bind ) = $token->get_query( $dbh, $i );
 
             if ( defined $sql ) {
                 push @sql, $sql;
@@ -218,7 +218,7 @@ sub get_query ( $self, $dbh, $final, $i ) {
     }
 
     if (@sql) {
-        return ( $final ? "$self->{_type} (" : '(' ) . join( $SPACE, @sql ) . ')', \@bind;
+        return "$self->{_type} (" . join( $SPACE, @sql ) . ')', \@bind;
     }
     else {
         return;
@@ -232,7 +232,7 @@ sub get_query ( $self, $dbh, $final, $i ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 78                   | Subroutines::ProhibitExcessComplexity - Subroutine "get_query" with high complexity score (38)                 |
+## |    3 | 78                   | Subroutines::ProhibitExcessComplexity - Subroutine "get_query" with high complexity score (37)                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 154, 166, 184        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
