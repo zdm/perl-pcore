@@ -53,7 +53,7 @@ sub API_set_enabled ( $self, $auth, $token_id, $enabled ) {
 }
 
 sub API_read_permissions ( $self, $auth, $args ) {
-    my $token_id = $args->{filter}->{token_id}->[1];
+    my $token_id = $args->{where}->{token_id}->[1];
 
     my $res = $self->_check_token_permissions( $auth->{user_id}, $token_id );
 

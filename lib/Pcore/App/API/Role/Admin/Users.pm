@@ -143,7 +143,7 @@ sub API_set_enabled ( $self, $auth, $user_id, $enabled ) {
 }
 
 sub API_read_permissions ( $self, $auth, $args ) {
-    my $user_id = $args->{filter}->{user_id}->[1];
+    my $user_id = $args->{where}->{user_id}->[1];
 
     my $permissions;
     my $auth_permissions = $auth->{permissions};
@@ -212,8 +212,8 @@ sub API_write_permissions ( $self, $auth, $user_id, $permissions ) {
 
 sub API_suggest ( $self, $auth, $args ) {
     my $where = WHERE do {
-        if ( defined $args->{filter}->{name}->[1] ) {
-            my $val = lc "%$args->{filter}->{name}->[1]%";
+        if ( defined $args->{where}->{name}->[1] ) {
+            my $val = lc "%$args->{where}->{name}->[1]%";
 
             [ '"name" LIKE', \$val, 'OR "email" LIKE', \$val, 'OR "telegram_name" LIKE', \$val ];
         }
