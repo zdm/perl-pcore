@@ -4,10 +4,10 @@ use Pcore -const, -export;
 use Pcore::Util::Scalar qw[is_plain_arrayref is_blessed_hashref is_blessed_arrayref];
 
 use Pcore::Handle::DBI::Query::Type;
+use Pcore::Handle::DBI::Query::Condition;
 use Pcore::Handle::DBI::Query::SQL;
 use Pcore::Handle::DBI::Query::SET;
 use Pcore::Handle::DBI::Query::VALUES qw[:ALL];
-use Pcore::Handle::DBI::Query::WHERE;
 use Pcore::Handle::DBI::Query::IN;
 use Pcore::Handle::DBI::Query::GROUP_BY;
 use Pcore::Handle::DBI::Query::ORDER_BY;
@@ -217,43 +217,11 @@ sub VALUES : prototype(;$) {
 }
 
 sub ON : prototype(;$) {
-    if ( is_plain_arrayref $_[0] ) {
-        if ( $_[0]->@* == 1 && is_blessed_hashref $_[0]->[0] && ref $_[0]->[0] eq 'Pcore::Handle::DBI::Query::WHERE' ) {
-            return $_[0]->[0];
-        }
-        else {
-            return bless { _buf => $_[0], _type => 'ON' }, 'Pcore::Handle::DBI::Query::WHERE';
-        }
-    }
-    elsif ( is_blessed_hashref $_[0] && ref $_[0] eq 'Pcore::Handle::DBI::Query::WHERE' ) {
-        return $_[0];
-    }
-    elsif ( !defined $_[0] ) {
-        return bless { is_not_empty => 0, _type => 'ON' }, 'Pcore::Handle::DBI::Query::WHERE';
-    }
-    else {
-        die 'Invalid ref type';
-    }
+    return _condition( 'ON', $_[0] );
 }
 
 sub WHERE : prototype(;$) {
-    if ( is_plain_arrayref $_[0] ) {
-        if ( $_[0]->@* == 1 && is_blessed_hashref $_[0]->[0] && ref $_[0]->[0] eq 'Pcore::Handle::DBI::Query::WHERE' ) {
-            return $_[0]->[0];
-        }
-        else {
-            return bless { _buf => $_[0], _type => 'WHERE' }, 'Pcore::Handle::DBI::Query::WHERE';
-        }
-    }
-    elsif ( is_blessed_hashref $_[0] && ref $_[0] eq 'Pcore::Handle::DBI::Query::WHERE' ) {
-        return $_[0];
-    }
-    elsif ( !defined $_[0] ) {
-        return bless { is_not_empty => 0, _type => 'WHERE' }, 'Pcore::Handle::DBI::Query::WHERE';
-    }
-    else {
-        die 'Invalid ref type';
-    }
+    return _condition( 'WHERE', $_[0] );
 }
 
 sub IN : prototype(;$) {
@@ -265,19 +233,23 @@ sub GROUP_BY : prototype(;$) {
 }
 
 sub HAVING : prototype(;$) {
-    if ( is_plain_arrayref $_[0] ) {
-        if ( $_[0]->@* == 1 && is_blessed_hashref $_[0]->[0] && ref $_[0]->[0] eq 'Pcore::Handle::DBI::Query::WHERE' ) {
-            return $_[0]->[0];
+    return _condition( 'HAVING', $_[0] );
+}
+
+sub _condition {
+    if ( is_plain_arrayref $_[1] ) {
+        if ( $_[1]->@* == 1 && is_blessed_hashref $_[1]->[0] && ref $_[1]->[0] eq 'Pcore::Handle::DBI::Query::Condition' ) {
+            return $_[1]->[0];
         }
         else {
-            return bless { _buf => $_[0], _type => 'HAVING' }, 'Pcore::Handle::DBI::Query::WHERE';
+            return bless { _buf => $_[1], _type => $_[0] }, 'Pcore::Handle::DBI::Query::Condition';
         }
     }
-    elsif ( is_blessed_hashref $_[0] && ref $_[0] eq 'Pcore::Handle::DBI::Query::WHERE' ) {
-        return $_[0];
+    elsif ( is_blessed_hashref $_[1] && ref $_[1] eq 'Pcore::Handle::DBI::Query::Condition' ) {
+        return $_[1];
     }
-    elsif ( !defined $_[0] ) {
-        return bless { is_not_empty => 0, _type => 'HAVING' }, 'Pcore::Handle::DBI::Query::WHERE';
+    elsif ( !defined $_[1] ) {
+        return bless { is_not_empty => 0, _type => $_[0] }, 'Pcore::Handle::DBI::Query::Condition';
     }
     else {
         die 'Invalid ref type';

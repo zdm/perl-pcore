@@ -1,4 +1,4 @@
-package Pcore::Handle::DBI::Query::WHERE;
+package Pcore::Handle::DBI::Query::Condition;
 
 use Pcore -const, -class;
 use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_arrayref is_plain_arrayref is_plain_hashref is_blessed_arrayref is_blessed_hashref];
@@ -245,7 +245,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Handle::DBI::Query::WHERE
+Pcore::Handle::DBI::Query::Condition
 
 =head1 SYNOPSIS
 
