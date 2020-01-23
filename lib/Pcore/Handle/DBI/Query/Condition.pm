@@ -75,7 +75,7 @@ sub _build__is_not_empty ($self) {
     return;
 }
 
-sub get_query ( $self, $dbh, $i ) {
+sub GET_SQL_QUERY ( $self, $dbh, $i ) {
     my ( @sql, @bind );
 
     for my $token ( $self->{_buf}->@* ) {
@@ -120,7 +120,7 @@ sub get_query ( $self, $dbh, $i ) {
 
                 # Object is expanded to SQL
                 elsif ( is_blessed_hashref $token->{$field} ) {
-                    my ( $sql, $bind ) = $token->{$field}->get_query( $dbh, $i );
+                    my ( $sql, $bind ) = $token->{$field}->GET_SQL_QUERY( $dbh, $i );
 
                     if ( defined $sql ) {
                         push @buf, "$quoted_field = $sql";
@@ -149,7 +149,7 @@ sub get_query ( $self, $dbh, $i ) {
                     if ( $op eq 'IN' ) {
                         my $in = Pcore::Handle::DBI::Const::IN($val);
 
-                        my ( $in_sql, $in_bind ) = $in->get_query( $dbh, $i );
+                        my ( $in_sql, $in_bind ) = $in->GET_SQL_QUERY( $dbh, $i );
 
                         if ($in_sql) {
                             push @buf, "$quoted_field $in_sql";
@@ -161,7 +161,7 @@ sub get_query ( $self, $dbh, $i ) {
                     elsif ( $op eq 'NOT IN' ) {
                         my $in = Pcore::Handle::DBI::Const::IN($val);
 
-                        my ( $in_sql, $in_bind ) = $in->get_query( $dbh, $i );
+                        my ( $in_sql, $in_bind ) = $in->GET_SQL_QUERY( $dbh, $i );
 
                         if ($in_sql) {
                             push @buf, "$quoted_field NOT $in_sql";
@@ -179,7 +179,7 @@ sub get_query ( $self, $dbh, $i ) {
 
                     # object
                     elsif ( is_blessed_hashref $val) {
-                        my ( $sql, $bind ) = $val->get_query( $dbh, $i );
+                        my ( $sql, $bind ) = $val->GET_SQL_QUERY( $dbh, $i );
 
                         if ( defined $sql ) {
                             push @buf, "$quoted_field $op $sql";
@@ -204,7 +204,7 @@ sub get_query ( $self, $dbh, $i ) {
 
         # Object
         elsif ( is_blessed_hashref $token) {
-            my ( $sql, $bind ) = $token->get_query( $dbh, $i );
+            my ( $sql, $bind ) = $token->GET_SQL_QUERY( $dbh, $i );
 
             if ( defined $sql ) {
                 push @sql, $sql;
@@ -232,7 +232,7 @@ sub get_query ( $self, $dbh, $i ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 78                   | Subroutines::ProhibitExcessComplexity - Subroutine "get_query" with high complexity score (37)                 |
+## |    3 | 78                   | Subroutines::ProhibitExcessComplexity - Subroutine "GET_SQL_QUERY" with high complexity score (37)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 154, 166, 184        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

@@ -5,7 +5,7 @@ use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_arrayref is_plain_hashre
 
 has _buf => ( required => 1 );    # ArrayRef
 
-sub get_query ( $self, $dbh, $i ) {
+sub GET_SQL_QUERY ( $self, $dbh, $i ) {
     my ( @sql, @bind );
 
     for my $token ( $self->{_buf}->@* ) {
@@ -47,7 +47,7 @@ sub get_query ( $self, $dbh, $i ) {
 
                 # object
                 elsif ( is_blessed_hashref $token->{$field} ) {
-                    my ( $sql, $bind ) = $token->{$field}->get_query( $dbh, $i );
+                    my ( $sql, $bind ) = $token->{$field}->GET_SQL_QUERY( $dbh, $i );
 
                     if ($sql) {
                         push @sql1, $dbh->quote_id($field) . ' = ' . $sql;
