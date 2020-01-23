@@ -18,7 +18,7 @@ use overload    #
         return $_[1];
     }
     else {
-        return bless { _is_not_empty => 1, _buf => [ $_[0], 'AND', $_[1] ] }, __PACKAGE__;
+        return bless { _is_not_empty => 1, _buf => [ $_[0], 'AND', $_[1] ], _type => $_[0]->{_type} }, __PACKAGE__;
     }
   },
   q[|] => sub {
@@ -35,7 +35,7 @@ use overload    #
         return $_[1];
     }
     else {
-        return bless { _is_not_empty => 1, _buf => [ $_[0], 'OR', $_[1] ] }, __PACKAGE__;
+        return bless { _is_not_empty => 1, _buf => [ $_[0], 'OR', $_[1] ], _type => $_[0]->{_type} }, __PACKAGE__;
     }
   },
   fallback => undef;
