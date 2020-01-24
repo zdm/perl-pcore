@@ -11,19 +11,14 @@ sub API_read ( $self, $auth, $args ) {
     state $total_sql = 'SELECT COUNT(*) AS "total" FROM "user_token"';
     state $main_sql  = 'SELECT * FROM "user_token"';
 
-    my $owner = WHERE [ '"user_id" =', \$auth->{user_id} ];
+    my $where = WHERE [ '"user_id" =', \$auth->{user_id} ];
 
     # get by id
     if ( exists $args->{id} ) {
-        $args->{where} = $owner & WHERE [ '"id" = ', SQL_UUID $args->{id} ];
+        $where &= WHERE [ '"id" = ', SQL_UUID $args->{id} ];
     }
 
-    # get all matched rows
-    else {
-        $args->{where} = $owner;
-    }
-
-    return $self->_read( $total_sql, $main_sql, $args );
+    return $self->_read( [ $total_sql, $where ], [ $main_sql, $where ], $args );
 }
 
 sub API_create ( $self, $auth, $args ) {

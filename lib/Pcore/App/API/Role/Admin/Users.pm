@@ -25,40 +25,30 @@ sub API_read ( $self, $auth, $args ) {
             "user"
 SQL
 
+    my $where = WHERE;
+
     # get by id
     if ( exists $args->{id} ) {
-        $args->{where} = WHERE [ '"id" = ', \$args->{id} ];
+        $where &= WHERE [ '"id" = ', \$args->{id} ];
     }
 
     # get all matched rows
     else {
 
         # filter search
-        my $where1 = WHERE do {
-            if ( my $search = delete $args->{where}->{search} ) {
-                my $val = lc "%$search->[1]%";
+        if ( my $search = delete $args->{where}->{search} ) {
+            my $val = lc "%$search->[1]%";
 
-                [ '"name" LIKE', \$val, 'OR "email" LIKE', \$val, 'OR "telegram_name" LIKE', \$val ];
-            }
-            else {
-                undef;
-            }
-        };
+            $where &= WHERE [ '"name" LIKE', \$val, 'OR "email" LIKE', \$val, 'OR "telegram_name" LIKE', \$val ];
+        }
 
         # filter status
-        my $where2 = WHERE do {
-            if ( exists $args->{where}->{status} ) {
-                [ '"enabled"', IN [ map { SQL_BOOL $_} $args->{where}->{status}->[1]->@* ] ];
-            }
-            else {
-                undef;
-            }
-        };
-
-        $args->{where} = $where1 & $where2;
+        if ( exists $args->{where}->{status} ) {
+            $where &= [ '"enabled"', IN [ map { SQL_BOOL $_} $args->{where}->{status}->[1]->@* ] ];
+        }
     }
 
-    my $res = $self->_read( $total_sql, $main_sql, $args );
+    my $res = $self->_read( [ $total_sql, $where ], [ $main_sql, $where ], $args );
 
     return $res;
 }

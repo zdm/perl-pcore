@@ -11,30 +11,27 @@ sub API_read ( $self, $auth, $args ) {
     state $total_sql = 'SELECT COUNT(*) AS "total" FROM "system_log"';
     state $main_sql  = 'SELECT * FROM "system_log"';
 
+    my $where = WHERE;
+
     # get by id
     if ( exists $args->{id} ) {
-        $args->{where} = WHERE [ '"id" = ', \$args->{id} ];
+        $where &= WHERE [ '"id" = ', \$args->{id} ];
     }
 
     # get all matched rows
     else {
 
         # filter search
-        my $where1 = WHERE do {
-            if ( my $search = delete $args->{where}->{search} ) {
-                my $val = "%$search->[1]%";
+        if ( my $search = delete $args->{where}->{search} ) {
+            my $val = "%$search->[1]%";
 
-                [ '"title" ILIKE', \$val ];
-            }
-            else {
-                undef;
-            }
-        };
+            $where &= WHERE [ '"title" ILIKE', \$val ];
+        }
 
-        $args->{where} = $where1 & WHERE [ $args->{where} ];
+        $where &= WHERE [ $args->{where} ];
     }
 
-    return $self->_read( $total_sql, $main_sql, $args );
+    return $self->_read( [ $total_sql, $where ], [ $main_sql, $where ], $args );
 }
 
 sub API_delete ( $self, $auth, $args ) {
