@@ -261,7 +261,19 @@ sub ORDER_BY : prototype(;$) {
 }
 
 sub LIMIT : prototype(;$) {
-    return bless { _buf => $_[0] }, 'Pcore::Handle::DBI::Query::LIMIT';
+    if ( is_plain_arrayref $_[0] ) {
+        my ( $val, %args ) = $_[0]->@*;
+
+        return bless {
+            max     => $args{max},
+            default => $args{default},
+            _buf    => $val,
+          },
+          'Pcore::Handle::DBI::Query::LIMIT';
+    }
+    else {
+        return bless { _buf => $_[0] }, 'Pcore::Handle::DBI::Query::LIMIT';
+    }
 }
 
 sub OFFSET : prototype(;$) {
