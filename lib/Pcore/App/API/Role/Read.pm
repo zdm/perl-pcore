@@ -7,40 +7,47 @@ has max_limit        => 100;
 has default_limit    => 0;
 has default_order_by => undef;
 
-sub _read ( $self, $total_sql, $main_sql, $arg = undef ) {
+sub _read ( $self, $total_query, $main_query, $arg = undef ) {
     my $dbh = $self->{dbh};
 
     # get by id
-    return $dbh->selectrow($main_sql) if $args->{id};
+    return $dbh->selectrow($main_query) if $args->{id};
 
-    my $total;
+    my ( $total, $total_count );
 
-    if ($total_sql) {
-        $total = $dbh->selectrow($total_sql);
+    if ($total_query) {
+        $total = $dbh->selectrow($total_query);
 
         # total query error
-        if ( !$total ) {
-            return $total;
-        }
+        return $total if !$total;
+
+        $total_count = $total->{data}->{total};
 
         # no results
-        elsif ( !$total->{data}->{total} ) {
+        if ( !$total_count ) {
             return res 200,
-              total   => 0,
-              summary => { total => 0 };
+              total   => $total_count,
+              summary => $total->{data};
+        }
+
+        # do not perform main query if offset >= total
+        elsif ( $args->{offset} && $args->{offset} >= $total_count ) {
+            return res 200,
+              total   => $total_count,
+              summary => $total->{data};
         }
     }
 
     # has results
     my $data = $dbh->selectall( [
-        $main_sql->@*,
+        $main_query->@*,
         ORDER_BY( $args->{order_by} || $self->{default_order_by} ),
         LIMIT( $args->{limit}, max => $self->{max_limit}, default => $self->{default_limit} ),
         OFFSET( $args->{offset} );
     ] );
 
     if ( $data && $total ) {
-        $data->{total}   = $total->{data}->{total};
+        $data->{total}   = $total_count;
         $data->{summary} = $total->{data};
     }
 
