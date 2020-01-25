@@ -8,9 +8,6 @@ has max_limit        => 100;
 has default_order_by => sub { [ [ 'created', 'DESC' ] ] };
 
 sub API_read ( $self, $auth, $args ) {
-    state $total_sql = 'SELECT COUNT(*) AS "total" FROM "system_log"';
-    state $main_sql  = 'SELECT * FROM "system_log"';
-
     my $where = WHERE;
 
     # get by id
@@ -31,7 +28,11 @@ sub API_read ( $self, $auth, $args ) {
         $where &= WHERE [ $args->{where} ];
     }
 
-    return $self->_read( [ $total_sql, $where ], [ $main_sql, $where ], $args );
+    my $total_query = [ 'SELECT COUNT(*) AS "total" FROM "system_log"', $where ];
+
+    my $main_query = [ 'SELECT * FROM "system_log"', $where ];
+
+    return $self->_read( $total_query, $main_query, $args );
 }
 
 sub API_delete ( $self, $auth, $args ) {

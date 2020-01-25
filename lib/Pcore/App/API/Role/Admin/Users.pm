@@ -12,19 +12,6 @@ has max_limit        => 100;
 has default_order_by => sub { [ [ 'name', 'DESC' ] ] };
 
 sub API_read ( $self, $auth, $args ) {
-    state $total_sql = 'SELECT COUNT(*) AS "total" FROM "user"';
-
-    state $main_sql = <<"SQL";
-        SELECT
-            *,
-            CASE
-                WHEN "gravatar" IS NOT NULL THEN 'https://s.gravatar.com/avatar/' || "gravatar" || '?d=@{[ $self->{default_gravatar_image} ]}'
-                ELSE '@{[ $self->{default_gravatar} ]}'
-            END "avatar"
-        FROM
-            "user"
-SQL
-
     my $where = WHERE;
 
     # get by id
@@ -48,7 +35,23 @@ SQL
         }
     }
 
-    my $res = $self->_read( [ $total_sql, $where ], [ $main_sql, $where ], $args );
+    my $total_query = [ 'SELECT COUNT(*) AS "total" FROM "user"', $where ];
+
+    my $main_query = [
+        <<"SQL",
+        SELECT
+            *,
+            CASE
+                WHEN "gravatar" IS NOT NULL THEN 'https://s.gravatar.com/avatar/' || "gravatar" || '?d=@{[ $self->{default_gravatar_image} ]}'
+                ELSE '@{[ $self->{default_gravatar} ]}'
+            END "avatar"
+        FROM
+            "user"
+SQL
+        $where
+    ];
+
+    my $res = $self->_read( $total_query, $main_query, $args );
 
     return $res;
 }

@@ -8,9 +8,6 @@ has max_limit        => undef;
 has default_order_by => sub { [ [ 'created', 'DESC' ] ] };
 
 sub API_read ( $self, $auth, $args ) {
-    state $total_sql = 'SELECT COUNT(*) AS "total" FROM "user_token"';
-    state $main_sql  = 'SELECT * FROM "user_token"';
-
     my $where = WHERE [ '"user_id" =', \$auth->{user_id} ];
 
     # get by id
@@ -18,7 +15,11 @@ sub API_read ( $self, $auth, $args ) {
         $where &= WHERE [ '"id" = ', SQL_UUID $args->{id} ];
     }
 
-    return $self->_read( [ $total_sql, $where ], [ $main_sql, $where ], $args );
+    my $total_query = [ 'SELECT COUNT(*) AS "total" FROM "user_token"', $where ];
+
+    my $main_query = [ 'SELECT * FROM "user_token"', $where ];
+
+    return $self->_read( $total_query, $main_query, $args );
 }
 
 sub API_create ( $self, $auth, $args ) {
