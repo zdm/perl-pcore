@@ -1,3 +1,8 @@
+v0.115.0 2020-01-25T13:59:18Z
+ - api reader role refactored
+ - dbi limit params
+ - app tmpl updated
+
 v0.114.2 2020-01-23T23:17:32Z
  - dbi get_query -> GET_SQL_QUERY
  - dbi improved
