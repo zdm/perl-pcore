@@ -260,7 +260,7 @@ sub ORDER_BY : prototype(;$) {
     return bless { _buf => $_[0] }, 'Pcore::Handle::DBI::Query::ORDER_BY';
 }
 
-sub LIMIT : prototype(;$) ( $val, %args ) {
+sub LIMIT : prototype(;$@) ( $val, %args ) {
     return bless {
         max     => $args{max},
         default => $args{default},

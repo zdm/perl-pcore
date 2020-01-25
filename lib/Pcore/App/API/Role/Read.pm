@@ -7,7 +7,7 @@ has max_limit        => 100;
 has default_limit    => 0;
 has default_order_by => undef;
 
-sub _read ( $self, $total_query, $main_query, $arg = undef ) {
+sub _read ( $self, $total_query, $main_query, $args = undef ) {
     my $dbh = $self->{dbh};
 
     # get by id
@@ -39,12 +39,7 @@ sub _read ( $self, $total_query, $main_query, $arg = undef ) {
     }
 
     # has results
-    my $data = $dbh->selectall( [
-        $main_query->@*,
-        ORDER_BY( $args->{order_by} || $self->{default_order_by} ),
-        LIMIT( $args->{limit}, max => $self->{max_limit}, default => $self->{default_limit} ),
-        OFFSET( $args->{offset} );
-    ] );
+    my $data = $dbh->selectall( [ $main_query->@*, ORDER_BY( $args->{order_by} || $self->{default_order_by} ), LIMIT( $args->{limit}, max => $self->{max_limit}, default => $self->{default_limit} ), OFFSET( $args->{offset} ), ] );
 
     if ( $data && $total ) {
         $data->{total}   = $total_count;
