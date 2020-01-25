@@ -39,7 +39,12 @@ sub _read ( $self, $total_query, $main_query, $args = undef ) {
     }
 
     # has results
-    my $data = $dbh->selectall( [ $main_query->@*, ORDER_BY( $args->{order_by} || $self->{default_order_by} ), LIMIT( $args->{limit}, max => $self->{max_limit}, default => $self->{default_limit} ), OFFSET( $args->{offset} ), ] );
+    my $data = $dbh->selectall( [    #
+        $main_query->@*,
+        ORDER_BY( $args->{order_by} || $self->{default_order_by} ),
+        LIMIT( $args->{limit}, max => $self->{max_limit}, default => $self->{default_limit} ),
+        OFFSET( $args->{offset} ),
+    ] );
 
     if ( $data && $total ) {
         $data->{total}   = $total_count;
