@@ -1,3 +1,6 @@
+v0.116.2 2020-02-03T01:26:27Z
+ - app sendmail args updated
+
 v0.116.1 2020-02-03T00:23:18Z
  - smtp remove DIGEST-MD5 auth mechanism
  - resources updated
