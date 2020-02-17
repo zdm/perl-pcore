@@ -57,6 +57,21 @@ sub check_port : prototype($$;$) ( $host, $port, $timeout = 1 ) {
     return $cv->recv;
 }
 
+# - /socket/path
+# - abstract-socket-name
+# - //0.0.0.0:80
+# - //127.0.0.1:80
+# - //127.0.0.1 - random free port
+sub parse_listen : prototype($;$) ( $uri, $default_port = undef ) {
+    $uri = P->uri( $uri, base => 'tcp:', listen => 1 );
+
+    if ( $uri->{host} && !$uri->{port} ) {
+        $uri->set_port( $default_port || get_free_port $uri->{host} );
+    }
+
+    return $uri;
+}
+
 1;
 __END__
 =pod
