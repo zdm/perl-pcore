@@ -30,9 +30,7 @@ sub API_read ( $self, $auth, $args ) {
 
         # filter search
         if ( my $search = delete $args->{where}->{search} ) {
-            my $val = lc $search->[1];
-
-            $where &= WHERE [ '"user"."name" LIKE', \$val, 'OR "user"."email" LIKE', \$val, 'OR "user"."telegram_name" LIKE', \$val ];
+            $where &= WHERE [ { 'user.name' => [ 'like', $search->[1] ] }, 'OR', { 'user.email' => [ 'like', $search->[1] ] }, 'OR', { 'user.telegram_name' => [ 'like', $search->[1] ] } ];
         }
 
         # filter status
