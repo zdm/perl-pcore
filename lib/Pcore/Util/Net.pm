@@ -2,7 +2,7 @@ package Pcore::Util::Net;
 
 use Pcore -export;
 
-our $EXPORT = [qw[hostname get_free_port check_port]];
+our $EXPORT = [qw[hostname get_free_port check_port parse_listen]];
 
 sub hostname {
     state $hostname = do {
