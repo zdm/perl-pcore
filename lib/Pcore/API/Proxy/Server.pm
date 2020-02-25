@@ -14,6 +14,8 @@ has so_keepalive => 1;
 has _listen_socket => ( init_arg => undef );
 
 sub BUILD ( $self, $args ) {
+    $self->{proxy} = Pcore::API::Proxy->new( $self->{proxy} ) if $self->{proxy};
+
     $self->{listen} = P->net->parse_listen( $self->{listen} );
 
     $self->{_listen_socket} = &AnyEvent::Socket::tcp_server(    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
@@ -105,10 +107,13 @@ sub _on_accept ( $self, $fh, $host, $port ) {
 
     # establish a TCP/IP stream connection
     if ( $cmd == 1 ) {
-        if ( $self->{proxy} ) {
-            my $proxy = Pcore::API::Proxy->new( $self->{proxy} );
-
-            $proxy_h = $proxy->connect_socks5("//$target_host:$target_port");
+        if ( my $proxy = $self->{proxy} ) {
+            if ( $proxy->{is_socks} ) {
+                $proxy_h = $proxy->connect_socks5("//$target_host:$target_port");
+            }
+            else {
+                $proxy_h = $proxy->connect_connect("//$target_host:$target_port");
+            }
         }
         else {
             $proxy_h = P->handle("tcp://$target_host:$target_port");
@@ -186,9 +191,9 @@ sub _run_tunnel ( $self, $h1, $h2 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 46                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (23)                |
+## |    3 | 48                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (25)                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 121                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 126                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
