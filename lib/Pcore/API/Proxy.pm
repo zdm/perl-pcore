@@ -17,6 +17,9 @@ around new => sub ( $orig, $self, $uri ) {
 
         $uri = P->uri($uri);
     }
+    else {
+        return $uri if $uri->isa('Pcore::API::Proxy');
+    }
 
     $self = $self->$orig( uri => $uri );
 
@@ -349,9 +352,9 @@ sub _socks5_establish_tunnel ( $self, $h, $uri ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 203                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 206                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 170, 278, 283, 288   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 173, 281, 286, 291   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

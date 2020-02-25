@@ -33,6 +33,12 @@ sub BUILD ( $self, $args ) {
     return;
 }
 
+sub set_proxy ( $self, $proxy ) {
+    $self->{proxy} = Pcore::API::Proxy->new($proxy);
+
+    return;
+}
+
 sub _on_prepare ( $self, $fh, $host, $port ) {
     return $self->{backlog} // 0;
 }
@@ -180,9 +186,9 @@ sub _run_tunnel ( $self, $h1, $h2 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 40                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (23)                |
+## |    3 | 46                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (23)                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 115                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 121                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
