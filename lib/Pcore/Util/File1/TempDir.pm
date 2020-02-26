@@ -14,7 +14,7 @@ our @DEFERRED_UNLINK;
 END {
 
     # hide warnings
-    local $SIG{__DIE__} = undef;
+    local $SIG{__WARN__} = sub { };
 
     for my $path (@DEFERRED_UNLINK) {
         File::Path::remove_tree( $path, safe => 0 );
@@ -25,7 +25,7 @@ sub DESTROY ($self) {
     return if !defined $self->{temp} || !defined $self->{pid} || $self->{pid} != $$;
 
     # hide warnings
-    local $SIG{__DIE__} = undef;
+    local $SIG{__WARN__} = sub { };
 
     File::Path::remove_tree( $self->{temp}, safe => 0 );
 
