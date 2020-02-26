@@ -24,6 +24,9 @@ END {
 sub DESTROY ($self) {
     return if !defined $self->{temp} || !defined $self->{pid} || $self->{pid} != $$;
 
+    # hide warnings
+    local $SIG{__DIE__} = undef;
+
     File::Path::remove_tree( $self->{temp}, safe => 0 );
 
     push @DEFERRED_UNLINK, $self->{temp} if -d $self->{temp};
