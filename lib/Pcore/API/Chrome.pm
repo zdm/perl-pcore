@@ -72,6 +72,7 @@ around new => sub ( $orig, $self, %args ) {
         '--disable-web-security',
         '--allow-running-insecure-content',
 
+        # TODO socks currently may not work with http:80 requests
         # $self->{proxy} ? qq[--proxy-server="socks5://$self->{_proxy_server}->{listen}->{host_port}"] : (),
         $self->{proxy} ? qq[--proxy-server="$self->{_proxy_server}->{listen}->{host_port}"] : (),
 
@@ -153,9 +154,9 @@ sub set_proxy ( $self, $proxy ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 92                   | CodeLayout::ProhibitQuotedWordLists - List of quoted literal words                                             |
+## |    2 | 93                   | CodeLayout::ProhibitQuotedWordLists - List of quoted literal words                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 104                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 105                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

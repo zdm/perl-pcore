@@ -73,6 +73,7 @@ sub _socks4 ( $self, $h, $first ) {
     return;
 }
 
+# TODO
 sub _socks5 ( $self, $h, $first ) {
     my $chunk = $h->read_chunk(1);
     return if !$h;
@@ -127,14 +128,24 @@ sub _socks5 ( $self, $h, $first ) {
 
     # establish a TCP/IP stream connection
     if ( $cmd == 1 ) {
+
+        # nas upstream proxy
         if ( my $proxy = $self->{proxy} ) {
+
+            # upstream socks proxy
             if ( $proxy->{is_socks} ) {
                 $proxy_h = $proxy->connect_socks5("//$target_host:$target_port");
             }
+
+            # upstream http proxy
             else {
+                # TODO if $target_port == 80 - need to parse HTTP request, substitute first header to full url
+
                 $proxy_h = $proxy->connect_connect("//$target_host:$target_port");
             }
         }
+
+        # no upstream proxy
         else {
             $proxy_h = P->handle("tcp://$target_host:$target_port");
         }
@@ -316,10 +327,10 @@ sub _run_tunnel ( $self, $h1, $h2 ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 76                   | * Subroutine "_socks5" with high complexity score (24)                                                         |
-## |      | 169                  | * Subroutine "_http" with high complexity score (28)                                                           |
+## |      | 77                   | * Subroutine "_socks5" with high complexity score (24)                                                         |
+## |      | 180                  | * Subroutine "_http" with high complexity score (28)                                                           |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 146                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 157                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
