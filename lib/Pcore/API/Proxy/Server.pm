@@ -293,8 +293,8 @@ sub _run_tunnel ( $self, $h1, $h2 ) {
             last if !$h1;
         }
 
+        $h1->shutdown;
         $h2->shutdown;
-        $h2->close;
 
         return;
     };
@@ -311,7 +311,7 @@ sub _run_tunnel ( $self, $h1, $h2 ) {
         }
 
         $h1->shutdown;
-        $h1->close;
+        $h2->shutdown;
 
         return;
     };

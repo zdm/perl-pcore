@@ -12,6 +12,10 @@ has pid  => ( init_arg => undef );
 our @DEFERRED_UNLINK;
 
 END {
+
+    # hide warnings
+    local $SIG{__DIE__} = undef;
+
     for my $path (@DEFERRED_UNLINK) {
         File::Path::remove_tree( $path, safe => 0 );
     }

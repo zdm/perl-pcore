@@ -29,7 +29,9 @@ our $_MSG_ID = 0;
 
 sub DESTROY ($self) {
     if ( ${^GLOBAL_PHASE} ne 'DESTRUCT' ) {
-        $self->close;
+        my $url = "http://$self->{chrome}->{listen}->{host_port}/json/close/$self->{id}";
+
+        Coro::async_pool sub ($url) { P->http->get($url) }, $url;
     }
 
     return;
@@ -386,7 +388,7 @@ sub attach_util ( $self, $source_url = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 299                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 301                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

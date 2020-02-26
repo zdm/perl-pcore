@@ -26,7 +26,7 @@ const our $CONNECT_TIMEOUT    => 10;
 sub DESTROY ( $self ) {
 
     # term process group
-    kill '-TERM', $self->{_proc}->{pid} if defined $self->{_proc};    ## no critic qw[InputOutput::RequireCheckedSyscalls]
+    CORE::kill '-TERM', $self->{_proc}->{pid} if !$MSWIN && defined $self->{_proc};
 
     return;
 }
