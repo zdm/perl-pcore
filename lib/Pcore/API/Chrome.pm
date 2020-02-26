@@ -72,7 +72,8 @@ around new => sub ( $orig, $self, %args ) {
         '--disable-web-security',
         '--allow-running-insecure-content',
 
-        $self->{proxy} ? qq[--proxy-server="socks5://$self->{_proxy_server}->{listen}->{host_port}"] : (),
+        # $self->{proxy} ? qq[--proxy-server="socks5://$self->{_proxy_server}->{listen}->{host_port}"] : (),
+        $self->{proxy} ? qq[--proxy-server="$self->{_proxy_server}->{listen}->{host_port}"] : (),
 
         # logging
         # '--disable-logging',
@@ -152,9 +153,9 @@ sub set_proxy ( $self, $proxy ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 91                   | CodeLayout::ProhibitQuotedWordLists - List of quoted literal words                                             |
+## |    2 | 92                   | CodeLayout::ProhibitQuotedWordLists - List of quoted literal words                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 103                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 104                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

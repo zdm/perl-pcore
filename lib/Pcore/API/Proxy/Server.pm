@@ -52,12 +52,32 @@ sub _on_accept ( $self, $fh, $host, $port ) {
         so_keepalive => $self->{so_keepalive},
     );
 
-    my $chunk = $h->read_chunk(2);
+    my $chunk = $h->read_chunk(1);
     return if !$h;
 
-    my ( $ver, $nauth ) = unpack 'C*', $chunk->$*;
+    if ( $chunk->$* eq "\x05" ) {
+        $self->_socks5( $h, $chunk->$* );
+    }
+    elsif ( $chunk->$* eq "\x04" ) {
+        $self->_socks4( $h, $chunk->$* );
+    }
+    else {
+        $self->_http( $h, $chunk->$* );
+    }
 
-    return if $ver != 5;
+    return;
+}
+
+# TODO
+sub _socks4 ( $self, $h, $first ) {
+    return;
+}
+
+sub _socks5 ( $self, $h, $first ) {
+    my $chunk = $h->read_chunk(1);
+    return if !$h;
+
+    my $nauth = unpack 'C*', $chunk->$*;
 
     $chunk = $h->read_chunk($nauth);
     return if !$h;
@@ -67,7 +87,7 @@ sub _on_accept ( $self, $fh, $host, $port ) {
     $chunk = $h->read_chunk(4);
     return if !$h;
 
-    ( $ver, my $cmd, my $rsv, my $type ) = unpack 'C*', $chunk->$*;
+    ( my $ver, my $cmd, my $rsv, my $type ) = unpack 'C*', $chunk->$*;    ## no critic qw[Variables::ProhibitUnusedVariables]
 
     my ( $target_host, $target_port );
 
@@ -145,6 +165,110 @@ sub _on_accept ( $self, $fh, $host, $port ) {
     return;
 }
 
+# TODO maybe remove all oroxy-related headers
+sub _http ( $self, $h, $first ) {
+    my $chunk = $h->read_line("\r\n");
+    return if !$h;
+
+    $first .= $chunk->$*;
+
+    my $proxy_h;
+
+    my ( $method, $url, $proto ) = split /\s/sm, $first;
+
+    # has upstream proxy
+    if ( my $proxy = $self->{proxy} ) {
+
+        # upstream http proxy
+        if ( $proxy->{is_http} ) {
+            if ( $method eq 'CONNECT' ) {
+
+                # create CONNECT tunnel
+                $proxy_h = $proxy->connect_connect("//$url");
+                return if !$proxy_h;
+
+                # read CONNECT request
+                $h->{rbuf} = "\r\n$h->{rbuf}";
+                $chunk = $h->read_line("\r\n\r\n");
+                return if !$h;
+
+                # write CONNECT response
+                $h->write("HTTP/1.1 200 OK \r\n\r\n") or return;
+            }
+            else {
+
+                # connect proxy
+                $proxy_h = $proxy->connect_http($url);
+                return if !$proxy_h;
+
+                my $buf = "$first\r\n";
+
+                $buf .= 'Proxy-Authorization: Basic ' . $proxy->{uri}->userinfo_b64 . "\r\n" if $proxy->{uri}->{userinfo};
+
+                $proxy_h->write($buf) or return;
+            }
+        }
+
+        # upstream socks proxy
+        else {
+            if ( $method eq 'CONNECT' ) {
+
+                # create socks tunnel
+                $proxy_h = $proxy->connect_socks("//$url");
+                return if !$proxy_h;
+
+                # read CONNECT request
+                $h->{rbuf} = "\r\n$h->{rbuf}";
+                $chunk = $h->read_line("\r\n\r\n");
+                return if !$h;
+
+                # write CONNECT response
+                $h->write("HTTP/1.1 200 OK \r\n\r\n") or return;
+            }
+            else {
+
+                # create socks tunnel
+                $proxy_h = $proxy->connect_socks($url);
+                return if !$proxy_h;
+
+                $url = P->uri($url);
+
+                $proxy_h->write( "$method " . $url->path_query . " $proto\r\n" ) or return;
+            }
+        }
+    }
+
+    # has no upstream proxy
+    else {
+        if ( $method eq 'CONNECT' ) {
+            $proxy_h = P->handle("//$url");
+            return if !$proxy_h;
+
+            # read CONNECT request
+            $h->{rbuf} = "\r\n$h->{rbuf}";
+            $chunk = $h->read_line("\r\n\r\n");
+            return if !$h;
+
+            # write CONNECT response
+            $h->write("HTTP/1.1 200 OK \r\n\r\n") or return;
+        }
+        else {
+            $url = P->uri($url);
+
+            $proxy_h = P->handle($url);
+            return if !$proxy_h;
+
+            $proxy_h->write( "$method " . $url->path_query . " $proto\r\n" ) or return;
+
+            # TODO maybe remove all oroxy-related headers
+        }
+    }
+
+    $self->_run_tunnel( $h, $proxy_h );
+
+    return;
+}
+
 sub _run_tunnel ( $self, $h1, $h2 ) {
 
     # listen browser
@@ -191,9 +315,11 @@ sub _run_tunnel ( $self, $h1, $h2 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 48                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (25)                |
+## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
+## |      | 76                   | * Subroutine "_socks5" with high complexity score (24)                                                         |
+## |      | 169                  | * Subroutine "_http" with high complexity score (28)                                                           |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 126                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 146                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
