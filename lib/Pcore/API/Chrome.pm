@@ -1,6 +1,6 @@
-package Pcore::API::Chrome v0.16.0;
+package Pcore::API::Chrome;
 
-use Pcore -dist, -class, -res, -const;
+use Pcore -class, -res, -const;
 use Pcore::API::Chrome::Tab;
 use Pcore::Util::Scalar qw[weaken];
 use Pcore::Util::Data qw[from_json];
