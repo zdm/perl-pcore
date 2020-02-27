@@ -19,7 +19,7 @@ sub new ( $self, $uri ) {
         $uri = P->uri( $uri, base => 'http:' );
     }
     else {
-        return $uri if $uri->isa('Pcore::API::Proxy');
+        return $uri if $uri->does('Pcore::API::Proxy');
     }
 
     my $scheme = $uri->{scheme};
