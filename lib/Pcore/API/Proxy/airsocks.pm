@@ -1,4 +1,4 @@
-package Pcore::API::Proxy::Airsocks;
+package Pcore::API::Proxy::airsocks;
 
 use Pcore -class, -res, -const;
 use Pcore::API::Proxy;
@@ -96,7 +96,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::Proxy::Airsocks
+Pcore::API::Proxy::airsocks
 
 =head1 SYNOPSIS
 
