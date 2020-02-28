@@ -1,0 +1,42 @@
+upstream <: $dockerhub_dist_repo_name :> {
+    server unix:/var/run/nginx/<: $dockerhub_dist_repo_name :>.sock;
+
+    keepalive 180; # TODO set from variable
+}
+
+
+server {
+    listen                    *:80;
+    listen                    [::]:80;
+    listen                    unix:/var/run/nginx/nginx.sock;
+    server_name               "domain.com";
+
+    keepalive_timeout         70;
+    # root                      ; # TODO
+
+    # error_log                 /var/local/nginx/data/<: $dockerhub_dist_repo_name :>-nginx-error.log info;
+    # access_log                /var/local/nginx/data/<: $dockerhub_dist_repo_name :>-nginx-access.log default;
+
+    client_max_body_size      10M;
+
+    location @backend {
+        proxy_pass http://<: $dockerhub_dist_repo_name :>;
+
+        proxy_read_timeout 60s;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Accel-Support 1;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        # keepalive & websocket
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+    }
+
+    location / {
+        error_page 418 = @backend;
+        return 418;
+    }
+}
