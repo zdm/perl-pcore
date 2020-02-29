@@ -106,7 +106,7 @@ sub reload ($self) {
 sub generate_vhost ( $self, $name, $params ) {
     $params->{load_balancer_sock_dir} = $self->{load_balancer_sock_dir};
 
-    my $cfg = P->tmpl( type => 'text' )->render( 'nginx/vhost_conf_no_ssl.nginx', $params );
+    my $cfg = P->tmpl( type => 'text' )->render( 'nginx/vhost.nginx', $params );
 
     return $cfg;
 }
