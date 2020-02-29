@@ -121,6 +121,14 @@ sub add_vhost ( $self, $name, $cfg ) {
     return;
 }
 
+sub add_default_vhost ($self) {
+    my $cfg = P->tmpl( type => 'text' )->render( 'nginx/vhost-default.nginx', {} );
+
+    $self->add_vhost( 'default-server', $cfg );
+
+    return;
+}
+
 sub remove_load_vhost ( $self, $name ) {
     if ( $self->is_vhost_exists($name) ) {
         unlink "$self->{vhost_dir}/$name.nginx" or die;
