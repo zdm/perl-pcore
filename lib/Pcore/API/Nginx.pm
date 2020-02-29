@@ -10,18 +10,20 @@ has load_balancer_vhost_dir => '/var/run/nginx/vhost';
 has load_balancer_sock_dir  => '/var/run/nginx/sock';
 has user                    => ();                               # nginx workers user
 
-has proc => ( init_arg => undef );
+has proc  => ( init_arg => undef );
+has _poll => ( init_arg => undef );
 
 eval {
     require Pcore::GeoIP;
     Pcore::GeoIP->import;
 };
 
-# TODO poll
 sub run ($self) {
     $self->generate_conf;
 
     $self->{proc} = P->sys->run_proc( [ $self->{nginx_bin}, '-c', "$self->{conf_dir}/conf.nginx" ] );
+
+    $self->_poll;
 
     say 'Nginx started';
 
@@ -57,6 +59,25 @@ sub generate_conf ( $self ) {
     P->file->mkpath( $self->{conf_dir} ) if !-d $self->{conf_dir};
 
     P->file->write_text( "$self->{conf_dir}/conf.nginx", { mode => q[rw-r--r--] }, $cfg );
+
+    return;
+}
+
+sub _poll ($self) {
+    $self->{_poll} = P->path( $self->{vhost_dir} )->poll_tree(
+        abs       => 0,
+        is_dir    => 0,
+        max_depth => 0,
+        sub ( $root, $changes ) {
+            Coro::async_pool {
+                $self->reload;
+
+                return;
+            };
+
+            return;
+        }
+    );
 
     return;
 }
@@ -155,7 +176,7 @@ sub is_load_balancer_vhost_exists ( $self, $name ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 15                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 16                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
