@@ -56,7 +56,7 @@ sub generate_conf ( $self ) {
 
     my $cfg = P->tmpl( type => 'text' )->render( 'nginx/conf.nginx', $params );
 
-    P->file->mkpath( $self->{conf_dir} ) if !-d $self->{conf_dir};
+    P->file->mkpath( $self->{conf_dir}, mode => 'rwxr-xr-x' ) if !-d $self->{conf_dir};
 
     P->file->write_text( "$self->{conf_dir}/conf.nginx", { mode => q[rw-r--r--] }, $cfg );
 
@@ -114,7 +114,7 @@ sub generate_vhost ( $self, $name, $params ) {
 sub add_vhost ( $self, $name, $cfg ) {
     $cfg = $self->generate_vhost( $name, $cfg ) if is_plain_hashref $cfg;
 
-    P->file->mkpath( $self->{vhost_dir} ) if !-d $self->{vhost_dir};
+    P->file->mkpath( $self->{vhost_dir}, mode => 'rwxr-xr-x' ) if !-d $self->{vhost_dir};
 
     P->file->write_text( "$self->{vhost_dir}/$name.nginx", { mode => 'rw-r--r--' }, $cfg );
 
@@ -149,8 +149,8 @@ sub generate_load_balancer_vhost ( $self, $name ) {
 sub add_load_balancer_vhost ( $self, $name, $cfg = undef ) {
     $cfg //= $self->generate_load_balancer_vhost($name);
 
-    P->file->mkpath( $self->{load_balancer_vhost_dir} ) if !-d $self->{load_balancer_vhost_dir};
-    P->file->mkpath( $self->{load_balancer_sock_dir} )  if !-d $self->{load_balancer_sock_dir};
+    P->file->mkpath( $self->{load_balancer_vhost_dir}, mode => 'rwxr-xr-x' ) if !-d $self->{load_balancer_vhost_dir};
+    P->file->mkpath( $self->{load_balancer_sock_dir},  mode => 'rwxr-xr-x' ) if !-d $self->{load_balancer_sock_dir};
 
     P->file->write_text( "$self->{load_balancer_vhost_dir}/$name.nginx", { mode => 'rw-r--r--' }, $cfg );
 
