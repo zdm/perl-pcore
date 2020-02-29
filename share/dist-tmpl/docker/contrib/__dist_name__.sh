@@ -25,7 +25,6 @@ export DOCKER_CONTAINER_ARGS="
     -v $SCRIPT_DIR:/var/local/$NAME/data \
     -v /var/run/nginx:/var/run/nginx \
     -p 80:80/tcp \
-    -p 443:443/tcp \
     --shm-size=1g \
 "
 
