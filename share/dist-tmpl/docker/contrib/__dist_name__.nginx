@@ -8,7 +8,6 @@ upstream <: $dockerhub_dist_repo_name :> {
 server {
     listen                    *:80;
     listen                    [::]:80;
-    listen                    unix:/var/run/nginx/nginx.sock;
     server_name               <: $dockerhub_dist_repo_name :>;
 
     keepalive_timeout         70;
