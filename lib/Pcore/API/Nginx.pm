@@ -1,16 +1,15 @@
 package Pcore::API::Nginx;
 
-use Pcore -class;
+use Pcore -class, -res;
+use Pcore::Util::Scalar qw[is_plain_hashref];
 
-has data_dir  => $ENV->{DATA_DIR};
-has nginx_bin => 'nginx';
+has nginx_bin               => 'nginx';
+has conf_dir                => "$ENV->{DATA_DIR}/nginx";
+has vhost_dir               => "$ENV->{DATA_DIR}/nginx/vhost";
+has load_balancer_vhost_dir => '/var/run/nginx/vhost';
+has load_balancer_sock_dir  => '/var/run/nginx/sock';
+has user                    => ();                               # nginx workers user
 
-has user => ();    # nginx workers user
-
-has load_balancer_path => '/var/local/nginx/data/nginx/vhost';
-
-has conf_dir  => ( is => 'lazy', init_arg => undef );
-has vhost_dir => ( is => 'lazy', init_arg => undef );
 has proc => ( init_arg => undef );
 
 eval {
@@ -18,23 +17,18 @@ eval {
     Pcore::GeoIP->import;
 };
 
-sub _build_conf_dir ($self) {
-    my $conf_dir = "$self->{data_dir}/nginx";
-
-    P->file->mkpath($conf_dir);
-
-    return $conf_dir;
-}
-
-sub _build_vhost_dir ($self) {
-    my $vhost_dir = $self->conf_dir . '/vhost';
-
-    P->file->mkpath($vhost_dir);
-
-    return $vhost_dir;
-}
-
+# TODO poll
 sub run ($self) {
+    $self->generate_conf;
+
+    $self->{proc} = P->sys->run_proc( [ $self->{nginx_bin}, '-c', "$self->{conf_dir}/conf.nginx" ] );
+
+    say 'Nginx started';
+
+    return;
+}
+
+sub generate_conf ( $self ) {
 
     # generate mime types
     my $mime_types = $ENV->{share}->read_cfg('data/mime.yaml')->{suffix};
@@ -48,58 +42,110 @@ sub run ($self) {
 
     my $params = {
         user                => $self->{user},
-        pid                 => $self->conf_dir . '/nginx.pid',
-        error_log           => "$self->{data_dir}/nginx-error.log",
+        pid                 => "$self->{conf_dir}/nginx.pid",
+        error_log           => "$ENV->{DATA_DIR}/nginx-error.log",
         use_geoip2          => $geoip2_country_path || $geoip2_city_path,
         geoip2_country_path => $geoip2_country_path,
         geoip2_city_path    => $geoip2_city_path,
-        vhost_dir           => $self->vhost_dir,
+        vhost_dir           => $self->{vhost_dir},
         ssl_dhparam         => $ENV->{share}->get('data/dhparam-4096.pem'),
         mime_types          => $nginx_mime_types,
     };
 
-    # generate conf.nginx
-    P->file->write_text( $self->conf_dir . '/conf.nginx', { mode => q[rw-r--r--] }, P->tmpl( type => 'text' )->render( 'nginx/conf.nginx', $params ) );
+    my $cfg = P->tmpl( type => 'text' )->render( 'nginx/conf.nginx', $params );
 
-    # create and prepare unix socket dir
-    P->file->mkdir('/var/run/nginx') if !-d '/var/run/nginx';
+    P->file->mkpath( $self->{conf_dir} ) if !-d $self->{conf_dir};
 
-    # chown $uid, $uid, '/var/run/nginx' or die;
-
-    $self->{proc} = P->sys->run_proc( [ $self->{nginx_bin}, '-c', $self->conf_dir . '/conf.nginx' ] );
+    P->file->write_text( "$self->{conf_dir}/conf.nginx", { mode => q[rw-r--r--] }, $cfg );
 
     return;
 }
 
+sub test ($self) {
+    my $res = P->sys->run_proc( [ $self->{nginx_bin}, '-c', "$self->{conf_dir}/conf.nginx", '-t' ] )->wait;
+
+    return res $res;
+}
+
+sub reload ($self) {
+    if ( defined $self->{proc} && $self->{proc}->is_active ) {
+        my $test = $self->test;
+
+        if ($test) {
+            kill 'HUP', $self->{proc}->{pid} || 0;
+
+            say 'nginx: configuration reloaded';
+        }
+    }
+
+    return;
+}
+
+# vhost
+sub generate_vhost ( $self, $name, $params ) {
+    $params->{load_balancer_sock_dir} = $self->{load_balancer_sock_dir};
+
+    my $cfg = P->tmpl( type => 'text' )->render( 'nginx/vhost_conf_no_ssl.nginx', $params );
+
+    return $cfg;
+}
+
 sub add_vhost ( $self, $name, $cfg ) {
-    P->file->write_bin( $self->vhost_dir . "/$name.nginx", $cfg );
+    $cfg = $self->generate_vhost( $name, $cfg ) if is_plain_hashref $cfg;
+
+    P->file->mkpath( $self->{vhost_dir} ) if !-d $self->{vhost_dir};
+
+    P->file->write_text( "$self->{vhost_dir}/$name.nginx", { mode => 'rw-r--r--' }, $cfg );
+
+    return;
+}
+
+sub remove_load_vhost ( $self, $name ) {
+    if ( $self->is_vhost_exists($name) ) {
+        unlink "$self->{vhost_dir}/$name.nginx" or die;
+    }
 
     return;
 }
 
 sub is_vhost_exists ( $self, $name ) {
-    return -f $self->vhost_dir . "/$name.nginx";
+    return -f "$self->{vhost_dir}/$name.nginx";
 }
 
-# TODO
-sub generate_vhost_config ( $self, $name ) {
-    my $params = {};
+# load balancer
+sub generate_load_balancer_vhost ( $self, $name ) {
+    my $params = {    #
+        name                    => $name,
+        load_balancer_vhost_dir => $self->{load_balancer_vhost_dir},
+        load_balancer_sock_dir  => $self->{load_balancer_sock_dir},
+    };
 
     my $cfg = P->tmpl( type => 'text' )->render( 'nginx/vhost-load-balancer.nginx', $params );
 
-    P->file->write_text( "$self->{load_balancer_path}/$name.nginx", { mode => q[rw-r--r--] }, $cfg );
+    return $cfg;
+}
+
+sub add_load_balancer_vhost ( $self, $name, $cfg = undef ) {
+    $cfg //= $self->generate_load_balancer_vhost($name);
+
+    P->file->mkpath( $self->{load_balancer_vhost_dir} ) if !-d $self->{load_balancer_vhost_dir};
+    P->file->mkpath( $self->{load_balancer_sock_dir} )  if !-d $self->{load_balancer_sock_dir};
+
+    P->file->write_text( "$self->{load_balancer_vhost_dir}/$name.nginx", { mode => 'rw-r--r--' }, $cfg );
 
     return;
 }
 
-sub generate_vhost_load_balancer_config ( $self, $name ) {
-    my $params = {};
-
-    my $cfg = P->tmpl( type => 'text' )->render( 'nginx/vhost-load-balancer.nginx', $params );
-
-    P->file->write_text( "$self->{load_balancer_path}/$name.nginx", { mode => q[rw-r--r--] }, $cfg );
+sub remove_load_balancer_vhost ( $self, $name ) {
+    if ( $self->is_load_balancer_vhost_exists($name) ) {
+        unlink "$self->{load_balancer_vhost_dir}/$name.nginx" or die;
+    }
 
     return;
+}
+
+sub is_load_balancer_vhost_exists ( $self, $name ) {
+    return -f "$self->{load_balancer_vhost_dir}/$name.nginx";
 }
 
 1;
@@ -109,7 +155,7 @@ sub generate_vhost_load_balancer_config ( $self, $name ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 16                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 15                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

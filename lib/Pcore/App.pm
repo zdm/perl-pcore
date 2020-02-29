@@ -132,7 +132,7 @@ around run => sub ( $orig, $self ) {
 };
 
 # NGINX
-sub nginx_cfg ($self) {
+sub nginx_params ($self) {
     my $params = {
         name              => lc( ref $self ) =~ s/::/-/smgr,
         data_dir          => $ENV->{DATA_DIR},
@@ -164,17 +164,25 @@ sub nginx_cfg ($self) {
         push $params->{host}->{$host_name}->{location}->@*, $self->{cdn}->get_nginx_cfg if defined $self->{cdn};
     }
 
-    return P->tmpl->( $self->{cfg}->{server}->{ssl} ? 'nginx/vhost_conf.nginx' : 'nginx/vhost_conf_no_ssl.nginx', $params );
+    return $params;
 }
 
 sub start_nginx ($self) {
+    my $name = lc( ref $self ) =~ s/::/-/smgr;
+
     $self->{nginx} = Pcore::API::Nginx->new;
 
-    $self->{nginx}->add_vhost( 'vhost', $self->nginx_cfg );    # if !$self->{nginx}->is_vhost_exists('vhost');
+    $self->{nginx}->add_vhost( 'vhost', $self->nginx_params );    # if !$self->{nginx}->is_vhost_exists('vhost');
+
+    $self->{nginx}->add_load_balancer_vhost($name);
 
     # SIGNUP -> nginx reload
     $SIG->{HUP} = AE::signal HUP => sub {
-        kill 'HUP', $self->{nginx}->proc->pid || 0;
+        Coro::async {
+            $self->{nginx}->reload;
+
+            return;
+        };
 
         return;
     };

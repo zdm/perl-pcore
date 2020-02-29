@@ -35,7 +35,7 @@ server {
 server {
     listen                    *:443 ssl http2;
     listen                    [::]:443 ssl http2;
-    listen                    unix:/var/run/nginx/<: $name :>.sock;
+    listen                    unix:<: $load_balancer_sock_dir :>/<: $name :>.sock;
     server_name               <: $host_name | raw :>;
 
     # ssl_certificate           /var/lib/acme/live/billing.lcom.net.ua/fullchain;

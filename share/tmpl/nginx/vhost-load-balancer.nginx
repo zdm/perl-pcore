@@ -1,5 +1,5 @@
-upstream <: $dockerhub_dist_repo_name :> {
-    server unix:/var/run/nginx/<: $dockerhub_dist_repo_name :>.sock;
+upstream <: $name :> {
+    server unix:<: $load_balancer_sock_dir :>/<: $name :>.sock;
 
     keepalive 180; # TODO set from variable
 }
@@ -8,18 +8,16 @@ upstream <: $dockerhub_dist_repo_name :> {
 server {
     listen                    *:80;
     listen                    [::]:80;
-    server_name               <: $dockerhub_dist_repo_name :>;
+    server_name               <: $name :>;
+
+    # error_log                 /var/local/nginx/data/<: $name :>-nginx-error.log info;
+    # access_log                /var/local/nginx/data/<: $name :>-nginx-access.log default;
 
     keepalive_timeout         70;
-    # root                      ; # TODO
-
-    # error_log                 /var/local/nginx/data/<: $dockerhub_dist_repo_name :>-nginx-error.log info;
-    # access_log                /var/local/nginx/data/<: $dockerhub_dist_repo_name :>-nginx-access.log default;
-
     client_max_body_size      10M;
 
     location @backend {
-        proxy_pass http://<: $dockerhub_dist_repo_name :>;
+        proxy_pass http://<: $name :>;
 
         proxy_read_timeout 60s;
 

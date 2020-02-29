@@ -30,7 +30,6 @@ my $app = <: $module_name :>->new(
             # SERVER
             server => {    # passed directly to the Pcore::HTTP::Server constructor
                 listen => '/var/run/<: $dist_path :>.sock',
-                ssl    => 0,
             },
 
             # ROUTER

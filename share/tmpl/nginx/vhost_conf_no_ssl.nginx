@@ -18,7 +18,7 @@ server {
 server {
     listen                    *:80;
     listen                    [::]:80;
-    listen                    unix:/var/run/nginx/<: $name :>.sock;
+    listen                    unix:<: $load_balancer_sock_dir :>/<: $name :>.sock;
     server_name               <: $host_name | raw :>;
 
     keepalive_timeout         70;
