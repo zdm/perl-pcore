@@ -7,6 +7,8 @@ has nginx_bin => 'nginx';
 
 has user => ();    # nginx workers user
 
+has load_balancer_path => '/var/local/nginx/data/nginx/vhost';
+
 has conf_dir  => ( is => 'lazy', init_arg => undef );
 has vhost_dir => ( is => 'lazy', init_arg => undef );
 has proc => ( init_arg => undef );
@@ -79,6 +81,27 @@ sub is_vhost_exists ( $self, $name ) {
     return -f $self->vhost_dir . "/$name.nginx";
 }
 
+# TODO
+sub generate_vhost_config ( $self, $name ) {
+    my $params = {};
+
+    my $cfg = P->tmpl( type => 'text' )->render( 'nginx/vhost-load-balancer.nginx', $params );
+
+    P->file->write_text( "$self->{load_balancer_path}/$name.nginx", { mode => q[rw-r--r--] }, $cfg );
+
+    return;
+}
+
+sub generate_vhost_load_balancer_config ( $self, $name ) {
+    my $params = {};
+
+    my $cfg = P->tmpl( type => 'text' )->render( 'nginx/vhost-load-balancer.nginx', $params );
+
+    P->file->write_text( "$self->{load_balancer_path}/$name.nginx", { mode => q[rw-r--r--] }, $cfg );
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -86,7 +109,7 @@ sub is_vhost_exists ( $self, $name ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 16                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
