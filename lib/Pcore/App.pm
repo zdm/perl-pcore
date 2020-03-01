@@ -172,7 +172,7 @@ sub start_nginx ($self) {
 
     $self->{nginx} = Pcore::API::Nginx->new;
 
-    $self->{nginx}->add_vhost( 'vhost', $self->nginx_params );    # if !$self->{nginx}->is_vhost_exists('vhost');
+    $self->{nginx}->add_vhost( $name, $self->nginx_params );    # if !$self->{nginx}->is_vhost_exists('vhost');
 
     $self->{nginx}->add_load_balancer_vhost( $name, { server_name => $self->{cfg}->{load_balancer}->{server_name} } ) if $self->{cfg}->{load_balancer}->{server_name};
 
