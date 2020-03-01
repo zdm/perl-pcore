@@ -6,8 +6,8 @@ upstream <: $name :> {
 
 
 server {
-    listen                    *:80;
-    listen                    [::]:80;
+    listen                    *:80 reuseport;
+    listen                    [::]:80 reuseport;
 : for $server_name -> $name {
     server_name               <: $name | raw :>;
 : }

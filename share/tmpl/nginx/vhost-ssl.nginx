@@ -7,10 +7,10 @@ upstream <: $name :> {
 : if $default_server {
 # default server
 server {
-    listen                    *:80 default_server;
-    listen                    [::]:80 default_server;
-    listen                    *:443 ssl default_server;
-    listen                    [::]:443 ssl default_server;
+    listen                    *:80 default_server reuseport;
+    listen                    [::]:80 default_server reuseport;
+    listen                    *:443 ssl default_server reuseport;
+    listen                    [::]:443 ssl default_server reuseport;
     server_name               "";
     return                    444;
 
@@ -23,8 +23,8 @@ server {
 : for $host.keys() -> $host_name {
 # default HTTP redirect
 server {
-    listen                    *:80;
-    listen                    [::]:80;
+    listen                    *:80 reuseport;
+    listen                    [::]:80 reuseport;
     server_name               <: $host_name | raw :>;
 
     location / {
@@ -33,8 +33,8 @@ server {
 }
 
 server {
-    listen                    *:443 ssl http2;
-    listen                    [::]:443 ssl http2;
+    listen                    *:443 ssl http2 reuseport;
+    listen                    [::]:443 ssl http2 reuseport;
     listen                    unix:<: $load_balancer_sock_dir :>/<: $name :>.sock;
     server_name               <: $host_name | raw :>;
 
