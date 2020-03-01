@@ -1,3 +1,7 @@
+v0.120.1 2020-03-01T00:09:30Z
+ - nginx load balancer
+ - nginx refactored
+
 v0.120.0 2020-02-29T12:00:10Z
  - nginx merged
  - app tmpl updated
