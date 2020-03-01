@@ -1,7 +1,7 @@
 package Pcore::API::Nginx;
 
 use Pcore -class, -res;
-use Pcore::Util::Scalar qw[is_plain_hashref];
+use Pcore::Util::Scalar qw[is_plain_arrayref is_plain_hashref];
 
 has nginx_bin               => 'nginx';
 has conf_dir                => "$ENV->{DATA_DIR}/nginx";
@@ -104,7 +104,11 @@ sub reload ($self) {
 
 # vhost
 sub generate_vhost ( $self, $name, $params ) {
-    $params->{load_balancer_sock_dir} = $self->{load_balancer_sock_dir};
+    my $load_balancer_sock = "$self->{load_balancer_sock_dir}/$name.sock";
+
+    unlink $load_balancer_sock || 0;
+
+    $params->{load_balancer_sock} = $load_balancer_sock;
 
     my $cfg = P->tmpl( type => 'text' )->render( 'nginx/vhost.nginx', $params );
 
@@ -142,8 +146,9 @@ sub is_vhost_exists ( $self, $name ) {
 }
 
 # load balancer
-sub generate_load_balancer_vhost ( $self, $name ) {
-    my $params = {    #
+sub generate_load_balancer_vhost ( $self, $name, $params ) {
+    $params = {
+        $params->%*,
         name                    => $name,
         load_balancer_vhost_dir => $self->{load_balancer_vhost_dir},
         load_balancer_sock_dir  => $self->{load_balancer_sock_dir},
@@ -154,8 +159,8 @@ sub generate_load_balancer_vhost ( $self, $name ) {
     return $cfg;
 }
 
-sub add_load_balancer_vhost ( $self, $name, $cfg = undef ) {
-    $cfg //= $self->generate_load_balancer_vhost($name);
+sub add_load_balancer_vhost ( $self, $name, $cfg ) {
+    $cfg = $self->generate_load_balancer_vhost( $name, $cfg ) if is_plain_hashref $cfg;
 
     P->file->mkpath( $self->{load_balancer_vhost_dir}, mode => 'rwxr-xr-x' ) if !-d $self->{load_balancer_vhost_dir};
     P->file->mkpath( $self->{load_balancer_sock_dir},  mode => 'rwxr-xr-x' ) if !-d $self->{load_balancer_sock_dir};

@@ -8,7 +8,9 @@ upstream <: $name :> {
 server {
     listen                    *:80;
     listen                    [::]:80;
-    server_name               <: $name :>;
+: for $server_name -> $name {
+    server_name               <: $name | raw :>;
+: }
 
     # error_log                 /var/local/nginx/data/<: $name :>-nginx-error.log info;
     # access_log                /var/local/nginx/data/<: $name :>-nginx-access.log default;

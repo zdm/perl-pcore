@@ -32,6 +32,8 @@ my $app = <: $module_name :>->new(
                 listen => '/var/run/<: $dist_path :>.sock',
             },
 
+            load_balancer => $cfg->{load_balancer},
+
             # ROUTER
             router => {    # passed directly to the Pcore::App::Router
                 '*' => undef,
