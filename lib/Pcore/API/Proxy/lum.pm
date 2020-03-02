@@ -8,7 +8,7 @@ with qw[Pcore::API::Proxy];
 
 has is_http => 1;
 
-has _parsed => ();
+has _params => ();
 
 const our $DEFAULT_HOST => 'zproxy.lum-superproxy.io';
 const our $DEFAULT_PORT => 22225;
@@ -21,46 +21,62 @@ around new => sub ( $orig, $self, $uri ) {
     return $self;
 };
 
+# https://luminati.io/faq#examples
+# session
+# country
+# state
+# city
+# dns:
+#     local - domain names will be resolved and cached by the Super Proxy
+#     remote - DNS resolution at the Proxy Peer
+# direct -  perform the request from the super proxy directly instead of the IP of the peer
+# zone
 sub new_ip ( $self, %args ) {
-    my $parsed = $self->{parsed} //= do {
+    my $params = $self->{params} //= do {
         my $data;
 
         my $username = $self->{uri}->{username};
 
-        while ( $username =~ /(lum-customer|zone|session|country)-([^-]+)/smg ) {
+        while ( $username =~ /(lum-customer|zone|dns|country|state|city|session)-([^-]+)/smg ) {
             $data->{$1} = $2;
         }
 
         $data;
     };
 
-    my $uri = "lum://lum-customer-$parsed->{'lum-customer'}-zone-$parsed->{zone}";
+    my %params = ( $params->%*, %args );
 
     my $host = $self->{uri}->{host};
 
-    if ( my $country = $args{country} || $parsed->{country} ) {
-        $uri .= "-country-$country";
+    # session
+    if ( $params{session} ) {
+        $params{session} = uuid_v1mc_hex;
+
+        $host = $self->_get_session_host( $params{country} ) if $host eq $DEFAULT_HOST;
     }
 
-    if ( $args{session} ) {
-        $host = $self->_get_session_host($host);
+    my $password = delete $params{password} || $self->{uri}->{password};
 
-        $uri .= "-session-" . uuid_v1mc_hex;
-    }
-
-    $uri .= ":$self->{uri}->{password}\@$host:$self->{uri}->{port}";
+    my $uri = 'lum://' . join( '-', map { $params{$_} ? "$_-$params{$_}" : () } sort keys %params ) . ":$password\@$host:$self->{uri}->{port}";
 
     $uri = P->uri($uri);
 
     return $self->new($uri);
 }
 
-sub _get_session_host ( $self, $host ) {
-    AnyEvent::DNS::a $host, my $cv = P->cv;
+sub _get_session_host ( $self, $country = undef ) {
+    my $cv = P->cv;
+
+    if ($country) {
+        AnyEvent::DNS::a "servercountry-$country.$DEFAULT_HOST", $cv;
+    }
+    else {
+        AnyEvent::DNS::a $DEFAULT_HOST, $cv;
+    }
 
     my @ip = $cv->recv;
 
-    return $ip[0] || $host;
+    return $ip[0];
 }
 
 1;
@@ -70,8 +86,6 @@ sub _get_session_host ( $self, $host ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 48                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 14                   | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
