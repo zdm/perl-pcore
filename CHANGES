@@ -1,3 +1,6 @@
+v0.120.5 2020-03-04T18:10:43Z
+ - nginx reuseport removed
+
 v0.120.4 2020-03-04T13:18:42Z
  - lum proxies updated
 
