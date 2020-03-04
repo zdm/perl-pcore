@@ -7,8 +7,8 @@ upstream <: $name :> {
 : if $default_server {
 # default server
 server {
-    listen                    *:80 default_server reuseport;
-    listen                    [::]:80 default_server reuseport;
+    listen                    *:80 default_server;
+    listen                    [::]:80 default_server;
     server_name               "";
     return                    444;
 }
@@ -16,8 +16,8 @@ server {
 
 : for $host.keys() -> $host_name {
 server {
-    listen                    *:80 reuseport;
-    listen                    [::]:80 reuseport;
+    listen                    *:80;
+    listen                    [::]:80;
     listen                    unix:<: $load_balancer_sock :>;
     server_name               <: $host_name | raw :>;
 
