@@ -1,6 +1,6 @@
 # git
-.git*
+/.git*
 
 # common
-data/
-wiki/
+/data/
+/wiki/
