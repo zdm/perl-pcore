@@ -1,3 +1,7 @@
+v0.123.0 2020-03-15T21:42:42Z
+ - app routing refactored
+ - perl-5.30.2
+
 v0.122.2 2020-03-15T09:27:05Z
  - dockerignore builder updated
 
