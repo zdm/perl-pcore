@@ -23,8 +23,6 @@ sub run ($self) {
 
     $self->{proc} = P->sys->run_proc( [ $self->{nginx_bin}, '-c', "$self->{conf_dir}/conf.nginx" ] );
 
-    $self->_poll;
-
     say 'Nginx started';
 
     return;
@@ -63,8 +61,9 @@ sub generate_conf ( $self ) {
     return;
 }
 
-sub _poll ($self) {
+sub poll ($self) {
     $self->{_poll} = P->path( $self->{vhost_dir} )->poll_tree(
+        interval  => 60,
         abs       => 0,
         is_dir    => 0,
         max_depth => 0,
