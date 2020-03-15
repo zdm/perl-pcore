@@ -10,12 +10,12 @@ use Pcore::CDN;
 has cfg   => ( required => 1 );    # HashRef
 has devel => 0;                    # Bool
 
+has name   => ( init_arg => undef );
 has server => ( init_arg => undef );    # InstanceOf ['Pcore::HTTP::Server']
-has router => ( init_arg => undef );    # InstanceOf ['Pcore::App::Router']
+has router => ( init_arg => undef );    # HashRef [ InstanceOf ['Pcore::App::Router'] ]
 has api    => ( init_arg => undef );    # Maybe [ InstanceOf ['Pcore::App::API'] ]
 has node   => ( init_arg => undef );    # InstanceOf ['Pcore::Node']
 has cdn    => ( init_arg => undef );    # InstanceOf['Pcore::CDN']
-has ext    => ( init_arg => undef );    # InstanceOf['Pcore::Ext']
 
 const our $PERMS_ADMIN => 'admin';
 const our $PERMS_USER  => 'user';
@@ -30,12 +30,7 @@ const our $LOCALES => {
 };
 
 sub BUILD ( $self, $args ) {
-
-    # create HTTP router
-    $self->{router} = Pcore::App::Router->new( {
-        app   => $self,
-        hosts => $self->{cfg}->{router},
-    } );
+    $self->{name} = lc( ref $self ) =~ s/::/-/smgr;
 
     # create CDN object
     $self->{cdn} = Pcore::CDN->new( $self->{cfg}->{cdn} ) if $self->{cfg}->{cdn};
@@ -105,28 +100,38 @@ around run => sub ( $orig, $self ) {
     say 'API initialization ... ' . $res;
     exit 3 if !$res;
 
-    # scan HTTP controllers
-    print 'Scanning HTTP controllers ... ';
-    $self->{router}->init;
-    say 'done';
+    # create HTTP routers
+    for my $name ( sort keys $self->{cfg}->{server}->%* ) {
+        print "Scanning HTTP controllers $name ... ";
 
-    if ( defined $self->{ext} && !$self->{devel} ) {
-        print 'Clearing Ext build cache ... ';
-        $self->{ext}->clear_cache;
+        $self->{router}->{$name} = Pcore::App::Router->new( {
+            app       => $self,
+            namespace => $self->{cfg}->{server}->{$name}->{namespace},
+        } );
+
+        $self->{router}->{$name}->init;
+
         say 'done';
     }
 
     $res = $self->$orig;
     exit 3 if !$res;
 
-    # start HTTP server
-    if ( defined $self->{cfg}->{server}->{listen} ) {
-        $self->{server} = Pcore::HTTP::Server->new( { $self->{cfg}->{server}->%*, on_request => $self->{router} } );
+    # start HTTP servers
+    for my $name ( sort keys $self->{cfg}->{server}->%* ) {
+        $self->{cfg}->{server}->{$name}->{listen} ||= "/var/run/$self->{name}-$name.sock";
 
-        say qq[Listen: $self->{cfg}->{server}->{listen}];
+        my $http_server = Pcore::HTTP::Server->new( {
+            listen     => $self->{cfg}->{server}->{$name}->{listen},
+            on_request => $self->{router}->{$name},
+        } );
+
+        $self->{server}->{$name} = $http_server;
+
+        say qq[Listen "$name": $http_server->{listen}];
     }
 
-    say qq[App "@{[ref $self]}" started];
+    say qq[App "$self->{name}" started];
 
     return;
 };
