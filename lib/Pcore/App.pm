@@ -29,6 +29,25 @@ const our $LOCALES => {
 
 };
 
+sub merge_config ( $self, $app_cfg, $cfg ) {
+
+    # merge server config
+    for my $server ( keys $app_cfg->{cfg}->{server}->%* ) {
+
+        # listen
+        if ( my $listen = $cfg->{server}->{$server}->{listen} ) {
+            $app_cfg->{cfg}->{server}->{$server}->{listen} = $listen;
+        }
+
+        # server_name
+        if ( my $server_name = $cfg->{server}->{$server}->{server_name} ) {
+            push $app_cfg->{cfg}->{server}->{$server}->{server_name}->@*, P->scalar->is_plain_arrayref($server_name) ? $server_name->@* : $server_name;
+        }
+    }
+
+    return;
+}
+
 sub BUILD ( $self, $args ) {
     $self->{name} = lc( ref $self ) =~ s/::/-/smgr;
 

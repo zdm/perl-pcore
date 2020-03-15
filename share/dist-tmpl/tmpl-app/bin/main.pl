@@ -57,19 +57,7 @@ my $app_cfg = {           #
     devel => $ENV->{cli}->{opt}->{devel},
 };
 
-# merge server config
-for my $server ( keys $app_cfg->{cfg}->{server}->%* ) {
-
-    # listen
-    if ( my $listen = $cfg->{server}->{$server}->{listen} ) {
-        $app_cfg->{cfg}->{server}->{$server}->{listen} = $listen;
-    }
-
-    # server_name
-    if ( my $server_name = $cfg->{server}->{$server}->{server_name} ) {
-        push $app_cfg->{cfg}->{server}->{$server}->{server_name}->@*, P->scalar->is_plain_arrayref($server_name) ? $server_name->@* : $server_name;
-    }
-}
+Pcore::App->merge_config( $app_cfg, $cfg );
 
 my $app = <: $module_name :>->new($app_cfg);
 
