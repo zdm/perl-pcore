@@ -20,50 +20,58 @@ sub CLI {
 # load app config
 my $cfg = P->cfg->read( "$ENV->{DATA_DIR}/cfg.yaml", params => { DATA_DIR => $ENV->{DATA_DIR} } );
 
-my $app = <: $module_name :>->new(
-    {                     #
-        cfg => {
+my $app_cfg = {           #
+    cfg => {
 
-            # DB
-            db => $cfg->{db},
+        # DB
+        db => $cfg->{db},
 
-            # SERVER
-            server => {    # passed directly to the Pcore::HTTP::Server constructor
-                listen => '/var/run/<: $dist_path :>.sock',
+        # SERVER
+        server => {
+            default => {
+                namespace   => undef,
+                listen      => undef,
+                server_name => [],
             },
+        },
 
-            load_balancer => $cfg->{load_balancer},
+        # NODE
+        node => {
+            server => $cfg->{node}->{server},
+            listen => $cfg->{node}->{listen},
+        },
 
-            # ROUTER
-            router => {    # passed directly to the Pcore::App::Router
-                '*' => undef,
-
-                # 'host1.com' => 'Test::App::App1',
-                # 'host2.com' => 'Test::App::App2',
-            },
-
-            # NODE
-            node => {
-                server => $cfg->{node}->{server},
-                listen => $cfg->{node}->{listen},
-            },
-
-            # API
-            api => {
-                backend => $cfg->{db},
-                node    => {
-                    workers => undef,
-                    argon   => {
-                        argon2_time        => 3,
-                        argon2_memory      => '64M',
-                        argon2_parallelism => 1,
-                    },
+        # API
+        api => {
+            backend => $cfg->{db},
+            node    => {
+                workers => undef,
+                argon   => {
+                    argon2_time        => 3,
+                    argon2_memory      => '64M',
+                    argon2_parallelism => 1,
                 },
             },
         },
-        devel => $ENV->{cli}->{opt}->{devel},
     },
-);
+    devel => $ENV->{cli}->{opt}->{devel},
+};
+
+# merge server config
+for my $server ( keys $app_cfg->{cfg}->{server}->%* ) {
+
+    # listen
+    if ( my $listen = $cfg->{server}->{$server}->{listen} ) {
+        $app_cfg->{cfg}->{server}->{$server}->{listen} = $listen;
+    }
+
+    # server_name
+    if ( my $server_name = $cfg->{server}->{$server}->{server_name} ) {
+        push $app_cfg->{cfg}->{server}->{$server}->{server_name}->@*, P->scalar->is_plain_arrayref($server_name) ? $server_name->@* : $server_name;
+    }
+}
+
+my $app = <: $module_name :>->new($app_cfg);
 
 my $cv = P->cv;
 
@@ -81,8 +89,6 @@ $cv->recv;
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 7                    | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 32                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

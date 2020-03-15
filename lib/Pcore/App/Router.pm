@@ -21,6 +21,8 @@ has class_ctrl => ( init_arg => undef );    # HashRef, class name -> sigleton ca
 has path_re    => ( init_arg => undef );
 
 sub init ( $self ) {
+    $self->{namespace} //= ref $self->{app};
+
     my $index_class = "$self->{namespace}::Index";
 
     my $index_path = $index_class =~ s[::][/]smgr;
