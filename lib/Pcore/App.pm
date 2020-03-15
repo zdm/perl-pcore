@@ -137,49 +137,26 @@ around run => sub ( $orig, $self ) {
 };
 
 # NGINX
-sub nginx_params ($self) {
-    my $params = {
-        name              => lc( ref $self ) =~ s/::/-/smgr,
-        data_dir          => $ENV->{DATA_DIR},
-        root_dir          => undef,                                                                  # TODO
-        default_server    => 1,                                                                      # generate default server config
-        nginx_default_key => $ENV->{share}->get('data/nginx/default.key'),
-        nginx_default_pem => $ENV->{share}->get('data/nginx/default.pem'),
-        upstream          => P->uri( $self->{cfg}->{server}->{listen} )->to_nginx_upstream_server,
-    };
+sub start_nginx ($self) {
+    my $nginx = $self->{nginx} = Pcore::API::Nginx->new;
 
-    for my $host ( keys $self->{router}->{path_ctrl}->%* ) {
-        my $host_name;
+    $nginx->remove_vhosts;
 
-        if ( $host eq '*' ) {
-            $params->{default_server} = 0;
+    my $has_server_name;
 
-            $host_name = q[""];
+    for my $vhost_name ( sort keys $self->{cfg}->{server}->%* ) {
+        my $vhost_params = $self->get_nginx_vhost_params($vhost_name);
+
+        $nginx->add_vhost( $vhost_name, $vhost_params );    # if !$nginx->is_vhost_exists($vhost_name);
+
+        if ( $self->{cfg}->{server}->{$vhost_name}->{server_name} && $self->{cfg}->{server}->{$vhost_name}->{server_name}->@* ) {
+            $has_server_name = 1;
+
+            $nginx->add_load_balancer_vhost( "$self->{name}-$vhost_name", $vhost_params );
         }
-        else {
-            $host_name = $host;
-        }
-
-        for my $path ( keys $self->{router}->{path_ctrl}->{$host}->%* ) {
-            my $ctrl = $self->{router}->{path_ctrl}->{$host}->{$path};
-
-            push $params->{host}->{$host_name}->{location}->@*, $ctrl->get_nginx_cfg;
-        }
-
-        push $params->{host}->{$host_name}->{location}->@*, $self->{cdn}->get_nginx_cfg if defined $self->{cdn};
     }
 
-    return $params;
-}
-
-sub start_nginx ($self) {
-    my $name = lc( ref $self ) =~ s/::/-/smgr;
-
-    $self->{nginx} = Pcore::API::Nginx->new;
-
-    $self->{nginx}->add_vhost( $name, $self->nginx_params );    # if !$self->{nginx}->is_vhost_exists('vhost');
-
-    $self->{nginx}->add_load_balancer_vhost( $name, { server_name => $self->{cfg}->{load_balancer}->{server_name} } ) if $self->{cfg}->{load_balancer}->{server_name};
+    $nginx->add_default_vhost if $has_server_name;
 
     # SIGNUP -> nginx reload
     $SIG->{HUP} = AE::signal HUP => sub {
@@ -192,9 +169,29 @@ sub start_nginx ($self) {
         return;
     };
 
-    $self->{nginx}->run;
+    $nginx->run;
 
     return;
+}
+
+sub get_nginx_vhost_params ( $self, $vhost_name ) {
+    my $params = {
+        app_name    => $self->{name},
+        vhost_name  => $vhost_name,
+        server_name => $self->{cfg}->{server}->{$vhost_name}->{server_name},
+        data_dir    => $ENV->{DATA_DIR},
+        upstream    => $self->{server}->{$vhost_name}->{listen}->to_nginx_upstream_server,
+    };
+
+    for my $path ( sort keys $self->{router}->{$vhost_name}->{path_ctrl}->%* ) {
+        my $ctrl = $self->{router}->{$vhost_name}->{path_ctrl}->{$path};
+
+        push $params->{locations}->@*, $ctrl->get_nginx_cfg;
+    }
+
+    push $params->{locations}->@*, $self->{cdn}->get_nginx_cfg if defined $self->{cdn};
+
+    return $params;
 }
 
 1;

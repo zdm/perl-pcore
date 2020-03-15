@@ -103,12 +103,24 @@ sub reload ($self) {
 }
 
 # vhost
+sub remove_vhosts ($self) {
+    P->file->rmtree( $self->{vhost_dir} );
+
+    return;
+}
+
 sub generate_vhost ( $self, $name, $params ) {
-    my $load_balancer_sock = "$self->{load_balancer_sock_dir}/$name.sock";
 
-    unlink $load_balancer_sock || 0;
+    # listen load balancer only if vhost has server names
+    if ( $params->{server_name} && $params->{server_name}->@* ) {
+        my $load_balancer_sock = "$self->{load_balancer_sock_dir}/$params->{app_name}-$name.sock";
 
-    $params->{load_balancer_sock} = $load_balancer_sock;
+        P->file->mkpath( $self->{load_balancer_sock_dir}, mode => 'rwxr-xr-x' ) if !-d $self->{load_balancer_sock_dir};
+
+        unlink $load_balancer_sock || 0;
+
+        $params->{load_balancer_sock} = $load_balancer_sock;
+    }
 
     my $cfg = P->tmpl( type => 'text' )->render( 'nginx/vhost.nginx', $params );
 
@@ -128,12 +140,12 @@ sub add_vhost ( $self, $name, $cfg ) {
 sub add_default_vhost ($self) {
     my $cfg = P->tmpl( type => 'text' )->render( 'nginx/vhost-default.nginx', {} );
 
-    $self->add_vhost( 'default-server', $cfg );
+    $self->add_vhost( '_default', $cfg );
 
     return;
 }
 
-sub remove_load_vhost ( $self, $name ) {
+sub remove_vhost ( $self, $name ) {
     if ( $self->is_vhost_exists($name) ) {
         unlink "$self->{vhost_dir}/$name.nginx" or die;
     }
@@ -149,9 +161,10 @@ sub is_vhost_exists ( $self, $name ) {
 sub generate_load_balancer_vhost ( $self, $name, $params ) {
     $params = {
         $params->%*,
-        name                    => $name,
+        vhost_name              => $name,
         load_balancer_vhost_dir => $self->{load_balancer_vhost_dir},
         load_balancer_sock_dir  => $self->{load_balancer_sock_dir},
+        load_balancer_sock      => "$self->{load_balancer_sock_dir}/$name.sock",
     };
 
     my $cfg = P->tmpl( type => 'text' )->render( 'nginx/vhost-load-balancer.nginx', $params );
