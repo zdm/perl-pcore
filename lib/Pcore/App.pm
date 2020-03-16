@@ -204,7 +204,7 @@ around run => sub ( $orig, $self ) {
 };
 
 # NGINX
-sub start_nginx ($self) {
+sub run_nginx ($self) {
     my $nginx = $self->{nginx} = Pcore::API::Nginx->new;
 
     $nginx->remove_vhosts;

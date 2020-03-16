@@ -28,7 +28,7 @@ my $cv = P->cv;
 
 $app->run;
 
-$app->start_nginx;
+$app->run_nginx;
 
 $cv->recv;
 
