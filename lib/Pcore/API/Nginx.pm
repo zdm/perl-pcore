@@ -114,7 +114,7 @@ sub generate_vhost ( $self, $name, $params ) {
     if ( $params->{server_name} && $params->{server_name}->@* ) {
         my $load_balancer_sock = "$self->{load_balancer_sock_dir}/$params->{app_name}-$name.sock";
 
-        P->file->mkpath( $self->{load_balancer_sock_dir}, mode => 'rwxr-xr-x' ) if !-d $self->{load_balancer_sock_dir};
+        $self->_create_load_balancer_path;
 
         unlink $load_balancer_sock || 0;
 
@@ -174,8 +174,7 @@ sub generate_load_balancer_vhost ( $self, $name, $params ) {
 sub add_load_balancer_vhost ( $self, $name, $cfg ) {
     $cfg = $self->generate_load_balancer_vhost( $name, $cfg ) if is_plain_hashref $cfg;
 
-    P->file->mkpath( $self->{load_balancer_vhost_dir}, mode => 'rwxr-xr-x' ) if !-d $self->{load_balancer_vhost_dir};
-    P->file->mkpath( $self->{load_balancer_sock_dir},  mode => 'rwxr-xr-x' ) if !-d $self->{load_balancer_sock_dir};
+    $self->_create_load_balancer_path;
 
     P->file->write_text( "$self->{load_balancer_vhost_dir}/$name.nginx", { mode => 'rw-r--r--' }, $cfg );
 
@@ -192,6 +191,14 @@ sub remove_load_balancer_vhost ( $self, $name ) {
 
 sub is_load_balancer_vhost_exists ( $self, $name ) {
     return -f "$self->{load_balancer_vhost_dir}/$name.nginx";
+}
+
+sub _create_load_balancer_path ($self) {
+    P->file->mkpath( $self->{load_balancer_vhost_dir}, mode => 'rwxr-xr-x' ) if !-d $self->{load_balancer_vhost_dir};
+
+    P->file->mkpath( $self->{load_balancer_sock_dir}, mode => 'rwxr-xr-x' ) if !-d $self->{load_balancer_sock_dir};
+
+    return;
 }
 
 1;

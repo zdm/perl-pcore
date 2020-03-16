@@ -6,10 +6,11 @@ use Pcore::HTTP::Server;
 use Pcore::App::Router;
 use Pcore::App::API;
 use Pcore::CDN;
+use Pcore::Util::Scalar qw[is_plain_arrayref];
 
-has cfg   => ( required => 1 );    # HashRef
-has devel => 0;                    # Bool
+has devel => 0;    # Bool
 
+has cfg    => ( init_arg => undef );    # HashRef
 has name   => ( init_arg => undef );
 has server => ( init_arg => undef );    # InstanceOf ['Pcore::HTTP::Server']
 has router => ( init_arg => undef );    # HashRef [ InstanceOf ['Pcore::App::Router'] ]
@@ -29,26 +30,44 @@ const our $LOCALES => {
 
 };
 
-sub merge_config ( $self, $app_cfg, $cfg ) {
+around new => sub ( $orig, $self, $devel = undef, $runtime_cfg = undef ) {
+    $self = $self->$orig( devel => $devel );
 
-    # merge server config
-    for my $server ( keys $app_cfg->{cfg}->{server}->%* ) {
+    my $cfg = $self->default_cfg;
 
-        # listen
-        if ( my $listen = $cfg->{server}->{$server}->{listen} ) {
-            $app_cfg->{cfg}->{server}->{$server}->{listen} = $listen;
-        }
+    if ($runtime_cfg) {
+        for my $key ( keys $runtime_cfg->%* ) {
 
-        # server_name
-        if ( my $server_name = $cfg->{server}->{$server}->{server_name} ) {
-            push $app_cfg->{cfg}->{server}->{$server}->{server_name}->@*, P->scalar->is_plain_arrayref($server_name) ? $server_name->@* : $server_name;
+            # server
+            if ( $key eq 'server' ) {
+                for my $server ( keys $cfg->{server}->%* ) {
+
+                    # listen
+                    if ( my $listen = $runtime_cfg->{server}->{$server}->{listen} ) {
+                        $cfg->{server}->{$server}->{listen} = $listen;
+                    }
+
+                    # server_name
+                    if ( my $server_name = $runtime_cfg->{server}->{$server}->{server_name} ) {
+                        push $cfg->{server}->{$server}->{server_name}->@*, is_plain_arrayref $server_name ? $server_name->@* : $server_name;
+                    }
+                }
+            }
+
+            # api
+            elsif ( $key eq 'api' ) {
+                P->hash->merge( $cfg->{api}, $runtime_cfg->{api} );
+            }
+
+            # copy unknown key
+            else {
+                $cfg->{$key} = $runtime_cfg->{$key};
+            }
         }
     }
 
-    return;
-}
+    $self->{cfg} = $cfg;
 
-sub BUILD ( $self, $args ) {
     $self->{name} = lc( ref $self ) =~ s/::/-/smgr;
 
     # create CDN object
@@ -57,7 +76,36 @@ sub BUILD ( $self, $args ) {
     # create API object
     $self->{api} = Pcore::App::API->new($self);
 
-    return;
+    return $self;
+};
+
+sub default_cfg ($self) {
+    my $cfg = {
+
+        # server
+        server => {
+            default => {
+                namespace   => undef,
+                listen      => undef,
+                server_name => [],
+            },
+        },
+
+        # api
+        api => {
+            backend => undef,
+            node    => {
+                workers => undef,
+                argon   => {
+                    argon2_time        => 3,
+                    argon2_memory      => '64M',
+                    argon2_parallelism => 1,
+                },
+            },
+        },
+    };
+
+    return $cfg;
 }
 
 # PERMISSIONS
@@ -121,7 +169,7 @@ around run => sub ( $orig, $self ) {
 
     # create HTTP routers
     for my $name ( sort keys $self->{cfg}->{server}->%* ) {
-        print "Scanning HTTP controllers $name ... ";
+        print qq[Scanning HTTP controllers "$name" ... ];
 
         $self->{router}->{$name} = Pcore::App::Router->new( {
             app       => $self,
@@ -214,6 +262,16 @@ sub get_nginx_vhost_params ( $self, $vhost_name ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (21)                               |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
