@@ -20,7 +20,7 @@ sub _upload ( $self, $auth, $args, $on_start, $on_finish, $on_hash = undef ) {
         return [ 400, q[File size is required] ] if !$args->{size};
 
         # check upload size
-        return [ 400, 'File is too large' ] if $self->{upload_max_size} && $upload->{size} > $self->{upload_max_size};
+        return [ 400, 'File is too large' ] if $self->{upload_max_size} && $args->{size} > $self->{upload_max_size};
 
         # filename is required
         return [ 400, 'File name is required' ] if $self->{upload_filename_is_required} && !defined $args->{name};
