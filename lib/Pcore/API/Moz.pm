@@ -6,6 +6,7 @@ use Pcore::Util::Data qw[to_b64 to_uri to_json from_json];
 
 has api_user => ( required => 1 );
 has api_key  => ( required => 1 );
+has free         => 0;     # free or paid api
 has max_threads  => 5;     # use 1 thread for free moz api account
 has use_interval => 0;     # use interval between requests, used for moz free api account
 has interval     => 10;    # use interval between requests, used for moz free api account
@@ -13,6 +14,15 @@ has interval     => 10;    # use interval between requests, used for moz free ap
 has _auth        => ( is => 'lazy' );
 has _semaphore   => sub ($self) { Coro::Semaphore->new( $self->{max_threads} ) }, is => 'lazy';
 has _last_req_ts => ();
+
+sub BUILD ( $self, $args ) {
+    if ( $self->{free} ) {
+        $self->{max_threads}  = 1;
+        $self->{use_interval} = 1;
+    }
+
+    return;
+}
 
 sub _build__auth ( $self) {
     return 'Basic ' . to_b64( "$self->{api_user}:$self->{api_key}", $EMPTY );
