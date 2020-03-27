@@ -29,6 +29,8 @@ sub _build__auth ( $self) {
 }
 
 # https://moz.com/help/links-api/making-calls/anchor-text-metrics
+# scope: page, subdomain, root_domain
+# limit: 1-50
 sub get_anchor_text ( $self, $target, $scope, %args ) {
     my $res = $self->_req(
         'anchor_text',
@@ -61,8 +63,10 @@ sub _req ( $self, $endpoint, $params ) {
 
     my $res = P->http->post(
         "https://lsapi.seomoz.com/v2/$endpoint",
-        headers => [ Authorization => $self->_auth ],
-        data    => to_json $params,
+        headers => [    #
+            Authorization => $self->_auth,
+        ],
+        data => to_json $params,
     );
 
     if ($res) {
