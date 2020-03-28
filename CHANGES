@@ -1,3 +1,9 @@
+v0.127.0 2020-03-28T07:39:37Z
+ - master branch check removed from release
+ - git upstream updated
+ - majestic api
+ - moz api added
+
 v0.126.1 2020-03-26T10:35:17Z
  - resources updated
  - docker app build
