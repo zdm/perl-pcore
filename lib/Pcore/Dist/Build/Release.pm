@@ -127,11 +127,9 @@ sub _can_release ($self) {
     my $id = $self->{dist}->id;
 
     # check master branch
-    # if ( !$id->{branch} || $id->{branch} ne 'master' ) {
-    #     say q[Git is not on the "master" branch.];
-
-    #     return;
-    # }
+    if ( !$id->{branch} || $id->{branch} ne 'master' ) {
+        return if P->term->prompt( q[Git is not on the "master" branch. Continue?], [qw[yes no]], enter => 1 ) eq 'no';
+    }
 
     # check for uncommited changes
     if ( $id->{is_dirty} ) {
