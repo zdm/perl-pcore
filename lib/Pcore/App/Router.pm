@@ -79,7 +79,7 @@ sub init ( $self ) {
 
         die qq[Controller path "$route" is not unique] if exists $self->{path_ctrl}->{$route};
 
-        $map->{ $route eq '/' ? '/' : "$route/" } = $class;
+        $map->{$route} = $class;
 
         $self->{class_ctrl}->{$class} = $self->{path_ctrl}->{$route} = $obj;
 
@@ -109,13 +109,17 @@ sub run ( $self, $req ) {
 
     my $path = P->path("/$env->{PATH_INFO}");
 
-    $path .= '/' if $path ne '/' && !defined $path->{filename};
-
     if ( $path =~ $self->{path_re} ) {
 
         # extend HTTP request
-        $req->{app}  = $self->{app};
-        $req->{path} = P->path($2) if $2 ne $EMPTY;
+        $req->{app} = $self->{app};
+        if ( $2 ne $EMPTY ) {
+            my $tail = $2;
+
+            $tail = substr( $tail, 1 ) if substr( $tail, 0, 1 ) eq '/';
+
+            $req->{path} = P->path($2) if $tail ne $EMPTY;
+        }
 
         my $ctrl = $self->{class_ctrl}->{ $map->{$1} };
 
@@ -127,6 +131,16 @@ sub run ( $self, $req ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    1 | 119                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
