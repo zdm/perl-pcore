@@ -10,6 +10,7 @@
 *.advisor.ws;*.advisor.ws
 *.alces.network;*.alces.network
 *.awdev.ca;*.awdev.ca
+*.azurecontainer.io;*.azurecontainer.io
 *.bd;*.bd
 *.bzz.dapps.earth;*.bzz.dapps.earth
 *.ck;*.ck
@@ -3939,7 +3940,6 @@ k12.ok.us;k12.ok.us
 k12.or.us;k12.or.us
 k12.pa.us;k12.pa.us
 k12.pr.us;k12.pr.us
-k12.ri.us;k12.ri.us
 k12.sc.us;k12.sc.us
 k12.tn.us;k12.tn.us
 k12.tr;k12.tr
@@ -7858,6 +7858,7 @@ tone.ibaraki.jp;tone.ibaraki.jp
 tono.iwate.jp;tono.iwate.jp
 tonosho.kagawa.jp;tonosho.kagawa.jp
 tonsberg.no;tonsberg.no
+toolforge.org;toolforge.org
 tools;tools
 toon.ehime.jp;toon.ehime.jp
 top;top
@@ -8500,6 +8501,7 @@ withyoutube.com;withyoutube.com
 wiw.gov.pl;wiw.gov.pl
 wlocl.pl;wlocl.pl
 wloclawek.pl;wloclawek.pl
+wmcloud.org;wmcloud.org
 wme;wme
 wmflabs.org;wmflabs.org
 wnext.app;wnext.app
