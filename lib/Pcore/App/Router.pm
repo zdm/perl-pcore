@@ -91,11 +91,15 @@ sub init ( $self ) {
 
     $self->{map} = $map;
 
-    my $re = '\A(' . ( join '|', map {quotemeta} reverse sort { length $a <=> length $b } keys $map->%* ) . ')(.*)\z';
-
-    $self->{path_re} = qr/$re/sm;
+    $self->{path_re} = $self->_build_re( [ keys $map->%* ] );
 
     return;
+}
+
+sub _build_re ( $self, $routes ) {
+    my $re = '\A(' . ( join '|', map {quotemeta} reverse sort { length $a <=> length $b } $routes->@* ) . ')(?:$|\/|(?<=[/]))(.*)';
+
+    return qr/$re/sm;
 }
 
 sub run ( $self, $req ) {
@@ -112,14 +116,8 @@ sub run ( $self, $req ) {
     if ( $path =~ $self->{path_re} ) {
 
         # extend HTTP request
-        $req->{app} = $self->{app};
-        if ( $2 ne $EMPTY ) {
-            my $tail = $2;
-
-            $tail = substr( $tail, 1 ) if substr( $tail, 0, 1 ) eq '/';
-
-            $req->{path} = P->path($2) if $tail ne $EMPTY;
-        }
+        $req->{app}  = $self->{app};
+        $req->{path} = P->path($2) if $2 ne $EMPTY;
 
         my $ctrl = $self->{class_ctrl}->{ $map->{$1} };
 
@@ -137,7 +135,7 @@ sub run ( $self, $req ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 119                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 100                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
