@@ -1,0 +1,17 @@
+{
+    "author": "zdm <zdm@softvisio.net>",
+    "bugs": {
+        "email": "zdm@softvisio.net",
+        "url": ""
+    },
+    "description": "",
+    "homepage": "",
+    "license": "Perl_5",
+    "name": "Pcore",
+    "private": true,
+    "repository": {
+        "type": "git",
+        "url": ""
+    },
+    "type": "perl"
+}
