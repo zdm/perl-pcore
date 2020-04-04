@@ -34,7 +34,7 @@ sub generate_conf ( $self ) {
 
     my $geoip2_country_db_path = P->geoip->get_country_db_path;
     my $geoip2_city_db_path    = P->geoip->get_city_db_path;
-    my $has_geoip              = $geoip2_country_path || $geoip2_city_path;
+    my $has_geoip              = $geoip2_country_db_path || $geoip2_city_db_path;
 
     my $params = {
         user      => $self->{user},
