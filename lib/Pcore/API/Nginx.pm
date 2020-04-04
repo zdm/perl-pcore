@@ -13,11 +13,6 @@ has user                    => ();                               # nginx workers
 has proc  => ( init_arg => undef );
 has _poll => ( init_arg => undef );
 
-# eval {
-#     require Pcore::GeoIP;
-#     Pcore::GeoIP->import;
-# };
-
 sub run ($self) {
     $self->generate_conf;
 
@@ -37,17 +32,20 @@ sub generate_conf ( $self ) {
 
     for my $suffix ( keys $mime_types->%* ) { $nginx_mime_types->{$suffix} = $mime_types->{$suffix}->[0] }
 
-    # my $geoip2_country_path = $ENV->{share}->get('data/geoip2_country.mmdb') || undef;
-    # my $geoip2_city_path    = $ENV->{share}->get('data/geoip2_city.mmdb')    || undef;
+    my $geoip2_country_db_path = P->geoip->get_country_db_path;
+    my $geoip2_city_db_path    = P->geoip->get_city_db_path;
+    my $has_geoip              = $geoip2_country_path || $geoip2_city_path;
 
     my $params = {
         user      => $self->{user},
         pid       => "$self->{conf_dir}/nginx.pid",
         error_log => "$ENV->{DATA_DIR}/nginx-error.log",
 
-        # use_geoip2          => $geoip2_country_path || $geoip2_city_path,
-        # geoip2_country_path => $geoip2_country_path,
-        # geoip2_city_path    => $geoip2_city_path,
+        # geoip
+        use_geoip2          => 0,                         # $has_geoip
+        geoip2_country_path => $geoip2_country_db_path,
+        geoip2_city_path    => $geoip2_city_db_path,
+
         vhost_dir   => $self->{vhost_dir},
         ssl_dhparam => $ENV->{share}->get('data/dhparam-4096.pem'),
         mime_types  => $nginx_mime_types,
