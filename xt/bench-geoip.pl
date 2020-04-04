@@ -4,7 +4,6 @@ package main v0.1.0;
 
 use Pcore;
 use Benchmark qw[];
-use Pcore::GeoIP;
 
 say dump P->geoip->country->record_for_address('192.37.51.100');
 say dump P->geoip->country->record_for_address('46.219.212.109')->{country}->{iso_code};
@@ -28,7 +27,7 @@ Benchmark::cmpthese( Benchmark::timethese( -3, $tests ) );
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 10                   | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 9                    | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

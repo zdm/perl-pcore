@@ -2,18 +2,14 @@ package Pcore::Util::GeoIP;
 
 use Pcore -const, -res;
 
-const our $TYPE_COUNTRY => 1;
-const our $TYPE_CITY    => 2;
+const our $TYPE_COUNTRY_LITE => 0;
+const our $TYPE_CITY_LITE    => 1;
 
-const our $RES => {
-    $TYPE_COUNTRY => [    #
-        "$ENV->{PCORE_USER_BUILD_DIR}/geolite2-country.mmdb",
-        'https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-Country&suffix=gz&license_key='
-    ],
-    $TYPE_CITY => [       #
-        "$ENV->{PCORE_USER_BUILD_DIR}/geolite2-city.mmdb",
-        'https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&suffix=gz&license_key='
-    ],
+const our $BASE_PATH => $ENV->{PCORE_USER_BUILD_DIR};
+
+const our $TYPE => {
+    $TYPE_COUNTRY_LITE => 'GeoLite2-Country',
+    $TYPE_CITY_LITE    => 'GeoLite2-City',
 };
 
 my $LICENSE_KEY;
@@ -42,9 +38,9 @@ sub update_all {
 }
 
 sub update_country_db {
-    print 'updating geolite2-country.mmdb ... ';
+    print "updating $TYPE->{$TYPE_COUNTRY_LITE}.mmdb ... ";
 
-    my $res = _update($TYPE_COUNTRY);
+    my $res = _update($TYPE_COUNTRY_LITE);
 
     say $res;
 
@@ -52,9 +48,9 @@ sub update_country_db {
 }
 
 sub update_city_db {
-    print 'updating geolite2-city.mmdb ... ';
+    print "updating $TYPE->{$TYPE_CITY_LITE}.mmdb ... ";
 
-    my $res = _update($TYPE_CITY);
+    my $res = _update($TYPE_CITY_LITE);
 
     say $res;
 
@@ -62,13 +58,15 @@ sub update_city_db {
 }
 
 sub _update ( $type ) {
-    require IO::Uncompress::Gunzip;
+    require Archive::Tar;
 
     my $license_key = $LICENSE_KEY || $ENV->user_cfg->{GEOIP_LICENSE_KEY};
 
     return res [ 200, 'No license key specified' ] if !$license_key;
 
-    my $url = "$RES->{$type}->[1]$license_key";
+    my $name = $TYPE->{$type};
+
+    my $url = "https://download.maxmind.com/app/geoip_download?edition_id=$name&suffix=tar.gz&license_key=$license_key";
 
     my $res = P->http->get(
         $url,
@@ -77,47 +75,65 @@ sub _update ( $type ) {
         # on_progress  => 1
     );
 
-    if ($res) {
-        my $temp = P->file1->tempfile;
+    return res $res if !$res;
 
-        IO::Uncompress::Gunzip::gunzip( $res->{data}->{path}, $temp->{path}, BinModeOut => 1 ) or return res [ 500, "gunzip failed: $IO::Uncompress::Gunzip::GunzipError" ];
+    my $tar = eval { Archive::Tar->new( $res->{data}->{path} ) };
 
-        P->file->write_bin( $RES->{$type}->[0], $temp );
+    return res [ 500, 'Unable to read tar' ] if $@;
 
-        # empty cache
-        delete $H->{$type};
+    my @files = $tar->list_files;
 
-        return res 200;
+    my $path;
+
+    for my $file (@files) {
+        if ( $file =~ /${name}_\d+\/${name}[.]mmdb/sm ) {
+            $path = $file;
+
+            last;
+        }
     }
 
-    return res $res;
+    return res [ 500, 'Unable to find mmdb file' ] if !$path;
+
+    eval { $tar->extract_file( $path, "$BASE_PATH/$name.mmdb" ) };
+
+    return res [ 500, 'Unable to extract mmdb file' ] if $@;
+
+    # empty cache
+    delete $H->{$type};
+
+    return res 200;
 }
 
 sub country {
-    _get_h($TYPE_COUNTRY) if !exists $H->{$TYPE_COUNTRY};
-
-    return $H->{$TYPE_COUNTRY};
+    return $H->{$TYPE_COUNTRY_LITE} //= _get_reader($TYPE_COUNTRY_LITE);
 }
 
 sub city {
-    _get_h($TYPE_CITY) if !exists $H->{$TYPE_CITY};
-
-    return $H->{$TYPE_CITY};
+    return $H->{$TYPE_CITY_LITE} //= _get_reader($TYPE_CITY_LITE);
 }
 
-sub _get_h ($type) {
-    my $path = $RES->{$type}->[0];
+sub _get_reader ($type) {
+    my $path = "$BASE_PATH/$TYPE->{$type}.mmdb";
 
     return if !$path;
 
     require MaxMind::DB::Reader;
 
-    $H->{$type} = MaxMind::DB::Reader->new( file => $path );
-
-    return;
+    return MaxMind::DB::Reader->new( file => $path );
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 98                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

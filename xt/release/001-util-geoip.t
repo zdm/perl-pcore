@@ -4,7 +4,6 @@ package main v0.1.0;
 
 use Pcore;
 use Test::More;
-use Pcore::GeoIP;
 
 our $TESTS = {
     '203.174.65.12'   => 'JP',
@@ -42,7 +41,7 @@ done_testing scalar keys $TESTS->%*;
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 33                   | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 32                   | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
