@@ -73,9 +73,6 @@ around new => sub ( $orig, $self, $devel = undef, $runtime_cfg = undef ) {
     # create CDN object
     $self->{cdn} = Pcore::CDN->new( $self->{cfg}->{cdn} ) if $self->{cfg}->{cdn};
 
-    # create API object
-    $self->{api} = Pcore::App::API->new($self);
-
     return $self;
 };
 
@@ -125,6 +122,17 @@ sub get_default_locale ( $self, $req ) {
 # RUN
 around run => sub ( $orig, $self ) {
 
+    # create API object
+    $self->{api} = Pcore::App::API->new( {
+        app                     => $self,
+        db                      => $self->{cfg}->{db},
+        backend                 => $self->{cfg}->{backend},
+        auth_workers            => $self->{cfg}->{auth_workers},
+        auth_argon2_time        => $self->{cfg}->{auth_argon2_time},
+        auth_argon2_memory      => $self->{cfg}->{auth_argon2_memory},
+        auth_argon2_parallelism => $self->{cfg}->{auth_argon2_parallelism},
+    } );
+
     # create node
     # TODO when to use node???
     if (1) {
@@ -134,7 +142,8 @@ around run => sub ( $orig, $self ) {
 
         my $requires = defined $node_req ? { $node_req->%* } : {};
 
-        $requires->{'Pcore::App::API::Node'} = undef if $self->{cfg}->{api}->{backend};
+        # TODO fix condition for all backend types, should be true for local backends
+        $requires->{'Pcore::App::API::Node'} = undef if $self->{api}->{db} && !defined $self->{api}->{backend};
 
         $self->{node} = Pcore::Node->new( {
             type     => ref $self,
@@ -268,7 +277,7 @@ sub get_nginx_vhost_params ( $self, $vhost_name ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (21)                               |
+## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (22)                               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

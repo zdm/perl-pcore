@@ -1,20 +1,16 @@
-package Pcore::App::API::Backend::Local::Methods;
+package Pcore::App::API::Methods;
 
 use Pcore -role, -res;
 use Pcore::Util::Scalar qw[is_plain_arrayref];
 use Package::Stash::XS qw[];
-use Pcore::App::API qw[:PERMS];
+use Pcore::App::API::Const qw[:PERMS];
 
 has _method => ( init_arg => undef );    # HashRef
 has _obj    => ( init_arg => undef );    # HashRef
 
 # TODO https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md
 
-around init => sub ( $orig, $self ) {
-    my $res = $self->$orig;
-
-    return $res if !$res;
-
+sub init_methods ( $self ) {
     print 'Scanning API classes ... ';
 
     my $method = {};
@@ -179,7 +175,7 @@ around init => sub ( $orig, $self ) {
     say 'done';
 
     return res 200;
-};
+}
 
 sub get_method ( $self, $method_id ) {
     return $self->{_method}->{$method_id};
@@ -192,11 +188,11 @@ sub get_method ( $self, $method_id ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (25)                               |
+## |    3 | 13                   | Subroutines::ProhibitExcessComplexity - Subroutine "init_methods" with high complexity score (24)              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 89                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 85                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 146, 155, 168        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 142, 151, 164        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -207,7 +203,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Backend::Local::Methods
+Pcore::App::API::Methods
 
 =head1 SYNOPSIS
 

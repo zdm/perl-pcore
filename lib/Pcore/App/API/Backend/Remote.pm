@@ -1,11 +1,13 @@
-package Pcore::App::API::Backend::Remote;
+package Pcore::App::API::Backend::remote;
 
 use Pcore -class, -res;
 
-with qw[Pcore::App::API];
+with qw[
+  Pcore::App::API::Backend
+];
 
-sub init ($self) {
-    return res 200;
+sub init () {
+    return res [ 500, 'Not implemented' ];
 }
 
 1;
@@ -16,7 +18,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Backend::Remote
+Pcore::App::API::Backend::remote
 
 =head1 SYNOPSIS
 

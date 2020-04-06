@@ -1,13 +1,14 @@
-package Pcore::App::API::Backend::Local::sqlite;
+package Pcore::App::API::Backend::pgsql;
 
-use Pcore -class, -sql, -res;
-use Pcore::App::API qw[:ROOT_USER];
-use Pcore::Util::UUID qw[uuid_v4_str];
+use Pcore -class, -res, -sql;
+use Pcore::App::API::Const qw[:ROOT_USER];
 
-with qw[Pcore::App::API::Backend::Local];
+with qw[
+  Pcore::App::API::Backend::Local
+];
 
 sub _db_add_schema_patch ( $self, $dbh ) {
-    $dbh->load_schema( $ENV->{share}->get_location('/Pcore/db/api/sqlite'), 'api' );
+    $dbh->load_schema( $ENV->{share}->get_location('/Pcore/db/api/pgsql'), 'api' );
 
     return;
 }
@@ -15,28 +16,26 @@ sub _db_add_schema_patch ( $self, $dbh ) {
 sub _db_insert_user ( $self, $dbh, $user_name ) {
     my $res;
 
-    my $guid = uuid_v4_str;
-
-    if ( $self->user_is_root($user_name) ) {
-        state $q1 = $dbh->prepare(q[INSERT INTO "user" ("id", "guid", "name", "enabled") VALUES (?, ?, ?, FALSE) ON CONFLICT DO NOTHING]);
+    if ( $self->{api}->user_is_root($user_name) ) {
+        state $q1 = $dbh->prepare(q[INSERT INTO "user" ("id", "name", "enabled") VALUES (?, ?, FALSE) ON CONFLICT DO NOTHING RETURNING "id", "guid"]);
 
         # insert user
-        $res = $dbh->do( $q1, [ $ROOT_USER_ID, $guid, $user_name ] );
+        $res = $dbh->selectrow( $q1, [ $ROOT_USER_ID, $user_name ] );
     }
     else {
-        state $q1 = $dbh->prepare(q[INSERT INTO "user" ("guid", "name", "enabled") VALUES (?, ?, FALSE) ON CONFLICT DO NOTHING]);
+        state $q1 = $dbh->prepare(q[INSERT INTO "user" ("name", "enabled") VALUES (?, FALSE) ON CONFLICT DO NOTHING RETURNING "id", "guid"]);
 
         # insert user
-        $res = $dbh->do( $q1, [ $guid, $user_name ] );
+        $res = $dbh->selectrow( $q1, [$user_name] );
     }
 
     # dbh error
     return $res if !$res;
 
     # username already exists
-    return res [ 400, 'Username is already exists' ] if !$res->{rows};
+    return res [ 400, 'Username is already exists' ] if !$res->{data};
 
-    return res 200, { id => $dbh->last_insert_id, guid => $guid };
+    return $res;
 }
 
 1;
@@ -47,8 +46,8 @@ sub _db_insert_user ( $self, $dbh, $user_name ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 9                    | * Private subroutine/method '_db_add_schema_patch' declared but not used                                       |
-## |      | 15                   | * Private subroutine/method '_db_insert_user' declared but not used                                            |
+## |      | 10                   | * Private subroutine/method '_db_add_schema_patch' declared but not used                                       |
+## |      | 16                   | * Private subroutine/method '_db_insert_user' declared but not used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -59,7 +58,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Backend::Local::sqlite
+Pcore::App::API::Backend::pgsql
 
 =head1 SYNOPSIS
 
