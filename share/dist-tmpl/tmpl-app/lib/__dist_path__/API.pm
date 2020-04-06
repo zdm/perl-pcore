@@ -1,32 +1,15 @@
-package <: $module_name ~ "::Node::Worker" :>;
+package <: $module_name ~ "::API" :>;
 
-use Pcore -class, -const;
-use <: $module_name ~ "::Const qw[]" :>;
+use Pcore -class;
 
-with qw[<: $module_name ~ "::Node" :>];
+extends qw[Pcore::App::API];
 
-const our $NODE_REQUIRES => {
+sub upgrade_schema ($self) {
+    my $dbh = $self->{dbh};
 
-    # '*' => 'test',
-    '<: $module_name :>' => ['app.api.settings.updated'],
-};
+    $dbh->load_schema( $ENV->{share}->get_location('/<: $dist_name :>/db'), 'main' );
 
-sub NODE_ON_EVENT ( $self, $ev ) {
-    P->forward_event($ev);
-
-    return;
-}
-
-sub BUILD ( $self, $args ) {
-    $self->{node}->wait_online if $self->{node};
-
-    $self->on_settings_update( $self->{settings} );
-
-    return;
-}
-
-sub API_test ( $self, @args ) {
-    return 200, time;
+    return $dbh->upgrade_schema;
 }
 
 1;
@@ -36,11 +19,11 @@ sub API_test ( $self, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1, 4                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 1                    | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 11                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 10                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 34                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 38 does not match the package declaration       |
+## |    1 | 17                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 21 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -51,7 +34,7 @@ __END__
 
 =head1 NAME
 
-<: $module_name ~ "::Node::Worker" :>
+<: $module_name ~ "::API" :>
 
 =head1 SYNOPSIS
 
