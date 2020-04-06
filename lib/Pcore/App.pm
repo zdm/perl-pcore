@@ -90,15 +90,11 @@ sub default_cfg ($self) {
 
         # api
         api => {
-            backend => undef,
-            node    => {
-                workers => undef,
-                argon   => {
-                    argon2_time        => 3,
-                    argon2_memory      => '64M',
-                    argon2_parallelism => 1,
-                },
-            },
+            backend            => undef,
+            auth_workers       => undef,
+            argon2_time        => 3,
+            argon2_memory      => '64M',
+            argon2_parallelism => 1,
         },
     };
 
@@ -124,13 +120,9 @@ around run => sub ( $orig, $self ) {
 
     # create API object
     $self->{api} = Pcore::App::API->new( {
-        app                     => $self,
-        db                      => $self->{cfg}->{db},
-        backend                 => $self->{cfg}->{backend},
-        auth_workers            => $self->{cfg}->{auth_workers},
-        auth_argon2_time        => $self->{cfg}->{auth_argon2_time},
-        auth_argon2_memory      => $self->{cfg}->{auth_argon2_memory},
-        auth_argon2_parallelism => $self->{cfg}->{auth_argon2_parallelism},
+        $self->{cfg}->{api}->%*,
+        app => $self,
+        db  => $self->{cfg}->{db},
     } );
 
     # create node

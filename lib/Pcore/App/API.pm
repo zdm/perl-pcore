@@ -7,13 +7,13 @@ use Pcore::App::API::Auth;
 
 with qw[Pcore::App::API::Methods];
 
-has app                     => ( required => 1 );
-has db                      => ();
-has backend                 => ();                  # undef - default, 0 - don't use, str - uri
-has auth_workers            => undef;
-has auth_argon2_time        => 3;
-has auth_argon2_memory      => '64M';
-has auth_argon2_parallelism => 1;
+has app                => ( required => 1 );
+has db                 => ();
+has backend            => ();                  # undef - default, 0 - don't use, str - uri
+has auth_workers       => undef;
+has argon2_time        => 3;
+has argon2_memory      => '64M';
+has argon2_parallelism => 1;
 
 has dbh      => ( init_arg => undef );
 has settings => ( init_arg => undef );
@@ -60,13 +60,13 @@ sub init ($self) {
     die $@ if $@;
 
     $self->{backend} = $backend_class->new(
-        app                     => $self->{app},
-        api                     => $self,
-        dbh                     => $self->{dbh},
-        auth_workers            => $self->{auth_workers},
-        auth_argon2_time        => $self->{auth_argon2_time},
-        auth_argon2_memory      => $self->{auth_argon2_memory},
-        auth_argon2_parallelism => $self->{auth_argon2_parallelism},
+        app                => $self->{app},
+        api                => $self,
+        dbh                => $self->{dbh},
+        auth_workers       => $self->{auth_workers},
+        argon2_time        => $self->{argon2_time},
+        argon2_memory      => $self->{argon2_memory},
+        argon2_parallelism => $self->{argon2_parallelism},
     );
 
     $self->{backend}->init;

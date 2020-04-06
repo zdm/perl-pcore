@@ -17,10 +17,10 @@ with qw[
 
 has dbh => ( required => 1 );
 
-has auth_workers            => ( required => 1 );
-has auth_argon2_time        => ( required => 1 );
-has auth_argon2_memory      => ( required => 1 );
-has auth_argon2_parallelism => ( required => 1 );
+has auth_workers       => ( required => 1 );
+has argon2_time        => ( required => 1 );
+has argon2_memory      => ( required => 1 );
+has argon2_parallelism => ( required => 1 );
 
 has _hash_cache      => ( init_arg => undef );    # InstanceOf ['Pcore::Util::Hash::LRU']
 has _hash_cache_size => 10_000;                   # PositiveInt;
@@ -46,7 +46,7 @@ sub init ($self) {
 
     say $self->{app}->{node}->run_node(
         {   type      => 'Pcore::App::API::Node',
-            workers   => $self->{workers},
+            workers   => $self->{auth_workers},
             buildargs => {
                 argon2_time        => $self->{argon2_time},
                 argon2_memory      => $self->{argon2_memory},
