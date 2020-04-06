@@ -1,7 +1,7 @@
 package Pcore::App::API::Role::Profile;
 
 use Pcore -role;
-use Pcore::App::API qw[:TOKEN_TYPE :PRIVATE_TOKEN];
+use Pcore::App::API::Const qw[:TOKEN_TYPE :PRIVATE_TOKEN];
 
 sub API_read ( $self, $auth, @ ) {
     state $q1 = $self->{dbh}->prepare('SELECT "name", "email", "email_confirmed", "telegram_name" FROM "user" WHERE "id" = ?');
