@@ -165,7 +165,7 @@ sub authenticate_private ( $self, $private_token ) {
         # create auth
         $auth = bless $res->{data}, 'Pcore::App::API::Auth';
 
-        $auth->{api}              = $self;
+        $auth->{api}              = $self->{api};
         $auth->{is_authenticated} = 1;
         $auth->{private_token}    = $private_token;
         $auth->{last_accessed}    = time;
@@ -187,7 +187,7 @@ sub authenticate_private ( $self, $private_token ) {
 
 sub _get_unauthenticated_descriptor ( $self, $private_token = undef ) {
     return bless {
-        api              => $self,
+        api              => $self->{api},
         is_authenticated => 0,
         private_token    => $private_token,
       },
