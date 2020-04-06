@@ -1,6 +1,6 @@
 package Pcore::App::API;
 
-use Pcore -const, -class, -export, -res;
+use Pcore -const, -class, -export, -res, -sql;
 use Pcore::App::API::Const qw[:ROOT_USER];
 use Pcore::Util::Scalar qw[looks_like_number looks_like_uuid];
 use Pcore::App::API::Auth;
