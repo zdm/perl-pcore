@@ -4,7 +4,6 @@ use Pcore -role, -const;
 use Pcore::API::Nginx;
 use Pcore::HTTP::Server;
 use Pcore::App::Router;
-use Pcore::App::API;
 use Pcore::CDN;
 use Pcore::Util::Scalar qw[is_plain_arrayref];
 
@@ -119,7 +118,7 @@ sub get_default_locale ( $self, $req ) {
 around run => sub ( $orig, $self ) {
 
     # create API object
-    $self->{api} = Pcore::App::API->new( {
+    $self->{api} = P->class->load( 'API', ns => ref $self )->new( {
         $self->{cfg}->{api}->%*,
         app => $self,
         db  => $self->{cfg}->{db},
