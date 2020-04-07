@@ -11,7 +11,7 @@ sub CLI {
         opt => {
             devel => {    #
                 desc    => 'Run in development mode.',
-                default => 0,
+                negated => 1,
             },
         },
     };
