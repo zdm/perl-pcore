@@ -55,21 +55,23 @@ sub init ($self) {
         $backend_class = $scheme->{ $uri->{scheme} };
     }
 
-    $backend_class = eval { P->class->load( $backend_class, ns => 'Pcore::App::API::Backend' ) };
+    if ($backend_class) {
+        $backend_class = eval { P->class->load( $backend_class, ns => 'Pcore::App::API::Backend' ) };
 
-    die $@ if $@;
+        die $@ if $@;
 
-    $self->{backend} = $backend_class->new(
-        app                => $self->{app},
-        api                => $self,
-        dbh                => $self->{dbh},
-        auth_workers       => $self->{auth_workers},
-        argon2_time        => $self->{argon2_time},
-        argon2_memory      => $self->{argon2_memory},
-        argon2_parallelism => $self->{argon2_parallelism},
-    );
+        $self->{backend} = $backend_class->new(
+            app                => $self->{app},
+            api                => $self,
+            dbh                => $self->{dbh},
+            auth_workers       => $self->{auth_workers},
+            argon2_time        => $self->{argon2_time},
+            argon2_memory      => $self->{argon2_memory},
+            argon2_parallelism => $self->{argon2_parallelism},
+        );
 
-    $self->{backend}->init;
+        $self->{backend}->init;
+    }
 
     # upgrade shema
     if ( $self->{dbh} ) {
