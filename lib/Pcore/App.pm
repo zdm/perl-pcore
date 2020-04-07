@@ -29,43 +29,16 @@ const our $LOCALES => {
 
 };
 
-around new => sub ( $orig, $self, $devel = undef, $runtime_cfg = undef ) {
+around new => sub ( $orig, $self, $devel = undef, $env = undef ) {
+    $devel //= $ENV{PCORE_DEVEL};
+
+    $ENV{PCORE_DEVEL} = $devel;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+
     $self = $self->$orig( devel => $devel );
 
-    my $cfg = $self->default_cfg;
+    $env = $self->_load_env($env);
 
-    if ($runtime_cfg) {
-        for my $key ( keys $runtime_cfg->%* ) {
-
-            # server
-            if ( $key eq 'server' ) {
-                for my $server ( keys $cfg->{server}->%* ) {
-
-                    # listen
-                    if ( my $listen = $runtime_cfg->{server}->{$server}->{listen} ) {
-                        $cfg->{server}->{$server}->{listen} = $listen;
-                    }
-
-                    # server_name
-                    if ( my $server_name = $runtime_cfg->{server}->{$server}->{server_name} ) {
-                        push $cfg->{server}->{$server}->{server_name}->@*, is_plain_arrayref $server_name ? $server_name->@* : $server_name;
-                    }
-                }
-            }
-
-            # api
-            elsif ( $key eq 'api' ) {
-                P->hash->merge( $cfg->{api}, $runtime_cfg->{api} );
-            }
-
-            # copy unknown key
-            else {
-                $cfg->{$key} = $runtime_cfg->{$key};
-            }
-        }
-    }
-
-    $self->{cfg} = $cfg;
+    $self->{cfg} = $env;
 
     $self->{name} = lc( ref $self ) =~ s/::/-/smgr;
 
@@ -75,8 +48,42 @@ around new => sub ( $orig, $self, $devel = undef, $runtime_cfg = undef ) {
     return $self;
 };
 
-sub default_cfg ($self) {
-    my $cfg = {
+# ENVIRONMENT CONFIG
+sub _load_env ( $self, $env = undef ) {
+    my $effective_env = $self->default_env;
+
+    my $merge = sub (@filename) {
+        for my $filename (@filename) {
+            return if !-f "$ENV->{DATA_DIR}/$filename";
+
+            $self->_merge_env( $effective_env, P->cfg->read( "$ENV->{DATA_DIR}/$filename", params => { DATA_DIR => $ENV->{DATA_DIR} } ) );
+        }
+
+        return;
+    };
+
+    $merge->( '.env.yaml', '.env.local.yaml' );
+
+    if ( $self->{devel} ) {
+        $merge->( '.env.devel.yaml', '.env.devel.local.yaml' );
+    }
+    else {
+        $merge->( '.env.prod.yaml', '.env.prod.local.yaml' );
+    }
+
+    $self->_merge_env( $effective_env, $env ) if $env;
+
+    return $effective_env;
+}
+
+sub _merge_env ( $self, $env1, $env2 ) {
+    P->hash->merge( $env1, $env2 );
+
+    return;
+}
+
+sub default_env ($self) {
+    my $env = {
 
         # server
         server => {
@@ -97,7 +104,7 @@ sub default_cfg ($self) {
         },
     };
 
-    return $cfg;
+    return $env;
 }
 
 # PERMISSIONS
@@ -262,16 +269,6 @@ sub get_nginx_vhost_params ( $self, $vhost_name ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (22)                               |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

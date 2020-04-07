@@ -17,10 +17,9 @@ sub CLI {
     };
 }
 
-# load app config
-my $cfg = P->cfg->read( "$ENV->{DATA_DIR}/cfg.yaml", params => { DATA_DIR => $ENV->{DATA_DIR} } );
+my $env = {};
 
-my $app = <: $module_name :>->new( $ENV->{cli}->{opt}->{devel}, $cfg );
+my $app = <: $module_name :>->new( $ENV->{cli}->{opt}->{devel}, $env );
 
 my $cv = P->cv;
 
