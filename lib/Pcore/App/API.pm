@@ -75,7 +75,7 @@ sub init ($self) {
 
     # upgrade shema
     if ( $self->{dbh} ) {
-        print 'Upgrading API DB schema ... ';
+        print 'Upgrading DB schema ... ';
 
         $res = $self->upgrade_schema;
 
