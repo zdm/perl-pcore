@@ -9,7 +9,7 @@ use Pcore::Util::Scalar qw[is_plain_arrayref];
 
 has devel => 0;    # Bool
 
-has cfg    => ( init_arg => undef );    # HashRef
+has env    => ( init_arg => undef );    # HashRef
 has name   => ( init_arg => undef );
 has server => ( init_arg => undef );    # InstanceOf ['Pcore::HTTP::Server']
 has router => ( init_arg => undef );    # HashRef [ InstanceOf ['Pcore::App::Router'] ]
@@ -38,12 +38,12 @@ around new => sub ( $orig, $self, $devel = undef, $env = undef ) {
 
     $env = $self->_load_env($env);
 
-    $self->{cfg} = $env;
+    $self->{env} = $env;
 
     $self->{name} = lc( ref $self ) =~ s/::/-/smgr;
 
     # create CDN object
-    $self->{cdn} = Pcore::CDN->new( $self->{cfg}->{cdn} ) if $self->{cfg}->{cdn};
+    $self->{cdn} = Pcore::CDN->new( $self->{env}->{cdn} ) if $self->{env}->{cdn};
 
     return $self;
 };
@@ -126,9 +126,9 @@ around run => sub ( $orig, $self ) {
 
     # create API object
     $self->{api} = P->class->load( 'API', ns => ref $self )->new( {
-        $self->{cfg}->{api}->%*,
+        $self->{env}->{api}->%*,
         app => $self,
-        db  => $self->{cfg}->{db},
+        db  => $self->{env}->{db},
     } );
 
     # create node
@@ -146,8 +146,8 @@ around run => sub ( $orig, $self ) {
         $self->{node} = Pcore::Node->new( {
             type     => ref $self,
             requires => $requires,
-            server   => $self->{cfg}->{node}->{server},
-            listen   => $self->{cfg}->{node}->{listen},
+            server   => $self->{env}->{node}->{server},
+            listen   => $self->{env}->{node}->{listen},
             on_event => do {
                 if ( $self->can('NODE_ON_EVENT') ) {
                     sub ( $node, $ev ) {
@@ -175,12 +175,12 @@ around run => sub ( $orig, $self ) {
     exit 3 if !$res;
 
     # create HTTP routers
-    for my $name ( sort keys $self->{cfg}->{server}->%* ) {
+    for my $name ( sort keys $self->{env}->{server}->%* ) {
         print qq[Scanning HTTP controllers "$name" ... ];
 
         $self->{router}->{$name} = Pcore::App::Router->new( {
             app       => $self,
-            namespace => $self->{cfg}->{server}->{$name}->{namespace},
+            namespace => $self->{env}->{server}->{$name}->{namespace},
         } );
 
         $self->{router}->{$name}->init;
@@ -192,11 +192,11 @@ around run => sub ( $orig, $self ) {
     exit 3 if !$res;
 
     # start HTTP servers
-    for my $name ( sort keys $self->{cfg}->{server}->%* ) {
-        $self->{cfg}->{server}->{$name}->{listen} ||= "/var/run/$self->{name}-$name.sock";
+    for my $name ( sort keys $self->{env}->{server}->%* ) {
+        $self->{env}->{server}->{$name}->{listen} ||= "/var/run/$self->{name}-$name.sock";
 
         my $http_server = Pcore::HTTP::Server->new( {
-            listen     => $self->{cfg}->{server}->{$name}->{listen},
+            listen     => $self->{env}->{server}->{$name}->{listen},
             on_request => $self->{router}->{$name},
         } );
 
@@ -218,12 +218,12 @@ sub run_nginx ($self) {
 
     my $has_server_name;
 
-    for my $vhost_name ( sort keys $self->{cfg}->{server}->%* ) {
+    for my $vhost_name ( sort keys $self->{env}->{server}->%* ) {
         my $vhost_params = $self->get_nginx_vhost_params($vhost_name);
 
         $nginx->add_vhost( $vhost_name, $vhost_params );    # if !$nginx->is_vhost_exists($vhost_name);
 
-        if ( $self->{cfg}->{server}->{$vhost_name}->{server_name} && $self->{cfg}->{server}->{$vhost_name}->{server_name}->@* ) {
+        if ( $self->{env}->{server}->{$vhost_name}->{server_name} && $self->{env}->{server}->{$vhost_name}->{server_name}->@* ) {
             $has_server_name = 1;
 
             $nginx->add_load_balancer_vhost( "$self->{name}-$vhost_name", $vhost_params );
@@ -252,7 +252,7 @@ sub get_nginx_vhost_params ( $self, $vhost_name ) {
     my $params = {
         app_name    => $self->{name},
         vhost_name  => $vhost_name,
-        server_name => $self->{cfg}->{server}->{$vhost_name}->{server_name},
+        server_name => $self->{env}->{server}->{$vhost_name}->{server_name},
         data_dir    => $ENV->{DATA_DIR},
         upstream    => $self->{server}->{$vhost_name}->{listen}->to_nginx_upstream_server,
     };

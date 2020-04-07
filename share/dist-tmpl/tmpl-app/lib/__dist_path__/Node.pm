@@ -3,7 +3,7 @@ package <: $module_name ~ "::Node" :>;
 use Pcore -role;
 use <: $module_name ~ "::Util" :>;
 
-has cfg      => ( required => 1 );
+has env      => ( required => 1 );
 has settings => ( required => 1 );
 
 has util => ( init_arg => undef );    # InstanceOf ['<: $module_name :>::Util']

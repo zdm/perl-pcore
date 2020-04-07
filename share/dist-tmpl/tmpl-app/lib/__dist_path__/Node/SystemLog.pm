@@ -23,7 +23,7 @@ sub BUILD ( $self, $args ) {
 
     $self->on_settings_update( $self->{settings} );
 
-    $self->{dbh} = P->handle( $self->{cfg}->{dh} );
+    $self->{dbh} = P->handle( $self->{env}->{db} );
 
     $self->{dbh}->add_schema_patch(
         1, 'log',

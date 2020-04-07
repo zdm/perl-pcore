@@ -48,14 +48,14 @@ sub run ( $self ) {
         # {   type      => '<: $module_name :>::Node::Worker',
         #     workers   => 1,
         #     buildargs => {
-        #         cfg      => $self->{cfg},
+        #         env      => $self->{env},
         #         settings => $self->{api}->{settings},
         #     },
         # },
         # {   type      => '<: $module_name :>::Node::SystemLog',
         #     workers   => 1,
         #     buildargs => {
-        #         cfg            => $self->{cfg},
+        #         env            => $self->{env},
         #         settings       => $self->{api}->{settings},
         #         store_interval => 0,
         #     },
