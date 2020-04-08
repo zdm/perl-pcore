@@ -1,4 +1,4 @@
-package Pcore::API::AntiCaptcha::Captcha;
+package Pcore::API::anticaptcha::Captcha;
 
 use Pcore -class, -res;
 
@@ -30,7 +30,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::AntiCaptcha::Captcha
+Pcore::API::anticaptcha::Captcha
 
 =head1 SYNOPSIS
 

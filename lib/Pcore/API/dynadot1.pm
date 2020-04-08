@@ -1,4 +1,4 @@
-package Pcore::API::Dynadot;
+package Pcore::API::dynadot;
 
 use Pcore -class;
 
@@ -10,7 +10,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::Dynadot
+Pcore::API::dynadot
 
 =head1 SYNOPSIS
 

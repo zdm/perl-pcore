@@ -1,4 +1,4 @@
-package Pcore::API::Cloudflare;
+package Pcore::API::cloudflare;
 
 use Pcore -const, -class, -res;
 
@@ -74,7 +74,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::Cloudflare
+Pcore::API::cloudflare
 
 =head1 SYNOPSIS
 

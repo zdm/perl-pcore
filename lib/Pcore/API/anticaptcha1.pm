@@ -1,9 +1,9 @@
-package Pcore::API::AntiCaptcha;
+package Pcore::API::anticaptcha;
 
 use Pcore -class, -const, -res;
 use Pcore::Util::Data qw[to_b64 to_json from_json];
 use Pcore::Util::Scalar qw[is_plain_scalarref];
-use Pcore::API::AntiCaptcha::Captcha;
+use Pcore::API::anticaptcha::Captcha;
 
 has api_key     => ( required => 1 );
 has api_soft_id => ();                  # AppCenter Application ID used for comission earnings
@@ -65,7 +65,7 @@ const our $STATUS_REASON => {
 };
 
 sub new_image_captcha ( $self, $image, %args ) {
-    return Pcore::API::AntiCaptcha::Captcha->new( {
+    return Pcore::API::anticaptcha::Captcha->new( {
         api    => $self,
         params => {
             %args,
@@ -76,7 +76,7 @@ sub new_image_captcha ( $self, $image, %args ) {
 }
 
 sub new_nocaptcha ( $self, %args ) {
-    return Pcore::API::AntiCaptcha::Captcha->new( {
+    return Pcore::API::anticaptcha::Captcha->new( {
         api    => $self,
         params => { %args, type => $ANTICAPTCHA_QUEUE_NOCAPTCHA, },
     } );
@@ -260,11 +260,11 @@ __END__
 
 =head1 NAME
 
-Pcore::API::AntiCaptcha
+Pcore::API::anticaptcha
 
 =head1 SYNOPSIS
 
-    my $api = Pcore::API::AntiCaptcha1->new( api_key => '...' );
+    my $api = Pcore::API::anticaptcha1->new( api_key => '...' );
 
     my $captcha = $api->new_image_captcha($image);
 
