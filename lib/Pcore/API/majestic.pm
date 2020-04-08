@@ -1,4 +1,4 @@
-package Pcore::API::Majestic;
+package Pcore::API::majestic;
 
 use Pcore -class, -res;
 use Pcore::Util::Scalar qw[is_plain_arrayref];
@@ -325,7 +325,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::Majestic
+Pcore::API::majestic
 
 =head1 SYNOPSIS
 

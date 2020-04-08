@@ -1,4 +1,4 @@
-package Pcore::API::Moz;
+package Pcore::API::moz;
 
 use Pcore -class, -res;
 use Pcore::Util::Scalar qw [is_plain_arrayref];
@@ -166,7 +166,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::Moz
+Pcore::API::moz
 
 =head1 SYNOPSIS
 
