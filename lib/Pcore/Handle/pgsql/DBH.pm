@@ -659,6 +659,13 @@ sub _execute ( $self, $query, $bind, $cb, %args ) {
                     $param = $self->encode_array($param)->$*;
                 }
 
+                # known boolean objects
+                elsif ( ref $param eq 'JSON::PP::Boolean' ) {
+                    $param_format_codes .= "\x00\x00";    # text
+
+                    $param = $param ? '1' : '0';
+                }
+
                 # text by default
                 else {
                     $param_format_codes .= "\x00\x00";    # text
@@ -1001,13 +1008,13 @@ sub encode_json ( $self, $var ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 542                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (31)                  |
+## |    3 | 542                  | Subroutines::ProhibitExcessComplexity - Subroutine "_execute" with high complexity score (33)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 643, 921             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 643, 928             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 774, 921             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 781, 928             | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 813                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 820                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

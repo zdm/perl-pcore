@@ -86,6 +86,13 @@ sub GET_SQL_QUERY ( $self, $dbh, $i ) {
                     push @bind, $token->{$field};
                 }
 
+                # known boolean objects
+                elsif ( ref $token->{$field} eq 'JSON::PP::Boolean' ) {
+                    push @row, '$' . $i->$*++;
+
+                    push @bind, $token->{$field};
+                }
+
                 # object
                 elsif ( is_blessed_hashref $token->{$field} ) {
                     my ( $sql, $bind ) = $token->{$field}->GET_SQL_QUERY( $dbh, $i );
@@ -113,6 +120,13 @@ sub GET_SQL_QUERY ( $self, $dbh, $i ) {
 
                 # Scalar or ArrayRef value is processed as parameter
                 if ( !is_ref $field || is_arrayref $field ) {
+                    push @row, '$' . $i->$*++;
+
+                    push @bind, $field;
+                }
+
+                # known boolean objects
+                elsif ( ref $field eq 'JSON::PP::Boolean' ) {
                     push @row, '$' . $i->$*++;
 
                     push @bind, $field;
@@ -156,7 +170,7 @@ sub GET_SQL_QUERY ( $self, $dbh, $i ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "GET_SQL_QUERY" with high complexity score (42)             |
+## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "GET_SQL_QUERY" with high complexity score (44)             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -157,6 +157,8 @@ sub quote ( $self, $var ) {
             die 'Unsupported SQL type';
         }
     }
+
+    # perl Array -> encode to postgres array
     elsif ( is_plain_arrayref $var) {
 
         # encode and quote
@@ -165,6 +167,11 @@ sub quote ( $self, $var ) {
         $var->$* =~ s/'/''/smg;
 
         return q['] . $var->$* . q['];
+    }
+
+    # known boolean objects
+    elsif ( ref $var eq 'JSON::PP::Boolean' ) {
+        return $var ? 'TRUE' : 'FALSE';
     }
 
     # NUMBER

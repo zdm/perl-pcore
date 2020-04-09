@@ -45,6 +45,13 @@ sub GET_SQL_QUERY ( $self, $dbh, $i ) {
                     push @bind, $token->{$field};
                 }
 
+                # known boolean objects
+                elsif ( ref $token->{$field} eq 'JSON::PP::Boolean' ) {
+                    push @sql1, $dbh->quote_id($field) . ' = $' . $i->$*++;
+
+                    push @bind, $token->{$field};
+                }
+
                 # object
                 elsif ( is_blessed_hashref $token->{$field} ) {
                     my ( $sql, $bind ) = $token->{$field}->GET_SQL_QUERY( $dbh, $i );

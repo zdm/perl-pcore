@@ -165,6 +165,7 @@ sub quote ( $self, $var ) {
 
     my $type;
 
+    # expand type
     if ( is_blessed_arrayref $var) {
         return 'NULL' if !defined $var->[1];
 
@@ -188,6 +189,13 @@ sub quote ( $self, $var ) {
 
             $var = to_json $var;
         }
+
+        # known boolean values
+        elsif ( ref $var eq 'JSON::PP::Boolean' ) {
+            return $var ? 'TRUE' : 'FALSE';
+        }
+
+        # default type is TEXT
         else {
             $type = $SQLITE_TEXT;
         }
@@ -354,6 +362,11 @@ sub _execute ( $self, $sth, $bind, $bind_pos ) {
             $sth->bind_param( $i + 1, undef, $SQLITE_BLOB );
 
             $bind[$i] = to_json $bind[$i];
+        }
+
+        # known boolean values
+        elsif ( ref $bind[$i] eq 'JSON::PP::Boolean' ) {
+            $bind[$i] = $bind[$i] ? 'TRUE' : 'FALSE';
         }
     }
 
@@ -757,13 +770,15 @@ sub attach ( $self, $name, $path = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 368                  | Subroutines::ProhibitExcessComplexity - Subroutine "do" with high complexity score (24)                        |
+## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
+## |      | 163                  | * Subroutine "quote" with high complexity score (22)                                                           |
+## |      | 381                  | * Subroutine "do" with high complexity score (24)                                                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 453                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 466                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 330                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 338                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 664                  | ControlStructures::ProhibitPostfixControls - Postfix control "while" used                                      |
+## |    2 | 677                  | ControlStructures::ProhibitPostfixControls - Postfix control "while" used                                      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
