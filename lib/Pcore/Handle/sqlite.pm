@@ -366,7 +366,7 @@ sub _execute ( $self, $sth, $bind, $bind_pos ) {
 
         # known boolean values
         elsif ( ref $bind[$i] eq 'JSON::PP::Boolean' ) {
-            $bind[$i] = $bind[$i] ? 'TRUE' : 'FALSE';
+            $bind[$i] = $bind[$i] ? 1 : 0;
         }
     }
 
