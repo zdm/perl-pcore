@@ -1,24 +1,24 @@
-package Pcore::App::API::Methods;
+package Pcore::App::API::Router;
 
-use Pcore -role, -res;
+use Pcore -class, -res;
 use Pcore::Util::Scalar qw[is_plain_arrayref];
 use Package::Stash::XS qw[];
 use Pcore::App::API::Const qw[:PERMS];
 
-has _method => ( init_arg => undef );    # HashRef
-has _obj    => ( init_arg => undef );    # HashRef
+has ns  => ( required => 1 );
+has api => ( required => 1 );
+
+has method => ( init_arg => undef );    # HashRef
+has obj    => ( init_arg => undef );    # HashRef
 
 # TODO https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md
 
-sub init_methods ( $self ) {
+sub init ( $self, $permissions = undef ) {
     print 'Scanning API classes ... ';
 
     my $method = {};
 
-    # index permissions
-    my $permissions = { map { $_ => 1 } $self->{app}->get_permissions->@* };
-
-    my $ns_path = ( ref( $self->{app} ) =~ s[::][/]smgr ) . '/API';
+    my $ns_path = $self->{ns} =~ s[::][/]smgr;
 
     my $class;
 
@@ -96,10 +96,10 @@ sub init_methods ( $self ) {
         $class_path =~ s/\AV/v/sm;
 
         # create API object and store in cache
-        my $obj = $self->{_obj}->{$class_name} = $class_name->new( {
-            app => $self->{app},
-            api => $self,
-            dbh => $self->{dbh},
+        my $obj = $self->{obj}->{$class_name} = $class_name->new( {
+            app => $self->{api}->{app},
+            api => $self->{api},
+            dbh => $self->{api}->{dbh},
         } );
 
         # parse API version
@@ -170,7 +170,7 @@ sub init_methods ( $self ) {
         }
     }
 
-    $self->{_method} = $method;
+    $self->{method} = $method;
 
     say 'done';
 
@@ -178,7 +178,7 @@ sub init_methods ( $self ) {
 }
 
 sub get_method ( $self, $method_id ) {
-    return $self->{_method}->{$method_id};
+    return $self->{method}->{$method_id};
 }
 
 1;
@@ -188,7 +188,7 @@ sub get_method ( $self, $method_id ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 13                   | Subroutines::ProhibitExcessComplexity - Subroutine "init_methods" with high complexity score (24)              |
+## |    3 | 16                   | Subroutines::ProhibitExcessComplexity - Subroutine "init" with high complexity score (24)                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 85                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
@@ -203,7 +203,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Methods
+Pcore::App::API::Router
 
 =head1 SYNOPSIS
 
