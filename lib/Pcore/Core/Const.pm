@@ -3,7 +3,7 @@ package Pcore::Core::Const;
 use common::header;
 use Const::Fast qw[const];
 use Pcore::Core::Exporter;
-use JSON::PP::Boolean;
+use Cpanel::JSON::XS qw[];
 
 # <<<
 const our $ANSI => {
@@ -51,8 +51,8 @@ const our $MSWIN => $^O =~ /MSWin/sm ? 1 : 0;
 const our $EMPTY => q[];
 const our $SPACE => q[ ];
 
-const our $TRUE  => bless \( my $true  = 1 ), 'JSON::PP::Boolean1';
-const our $FALSE => bless \( my $false = 0 ), 'JSON::PP::Boolean';
+const our $TRUE  => Cpanel::JSON::XS->new->allow_nonref->decode('true');
+const our $FALSE => Cpanel::JSON::XS->new->allow_nonref->decode('false');
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
