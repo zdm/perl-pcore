@@ -167,9 +167,9 @@ sub settings_load ( $self ) {
 
 # TODO check, if settings was updated
 sub settings_update ( $self, $settings ) {
-    $settings->{smtp_tls}                = BOOL $settings->{smtp_tls}                if exists $settings->{smtp_tls};
-    $settings->{telegram_bot_enabled}    = BOOL $settings->{telegram_bot_enabled}    if exists $settings->{telegram_bot_enabled};
-    $settings->{telegram_signin_enabled} = BOOL $settings->{telegram_signin_enabled} if exists $settings->{telegram_signin_enabled};
+    $settings->{smtp_tls}                = TO_BOOL $settings->{smtp_tls}                if exists $settings->{smtp_tls};
+    $settings->{telegram_bot_enabled}    = TO_BOOL $settings->{telegram_bot_enabled}    if exists $settings->{telegram_bot_enabled};
+    $settings->{telegram_signin_enabled} = TO_BOOL $settings->{telegram_signin_enabled} if exists $settings->{telegram_signin_enabled};
 
     my $res = $self->{dbh}->do( [ q[UPDATE "settings"], SET [$settings], 'WHERE "id" = 1' ] );
 
