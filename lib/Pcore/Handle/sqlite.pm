@@ -5,7 +5,7 @@ use DBI qw[];
 use Pcore::Handle::DBI::Const qw[:CONST];
 use DBD::SQLite qw[];
 use DBD::SQLite::Constants qw[:file_open];
-use Pcore::Util::Scalar qw[weaken is_blessed_ref looks_like_number is_plain_arrayref is_blessed_arrayref];
+use Pcore::Util::Scalar qw[weaken is_bool is_blessed_ref looks_like_number is_plain_arrayref is_blessed_arrayref];
 use Pcore::Util::UUID qw[uuid_v1mc_str uuid_v4_str];
 use Pcore::Util::Digest qw[md5_hex];
 use Pcore::Util::Data qw[to_json];
@@ -191,7 +191,7 @@ sub quote ( $self, $var ) {
         }
 
         # known boolean values
-        elsif ( ref $var eq 'JSON::PP::Boolean' ) {
+        elsif ( is_bool $var ) {
             return $var ? 'TRUE' : 'FALSE';
         }
 
@@ -365,7 +365,7 @@ sub _execute ( $self, $sth, $bind, $bind_pos ) {
         }
 
         # known boolean values
-        elsif ( ref $bind[$i] eq 'JSON::PP::Boolean' ) {
+        elsif ( is_bool $bind[$i] ) {
             $bind[$i] = $bind[$i] ? 1 : 0;
         }
     }

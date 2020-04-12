@@ -51,8 +51,8 @@ const our $MSWIN => $^O =~ /MSWin/sm ? 1 : 0;
 const our $EMPTY => q[];
 const our $SPACE => q[ ];
 
-const our $TRUE  => Cpanel::JSON::XS->new->allow_nonref->decode('true');
-const our $FALSE => Cpanel::JSON::XS->new->allow_nonref->decode('false');
+const our $TRUE  => $Cpanel::JSON::XS::true;
+const our $FALSE => $Cpanel::JSON::XS::false;
 
 sub TO_BOOL : prototype($) {
     return $_[0] ? $TRUE : $FALSE;

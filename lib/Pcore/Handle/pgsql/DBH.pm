@@ -3,7 +3,7 @@ package Pcore::Handle::pgsql::DBH;
 use Pcore -class, -res, -const;
 use Pcore::Handle::DBI::Const qw[:CONST];
 use Pcore::Handle::pgsql qw[:ALL];
-use Pcore::Util::Scalar qw[weaken looks_like_number is_plain_arrayref is_blessed_arrayref];
+use Pcore::Util::Scalar qw[is_bool weaken looks_like_number is_plain_arrayref is_blessed_arrayref];
 use Pcore::Util::Digest qw[md5_hex];
 use Pcore::Util::Data qw[from_json];
 
@@ -660,7 +660,7 @@ sub _execute ( $self, $query, $bind, $cb, %args ) {
                 }
 
                 # known boolean objects
-                elsif ( ref $param eq 'JSON::PP::Boolean' ) {
+                elsif ( is_bool $param ) {
                     $param_format_codes .= "\x00\x00";    # text
 
                     $param = $param ? '1' : '0';

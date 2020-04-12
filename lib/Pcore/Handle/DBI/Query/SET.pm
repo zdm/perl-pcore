@@ -1,7 +1,7 @@
 package Pcore::Handle::DBI::Query::SET;
 
 use Pcore -class;
-use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_arrayref is_plain_hashref is_blessed_hashref];
+use Pcore::Util::Scalar qw[is_ref is_bool is_plain_scalarref is_arrayref is_plain_hashref is_blessed_hashref];
 
 has _buf => ( required => 1 );    # ArrayRef
 
@@ -46,7 +46,7 @@ sub GET_SQL_QUERY ( $self, $dbh, $i ) {
                 }
 
                 # known boolean objects
-                elsif ( ref $token->{$field} eq 'JSON::PP::Boolean' ) {
+                elsif ( is_bool $token->{$field} ) {
                     push @sql1, $dbh->quote_id($field) . ' = $' . $i->$*++;
 
                     push @bind, $token->{$field};
