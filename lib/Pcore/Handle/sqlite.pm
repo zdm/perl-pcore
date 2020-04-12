@@ -172,7 +172,7 @@ sub quote ( $self, $var ) {
         $type = _get_sqlite_type( $var->[0] );
 
         if ( $var->[0] == $SQL_BOOL ) {
-            $var = $var->[1] ? 1 : 0;
+            return $var->[1] ? 'TRUE' : 'FALSE';
         }
         elsif ( $var->[0] == $SQL_JSON ) {
             $var = to_json $var->[1];

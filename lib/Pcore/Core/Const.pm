@@ -44,7 +44,7 @@ our $EXPORT = {
     CORE    => [qw[:BOOL $MSWIN $EMPTY $SPACE]],
     DEFAULT => [':CORE'],
     ANSI    => [ map { '$' . $_ } keys $ANSI->%* ],
-    BOOL    => [qw[$TRUE $FALSE]],
+    BOOL    => [qw[BOOL $TRUE $FALSE]],
 };
 
 const our $MSWIN => $^O =~ /MSWin/sm ? 1 : 0;
@@ -53,6 +53,10 @@ const our $SPACE => q[ ];
 
 const our $TRUE  => Cpanel::JSON::XS->new->allow_nonref->decode('true');
 const our $FALSE => Cpanel::JSON::XS->new->allow_nonref->decode('false');
+
+sub BOOL : prototype($) {
+    return $_[0] ? $TRUE : $FALSE;
+}
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----

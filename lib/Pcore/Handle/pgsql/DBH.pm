@@ -456,7 +456,7 @@ sub _ON_DATA_ROW ( $self, $dataref ) {
                 }
 
                 elsif ( $type == $SQL_BOOL ) {
-                    $col = $col eq 'f' ? 0 : 1;
+                    $col = $col eq 'f' ? $FALSE : $TRUE;
                 }
 
                 # TODO decode ARRAY

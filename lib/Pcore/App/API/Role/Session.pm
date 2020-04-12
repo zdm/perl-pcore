@@ -295,7 +295,7 @@ sub API_signup ( $self, $auth, $args ) {
     #             [    #
     #                 $res->{data}->{id},
     #                 $args->{username},
-    #                 SQL_BOOL 1,
+    #                 BOOL 1,
     #                 $args->{username},
     #             ]
     #         );
