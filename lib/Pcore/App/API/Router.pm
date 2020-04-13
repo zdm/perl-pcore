@@ -44,7 +44,7 @@ sub init ( $self, $permissions = undef ) {
             if ( $file =~ s/[.]pm\z//sm ) {
 
                 # API class must be located in V\d+ directory
-                return if $file !~ m[\Av\d+/]sm;
+                return res [ 500, qq[Api class "$file" failed to load] ] if $file !~ m[\Av\d+/]sm;
 
                 $class->{$file} = "$ns_path/$file" =~ s[/][::]smgr;
             }
