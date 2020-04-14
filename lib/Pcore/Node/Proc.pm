@@ -48,9 +48,12 @@ around new => sub ( $orig, $self, $type, % ) {
     if ($MSWIN) {
         require Win32::Mutex;
 
-        $WIN32_MUTEX //= Win32::Mutex->new( 1, "pcore-node-$$" );
+        my $mutex_name = P->uuid->v1mc_str;
 
-        $boot_args->{win32_mutex} = "pcore-node-$$";
+        # TODO need to cleanup mutexes on child process exit
+        push $WIN32_MUTEX->@*, Win32::Mutex->new( 1, $mutex_name );
+
+        $boot_args->{win32_mutex} = $mutex_name;
 
         $boot_args->{fh} = Win32API::File::FdGetOsFHandle( fileno $fh_w );
     }
