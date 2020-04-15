@@ -38,10 +38,14 @@ sub check_domains ( $self, $domains ) {
     my $res = $self->_req($params);
 
     if ($res) {
-        my $data;
+        my ( $idx, $data );
 
         for my $item ( $res->{data}->{DomainCheckResult}->@* ) {
-            $data->{ $item->{Domain}->[0]->{content} } = $item->{Available}->[0]->{content} eq 'true' ? 1 : 0;
+            $idx->{ $item->{Domain}->[0]->{content} } = $item->{Available}->[0]->{content} eq 'true' ? 1 : 0;
+        }
+
+        for my $domain ( $domains->@* ) {
+            $data->{$domain} = $idx->{$domain};
         }
 
         $res->{data} = $data;
@@ -71,7 +75,9 @@ sub _req ( $self, $params ) {
 
     return res [ 500, 'Error decoding xml' ] if $@;
 
-    return res [ 400, $data->{ApiResponse}->{Errors}->[0]->{Error}->[0]->{content} ] if $data->{ApiResponse}->{Errors}->[0]->{Error};
+    if ( !$data->{ApiResponse}->{CommandResponse} ) {
+        return res [ 400, $data->{ApiResponse}->{Errors}->[0]->{Error}->[0]->{content} || 'Unknown api error' ];
+    }
 
     return res 200, $data->{ApiResponse}->{CommandResponse}->[0];
 }
