@@ -4,19 +4,17 @@ use Pcore -class, -res;
 use Pcore::Util::Scalar qw[is_plain_arrayref];
 use Pcore::Util::Data qw[to_uri from_json];
 
-has api_key       => ( required => 1 );
-has openapp_token => ();
+has api_key              => ();    # direct access to the API, access is restricted by IP address
+has openapp_access_token => ();    # OpenApp access, user key, identify user
+has openapp_private_key  => ();    # OpenApp access, application vendor key, identify application
 
 has max_threads => 3;
 has proxy       => ();
 
 has _semaphore => sub ($self) { Coro::Semaphore->new( $self->{max_threads} ) }, is => 'lazy';
 
-# TODO
 sub test ($self) {
-    ...;
-
-    return;
+    return res $self->get_subscription_info;
 }
 
 # https://developer-support.majestic.com/api/commands/get-anchor-text.shtml
@@ -305,7 +303,16 @@ sub get_subscription_info ( $self, %args ) {
 sub _req ( $self, $params ) {
     my $guard = $self->{max_threads} && $self->_semaphore->guard;
 
-    my $url = "http://api.majestic.com/api/json?app_api_key=$self->{api_key}&" . to_uri $params;
+    my $url = 'https://api.majestic.com/api/json?';
+
+    if ( $self->{api_key} ) {
+        $url .= "app_api_key=$self->{api_key}&";
+    }
+    elsif ( $self->{openapp_private_key} && $self->{openapp_access_token} ) {
+        $url .= "accesstoken=$self->{openapp_access_token}&privatekey=$self->{openapp_private_key}&";
+    }
+
+    $url .= to_uri $params;
 
     my $res = P->http->get( $url, proxy => $self->{proxy} );
 
@@ -327,16 +334,6 @@ sub _req ( $self, $params ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 17                   | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
