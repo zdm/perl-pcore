@@ -10,77 +10,21 @@ has proxy    => ();
 # https://www.namecheap.com/support/api/methods/domains/get-tld-list.aspx
 sub get_tld_list ($self) {
 
-    # my $url_params = [
-    #     ApiUser  => $self->{api_user},
-    #     ApiKey   => $self->{api_key},
-    #     ClientIp => $self->{api_ip},
-    #     UserName => $self->{api_user},
-    #     Command  => 'namecheap.domains.gettldlist',
-    # ];
+    my $params = { Command => 'namecheap.domains.gettldlist', };
 
-    # my $url = 'https://api.namecheap.com/xml.response?' . P->data->to_uri($url_params);
+    my $res = $self->_req($params);
 
-    # P->http->get(
-    #     $url,
-    #     persistent => 0,
-    #     timeout    => 180,
-    #     recurse    => 0,
-    #     bind_ip    => $self->{bind_ip},
-    #     on_finish  => sub ($res) {
-    #         if ( $res->status != 200 ) {
-    #             $cb->( result [ $res->status, $res->reason ] );
+    if ($res) {
+        my $data;
 
-    #             return;
-    #         }
+        for my $item ( $res->{data}->{Tlds}->[0]->{Tld}->@* ) {
+            $data->{ $item->{Name}->[0]->{content} } = 1;
+        }
 
-    #         my $hash = eval { P->data->from_xml( $res->body ) };
+        $res->{data} = $data;
+    }
 
-    #         if ($@) {
-    #             $cb->( result [ $res->status, 'Error decoding response' ] );
-
-    #             return;
-    #         }
-
-    #         if ( $hash->{ApiResponse}->{Errors}->[0]->{Error} ) {
-    #             $cb->( result [ 400, $hash->{ApiResponse}->{Errors}->[0]->{Error}->[0]->{content} ] );
-
-    #             return;
-    #         }
-
-    #         my $data;
-
-    #         for my $tld ( $hash->{ApiResponse}->{CommandResponse}->[0]->{Tlds}->[0]->{Tld}->@* ) {
-    #             delete $tld->{content};
-
-    #             my $res;
-
-    #             for my $attr ( keys $tld->%* ) {
-    #                 $res->{$attr} = $tld->{$attr}->[0]->{content};
-
-    #                 if ( defined $res->{$attr} ) {
-    #                     if ( $res->{$attr} eq 'true' ) {
-    #                         $res->{$attr} = 1;
-    #                     }
-    #                     elsif ( $res->{$attr} eq 'false' ) {
-    #                         $res->{$attr} = 0;
-    #                     }
-    #                 }
-    #             }
-
-    #             $data->{ $tld->{Name}->[0]->{content} } = $res;
-    #         }
-
-    #         $TLD = $data;
-
-    #         $ENV->share->store( '/data/namecheap-tld.json', $TLD, 'Lazarus-Crawler-Client' );
-
-    #         $cb->( result 200, $TLD );
-
-    #         return;
-    #     },
-    # );
-
-    return;
+    return $res;
 }
 
 # https://www.namecheap.com/support/api/methods/domains/check.aspx
@@ -93,16 +37,15 @@ sub check_domains ( $self, $domains ) {
 
     my $res = $self->_req($params);
 
-    # for my $domain ( $hash->{ApiResponse}->{CommandResponse}->[0]->{DomainCheckResult}->@* ) {
-    #     my $domain_name = $domain->{Domain}->[0]->{content};
+    if ($res) {
+        my $data;
 
-    #     if ( $domain->{Available}->[0]->{content} eq 'true' ) {
-    #         $data->{$domain_name} = 1;
-    #     }
-    #     else {
-    #         $data->{$domain_name} = 0;
-    #     }
-    # }
+        for my $item ( $res->{data}->{DomainCheckResult}->@* ) {
+            $data->{ $item->{Domain}->[0]->{content} } = $item->{Available}->[0]->{content} eq 'true' ? 1 : 0;
+        }
+
+        $res->{data} = $data;
+    }
 
     return $res;
 }
@@ -121,8 +64,6 @@ sub _req ( $self, $params ) {
         timeout => 60,
         proxy   => $self->{proxy},
     );
-
-    say dump $res;
 
     return res $res if !$res;
 
