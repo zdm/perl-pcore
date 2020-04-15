@@ -4,11 +4,20 @@ use Pcore -class, -res;
 use Pcore::Util::Scalar qw[is_plain_arrayref];
 use Pcore::Util::Data qw[to_uri from_json];
 
-has api_key     => ( required => 1 );
+has api_key       => ( required => 1 );
+has openapp_token => ();
+
 has max_threads => 3;
 has proxy       => ();
 
 has _semaphore => sub ($self) { Coro::Semaphore->new( $self->{max_threads} ) }, is => 'lazy';
+
+# TODO
+sub test ($self) {
+    ...;
+
+    return;
+}
 
 # https://developer-support.majestic.com/api/commands/get-anchor-text.shtml
 sub get_anchor_text ( $self, $domain, %args ) {
@@ -318,6 +327,16 @@ sub _req ( $self, $params ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 17                   | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

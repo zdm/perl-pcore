@@ -1,11 +1,18 @@
 package Pcore::API::namecheap;
 
 use Pcore -class, -res;
+use Pcore::Util::Scalar qw[is_plain_arrayref];
 
 has api_user => ( required => 1 );
 has api_key  => ( required => 1 );
 has api_ip   => ( required => 1 );
 has proxy    => ();
+
+sub test ($self) {
+    my $res = $self->check_domains('google.com');
+
+    return $res;
+}
 
 # https://www.namecheap.com/support/api/methods/domains/get-tld-list.aspx
 sub get_tld_list ($self) {
@@ -30,6 +37,8 @@ sub get_tld_list ($self) {
 # https://www.namecheap.com/support/api/methods/domains/check.aspx
 # NOTE max 100 domains are allowed, 30 is recommneded
 sub check_domains ( $self, $domains ) {
+    $domains = [$domains] if !is_plain_arrayref $domains;
+
     my $params = {
         Command    => 'namecheap.domains.check',
         DomainList => join( ',', $domains->@* ),
