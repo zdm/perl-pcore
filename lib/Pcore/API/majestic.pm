@@ -18,12 +18,13 @@ sub test ($self) {
 }
 
 # https://developer-support.majestic.com/api/commands/get-anchor-text.shtml
+# each request costs 1000 AnalysisResUnits, no matter how much anchors requested, each request costs 0.004$ at 01.04.2020
 sub get_anchor_text ( $self, $domain, %args ) {
     my $params = {
         cmd                  => 'GetAnchorText',
         datasource           => 'fresh',
         item                 => $domain,
-        Count                => $args{num_anchors} || 10,    # Number of results to be returned back. Max. 1_000
+        Count                => $args{num_anchors} || 10,    # Number of results to be returned back. Def. 10, max. 1_000
         TextMode             => 0,
         Mode                 => 0,
         FilterAnchorText     => undef,
@@ -39,6 +40,7 @@ sub get_anchor_text ( $self, $domain, %args ) {
 
 # https://developer-support.majestic.com/api/commands/get-index-item-info.shtml
 # items - up to 100 items
+# each domain in request costs 1 IndexItemInfoResUnits, or 0.0008$ at 01.04.2020
 sub get_index_item_info ( $self, $items, %args ) {
     $items = [$items] if !is_plain_arrayref $items;
 
@@ -79,6 +81,7 @@ sub get_backlink_data ( $self, $item, %args ) {
 }
 
 # https://developer-support.majestic.com/api/commands/get-subscription-info.shtml
+# this request is free
 sub get_subscription_info ( $self, %args ) {
     my $params = {
         cmd => 'GetSubscriptionInfo',
