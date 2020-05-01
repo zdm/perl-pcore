@@ -13,8 +13,6 @@ has _semaphore => sub ($self) { Coro::Semaphore->new( $self->{max_threads} ) }, 
 sub check_domains ( $self, $domains ) {
     my $guard = $self->{max_threads} && $self->_semaphore->guard;
 
-    say 'run';
-
     my $idx = { map { $_ => 0 } is_plain_arrayref $domains ? $domains->@* : $domains };
 
     my $url = "https://www.namesilo.com/api/checkRegisterAvailability?version=1&type=xml&key=$self->{api_key}&domains=" . join ',', keys $idx->%*;
