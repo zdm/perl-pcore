@@ -1,3 +1,6 @@
+v0.136.0 2020-05-04T23:51:30Z
+ - namesilo roundrobin
+
 v0.135.2 2020-05-04T11:00:09Z
  - docker wrapper invocation fixed
  - updated
