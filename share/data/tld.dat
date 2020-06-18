@@ -47,6 +47,7 @@ ally;ally
 alsace;alsace
 alstom;alstom
 am;am
+amazon;amazon
 americanexpress;americanexpress
 americanfamily;americanfamily
 amex;amex
@@ -391,7 +392,6 @@ erni;erni
 es;es
 esq;esq
 estate;estate
-esurance;esurance
 et;et
 etisalat;etisalat
 eu;eu
@@ -1070,7 +1070,6 @@ schule;schule
 schwarz;schwarz
 science;science
 scjohnson;scjohnson
-scor;scor
 scot;scot
 sd;sd
 se;se
@@ -1438,6 +1437,7 @@ zw;zw
 ລາວ;xn--q7ce6a
 გე;xn--node
 みんな;xn--q9jyb4c
+アマゾン;xn--cckwcxetd
 クラウド;xn--gckr3f0f
 グーグル;xn--qcka1pmc
 コム;xn--tckwe
@@ -1450,6 +1450,7 @@ zw;zw
 中国;xn--fiqs8s
 中國;xn--fiqz9s
 中文网;xn--fiq228c5hs
+亚马逊;xn--jlq480n2rg
 企业;xn--vhquv
 佛山;xn--1qqw23a
 信息;xn--vuq861b
