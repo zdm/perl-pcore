@@ -1,3 +1,6 @@
+v0.137.3 2020-06-24T12:42:06Z
+ - added Data::MessagePack::Boolean:: to dbi
+
 v0.137.2 2020-06-24T10:06:44Z
  - add msgpack to websockets
 
