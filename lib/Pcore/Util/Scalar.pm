@@ -37,7 +37,7 @@ sub on_destroy ( $scalar, $cb ) {
 }
 
 sub is_bool : prototype($) {
-    return ( is_ref $_[0] && UNIVERSAL::isa( $_[0], JSON::PP::Boolean:: ) ) || ( exists $INC{'Types/Serialiser.pm'} && Types::Serialiser::is_bool( $_[0] ) );
+    return ( is_ref $_[0] && ( UNIVERSAL::isa( $_[0], JSON::PP::Boolean:: ) || UNIVERSAL::isa( $_[0], Data::MessagePack::Boolean:: ) ) ) || ( exists $INC{'Types/Serialiser.pm'} && Types::Serialiser::is_bool( $_[0] ) );
 }
 
 sub is_path : prototype($) { return is_blessed_hashref $_[0] && $_[0]->isa('Pcore::Util::Path') }
