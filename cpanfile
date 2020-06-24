@@ -1,4 +1,4 @@
-requires 'perl',           v5.30;
+requires 'perl',           v5.32;
 requires 'common::header', v0.3.2;
 
 feature windows => sub {
