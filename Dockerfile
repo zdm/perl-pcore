@@ -5,7 +5,7 @@ LABEL maintainer="zdm <zdm@softvisio.net>"
 USER root
 
 ENV TZ=UTC \
-    PERL_VERSION="5.30.2" \
+    PERL_VERSION="5.32.0" \
     WORKSPACE="/var/local" \
     DIST_PATH="/var/local/pcore"
 
