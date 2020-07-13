@@ -136,6 +136,8 @@ sub _on_bin ( $self, $data_ref ) {
         $msg = eval { $MP->unpack( $data_ref->$* ) };
     }
     else {
+        local $SIG{__WARN__} = sub {};
+
         $msg = eval { $CBOR->decode( $data_ref->$* ) };
 
         if ( !$@ ) {
