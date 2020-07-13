@@ -13,5 +13,6 @@
         "type": "git",
         "url": ""
     },
-    "type": "perl"
+    "type": "perl",
+    "version": "0.138.1"
 }
