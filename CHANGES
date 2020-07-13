@@ -1,3 +1,6 @@
+v0.138.5 2020-07-13T09:52:11Z
+ - profile set_password api method renamed
+
 v0.138.4 2020-07-13T09:10:14Z
  - upload protocol updated
 
