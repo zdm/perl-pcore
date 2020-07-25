@@ -173,13 +173,23 @@ sub _get_ws ( $self ) {
         use_json      => $self->{use_json},
         token         => $self->{token},
         bindings      => $self->{bindings},
-        on_disconnect => sub { delete $self->{_ws} },
+        on_disconnect => sub { 
+            delete $self->{_timer};
+            delete $self->{_ws};
+        },
         on_bind       => $self->{on_bind},
         on_event      => $self->{on_event},
         on_rpc        => $self->{on_rpc},
     );
 
-    $self->{_ws} = $h if $h;
+    if ( $h ) {
+        $self->{_ws} = $h;
+
+        # start ping
+        $self->{_timer} = AE::timer( 60, 60, sub {
+            $h->_send_msg( { type => 'ping' } );
+        } );
+    }
 
     $self->{_get_ws_threads} = 0;
 
