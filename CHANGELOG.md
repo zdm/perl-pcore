@@ -1,3 +1,7 @@
+## 0.139.3 (2020-07-31)
+
+-   session signin updated
+
 ## 0.139.2 (2020-07-25)
 
 -   api client ping protocol added
