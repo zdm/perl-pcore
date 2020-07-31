@@ -22,7 +22,7 @@ sub API_signout ( $self, $auth ) {
     return 400;
 }
 
-sub API_signin ( $self, $auth, $args ) {
+sub API_signin ( $self, $auth, $args, @ ) {
 
     # authenticate
     if ( defined $args->{username} ) {
