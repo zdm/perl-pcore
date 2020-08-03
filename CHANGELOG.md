@@ -1,3 +1,7 @@
+## 0.139.4 (2020-08-03)
+
+-   no deploy workspace var, tesources updated
+
 ## 0.139.3 (2020-07-31)
 
 -   session signin updated
