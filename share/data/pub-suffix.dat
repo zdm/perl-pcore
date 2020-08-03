@@ -431,6 +431,7 @@ api.stdlib.com;api.stdlib.com
 apigee.io;apigee.io
 app;app
 app.banzaicloud.io;app.banzaicloud.io
+app.br;app.br
 app.gp;app.gp
 app.lmpm.com;app.lmpm.com
 app.os.fedoraproject.org;app.os.fedoraproject.org
@@ -792,6 +793,7 @@ bi;bi
 bi.it;bi.it
 bialowieza.pl;bialowieza.pl
 bialystok.pl;bialystok.pl
+bib.br;bib.br
 bibai.hokkaido.jp;bibai.hokkaido.jp
 bible;bible
 bible.museum;bible.museum
@@ -1421,6 +1423,7 @@ cn.com;cn.com
 cn.eu.org;cn.eu.org
 cn.it;cn.it
 cn.ua;cn.ua
+cn.vu;cn.vu
 cng.br;cng.br
 cnpy.gdn;cnpy.gdn
 cns.joyent.com;cns.joyent.com
@@ -1726,6 +1729,7 @@ county.museum;county.museum
 coupon;coupon
 coupons;coupons
 courses;courses
+coz.br;coz.br
 cpa;cpa
 cpa.pro;cpa.pro
 cq.cn;cq.cn
@@ -1881,15 +1885,18 @@ dentist;dentist
 dep.no;dep.no
 deporte.bo;deporte.bo
 depot.museum;depot.museum
+des.br;des.br
 desa.id;desa.id
 desi;desi
 design;design
 design.aero;design.aero
 design.museum;design.museum
+det.br;det.br
 detroit.museum;detroit.museum
 dev;dev
 dev-myqnapcloud.com;dev-myqnapcloud.com
 dev.adobeaemcloud.com;dev.adobeaemcloud.com
+dev.br;dev.br
 dev.static.land;dev.static.land
 dev.thingdust.io;dev.thingdust.io
 dev.vu;dev.vu
@@ -2271,6 +2278,7 @@ endofinternet.org;endofinternet.org
 endoftheinternet.org;endoftheinternet.org
 enebakk.no;enebakk.no
 energy;energy
+enf.br;enf.br
 eng.br;eng.br
 eng.pro;eng.pro
 engerdal.no;engerdal.no
@@ -2792,6 +2800,7 @@ gent;gent
 gentapps.com;gentapps.com
 genting;genting
 gentlentapis.com;gentlentapis.com
+geo.br;geo.br
 geology.museum;geology.museum
 geometre-expert.fr;geometre-expert.fr
 george;george
@@ -3568,6 +3577,8 @@ imizu.toyama.jp;imizu.toyama.jp
 immo;immo
 immobilien;immobilien
 imperia.it;imperia.it
+impertrix.com;impertrix.com
+impertrixcdn.com;impertrixcdn.com
 in;in
 in-addr.arpa;in-addr.arpa
 in-berlin.de;in-berlin.de
@@ -4656,6 +4667,7 @@ locus;locus
 lodi.it;lodi.it
 lodingen.no;lodingen.no
 loft;loft
+log.br;log.br
 loginline.app;loginline.app
 loginline.dev;loginline.dev
 loginline.io;loginline.io
@@ -6757,6 +6769,7 @@ rennesoy.no;rennesoy.no
 rennesøy.no;xn--rennesy-v1a.no
 rent;rent
 rentals;rentals
+rep.br;rep.br
 rep.kp;rep.kp
 repair;repair
 repbody.aero;repbody.aero
@@ -6787,7 +6800,6 @@ richardli;richardli
 ricoh;ricoh
 rieti.it;rieti.it
 rifu.miyagi.jp;rifu.miyagi.jp
-rightathome;rightathome
 riik.ee;riik.ee
 rikubetsu.hokkaido.jp;rikubetsu.hokkaido.jp
 rikuzentakata.iwate.jp;rikuzentakata.iwate.jp
@@ -7159,6 +7171,7 @@ secure;secure
 security;security
 securitytactics.com;securitytactics.com
 seek;seek
+seg.br;seg.br
 seidat.net;seidat.net
 seihi.nagasaki.jp;seihi.nagasaki.jp
 seika.kyoto.jp;seika.kyoto.jp
@@ -7660,7 +7673,6 @@ sy;sy
 sydney;sydney
 sydney.museum;sydney.museum
 sykkylven.no;sykkylven.no
-symantec;symantec
 syncloud.it;syncloud.it
 syno-ds.de;syno-ds.de
 synology-diskstation.de;synology-diskstation.de
@@ -7809,6 +7821,7 @@ te.it;te.it
 te.ua;te.ua
 teaches-yoga.com;teaches-yoga.com
 team;team
+tec.br;tec.br
 tec.mi.us;tec.mi.us
 tec.ve;tec.ve
 tech;tech
