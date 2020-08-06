@@ -31,6 +31,7 @@
 *.er;*.er
 *.ex.futurecms.at;*.ex.futurecms.at
 *.ex.ortsinfo.at;*.ex.ortsinfo.at
+*.firenet.ch;*.firenet.ch
 *.fk;*.fk
 *.futurecms.at;*.futurecms.at
 *.hosting.myjino.ru;*.hosting.myjino.ru
@@ -72,6 +73,7 @@
 *.statics.cloud;*.statics.cloud
 *.stg.dev;*.stg.dev
 *.stolos.io;*.stolos.io
+*.svc.firenet.ch;*.svc.firenet.ch
 *.sys.qcx.io;*.sys.qcx.io
 *.telebit.xyz;*.telebit.xyz
 *.transurl.be;*.transurl.be
@@ -676,6 +678,9 @@ banzai.cloud;banzai.cloud
 banzaicloud.io;banzaicloud.io
 bar;bar
 bar.pro;bar.pro
+bar0.net;bar0.net
+bar1.net;bar1.net
+bar2.net;bar2.net
 barcelona;barcelona
 barcelona.museum;barcelona.museum
 barclaycard;barclaycard
@@ -2468,6 +2473,7 @@ finnoy.no;finnoy.no
 finnøy.no;xn--finny-yua.no
 fire;fire
 firebaseapp.com;firebaseapp.com
+firenet.ch;firenet.ch
 firenze.it;firenze.it
 firestone;firestone
 firewall-gateway.com;firewall-gateway.com
@@ -4866,6 +4872,7 @@ mc;mc
 mc.ax;mc.ax
 mc.eu.org;mc.eu.org
 mc.it;mc.it
+mcdir.ru;mcdir.ru
 mckinsey;mckinsey
 md;md
 md.ci;md.ci
@@ -5349,6 +5356,7 @@ n.se;n.se
 n4t.co;n4t.co
 na;na
 na.it;na.it
+na4u.ru;na4u.ru
 naamesjevuemie.no;naamesjevuemie.no
 nab;nab
 nabari.mie.jp;nabari.mie.jp
@@ -6719,6 +6727,7 @@ ravendb.run;ravendb.run
 ravenna.it;ravenna.it
 rawa-maz.pl;rawa-maz.pl
 rc.it;rc.it
+rdv.to;rdv.to
 re;re
 re.it;re.it
 re.kr;re.kr
@@ -7654,6 +7663,7 @@ suzuki;suzuki
 sv;sv
 sv.it;sv.it
 svalbard.no;svalbard.no
+svc.firenet.ch;svc.firenet.ch
 sveio.no;sveio.no
 svelvik.no;svelvik.no
 svizzera.museum;svizzera.museum
@@ -8499,6 +8509,7 @@ voto;voto
 voyage;voyage
 vpndns.net;vpndns.net
 vpnplus.to;vpnplus.to
+vps.mcdir.ru;vps.mcdir.ru
 vps.myjino.ru;vps.myjino.ru
 vr.it;vr.it
 vs.it;vs.it
