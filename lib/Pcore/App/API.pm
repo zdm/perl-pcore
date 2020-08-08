@@ -117,7 +117,7 @@ sub user_is_root ( $self, $user_id ) {
     return $user_id eq $ROOT_USER_NAME || $user_id eq $ROOT_USER_ID;
 }
 
-# accepted characters: A-z (case-insensitive), 0-9, "_", "-", "@", ".", length: 3-32 characters, not number, not UUID
+# accepted characters: A-z (case-insensitive), 0-9, "_", "-", "@", ".", length: 3-255 characters, not number, not UUID
 sub validate_user_name ( $self, $name ) {
 
     # name looks like UUID string
@@ -130,7 +130,7 @@ sub validate_user_name ( $self, $name ) {
 
     return if $name =~ /[^[:alnum:]_@.-]/smi;
 
-    return if length $name < 3 || length $name > 32;
+    return if length $name < 3 || length $name > 255;
 
     return 1;
 }
@@ -145,7 +145,7 @@ sub validate_telegram_user_name ( $self, $name ) {
 }
 
 sub validate_email ( $self, $email ) {
-    return $email =~ /^[[:alnum:]][[:alnum:]._-]+[[:alnum:]]\@[[:alnum:].-]+$/smi;
+    return $email =~ /^[[:alnum:]][[:alnum:]._-]*[[:alnum:]]\@[[:alnum:].-]+$/smi;
 }
 
 # SETTINGS
