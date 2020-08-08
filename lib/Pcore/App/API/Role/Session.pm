@@ -22,7 +22,7 @@ sub API_signout ( $self, $auth ) {
     return 400;
 }
 
-sub API_signin ( $self, $auth, $args, @ ) {
+sub API_signin ( $self, $auth, $args, $permissions = undef ) {
 
     # authenticate
     if ( defined $args->{username} ) {
@@ -49,6 +49,20 @@ sub API_signin ( $self, $auth, $args, @ ) {
         # create user session
         my $session = $self->{api}->{backend}->user_session_create($user_id);
 
+        if ($permissions) {
+            my $found;
+
+            for my $perm ($permissions->@*) {
+                if ( $session->{data}->{permissions}->{$perm} ) {
+                    $found = 1;
+
+                    last;
+                }
+            }
+
+            return [403, 'You are not authourised to access this area.'] if !$found;
+        }
+
         # user session creation error
         return 500 if !$session;
 
@@ -59,12 +73,11 @@ sub API_signin ( $self, $auth, $args, @ ) {
         # user session created
         return
           200,
-          { settings         => $self->_get_app_settings($auth),
+          { is_authenticated => 1,
+            settings         => $self->_get_app_settings($auth),
             token            => $session->{data}->{token},
-            is_authenticated => 1,
             user_id          => $user_id,
             username         => $session->{data}->{user_name},
-            locale           => $user->{data}->{locale},
             avatar           => $self->_get_avatar( $user->{data} ),
             permissions      => $session->{data}->{permissions},
           };
@@ -72,10 +85,10 @@ sub API_signin ( $self, $auth, $args, @ ) {
 
     # not authenticated
     elsif ( !$auth ) {
-        return 200,
-          { settings         => $self->_get_app_settings($auth),
+        return 401, { 
             is_authenticated => 0,
-          };
+            settings         => $self->_get_app_settings($auth) 
+        };
     }
 
     # authenticated
@@ -85,11 +98,10 @@ sub API_signin ( $self, $auth, $args, @ ) {
         my $user = $dbh->selectrow( q[SELECT "id", "email", "gravatar", "locale" FROM "user" WHERE "id" = ?], [ $auth->{user_id} ] );
 
         return 200,
-          { settings         => $self->_get_app_settings($auth),
-            is_authenticated => 1,
+          { is_authenticated => 1,
+            settings         => $self->_get_app_settings($auth),
             user_id          => $auth->{user_id},
             username         => $auth->{user_name},
-            locale           => $user->{data}->{locale},
             avatar           => $self->_get_avatar( $user->{data} ),
             permissions      => $auth->{permissions},
           };
