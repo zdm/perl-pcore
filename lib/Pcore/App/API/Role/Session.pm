@@ -216,7 +216,7 @@ sub API_confirm_email ( $self, $auth, $token ) {
     return 200;
 }
 
-sub API_recover_password ( $self, $auth, $user_id ) {
+sub API_send_password_reset_email ( $self, $auth, $user_id ) {
     my $token = $self->{api}->{backend}->user_action_token_create( $user_id, $TOKEN_TYPE_PASSWORD_RECOVERY );
 
     return $token if !$token;
@@ -226,7 +226,7 @@ sub API_recover_password ( $self, $auth, $user_id ) {
     return $res;
 }
 
-sub API_set_password ( $self, $auth, $token, $password ) {
+sub API_set_password_by_token ( $self, $auth, $token, $password ) {
     return 400 if !$token;
 
     $token = $self->{api}->{backend}->user_action_token_verify( $token, $TOKEN_TYPE_PASSWORD_RECOVERY );
