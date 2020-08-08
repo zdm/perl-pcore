@@ -1,3 +1,8 @@
+## 0.140.0 (2020-08-08)
+
+-   username length expanded to 255 chars, email validation regexp fixed
+-   resources updated
+
 ## 0.139.4 (2020-08-03)
 
 -   no deploy workspace var, tesources updated
