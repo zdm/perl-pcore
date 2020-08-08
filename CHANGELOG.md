@@ -1,3 +1,7 @@
+## 0.140.2 (2020-08-08)
+
+-   session signin check permissions
+
 ## 0.140.1 (2020-08-08)
 
 -   email api methods updated
