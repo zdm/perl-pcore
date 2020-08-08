@@ -1,3 +1,7 @@
+## 0.140.1 (2020-08-08)
+
+-   email api methods updated
+
 ## 0.140.0 (2020-08-08)
 
 -   username length expanded to 255 chars, email validation regexp fixed
