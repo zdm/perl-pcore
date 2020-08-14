@@ -5,10 +5,13 @@
 !city.sapporo.jp;!city.sapporo.jp
 !city.sendai.jp;!city.sendai.jp
 !city.yokohama.jp;!city.yokohama.jp
+!teams.algorithmia.com;!teams.algorithmia.com
+!test.algorithmia.com;!test.algorithmia.com
 !www.ck;!www.ck
 *.0emm.com;*.0emm.com
 *.advisor.ws;*.advisor.ws
 *.alces.network;*.alces.network
+*.algorithmia.com;*.algorithmia.com
 *.awdev.ca;*.awdev.ca
 *.azurecontainer.io;*.azurecontainer.io
 *.backyards.banzaicloud.io;*.backyards.banzaicloud.io
@@ -322,6 +325,7 @@ alessandria.it;alessandria.it
 alesund.no;alesund.no
 alfaromeo;alfaromeo
 algard.no;algard.no
+algorithmia.com;algorithmia.com
 alibaba;alibaba
 alipay;alipay
 allfinanz;allfinanz
@@ -1779,10 +1783,12 @@ curv.dev;curv.dev
 cust.dev.thingdust.io;cust.dev.thingdust.io
 cust.disrec.thingdust.io;cust.disrec.thingdust.io
 cust.prod.thingdust.io;cust.prod.thingdust.io
+cust.retrosnub.co.uk;cust.retrosnub.co.uk
 cust.testing.thingdust.io;cust.testing.thingdust.io
 custom.metacentrum.cz;custom.metacentrum.cz
 customer-oci.com;customer-oci.com
 customer.enonic.io;customer.enonic.io
+customer.mythic-beasts.com;customer.mythic-beasts.com
 customer.speedpartner.de;customer.speedpartner.de
 cv;cv
 cv.ua;cv.ua
@@ -3448,6 +3454,7 @@ horse;horse
 horten.no;horten.no
 hospital;hospital
 host;host
+hostedpi.com;hostedpi.com
 hosting;hosting
 hosting-cluster.nl;hosting-cluster.nl
 hosting.myjino.ru;hosting.myjino.ru
@@ -4757,6 +4764,7 @@ lviv.ua;lviv.ua
 ly;ly
 lyngdal.no;lyngdal.no
 lyngen.no;lyngen.no
+lynx.mythic-beasts.com;lynx.mythic-beasts.com
 láhppi.no;xn--lhppi-xqa.no
 läns.museum;xn--lns-qla.museum
 lærdal.no;xn--lrdal-sra.no
@@ -5340,6 +5348,7 @@ mysecuritycamera.com;mysecuritycamera.com
 mysecuritycamera.net;mysecuritycamera.net
 mysecuritycamera.org;mysecuritycamera.org
 myshopblocks.com;myshopblocks.com
+mythic-beasts.com;mythic-beasts.com
 mytis.ru;mytis.ru
 mytuleap.com;mytuleap.com
 myvnc.com;myvnc.com
@@ -5954,6 +5963,7 @@ obu.aichi.jp;obu.aichi.jp
 obuse.nagano.jp;obuse.nagano.jp
 oceanographic.museum;oceanographic.museum
 oceanographique.museum;oceanographique.museum
+ocelot.mythic-beasts.com;ocelot.mythic-beasts.com
 ochi.kochi.jp;ochi.kochi.jp
 oci.customer-oci.com;oci.customer-oci.com
 ocp.customer-oci.com;ocp.customer-oci.com
@@ -6094,6 +6104,7 @@ onrender.com;onrender.com
 ontario.museum;ontario.museum
 onthewifi.com;onthewifi.com
 onyourside;onyourside
+onza.mythic-beasts.com;onza.mythic-beasts.com
 ooguy.com;ooguy.com
 ookuwa.nagano.jp;ookuwa.nagano.jp
 ooo;ooo
@@ -6795,6 +6806,7 @@ resinstaging.io;resinstaging.io
 resistance.museum;resistance.museum
 rest;rest
 restaurant;restaurant
+retrosnub.co.uk;retrosnub.co.uk
 review;review
 reviews;reviews
 revista.bo;revista.bo
@@ -7526,6 +7538,7 @@ spdns.eu;spdns.eu
 spdns.org;spdns.org
 spectrum.myjino.ru;spectrum.myjino.ru
 speedpartner.de;speedpartner.de
+sphinx.mythic-beasts.com;sphinx.mythic-beasts.com
 spjelkavik.no;spjelkavik.no
 sport;sport
 sport.hu;sport.hu
@@ -8513,6 +8526,7 @@ vps.mcdir.ru;vps.mcdir.ru
 vps.myjino.ru;vps.myjino.ru
 vr.it;vr.it
 vs.it;vs.it
+vs.mythic-beasts.com;vs.mythic-beasts.com
 vt.it;vt.it
 vt.us;vt.us
 vu;vu
@@ -8674,6 +8688,7 @@ www.ro;www.ro
 wy.us;wy.us
 wzmiuw.gov.pl;wzmiuw.gov.pl
 x.bg;x.bg
+x.mythic-beasts.com;x.mythic-beasts.com
 x.se;x.se
 x443.pw;x443.pw
 xbox;xbox
@@ -8708,6 +8723,7 @@ yaizu.shizuoka.jp;yaizu.shizuoka.jp
 yakage.okayama.jp;yakage.okayama.jp
 yakumo.hokkaido.jp;yakumo.hokkaido.jp
 yakumo.shimane.jp;yakumo.shimane.jp
+yali.mythic-beasts.com;yali.mythic-beasts.com
 yalta.ua;yalta.ua
 yamada.fukuoka.jp;yamada.fukuoka.jp
 yamada.iwate.jp;yamada.iwate.jp
