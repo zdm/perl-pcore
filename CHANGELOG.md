@@ -1,3 +1,8 @@
+## 0.140.3 (2020-08-14)
+
+-   perl 5.32
+-   resources updated
+
 ## 0.140.2 (2020-08-08)
 
 -   session signin check permissions
